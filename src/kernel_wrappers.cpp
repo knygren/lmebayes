@@ -242,6 +242,13 @@ Rcpp::List f2_prep_grad_opencl(
     kernel_name = "f2_poisson_prep_grad";
     kernel_file  = "src/f2_poisson_prep.cl";
   }
+  
+  if (family=="Gamma"){
+    kernel_name = "f2_gamma_prep_grad";
+    kernel_file  = "src/f2_gamma_prep.cl";
+    
+  }
+  
     
   else {
     Rcpp::stop("Unsupported family: " + family);
@@ -327,50 +334,22 @@ Rcpp::NumericVector f2_accum(
     }
     
     if (family=="poisson"){
-      
-      
-      // if (i == 1) {
-      //   const int K = std::min(n, 8);  // max rows to print
-      //   Rcpp::Rcout << "\n[DEBUG] f2_accum: i = " << i << " — inputs to dpois_glmb\n";
-      //   Rcpp::Rcout << std::setprecision(17);
-      //   
-      //   double xb_min = xb(0, i), xb_max = xb(0, i);
-      //   for (int j = 1; j < n; ++j) {
-      //     double val = xb(j, i);
-      //     if (val < xb_min) xb_min = val;
-      //     if (val > xb_max) xb_max = val;
-      //   }
-      //   
-      //   Rcpp::Rcout << "  y.length = " << y.size()
-      //               << ", xb.nrow = " << xb.nrow()
-      //               << ", wt.length = " << wt.size() << "\n";
-      //   Rcpp::Rcout << "  xb[:, " << i << "] range: [" << xb_min << ", " << xb_max << "]\n";
-      //   
-      //   Rcpp::Rcout << "  head(y, xb[,i], wt) for first " << K << " records:\n";
-      //   for (int j = 0; j < K; ++j) {
-      //     Rcpp::Rcout << "    j=" << j
-      //                 << "  y=" << y[j]
-      //                 << "  xb=" << xb(j, i)
-      //                 << "  wt=" << wt[j] << "\n";
-      //   }
-      //   
-      //   Rcpp::Rcout << "  qf[" << i << "] = " << qf[i] << "\n";
-      // }  
-      
-      
-      //ll = dbinom_glmb(y, wt, xbi, true);
-      //ll=dpois_glmb(y,xb,true);
+    
       ll=dpois_glmb(y,xbi,true);
       
-      // sumxb = std::accumulate(xb.begin(), xb.end(), 0.0);
-      // sumll2 = std::accumulate(ll.begin(), ll.end(), 0.0);
-      
-      for(int j=0;j<n;j++){
-        ll[j]=ll[j]*wt[j];  
-      }
+      for(int j=0;j<n;j++){ ll[j]=ll[j]*wt[j];    }
       
       
     }
+    if (family== "Gamma"){
+      
+      ll=dgamma_glmb(y,wt,xbi,true);
+      
+      
+
+    }
+    
+    
     
     else {
       Rcpp::stop("Unsupported family: " + family);
