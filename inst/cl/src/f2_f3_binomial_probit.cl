@@ -71,6 +71,11 @@ __kernel void f2_f3_binomial_probit(
         // Store probit probability for this grid point and observation
         xb[base + i] = p1;
 
+       // <— replace manual log‐lik term with dbinom’s log‐binomial
+        double ll = dbinom(y[i], wt[i], p1, /*give_log=*/1);
+        res_acc -= ll;
+
+
         // Compute gradient residual for observation i
         double resid = ((y[i] * d / p1) - ((1.0 - y[i]) * d / p2)) * wt[i];
 
@@ -79,9 +84,7 @@ __kernel void f2_f3_binomial_probit(
             g_loc[k] -= X[k*l1 + i] * resid;
         }
 
-        // Accumulate negative log‐likelihood
-        res_acc -= wt[i] * ( y[i] * log(p1)
-                           + (1.0 - y[i]) * log(p2) );
+
     }
 
     // 5) Write back results

@@ -437,7 +437,7 @@ Rcpp::List f2_f3_opencl(
   //   - dpq_prelude
   //   - dpq
 
-  std::string DBL_EPSILON_TEST    = load_kernel_source("test/DBL_EPSILON_TEST.cl");
+//  std::string DBL_EPSILON_TEST    = load_kernel_source("test/DBL_EPSILON_TEST.cl");
   
     
   std::string nmath_source2     = load_kernel_source("nmath/nmath.cl");
@@ -482,23 +482,34 @@ Rcpp::List f2_f3_opencl(
       
           }
     else if (link == "cloglog") {
-      kernel_name = "f2_binomial_cloglog_prep_grad";
-      kernel_file = "src/f2_binomial_cloglog_prep.cl";
-    }
+//      kernel_name = "f2_binomial_cloglog_prep_grad";
+//      kernel_file = "src/f2_binomial_cloglog_prep.cl";
+
+      kernel_name = "f2_f3_binomial_cloglog";
+      kernel_file = "src/f2_f3_binomial_cloglog_.cl";
+      
+                }
     else {
       Rcpp::stop("Unsupported link function for binomial family: " + link);
     }
   }
   
   else if (family =="poisson"){
-    kernel_name = "f2_poisson_prep_grad";
-    kernel_file  = "src/f2_poisson_prep.cl";
-  }
+//    kernel_name = "f2_poisson_prep_grad";
+//    kernel_file  = "src/f2_poisson_prep.cl";
+    kernel_name = "f2_f3_poisson_prep";
+    kernel_file  = "src/f2_f3_poisson.cl";
+    
+      }
   
   else if (family=="Gamma"){
-    kernel_name = "f2_gamma_prep_grad";
-    kernel_file  = "src/f2_gamma_prep.cl";
+//    kernel_name = "f2_gamma_prep_grad";
+//    kernel_file  = "src/f2_gamma_prep.cl";
+
+    kernel_name = "f2_f3_gamma";
+    kernel_file  = "src/f2_f3_gamma.cl";
     
+        
   }
   
   
