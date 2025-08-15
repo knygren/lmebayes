@@ -430,7 +430,7 @@ Rcpp::List f2_f3_opencl(
      std::string dpq_source     = load_kernel_library("dpq","glmbayes", false);
   
 
-  if (family == "binomial") {
+  if (family == "binomial"||family == "quasibinomial") {
     if (link == "logit") {
       kernel_name = "f2_f3_binomial_logit";
       kernel_file = "src/f2_f3_binomial_logit.cl";
@@ -451,7 +451,7 @@ Rcpp::List f2_f3_opencl(
     }
   }
   
-  else if (family =="poisson"){
+  else if (family =="poisson"||family =="quasipoisson"){
     kernel_name = "f2_f3_poisson";
     kernel_file  = "src/f2_f3_poisson.cl";
     
