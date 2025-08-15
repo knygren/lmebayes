@@ -428,7 +428,7 @@ Rcpp::List f2_f3_opencl(
   
   std::string OPENCL_source     = load_kernel_source("OPENCL.CL");
   //   std::string rmath_source     = load_kernel_library("rmath");
-  //   std::string nmath_source     = load_kernel_library("nmath");
+     std::string nmath_source     = load_kernel_library("nmath","glmbayes", false);
   //   std::string dpq_source     = load_kernel_library("dpq");
   
   std::string rmath_source2     = load_kernel_source("rmath/Rmath.cl");

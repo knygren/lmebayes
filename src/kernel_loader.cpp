@@ -54,7 +54,7 @@ std::string load_kernel_source(const std::string& relative_path,
 /////////////////////////////
 
 #ifdef USE_OPENCL
-std::string load_kernel_library(const std::string& subdir, const std::string& package = "glmbayes") {
+std::string load_kernel_library(const std::string& subdir, const std::string& package = "glmbayes",bool verbose=false ) {
   std::string dir_path = Rcpp::as<std::string>(
     Rcpp::Function("system.file")("cl", subdir, Rcpp::Named("package") = package)
   );
@@ -63,11 +63,11 @@ std::string load_kernel_library(const std::string& subdir, const std::string& pa
   std::map<std::string, std::set<std::string>> depends_map;
   std::map<std::string, std::filesystem::path> file_map;
   
-  std::cerr << "\n📂 Files found in '" << subdir << "':\n";
+if (verbose)  std::cerr << "\n📂 Files found in '" << subdir << "':\n";
   for (const auto& entry : std::filesystem::directory_iterator(dir_path)) {
     if (entry.path().extension() == ".cl") {
       std::string file_id = entry.path().stem().string();
-      std::cerr << " - " << file_id << "\n";
+      if (verbose)      std::cerr << " - " << file_id << "\n";
       
       std::ifstream infile(entry.path());
       std::string line;
@@ -102,26 +102,26 @@ std::string load_kernel_library(const std::string& subdir, const std::string& pa
   std::set<std::string> sorted_set;
   std::set<std::string> unsorted_set;
   
-  std::cerr << "\n📤 Files with no dependencies:\n";
+  if (verbose)  std::cerr << "\n📤 Files with no dependencies:\n";
   for (const auto& [file, _] : file_map) {
     if (depends_map[file].empty()) {
       sorted.push_back(file);
       sorted_set.insert(file);
-      std::cerr << " + " << file << "\n";
+      if (verbose)      std::cerr << " + " << file << "\n";
     } else {
       unsorted_set.insert(file);
     }
   }
   
-  std::cerr << "\n🧪 Unsorted files:\n";
+  if (verbose)  std::cerr << "\n🧪 Unsorted files:\n";
   for (const auto& file : unsorted_set) {
-    std::cerr << " - " << file << "\n";
+    if (verbose)    std::cerr << " - " << file << "\n";
   }
   
   int pass_count = 0;
   while (!unsorted_set.empty()) {
     ++pass_count;
-    std::cerr << "\n🔁 While Loop Pass #" << pass_count << " — Remaining unsorted: " << unsorted_set.size() << "\n";
+    if (verbose)    std::cerr << "\n🔁 While Loop Pass #" << pass_count << " — Remaining unsorted: " << unsorted_set.size() << "\n";
     
     std::vector<std::string> newly_sorted;
     bool progress_made = false;
@@ -129,34 +129,34 @@ std::string load_kernel_library(const std::string& subdir, const std::string& pa
     
     for (const std::string& file : unsorted_set) {
       ++file_counter;
-      std::cerr << "   🔍 File #" << file_counter << ": " << file << "\n";
+      if (verbose)      std::cerr << "   🔍 File #" << file_counter << ": " << file << "\n";
       
       const auto& deps = depends_map[file];
       int depends_counter = static_cast<int>(deps.size());
-      std::cerr << "      📦 Dependency Count: " << depends_counter << "\n";
+      if (verbose)      std::cerr << "      📦 Dependency Count: " << depends_counter << "\n";
       
       int found_counter = 0;
       int dep_index = 0;
       for (const std::string& dep : deps) {
         ++dep_index;
-        std::cerr << "         🔎 Checking classified #" << dep_index << ": " << dep << "\n";
+        if (verbose)        std::cerr << "         🔎 Checking classified #" << dep_index << ": " << dep << "\n";
         
         auto it = sorted_set.find(dep);
         if (it != sorted_set.end()) {
-          std::cerr << "            ➤ Found in sorted? ✅ Yes\n";
+          if (verbose)          std::cerr << "            ➤ Found in sorted? ✅ Yes\n";
           ++found_counter;
         } else {
-          std::cerr << "            ➤ Found in sorted? ❌ No\n";
+          if (verbose)        std::cerr << "            ➤ Found in sorted? ❌ No\n";
         }
       }
       
-      std::cerr << "      🔍 Found count: " << found_counter << "\n";
+      if (verbose)      std::cerr << "      🔍 Found count: " << found_counter << "\n";
       if (found_counter == depends_counter) {
         sorted.push_back(file);
         sorted_set.insert(file);
         newly_sorted.push_back(file);
         progress_made = true;
-        std::cerr << " ✅ Promoted to Sorted: " << file << "\n";
+        if (verbose)      std::cerr << " ✅ Promoted to Sorted: " << file << "\n";
       }
     }
     
@@ -165,17 +165,17 @@ std::string load_kernel_library(const std::string& subdir, const std::string& pa
     }
     
     if (!progress_made) {
-      std::cerr << "\n❌ No files promoted on pass #" << pass_count << "; possible circular or missing dependencies:\n";
+      if (verbose)      std::cerr << "\n❌ No files promoted on pass #" << pass_count << "; possible circular or missing dependencies:\n";
       for (const std::string& file : unsorted_set) {
-        std::cerr << " - " << file << "\n";
+        if (verbose)        std::cerr << " - " << file << "\n";
       }
       throw std::runtime_error("Dependency sort failed: unresolved dependencies remain.");
     }
   }
   
-  std::cerr << "\n🔗 Final Sorted Load Order:\n";
+  if (verbose)  std::cerr << "\n🔗 Final Sorted Load Order:\n";
   for (const auto& file : sorted) {
-    std::cerr << " - " << file << "\n";
+    if (verbose)    std::cerr << " - " << file << "\n";
   }
   
   std::string combined_source;
