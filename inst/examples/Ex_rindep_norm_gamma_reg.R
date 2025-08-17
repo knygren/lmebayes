@@ -7,13 +7,14 @@ group <- gl(2, 10, 20, labels = c("Ctl","Trt"))
 weight <- c(ctl, trt)
 lm.D9 <- lm(weight ~ group,y=TRUE,x=TRUE)
 
-p_setup=Prior_Setup(lm.D9)
+p_setup=Prior_Setup(weight ~ group,family=gaussian())
 dispersion=sigma(lm.D9)^2
 
 ## Initialize dispersion
 p=1/dispersion
 
 mu=p_setup$mu
+Sigma_Prior=
 Sigma_prior=p_setup$Sigma
 y=lm.D9$y
 x=lm.D9$x
@@ -34,7 +35,9 @@ Sigma_prior[1,1]=var(y)
 ## of the dependent variable 
 
 mu[2,1]=0
-Sigma_prior[2,2]=((max(y)-min(y))/1.96)^2
+
+# Temporarily edit this out
+#Sigma_prior[2,2]=((max(y)-min(y))/1.96)^2
 
 #Prior_Check(lm.D9,mu,Sigma_prior)
 Prior_Check(weight ~ group,gaussian(),dNormal(mu=mu,Sigma=Sigma_prior))

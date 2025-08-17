@@ -8,6 +8,7 @@ Prior_Setup(
   formula,
   data = NULL,
   family = gaussian,
+  pwt = 0.05,
   subset = NULL,
   na.action = na.fail,
   drop.unused.levels = FALSE,
@@ -25,6 +26,8 @@ Prior_Setup(
     array will be accepted.}
 
 \item{family}{a description of the error distribution and linke function to be used in the model.}
+
+\item{pwt}{Weight on the prior relative to the likelihood function at the the maximum likelihood estimate.}
 
 \item{subset}{a specification of the rows/observations to be used:
     defaults to all. This can be any valid indexing vector (see
