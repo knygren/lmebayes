@@ -1,11 +1,12 @@
 #' Setup Prior Objects
-#'
+#' 
 #' Sets up the structure for the Prior mean and Variance Matrices using information from a classical model.
 #' @param na.action how \code{NAs} are treated. The default is first, any \code{\link{na.action}} attribute of 
 #' data, second a \code{na.action} setting of \link{options}, and third \code{na.fail} if that is unset. 
 #' The \code{factory-fresh} default is \code{na.omit}. Another possible value is \code{NULL}.
 #' @param family a description of the error distribution and linke function to be used in the model.
 #' @param pwt Weight on the prior relative to the likelihood function at the the maximum likelihood estimate.
+#' @param intercept_source Specifys the method through which the prior mean for the intercept term is set. Options are based on the frequentist intercept only (null_model) or full models.  
 #' @inheritParams stats::model.frame
 #' @return A list with items related to the prior.
 #' \item{mu}{An initial version of the prior mean vector, populated with all zeros}
@@ -22,38 +23,51 @@
 
 ## Note arguments outside of first two are currently not used
 
-Prior_Setup<-function(formula,data=NULL,family=gaussian,pwt=0.05 ,subset = NULL, na.action = na.fail, 
+Prior_Setup<-function(formula,data=NULL,family=gaussian,pwt=0.05 ,
+                      intercept_source = c("null_model", "full_model"),
+                      subset = NULL, na.action = na.fail, 
                          drop.unused.levels = FALSE, xlev = NULL, ...){
   
   #mf<-model.frame(formula,data,subset=subset,na.action=na.action,
   #                drop.unused.levels=drop.unused.levels,xlev=xlev)
   
+  intercept_source <- match.arg(intercept_source)
+  
+  
   mf<-model.frame(formula,data)
   x<-model.matrix(formula,mf)
+  
+  ## Make sure the *columns* of x are named correctly:
   
   
   
   nvar=ncol(x)
-  var_names=colnames(x)
+  var_names <- colnames(x)
+  colnames(x) <- var_names
   #nvar=length(object$coefficients)
   mu=matrix(0,nrow=nvar,ncol=1)
   
   if(var_names[1]=='(Intercept)'){
-    lm_out=lm(formula,data=mf,y=TRUE)
-    y=lm_out$y
-    mu[1,1]=mean(y)
+    ##lm_out=lm(formula,data=mf,y=TRUE)
+    ##y=lm_out$y
+    ##mu[1,1]=mean(y)
     
     f<-formula
     
     lhs<-f[[2]]
     intercept_only<-as.formula(paste(deparse(lhs),"~1") ,env=environment(f))
     
-    glm_out2=glm(formula, family = family,data=data)
+    glm_full=glm(formula, family = family,data=data)
 
-    glm_out1=update(glm_out2,formula=intercept_only)
-    mu[1,1]=glm_out1$coefficients[1]
-
-    V0 <- vcov(glm_out2)
+    glm_null=update(glm_full,formula=intercept_only)
+    
+    chosen_int <- switch(intercept_source,
+                         null_model = coef(glm_null)[1],
+                         full_model = coef(glm_full)[1])
+    mu[1, 1] <- chosen_int
+    
+    
+    V0 <- vcov(glm_full)
     
     
   } 
