@@ -36,23 +36,35 @@ Prior_Setup<-function(formula,data=NULL,family=gaussian,pwt=0.05 ,
   intercept_source <- match.arg(intercept_source)
   effects_source <- match.arg(effects_source)
   
-  # inside Prior_Setup(), after reading `pwt` from the args
-  if (!is.numeric(pwt) || length(pwt) != 1 || is.na(pwt)) {
-    stop("`pwt` must be a single, non-missing numeric value.")
-  }
-  if (pwt <= 0 || pwt >= 1) {
-    stop("`pwt` must be strictly between 0 and 1; you supplied: ", pwt)
-  }
+  
+  
   
   
   mf<-model.frame(formula,data)
   x<-model.matrix(formula,mf)
   
+  nvar=ncol(x)
+  
+  
+  
   ## Make sure the *columns* of x are named correctly:
   
   
+  ## validate pwt  
+  if (!is.numeric(pwt) || any(is.na(pwt))) {  
+    stop("pwt must be numeric and non NA, either length 1 or length ", nvar)  
+  }  
+  if (! (length(pwt) %in% c(1, nvar)) ) {  
+    stop("pwt must have length 1 or length(coef) = ", nvar,  
+         "; you supplied length ", length(pwt))  
+  }  
+  if (any(pwt <= 0 | pwt >= 1)) {  
+    stop("All elements of pwt must lie strictly between 0 and 1; you supplied:",  
+         paste0(round(pwt, 3), collapse = ", "))  
+  }  
   
-  nvar=ncol(x)
+  
+  
   var_names <- colnames(x)
   colnames(x) <- var_names
   #nvar=length(object$coefficients)
@@ -63,18 +75,17 @@ Prior_Setup<-function(formula,data=NULL,family=gaussian,pwt=0.05 ,
   glm_full=glm(formula, family = family,data=data)
   V0 <- vcov(glm_full)
   
-  # —— begin PD check ——
-  # 1. square matrix, no NAs
-  if (!is.matrix(V0) || nrow(V0) != ncol(V0)) {
-    stop("`vcov(glm_full)` (V0) must be a square matrix.")
+
+    if (!is.matrix(V0) || nrow(V0) != ncol(V0)) {
+    stop("vcov(glm_full) (V0) must be a square matrix.")
   }
   if (anyNA(V0)) {
-    stop("`vcov(glm_full)` (V0) contains missing values.")
+    stop("vcov(glm_full) (V0) contains missing values.")
   }
   
   # 2. symmetry (up to numerical tolerance)
   if (!isSymmetric(V0, tol = sqrt(.Machine$double.eps))) {
-    stop("`vcov(glm_full)` (V0) is not symmetric.")
+    stop("vcov(glm_full) (V0) is not symmetric.")
   }
   
   # 3. positive-definiteness via Cholesky
@@ -126,8 +137,21 @@ Prior_Setup<-function(formula,data=NULL,family=gaussian,pwt=0.05 ,
   
 #  Sigma=as.matrix(diag(nvar))
  
-  Sigma=(1-pwt)/pwt*V0
+#  Sigma=(1-pwt)/pwt*V0
    
+  ## build prior covariance  
+  if (length(pwt) == 1L) {  
+    ## full matrix prior  
+    Sigma <- ((1 - pwt) / pwt) * V0  
+  }
+  else {  
+    ## diagonal only prior  
+    sigma2_vec  <- (1 - pwt) / pwt * diag(V0)  
+    Sigma <- diag(sigma2_vec, nrow = nvar, ncol = nvar)  
+  }  
+  
+  
+  
   rownames(mu)=var_names
   colnames(mu)=c("mu")
   rownames(Sigma)=var_names
