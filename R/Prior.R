@@ -10,8 +10,9 @@
 #' @param effects_source Specifies the method through which the prior means for the effects terms are set. Options are null_effects (prior means set to zero) or full_model (effect means set to match maximum likelihood estimates).  
 #' @inheritParams stats::model.frame
 #' @return A list with items related to the prior.
-#' \item{mu}{An initial version of the prior mean vector, populated with all zeros}
-#' \item{Sigma}{An initial version of the prior Variance-Covariance vector, populated as the diagonal identity matrix}
+#' \item{mu}{A prior mean vector}
+#' \item{Sigma}{A prior variance-covariance matrix}
+#' \item{dispersion}{Empirical bayes estimate for the dispersion (gaussian model only)}
 #' \item{model}{The model frame from \code{object} if it exists}
 #' \item{x}{The design matrix from \code{object} if it exists}
 #' @family prior
@@ -24,7 +25,7 @@
 
 ## Note arguments outside of first two are currently not used
 
-Prior_Setup<-function(formula,data=NULL,family=gaussian,pwt=0.05 ,
+Prior_Setup<-function(formula,data=NULL,family=gaussian(),pwt=0.05 ,
                       intercept_source = c("full_model", "null_model"),
                       effects_source = c("null_effects", "full_model"),
                       subset = NULL, na.action = na.fail, 
@@ -75,6 +76,18 @@ Prior_Setup<-function(formula,data=NULL,family=gaussian,pwt=0.05 ,
   glm_full=glm(formula, family = family,data=data)
   V0 <- vcov(glm_full)
   
+  
+  
+  ## conditional dispersion
+  if (family$family == "gaussian") {
+    ## summary(glm) gives you the MLE σ̂² via $dispersion
+    dispersion <- summary(glm_full)$dispersion
+  } else {
+    dispersion <- NULL
+  }
+  
+  
+  
 
     if (!is.matrix(V0) || nrow(V0) != ncol(V0)) {
     stop("vcov(glm_full) (V0) must be a square matrix.")
@@ -123,6 +136,8 @@ Prior_Setup<-function(formula,data=NULL,family=gaussian,pwt=0.05 ,
   } 
   
   
+  
+  
   # 5) effects prior means
   if (nvar > 1) {
     effect_names <- var_names[-1]
@@ -159,7 +174,7 @@ Prior_Setup<-function(formula,data=NULL,family=gaussian,pwt=0.05 ,
   
   print("Variable names are:")
   print(var_names)
-  return(list(mu=mu,Sigma=Sigma,model=mf,x=x))    
+  return(list(mu=mu,Sigma=Sigma,dispersion=dispersion,model=mf,x=x))    
   
 }
 

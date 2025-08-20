@@ -23,13 +23,13 @@ knitr::opts_chunk$set(
 library(glmbayes)
 ```
 
-# 1. Introduction
+# 1. Introductory Disussion
 
-The **glmb** function and related *method functions* that handle the output are designed to be Bayesian versions of the **glm** function and many of its *method functions*. This vignette shows how the basic setup/calling of the functions compare and how some of the basic output is displayed.
+The **glmb** function and related *method functions* that handle the output are designed to be Bayesian versions of the **glm** function and many of its *method functions*. This vignette shows how the basic setup/calling of the functions compare and how some of the basic output is displayed. A related **lmb** function that is designed specifically for Bayesian Linear models is also included in the package and its use is covered more extensively in the next chapter.
 
 # 2. Preparing a dataframe
 
-To understand how the outputs of the glmb function mirrors those for the glm function, it is useful to take a look at the first portion of the example that is provided with the glm function. The data is based on Randomized Controlled Trial data from Dobson (1990). Here is a view of the data:
+To understand how the outputs of the glmb function mirrors those for the glm function, it is useful to take a look at the first portion of the main example that is provided with the glm function. The data is based on Randomized Controlled Trial data from Dobson (1990). Here is a view of the data:
 
 ```{r dobson}
 ## Dobson (1990) Page 93: Randomized Controlled Trial :

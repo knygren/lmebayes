@@ -7,7 +7,7 @@
 Prior_Setup(
   formula,
   data = NULL,
-  family = gaussian,
+  family = gaussian(),
   pwt = 0.05,
   intercept_source = c("full_model", "null_model"),
   effects_source = c("null_effects", "full_model"),
@@ -65,8 +65,9 @@ The \code{factory-fresh} default is \code{na.omit}. Another possible value is \c
 }
 \value{
 A list with items related to the prior.
-\item{mu}{An initial version of the prior mean vector, populated with all zeros}
-\item{Sigma}{An initial version of the prior Variance-Covariance vector, populated as the diagonal identity matrix}
+\item{mu}{A prior mean vector}
+\item{Sigma}{A prior variance-covariance matrix}
+\item{dispersion}{Empirical bayes estimate for the dispersion (gaussian model only)}
 \item{model}{The model frame from \code{object} if it exists}
 \item{x}{The design matrix from \code{object} if it exists}
 }
