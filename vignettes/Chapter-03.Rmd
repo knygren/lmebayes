@@ -4,7 +4,9 @@ Yaml
 title: "Chapter 3: Tailoring Priors - Leveraging the Prior_Setup Function"
 author: "Kjell Nygren"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output: 
+  rmarkdown::html_vignette:
+    dfprint:: default
 vignette: >
   %\VignetteIndexEntry{Chapter 3: Tailoring Priors - Leveraging the Prior_Setup Function}
   %\VignetteEngine{knitr::rmarkdown}
@@ -112,8 +114,10 @@ nocite: |
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  df_print = "default"
 )
+
 ```
 
 ```{r setup,echo = FALSE}
@@ -126,7 +130,8 @@ group  <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
 weight <- c(ctl, trt)
 
 dat <- data.frame(weight, group)
-dat2<-rbind(dat,dat)
+#dat2<-rbind(dat,dat)
+dat2<-rbind(dat)
 ```
 
 # 2. The role of the `pwt` argument in the specification of a Zellner g-prior 
@@ -313,6 +318,15 @@ head(women)
 lm_uncentered <- lm(weight ~ height, data = women)
 summary(lm_uncentered)
 ```
+
+```{r Women_Uncentered_null}
+lm_uncentered_null <- lm(weight ~ 1, data = women)
+summary(lm_uncentered_null)
+```
+```{r Women_Uncentered_null_AIC}
+AIC(lm_uncentered_null)
+```
+
 ## 5.2 The default prior for the Women Datasets
 
 
@@ -352,6 +366,40 @@ summary(lmb.women_null)
 ```
 
 
+
+```{r Women_Prior_null_midpwt}
+ps_null=Prior_Setup(weight ~ height,family=gaussian(),pwt=0.05,intercept_source = "null_model", effects_source = "null_effects",data=women)
+mu_null=ps_null$mu
+V_null=ps_null$Sigma
+disp_ML_null=ps_null$dispersion
+```
+
+```{r women_lmb_call_null_midpwt}
+lmb.women_null_midpwt=lmb(weight ~ height,dNormal(mu_null,V_null,dispersion=disp_ML_null),data=women,n=10000)
+```
+
+
+```{r women_lmb_summary_null_midpwt}
+summary(lmb.women_null_midpwt)
+```
+
+
+```{r Women_Prior_null_hipwt}
+ps_null=Prior_Setup(weight ~ height,family=gaussian(),pwt=0.5,intercept_source = "null_model", effects_source = "null_effects",data=women)
+mu_null=ps_null$mu
+V_null=ps_null$Sigma
+disp_ML_null=ps_null$dispersion
+```
+
+```{r women_lmb_call_null_hipwt}
+lmb.women_null_hipwt=lmb(weight ~ height,dNormal(mu_null,V_null,dispersion=disp_ML_null),data=women,n=10000)
+```
+
+
+```{r women_lmb_summary_null_hipwt}
+summary(lmb.women_null_hipwt)
+```
+
 ## 5.4 The Full Model
 
 ```{r Women_Prior_full}
@@ -372,21 +420,21 @@ summary(lmb.women_full)
 ## 5.5 A low pwt prior for the Women Datasets
 
 
-```{r Women_Prior_lowpwt}
-ps_lowpwt=Prior_Setup(weight ~ height,family=gaussian(),pwt=0.01,intercept_source = "full_model", effects_source = "null_effects",data=women)
-mu_lowpwt=ps_lowpwt$mu
-V_lowpwt=ps_lowpwt$Sigma
-disp_ML_lowpwt=ps_lowpwt$dispersion
+```{r Women_Prior_midpwt}
+ps_midpwt=Prior_Setup(weight ~ height,family=gaussian(),pwt=0.05,intercept_source = "full_model", effects_source = "null_effects",data=women)
+mu_midpwt=ps_midpwt$mu
+V_midpwt=ps_midpwt$Sigma
+disp_ML_midpwt=ps_midpwt$dispersion
 ```
 
 
-```{r women_lmb_call_lowpwt}
-lmb.women_lowpwt=lmb(weight ~ height,dNormal(mu_lowpwt,V_lowpwt,dispersion=disp_ML_lowpwt),data=women,n=10000)
+```{r women_lmb_call_midpwt}
+lmb.women_midpwt=lmb(weight ~ height,dNormal(mu_midpwt,V_midpwt,dispersion=disp_ML_midpwt),data=women,n=10000)
 ```
 
 
-```{r women_lmb_summary_lowpwt}
-summary(lmb.women_lowpwt)
+```{r women_lmb_summary_midpwt}
+summary(lmb.women_midpwt)
 ```
 
 ## 5.6 A high pwt prior for the Women Datasets
@@ -394,7 +442,7 @@ summary(lmb.women_lowpwt)
 
 ```{r Women_Prior_hipwt}
 ps_hipwt=Prior_Setup(weight ~ height,family=gaussian(),pwt=0.5,intercept_source = "full_model", effects_source = "null_effects",data=women)
-mu_hipwt=ps_lowpwt$mu
+mu_hipwt=ps_hipwt$mu
 V_hipwt=ps_hipwt$Sigma
 disp_ML_hipwt=ps_hipwt$dispersion
 ```
@@ -418,14 +466,27 @@ This section compares posterior summaries for the height effect across five Baye
 ```{r Summary_Comparisons}
 summary_classical <- summary(lm_uncentered)
 
+intercept_classical <- coef(summary_classical)["(Intercept)", "Estimate"]
 estimate_classical <- coef(summary_classical)["height", "Estimate"]
 se_classical       <- coef(summary_classical)["height", "Std. Error"]
 pr_tail_classical  <- coef(summary_classical)["height", "Pr(>|t|)"] / 2
 eff_params_classical <- extractAIC(lm_uncentered)[1]
-AIC_Classical <-AIC(lm_uncentered)
+AIC_Classical <-AIC(lm_uncentered)-2
+
+summary_classical_null <- summary(lm_uncentered_null)
+
+intercept_classical_null <- coef(summary_classical_null)["(Intercept)", "Estimate"]
+estimate_classical_null <- NA_real_
+se_classical_null       <- NA_real_
+pr_tail_classical_null  <- NA_real_
+eff_params_classical_null <- extractAIC(lm_uncentered_null)[1]
+AIC_Classical_null <-AIC(lm_uncentered_null)-2
+
+
 
 sum_default=summary(lmb.women_default)
 
+intercept_default <- coef(sum_default)["(Intercept)", "Post.Mean"]
 estimate_default <- sum_default$coefficients["height", "Post.Mean"]
 sd_default       <- sum_default$coefficients["height", "Post.Sd"]
 pr_tail_default  <- sum_default$coefficients["height", "Pr(tail)"]
@@ -435,15 +496,36 @@ DIC_default <- sum_default$DIC
 
 sum_null=summary(lmb.women_null)
 
+intercept_null <- coef(sum_null)["(Intercept)", "Post.Mean"]
 estimate_null <- sum_null$coefficients["height", "Post.Mean"]
 sd_null       <- sum_null$coefficients["height", "Post.Sd"]
 pr_tail_null  <- sum_null$coefficients["height", "Pr(tail)"]
 eff_params_null <- sum_null$pD
 DIC_null <- sum_null$DIC
 
+sum_null_midpwt=summary(lmb.women_null_midpwt)
+
+intercept_null_midpwt <- coef(sum_null_midpwt)["(Intercept)", "Post.Mean"]
+estimate_null_midpwt <- sum_null_midpwt$coefficients["height", "Post.Mean"]
+sd_null_midpwt       <- sum_null_midpwt$coefficients["height", "Post.Sd"]
+pr_tail_null_midpwt  <- sum_null_midpwt$coefficients["height", "Pr(tail)"]
+eff_params_null_midpwt <- sum_null_midpwt$pD
+DIC_null_midpwt <- sum_null_midpwt$DIC
+
+sum_null_hipwt=summary(lmb.women_null_hipwt)
+
+intercept_null_hipwt <- coef(sum_null_hipwt)["(Intercept)", "Post.Mean"]
+estimate_null_hipwt <- sum_null_hipwt$coefficients["height", "Post.Mean"]
+sd_null_hipwt       <- sum_null_hipwt$coefficients["height", "Post.Sd"]
+pr_tail_null_hipwt  <- sum_null_hipwt$coefficients["height", "Pr(tail)"]
+eff_params_null_hipwt <- sum_null_hipwt$pD
+DIC_null_hipwt <- sum_null_hipwt$DIC
+
+
 
 sum_full=summary(lmb.women_full)
 
+intercept_full <- coef(sum_full)["(Intercept)", "Post.Mean"]
 estimate_full <- sum_full$coefficients["height", "Post.Mean"]
 sd_full       <- sum_full$coefficients["height", "Post.Sd"]
 pr_tail_full  <- sum_full$coefficients["height", "Pr(tail)"]
@@ -451,35 +533,90 @@ eff_params_full <- sum_full$pD
 DIC_full <- sum_full$DIC
 
 
-sum_lowpwt=summary(lmb.women_lowpwt)
+sum_midpwt=summary(lmb.women_midpwt)
 
-estimate_lowpwt <- sum_lowpwt$coefficients["height", "Post.Mean"]
-sd_lowpwt       <- sum_lowpwt$coefficients["height", "Post.Sd"]
-pr_tail_lowpwt  <- sum_lowpwt$coefficients["height", "Pr(tail)"]
-eff_params_lowpwt <- sum_lowpwt$pD
-DIC_lowpwt <- sum_lowpwt$DIC
+intercept_midpwt <- coef(sum_midpwt)["(Intercept)", "Post.Mean"]
+estimate_midpwt <- sum_midpwt$coefficients["height", "Post.Mean"]
+sd_midpwt       <- sum_midpwt$coefficients["height", "Post.Sd"]
+pr_tail_midpwt  <- sum_midpwt$coefficients["height", "Pr(tail)"]
+eff_params_midpwt <- sum_midpwt$pD
+DIC_midpwt <- sum_midpwt$DIC
 
 sum_hipwt=summary(lmb.women_hipwt)
 
+intercept_hipwt <- coef(sum_hipwt)["(Intercept)", "Post.Mean"]
 estimate_hipwt <- sum_hipwt$coefficients["height", "Post.Mean"]
 sd_hipwt       <- sum_hipwt$coefficients["height", "Post.Sd"]
 pr_tail_hipwt  <- sum_hipwt$coefficients["height", "Pr(tail)"]
 eff_params_hipwt <- sum_hipwt$pD
 DIC_hipwt <- sum_hipwt$DIC
 
+
 comparison <- data.frame(
-  Model           = c("Classical LM", "Default (pwt=0.01) ","Null-Intercept","Full-Model Prior","lowpwt (0.01)","hipwt (0.5)"),
-  Post.Mean        = c(estimate_classical, estimate_default, estimate_null, estimate_full, estimate_lowpwt, estimate_hipwt),
-  Post.SD        = c(se_classical, sd_default, sd_null, sd_full, sd_lowpwt, sd_hipwt),
-  Pr_Tail         = c(pr_tail_classical, pr_tail_default, pr_tail_null, pr_tail_full, pr_tail_lowpwt, pr_tail_hipwt),
-  Eff.Params      = c(eff_params_classical, eff_params_default, eff_params_null, eff_params_full, eff_params_lowpwt, eff_params_hipwt),
-  DIC      = c(AIC_Classical, DIC_default, DIC_null, DIC_full, DIC_lowpwt, DIC_hipwt)
+  Model           = c("Classical LM Null","Classical LM", "Control Prior (pwt=0.01) ","Null Model Prior (pwt=0.01)","Null Model Prior (pwt=0.05)","Null Model Prior (pwt=0.5)","Full-Model Prior  (pwt=0.01)","Control Prior (0.05)","Control Prior (0.5)"),
+  Post.Intercept_Mean        = c(intercept_classical_null,intercept_classical, intercept_default, intercept_null,intercept_null_midpwt,intercept_null_hipwt, intercept_full, intercept_midpwt, intercept_hipwt),
+    Post.Mean        = c(estimate_classical_null,estimate_classical, estimate_default, estimate_null,estimate_null_midpwt,estimate_null_hipwt, estimate_full, estimate_midpwt, estimate_hipwt),
+  Post.SD        = c(se_classical_null,se_classical, sd_default, sd_null,sd_null_midpwt, sd_null_hipwt,sd_full, sd_midpwt, sd_hipwt),
+  Pr_Tail         = c(pr_tail_classical_null,pr_tail_classical, pr_tail_default, pr_tail_null, pr_tail_null_midpwt,pr_tail_null_hipwt, pr_tail_full, pr_tail_midpwt, pr_tail_hipwt),
+  Eff.Params      = c(eff_params_classical_null,eff_params_classical, eff_params_default, eff_params_null,eff_params_null_midpwt,eff_params_null_hipwt, eff_params_full, eff_params_midpwt, eff_params_hipwt),
+  DIC      = c(AIC_Classical_null,AIC_Classical, DIC_default, DIC_null,DIC_null_midpwt, DIC_null_hipwt, DIC_full, DIC_midpwt, DIC_hipwt)
 )                     
-comparison
+#comparison
+
+
+
+knitr::kable(
+  comparison, 
+  digits  = 4,     # rounds all numeric columns to 4 decimals
+  caption = "Comparison of Priors"
+)
+
 ##AIC(lm_uncentered)
 #residuals(lm_uncentered)
 ```
 
+
+```{r women_centering}
+
+# 1. Load the data
+data(women)
+
+# 2. Create a new column height_c = height – mean(height)
+women_centered <- women
+women_centered$height_c <- women_centered$height - mean(women_centered$height)
+
+# 3. Quick check
+head(women_centered)
+#>   height weight height_c
+#> 1     58    115     -3.5
+#> 2     59    117     -2.5
+#> 3     60    120     -1.5
+#> 4     61    123     -0.5
+#> 5     62    126      0.5
+#> 6     63    129      1.5
+
+```
+
+```{r women_centered}
+
+# 4. Re‐fit the linear model using centered height
+lm_centered <- lm(weight ~ height_c, data = women_centered)
+summary(lm_centered)
+```
+
+```{r Women_c_Prior_default}
+ps_default=Prior_Setup(weight ~ height_c,family=gaussian(),intercept_source = "full_model", effects_source = "null_effects",data=women_centered)
+mu_default=ps_default$mu
+V_default=ps_default$Sigma
+disp_ML_default=ps_default$dispersion
+```
+
+
+```{r women_c_lmb_call_default}
+lmb.women_default=lmb(weight ~ height_c,dNormal(mu_default,V_default,dispersion=disp_ML_default),data=women_centered,n=10000)
+summary(lmb.women_default)
+
+```
 
 
 
@@ -512,7 +649,7 @@ summary(glmb.women_full)
 
 
 ```{r women_glmb_summary_lowpwt}
-glmb.women_lowpwt=glmb(weight ~ height,family=gaussian(),pfamily=dNormal(mu_lowpwt,V_lowpwt,dispersion=disp_ML_lowpwt),data=women,n=10000)
+glmb.women_lowpwt=glmb(weight ~ height,family=gaussian(),pfamily=dNormal(mu_default,V_default,dispersion=disp_ML_default),data=women,n=10000)
 summary(glmb.women_lowpwt)
 
 ```
@@ -520,7 +657,7 @@ summary(glmb.women_lowpwt)
 
 
 ```{r women_glmb_call_lowpwt_null}
-glmb.women_lowpwt_null=glmb(weight ~ height,family=gaussian(),pfamily=dNormal(mu_null,V_lowpwt,dispersion=disp_ML_lowpwt),data=women,n=10000)
+glmb.women_lowpwt_null=glmb(weight ~ height,family=gaussian(),pfamily=dNormal(mu_null,V_default,dispersion=disp_ML_default),data=women,n=10000)
 summary(glmb.women_lowpwt_null)
 
 ```
@@ -544,6 +681,22 @@ extractAIC(glmb.women_default)
 
 
 # 6. Estimating Bayesian Linear Models under various Prior_Setup settings
+
+
+
+```{r Plant_Setup}
+## Annette Dobson (1990) "An Introduction to Generalized Linear Models".
+## Page 9: Plant Weight Data.
+ctl    <- c(4.17, 5.58, 5.18, 6.11, 4.50, 4.61, 5.17, 4.53, 5.33, 5.14)
+trt    <- c(4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69)
+group  <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
+weight <- c(ctl, trt)
+
+dat <- data.frame(weight, group)
+#dat2<-rbind(dat,dat,dat,dat)
+dat2<-rbind(dat)
+```
+
 
 
 ## 5.1 The Default Prior
@@ -580,7 +733,7 @@ summary(lmb.D9_default)
 
 
 ```{r Plant_Prior_null}
-ps_null=Prior_Setup(weight ~ group,family=gaussian(),pwt=0.05,intercept_source = "null_model", effects_source = "null_effects",data=dat2)
+ps_null=Prior_Setup(weight ~ group,family=gaussian(),pwt=0.01,intercept_source = "null_model", effects_source = "null_effects",data=dat2)
 mu_null=ps_null$mu
 V_null=ps_null$Sigma
 disp_ML_null=ps_null$dispersion
@@ -588,20 +741,41 @@ disp_ML_null=ps_null$dispersion
 
 ```{r Plant_lmb_call_null}
 lmb.D9_null=lmb(weight ~ group,dNormal(mu_null,V_null,dispersion=disp_ML_null),data=dat2,n=10000)
-```
-
-
-```{r Plant_lmb_summary_null}
 summary(lmb.D9_null)
 ```
 
+
+
+```{r Plant_Prior_null_midpwt}
+ps_null=Prior_Setup(weight ~ group,family=gaussian(),pwt=0.05,intercept_source = "null_model", effects_source = "null_effects",data=dat2)
+mu_null=ps_null$mu
+V_null=ps_null$Sigma
+disp_ML_null=ps_null$dispersion
+```
+
+```{r Plant_lmb_call_null_midpwt}
+lmb.D9_null_midpwt=lmb(weight ~ group,dNormal(mu_null,V_null,dispersion=disp_ML_null),data=dat2,n=10000)
+summary(lmb.D9_null_midpwt)
+```
+
+```{r Plant_Prior_null_hipwt}
+ps_null=Prior_Setup(weight ~ group,family=gaussian(),pwt=0.5,intercept_source = "null_model", effects_source = "null_effects",data=dat2)
+mu_null=ps_null$mu
+V_null=ps_null$Sigma
+disp_ML_null=ps_null$dispersion
+```
+
+```{r Plant_lmb_call_null_hipwt}
+lmb.D9_null_hipwt=lmb(weight ~ group,dNormal(mu_null,V_null,dispersion=disp_ML_null),data=dat2,n=10000)
+summary(lmb.D9_null_hipwt)
+```
 
 
 ## 5.3 The Full Model Prior
 
 
 ```{r Plant_Prior_full}
-ps_full=Prior_Setup(weight ~ group,family=gaussian(),pwt=0.05,intercept_source = "full_model", effects_source = "full_model",data=dat2)
+ps_full=Prior_Setup(weight ~ group,family=gaussian(),pwt=0.01,intercept_source = "full_model", effects_source = "full_model",data=dat2)
 mu_full=ps_full$mu
 V_full=ps_full$Sigma
 disp_ML_full=ps_full$dispersion
@@ -609,31 +783,60 @@ disp_ML_full=ps_full$dispersion
 
 ```{r Plant_lmb_call_full}
 lmb.D9_full=lmb(weight ~ group,dNormal(mu_full,V_full,dispersion=disp_ML_full),data=dat2,n=10000)
-```
-
-
-```{r Plant_lmb_summary_full}
 summary(lmb.D9_full)
 ```
 
-## 5.4 Low pwt Prior
 
 
-```{r Plant_Prior_low}
-ps_lowpwt=Prior_Setup(weight ~ group,family=gaussian(),pwt=0.01,intercept_source = "full_model", effects_source = "null_effects",data=dat2)
-mu_lowpwt=ps_lowpwt$mu
-V_lowpwt=ps_lowpwt$Sigma
-disp_ML_lowpwt=ps_lowpwt$dispersion
+```{r Plant_Prior_full_midpwt}
+ps_full=Prior_Setup(weight ~ group,family=gaussian(),pwt=0.05,intercept_source = "full_model", effects_source = "full_model",data=dat2)
+mu_full=ps_full$mu
+V_full=ps_full$Sigma
+disp_ML_full=ps_full$dispersion
 ```
 
-```{r Plant_lmb_call_lowpwt}
-lmb.D9_lowpwt=lmb(weight ~ group,dNormal(mu_lowpwt,V_lowpwt,dispersion=disp_ML_lowpwt),data=dat2,n=10000)
+```{r Plant_lmb_call_full_midpwt}
+lmb.D9_full_midpwt=lmb(weight ~ group,dNormal(mu_full,V_full,dispersion=disp_ML_full),data=dat2,n=10000)
+summary(lmb.D9_full_midpwt)
 ```
 
 
-```{r Plant_lmb_summary_lowpwt}
-summary(lmb.D9_lowpwt)
+
+
+```{r Plant_Prior_full_hipwt}
+ps_full=Prior_Setup(weight ~ group,family=gaussian(),pwt=0.5,intercept_source = "full_model", effects_source = "full_model",data=dat2)
+mu_full=ps_full$mu
+V_full=ps_full$Sigma
+disp_ML_full=ps_full$dispersion
 ```
+
+```{r Plant_lmb_call_full_hipwt}
+lmb.D9_full_hipwt=lmb(weight ~ group,dNormal(mu_full,V_full,dispersion=disp_ML_full),data=dat2,n=10000)
+summary(lmb.D9_full_hipwt)
+```
+
+## 5.4 Mid pwt Prior
+
+
+```{r Plant_Prior_mid}
+ps_midpwt=Prior_Setup(weight ~ group,family=gaussian(),pwt=0.05,intercept_source = "full_model", effects_source = "null_effects",data=dat2)
+mu_midpwt=ps_midpwt$mu
+V_midpwt=ps_midpwt$Sigma
+disp_ML_midpwt=ps_midpwt$dispersion
+```
+
+```{r Plant_lmb_call_midpwt}
+lmb.D9_midpwt=lmb(weight ~ group,dNormal(mu_midpwt,V_midpwt,dispersion=disp_ML_midpwt),data=dat2,n=10000)
+```
+
+
+```{r Plant_lmb_summary_midpwt}
+summary(lmb.D9_midpwt)
+```
+
+
+
+
 
 ## 5.5  Highpwt Model
 
@@ -670,13 +873,22 @@ This section compares posterior summaries for the group effect (groupTrt) across
 
 ```{r Summary_Comparisons2}
 fit_classical <- lm(weight ~ group, data = dat2)
-summary_classical <- summary(lm.D9_default)
+summary_classical <- summary(fit_classical)
 
 estimate_classical <- coef(summary_classical)["groupTrt", "Estimate"]
 se_classical       <- coef(summary_classical)["groupTrt", "Std. Error"]
 pr_tail_classical  <- coef(summary_classical)["groupTrt", "Pr(>|t|)"] / 2
-eff_params_classical <- 1
+eff_params_classical <- extractAIC(fit_classical)[1]
+AIC_Classical <-AIC(fit_classical)-2
 
+fit_classical_null <- lm(weight ~ 1, data = dat2)
+summary_classical_null <- summary(fit_classical_null)
+
+estimate_classical_null <- NA_real_
+se_classical_null       <- NA_real_
+pr_tail_classical_null  <- NA_real_
+eff_params_classical_null <- extractAIC(fit_classical_null)[1]
+AIC_Classical_null <-AIC(fit_classical_null)-2
 
 sum_default=summary(lmb.D9_default)
 
@@ -684,6 +896,7 @@ estimate_default <- sum_default$coefficients["groupTrt", "Post.Mean"]
 sd_default       <- sum_default$coefficients["groupTrt", "Post.Sd"]
 pr_tail_default  <- sum_default$coefficients["groupTrt", "Pr(tail)"]
 eff_params_default <- sum_default$pD
+DIC_default <- sum_default$DIC
 
 
 sum_null=summary(lmb.D9_null)
@@ -692,6 +905,27 @@ estimate_null <- sum_null$coefficients["groupTrt", "Post.Mean"]
 sd_null       <- sum_null$coefficients["groupTrt", "Post.Sd"]
 pr_tail_null  <- sum_null$coefficients["groupTrt", "Pr(tail)"]
 eff_params_null <- sum_null$pD
+DIC_null <- sum_null$DIC
+
+
+sum_null_midpwt=summary(lmb.D9_null_midpwt)
+
+estimate_null_midpwt <- sum_null_midpwt$coefficients["groupTrt", "Post.Mean"]
+sd_null_midpwt       <- sum_null_midpwt$coefficients["groupTrt", "Post.Sd"]
+pr_tail_null_midpwt  <- sum_null_midpwt$coefficients["groupTrt", "Pr(tail)"]
+eff_params_null_midpwt <- sum_null_midpwt$pD
+DIC_null_midpwt <- sum_null_midpwt$DIC
+
+
+sum_null_hipwt=summary(lmb.D9_null_hipwt)
+
+estimate_null_hipwt <- sum_null_hipwt$coefficients["groupTrt", "Post.Mean"]
+sd_null_hipwt       <- sum_null_hipwt$coefficients["groupTrt", "Post.Sd"]
+pr_tail_null_hipwt  <- sum_null_hipwt$coefficients["groupTrt", "Pr(tail)"]
+eff_params_null_hipwt <- sum_null_hipwt$pD
+DIC_null_hipwt <- sum_null_hipwt$DIC
+
+
 
 sum_full=summary(lmb.D9_full)
 
@@ -699,14 +933,37 @@ estimate_full <- sum_full$coefficients["groupTrt", "Post.Mean"]
 sd_full       <- sum_full$coefficients["groupTrt", "Post.Sd"]
 pr_tail_full  <- sum_full$coefficients["groupTrt", "Pr(tail)"]
 eff_params_full <- sum_full$pD
+DIC_full <- sum_null$DIC
 
 
-sum_lowpwt=summary(lmb.D9_lowpwt)
 
-estimate_lowpwt <- sum_lowpwt$coefficients["groupTrt", "Post.Mean"]
-sd_lowpwt       <- sum_lowpwt$coefficients["groupTrt", "Post.Sd"]
-pr_tail_lowpwt  <- sum_lowpwt$coefficients["groupTrt", "Pr(tail)"]
-eff_params_lowpwt <- sum_lowpwt$pD
+sum_full_midpwt=summary(lmb.D9_full_midpwt)
+
+estimate_full_midpwt <- sum_full_midpwt$coefficients["groupTrt", "Post.Mean"]
+sd_full_midpwt       <- sum_full_midpwt$coefficients["groupTrt", "Post.Sd"]
+pr_tail_full_midpwt  <- sum_full_midpwt$coefficients["groupTrt", "Pr(tail)"]
+eff_params_full_midpwt <- sum_full_midpwt$pD
+DIC_full_midpwt <- sum_null_midpwt$DIC
+
+
+
+sum_full_hipwt=summary(lmb.D9_full_midpwt)
+
+estimate_full_hipwt <- sum_full_hipwt$coefficients["groupTrt", "Post.Mean"]
+sd_full_hipwt       <- sum_full_hipwt$coefficients["groupTrt", "Post.Sd"]
+pr_tail_full_hipwt  <- sum_full_hipwt$coefficients["groupTrt", "Pr(tail)"]
+eff_params_full_hipwt <- sum_full_hipwt$pD
+DIC_full_hipwt <- sum_null_hipwt$DIC
+
+
+sum_midpwt=summary(lmb.D9_midpwt)
+
+estimate_midpwt <- sum_midpwt$coefficients["groupTrt", "Post.Mean"]
+sd_midpwt       <- sum_midpwt$coefficients["groupTrt", "Post.Sd"]
+pr_tail_midpwt  <- sum_midpwt$coefficients["groupTrt", "Pr(tail)"]
+eff_params_midpwt <- sum_midpwt$pD
+DIC_midpwt <- sum_midpwt$DIC
+
 
 sum_hipwt=summary(lmb.D9_hipwt)
 
@@ -714,16 +971,24 @@ estimate_hipwt <- sum_hipwt$coefficients["groupTrt", "Post.Mean"]
 sd_hipwt       <- sum_hipwt$coefficients["groupTrt", "Post.Sd"]
 pr_tail_hipwt  <- sum_hipwt$coefficients["groupTrt", "Pr(tail)"]
 eff_params_hipwt <- sum_hipwt$pD
+DIC_hipwt <- sum_hipwt$DIC
+
 
 comparison <- data.frame(
-  Model           = c("Classical LM", "Default (pwt=0.05) ","Null-Intercept","Full-Model Prior","lowpwt (0.01)","hipwt (0.5)"),
-  Post.Mean        = c(estimate_classical, estimate_default, estimate_null, estimate_full, estimate_lowpwt, estimate_hipwt),
-  Post.SD        = c(se_classical, sd_default, sd_null, sd_full, sd_lowpwt, sd_hipwt),
-  Pr_Tail         = c(pr_tail_classical, pr_tail_default, pr_tail_null, pr_tail_full, pr_tail_lowpwt, pr_tail_hipwt),
-  Eff.Params      = c(eff_params_classical, eff_params_default, eff_params_null, eff_params_full, eff_params_lowpwt, eff_params_hipwt)
+  Model           = c("Classical LM","Classical LM_null", "Control Prior (pwt=0.01) ","Control Prior midpwt (0.05)","Control Prior hipwt (0.5)","Null-Model Prior (0.01)","Null-Model Prior midpwt (0.05)","Null-Model Prior hipwt (0.5)","Full-Model Prior (0.01)","Full-Model Prior midpwt (0.05)","Full-Model Prior hipwt (0.5)"),
+  Post.Mean        = c(estimate_classical,estimate_classical_null, estimate_default, estimate_midpwt, estimate_hipwt, estimate_null, estimate_null_midpwt,estimate_null_hipwt, estimate_full, estimate_full_midpwt, estimate_full_hipwt),
+  Post.SD        = c(se_classical,se_classical_null, sd_default, sd_midpwt, sd_hipwt, sd_null, sd_null_midpwt,sd_null_hipwt, sd_full, sd_full_midpwt, sd_full_hipwt),
+  Pr_Tail         = c(pr_tail_classical,pr_tail_classical_null, pr_tail_default, pr_tail_midpwt, pr_tail_hipwt, pr_tail_null, pr_tail_null_midpwt,pr_tail_null_hipwt, pr_tail_full, pr_tail_full_midpwt, pr_tail_full_hipwt),
+  Eff.Params      = c(eff_params_classical,eff_params_classical_null, eff_params_default, eff_params_midpwt, eff_params_hipwt, eff_params_null, eff_params_null_midpwt,eff_params_null_hipwt, eff_params_full, eff_params_full_midpwt, eff_params_full_hipwt),
+  DIC      = c(AIC_Classical,AIC_Classical_null,DIC_default, DIC_midpwt, DIC_hipwt, DIC_null, DIC_null_midpwt,DIC_null_hipwt, DIC_full, DIC_full_midpwt, DIC_full_hipwt)
   )
-                     
-comparison
+
+
+knitr::kable(
+  comparison, 
+  digits  = 4,     # rounds all numeric columns to 4 decimals
+  caption = "Comparison of Priors"
+)
 ```
 
 

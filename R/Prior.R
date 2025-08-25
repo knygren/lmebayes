@@ -7,7 +7,7 @@
 #' @param family a description of the error distribution and linke function to be used in the model.
 #' @param pwt Weight on the prior relative to the likelihood function at the the maximum likelihood estimate.
 #' @param n_prior Optional argument with number of prior observations (either a scalar or a vector). When provided, this used together with the number of likelihood observations to compute the pwt.
-#' @param intercept_source Specifies the method through which the prior mean for the intercept term is set. Options are based on the classical intercept only (null_model) or full_models.  
+#' @param intercept_source Specifies the method through which the prior mean for the intercept term is set. Options are based on the null intercept only model (null_model) or full_models. The default is the null model which is safer if variables are not centered. 
 #' @param effects_source Specifies the method through which the prior means for the effects terms are set. Options are null_effects (prior means set to zero) or full_model (effect means set to match maximum likelihood estimates).  
 #' @inheritParams stats::model.frame
 #' @return A list with items related to the prior.
@@ -28,7 +28,7 @@
 
 Prior_Setup<-function(formula,data=NULL,family=gaussian(),pwt=0.01 ,
                       n_prior=NULL,
-                      intercept_source = c("full_model", "null_model"),
+                      intercept_source = c("null_model", "full_model"),
                       effects_source = c("null_effects", "full_model"),
                       subset = NULL, na.action = na.fail, 
                          drop.unused.levels = FALSE, xlev = NULL, ...){
