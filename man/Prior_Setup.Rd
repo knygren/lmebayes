@@ -32,9 +32,9 @@ Prior_Setup(
 
 \item{family}{a description of the error distribution and linke function to be used in the model.}
 
-\item{pwt}{Weight on the prior relative to the likelihood function at the the maximum likelihood estimate.}
+\item{pwt}{Weight on the prior relative to the likelihood function at the the maximum likelihood estimate. If n_prior is provided, it is calculated as pwt=n_prior/(n_prior+n_likelihood) where n_likelihood is the number of observations for the likelihood function.}
 
-\item{n_prior}{Optional argument with number of prior observations (either a scalar or a vector). When provided, this used together with the number of likelihood observations to compute the pwt.}
+\item{n_prior}{Optional argument with number of prior observations (either a scalar or a vector). When provided, this is used together with the number of likelihood observations to compute pwt. If not provided but pwt is a scalar, it is computed as n_prior=n_likelihood*(pwt/(1-pwt)).}
 
 \item{sd}{Optional vector argument with the prior standard deviations for the coefficients}
 
@@ -77,11 +77,27 @@ A list with items related to the prior.
 \item{mu}{A prior mean vector}
 \item{Sigma}{A prior variance-covariance matrix}
 \item{dispersion}{Empirical bayes estimate for the dispersion (gaussian model only)}
+\item{shape}{Derived prior shape parameter (gaussian model only). Defaults to n_prior/2 where n_prior is derived from pwt if not provided}
+\item{rate}{Derived prior rate parameter (gaussian model only). Defaults to (n_prior*dispersion)/2 where n_prior is derived from pwt if not provided}
 \item{model}{The model frame from \code{object} if it exists}
 \item{x}{The design matrix from \code{object} if it exists}
+\item{PriorSettings}{A list containing prior configuration details}
 }
 \description{
 Sets up the structure for the Prior mean and Variance Matrices using information from a classical model.
+}
+\details{
+The `PriorSettings` component of the returned list contains metadata used to construct the prior distribution.
+It includes:
+\describe{
+  \item{pwt}{Prior weight (scalar or vector). If scalar, used to compute Zellner's g.}
+  \item{n_prior}{Effective prior sample size.}
+  \item{n_likelihood}{Effective likelihood sample size.}
+  \item{intercept_source}{Source of prior mean for intercept.}
+  \item{effects_source}{Source of prior mean for coefficients.}
+}
+
+These values are derived from user input or inferred from the classical model structure.
 }
 \examples{
 ## Dobson (1990) Page 93: Randomized Controlled Trial :

@@ -90,10 +90,27 @@ In the next vignette, we discuss the default prior in more details. We also disc
 
 ### 3.2.2 Calling the lmb function
 
-We pass a dNormal object—combining our prior parameters and the fixed dispersion—to lmb().
+We pass a dNormal object—combining our prior parameters and the fixed dispersion—to lmb(). Alternative priors (including prior specificiation for dispersion parameters) are covered in later chapters.
 
 ```{r Plant_lmb_call}
 lmb.D9=lmb(weight ~ group,dNormal(mu,V,dispersion=disp_ML))
+summary(lmb.D9)
+```
+
+```{r Plant_lmb_call2}
+ps=Prior_Setup(weight ~ group,family=gaussian())
+mu=ps$mu
+V=ps$Sigma
+disp_ML=ps$dispersion
+n_prior=ps$PriorSettings$n_prior
+shape=n_prior/2
+rate= disp_ML*shape
+lmb.D9=lmb(weight ~ group,dNormal(mu,V,dispersion=disp_ML))
+lmb.D9_v2=lmb(weight ~ group,dNormal_Gamma(mu,V/disp_ML,shape=shape,rate=rate),n=10000)
+#lmb.D9_v2=lmb(weight ~ group,dNormal_Gamma(mu,V,shape=shape,rate=rate),n=10000)
+n_prior
+disp_ML
+-0.3710*0.99
 ```
 
 With both models fitted, we’re ready to explore their summaries and compare classical versus Bayesian outputs in the next section.
@@ -244,7 +261,11 @@ and if the posterior mean is above the prior mean, it’s
 \]  
 For models with a zero prior mean and roughly symmetric posteriors, `Pr(tail)` will be close to one-half of the classical two-sided p-value—and thus roughly equal to the one-sided p-value—offering a Bayesian analogue to hypothesis testing. In essence, a small `Pr(tail)` value signifies strong evidence against the prior mean, functioning as a form of “rejection” of the prior hypothesis.
 
-### 4.2.3 Distribution percentiles
+### 4.2.3 Directional Prior-Posterior Summaries
+
+The Standardized Mahalanobis Distance quantifies how far the prior point estimate lies from the posterior mean, accounting for posterior covariance. Building on this, the Directional Tail Probability assesses how likely it is—under the posterior distribution—to observe coefficient values that fall opposite the prior, relative to the posterior mean. This directional measure generalizes the concept of reverse-tail probabilities from univariate to multivariate settings. Small values suggest that the posterior density places little mass in the direction of the prior, and can thus be interpreted as a form of prior rejection.
+
+### 4.2.4 Distribution percentiles 
 
 Below the moments, you get a grid of key quantiles (1%, 2.5%, 5%, median, 95%, 97.5%, 99%) for each parameter. Percentiles let you quickly read off credible‐interval bounds and assess skew or heavy tails in the posterior.
 
@@ -262,27 +283,25 @@ sumlmb$Percentiles
 ```
 
 
-### 4.2.4 Effective number of parameters
+### 4.2.5 DIC and Related Measures
 
-The effective number of parameters (pD) quantifies how much your posterior has “moved” from the prior. A pD near the number of coefficients signals a relatively data‐driven fit; a smaller pD indicates stronger shrinkage toward the prior.
+-The effective number of parameters (pD) quantifies how much your posterior has “moved” from the prior. A pD near the number of coefficients signals a relatively data‐driven fit; a smaller pD indicates stronger shrinkage toward the prior.
 
-### 4.2.5 Expected residual deviance
 
-The expected residual deviance (D̄) is the posterior mean of the deviance statistic. It’s analogous to the classical deviance but averaged over your posterior draws, giving a Bayesian measure of overall fit.
+-The expected residual deviance (D̄) is the posterior mean of the deviance statistic. It’s analogous to the classical deviance but averaged over your posterior draws, giving a Bayesian measure of overall fit.
 
-### 4.2.6 Deviance Information Criterion (DIC)
 
-DIC combines D̄ and pD into a single metric for model comparison:  
+- The Deviance Information Criterion (DIC) combines D̄ and pD into a single metric for model comparison:  
 \[
 \text{DIC} = D̄ + p_D
 \]  
 Lower values signal better trade-offs between fit and complexity under your chosen prior.
 
-### 4.2.7 Expected mean dispersion
+### 4.2.6 Expected mean dispersion
 
 For Gaussian models, `summary(lmb.D9)` also prints the posterior mean of the dispersion parameter. This aligns with the classical residual variance estimate but incorporates prior uncertainty.
 
-### 4.2.8 Square‐root of expected mean dispersion
+### 4.2.7 Square‐root of expected mean dispersion
 
 Finally, taking the square root of the expected mean dispersion yields a Bayesian estimate of the residual standard deviation. This makes it directly comparable to the classical residual standard error.
 

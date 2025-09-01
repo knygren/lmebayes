@@ -5,20 +5,36 @@
 #' data, second a \code{na.action} setting of \link{options}, and third \code{na.fail} if that is unset. 
 #' The \code{factory-fresh} default is \code{na.omit}. Another possible value is \code{NULL}.
 #' @param family a description of the error distribution and linke function to be used in the model.
-#' @param pwt Weight on the prior relative to the likelihood function at the the maximum likelihood estimate.
-#' @param n_prior Optional argument with number of prior observations (either a scalar or a vector). When provided, this used together with the number of likelihood observations to compute the pwt.
+#' @param pwt Weight on the prior relative to the likelihood function at the the maximum likelihood estimate. If n_prior is provided, it is calculated as pwt=n_prior/(n_prior+n_likelihood) where n_likelihood is the number of observations for the likelihood function.
+#' @param n_prior Optional argument with number of prior observations (either a scalar or a vector). When provided, this is used together with the number of likelihood observations to compute pwt. If not provided but pwt is a scalar, it is computed as n_prior=n_likelihood*(pwt/(1-pwt)).
 #' @param sd Optional vector argument with the prior standard deviations for the coefficients
 #' @param intercept_source Specifies the method through which the prior mean for the intercept term is set. Options are based on the null intercept only model (null_model) or full_models. The default is the null model which is safer if variables are not centered. 
 #' @param effects_source Specifies the method through which the prior means for the effects terms are set. Options are null_effects (prior means set to zero) or full_model (effect means set to match maximum likelihood estimates).  
 #' @param mu Optional vector argument with the prior means for the coefficients
 #' @inheritParams stats::model.frame
+#' @details
+#' The `PriorSettings` component of the returned list contains metadata used to construct the prior distribution.
+#' It includes:
+#' \describe{
+#'   \item{pwt}{Prior weight (scalar or vector). If scalar, used to compute Zellner's g.}
+#'   \item{n_prior}{Effective prior sample size.}
+#'   \item{n_likelihood}{Effective likelihood sample size.}
+#'   \item{intercept_source}{Source of prior mean for intercept.}
+#'   \item{effects_source}{Source of prior mean for coefficients.}
+#' }
+#'
+#' These values are derived from user input or inferred from the classical model structure.
 #' @return A list with items related to the prior.
 #' \item{mu}{A prior mean vector}
 #' \item{Sigma}{A prior variance-covariance matrix}
 #' \item{dispersion}{Empirical bayes estimate for the dispersion (gaussian model only)}
+#' \item{shape}{Derived prior shape parameter (gaussian model only). Defaults to n_prior/2 where n_prior is derived from pwt if not provided}
+#' \item{rate}{Derived prior rate parameter (gaussian model only). Defaults to (n_prior*dispersion)/2 where n_prior is derived from pwt if not provided}
 #' \item{model}{The model frame from \code{object} if it exists}
 #' \item{x}{The design matrix from \code{object} if it exists}
+#' \item{PriorSettings}{A list containing prior configuration details}
 #' @family prior
+
 
 
 #' @example inst/examples/Ex_Prior_Setup.R
@@ -126,7 +142,7 @@ if (!is.null(sd)) {
   #          " and n_likelihood = ", n_likelihood)
   }
   
-
+  
   
   ## conditional dispersion
   if (family$family == "gaussian") {
@@ -136,8 +152,16 @@ if (!is.null(sd)) {
     dispersion <- NULL
   }
   
+  ## Compute shape and rate if n_prior is not null and n_prior is scalar
+  if (!is.null(n_prior)&& length(n_prior) == 1L&&!is.null(dispersion) ) {
+    shape<-n_prior/2
+    rate<- dispersion*shape
+  }
   
-  
+  else{
+    shape<-NULL
+    rate <-NULL    
+  }
 
     if (!is.matrix(V0) || nrow(V0) != ncol(V0)) {
     stop("vcov(glm_full) (V0) must be a square matrix.")
@@ -251,6 +275,8 @@ if (!is.null(sd)) {
     mu = mu,
     Sigma = Sigma,
     dispersion = dispersion,
+    shape=shape,
+    rate=rate,
     model = mf,
     x = x,
     call=call,
