@@ -454,7 +454,21 @@ print.PriorSetup <- function(x, ...) {
   
   # Optional: print dispersion
   if (!is.null(x$dispersion)) {
-    cat("\nConditional Dispersion (Gaussian family): ", round(x$dispersion, 4), "\n")
+    cat("\nConditional Dispersion (Gaussian family): ", round(x$dispersion, 4), "\n\n")
+  }
+  
+  if (!is.null(x$shape) && !is.null(x$rate)) {
+    cat("Gamma Prior on Residual Precision:\n")
+    cat("  shape =", round(x$shape, 4), "\n")
+    cat("  rate  =", round(x$rate, 4), "\n")
+    cat("  Expected precision (inverse variance) =", round(x$shape / x$rate, 6), "which implies 1/Expected precision  =", round(x$rate/x$shape , 6), "\n\n"  )
+    cat("  Applicable to gaussian models with compound pfamilies (e.g., dNormal_Gamma, dIndependent_Normal_Gamma),\n")
+    cat("  as well as for Gamma regression, quasipoisson, and quasibinomial models.\n\n")
+  }
+  
+  if (is.null(x$shape) && is.null(x$rate) && !is.null(x$dispersion)) {
+    cat("Note: Gaussian family detected, but shape/rate parameters were not computed.\n")
+    cat("This may occur if n_prior is not scalar.\n\n")
   }
   
   invisible(x)

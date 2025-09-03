@@ -28,5 +28,3 @@ summary(lmb.D9_v3)
 
 ## 
 anova(lmb.D9)
-
-
