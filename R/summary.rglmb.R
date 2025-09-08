@@ -206,8 +206,7 @@ print.summary.rglmb<-function(x,digits = max(3, getOption("digits") - 3),...){
   cat("Expected Mean dispersion:",x$dispersion,"\n")
   cat("Sq.root of Expected Mean dispersion:",sqrt(x$dispersion),"\n\n")
   cat("Mean Likelihood Subgradient Candidates Per iid sample:",mean(x$iters),"\n\n")
-  
-  
+
 }
 
 
