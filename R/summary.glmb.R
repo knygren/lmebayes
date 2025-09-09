@@ -238,7 +238,13 @@ print.summary.glmb<-function(x,digits = max(3, getOption("digits") - 3),...){
     cat("\nExpected Residuals:\n")  # fallback for unknown class
   }
 #  cat("\nExpected Deviance Residuals:\n")
-  print(x$residuals,digits=digits)
+  if (length(x$residuals) > 5) {
+    fn   <- fivenum(x$residuals)
+    names(fn) <- c("Min", "1Q", "Median", "3Q", "Max")
+    print(fn)
+  } else {
+    print(x$residuals)
+  }
   cat("\nPrior and Maximum Likelihood Estimates with Standard Deviations\n\n")
   printCoefmat(x$coefficients1,digits=digits)
   cat("\nBayesian Estimates Based on",x$n,"iid draws\n\n")

@@ -193,6 +193,16 @@ summary.rglmb<-function(object,...){
 print.summary.rglmb<-function(x,digits = max(3, getOption("digits") - 3),...){
   cat("Call\n")
   print(x$call)
+    cat("\nExpected Deviance Residuals:\n")
+    mres<-colMeans(residuals(x))
+  if (length(mres) > 5) {
+    fn   <- fivenum(mres)
+    names(fn) <- c("Min", "1Q", "Median", "3Q", "Max")
+    print(fn)
+  } else {
+    print(mres)
+  }
+  
   cat("\nPrior Estimates with Standard Deviations\n\n")
   printCoefmat(x$coefficients.Tab0,digits=digits)
   cat("\nBayesian Estimates Based on",x$n,"iid draws\n\n")

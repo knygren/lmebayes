@@ -38,6 +38,42 @@ residuals.glmb<-function(object,ysim=NULL,...)
 }
 
 
+#' @rdname residuals.glmb
+#' @export 
+#' @method residuals rglmb
+
+residuals.rglmb <- function(object, ysim = NULL, ...) {
+  y   <- object$y
+  # n simulations (or rows in the posterior coef matrix)
+  n   <- nrow(object$coefficients)
+  wts <- object$prior.weights
+  
+  # 1) build a matrix (n × length(y)) of linear predictors and fitted values
+  lp_mat <- t(object$x %*% t(object$coefficients))
+  fv_mat <- object$family$linkinv(lp_mat)
+  
+  # 2) grab the family’s deviance‐resids function
+  devfun <- object$family$dev.resids
+  
+  # 3) allocate
+  DevRes <- matrix(0, nrow = n, ncol = length(y))
+  
+  # 4) fill it
+  for (i in seq_len(n)) {
+    if (is.null(ysim)) {
+      mu_vec <- fv_mat[i, ]
+    } else {
+      mu_vec <- ysim[i, ]
+    }
+    
+    # call the C‐level deviance‐resids with exactly (y, mu, wts)
+    DevRes[i, ] <- sign(y - mu_vec) * sqrt(devfun(y, mu_vec, wts))
+  }
+  
+  colnames(DevRes) <- names(y)
+  DevRes
+}
+
 
 #' @rdname residuals.glmb
 #' @export 
