@@ -13,7 +13,9 @@ Prior_Setup(
   na.action = na.fail,
   offset = NULL,
   contrasts = NULL,
-  pwt = 0.01,
+  pwt = NULL,
+  pwt_default_low = 0.01,
+  pwt_default_high = 0.05,
   n_prior = NULL,
   sd = NULL,
   intercept_source = c("null_model", "full_model"),
@@ -56,7 +58,19 @@ The \code{factory-fresh} default is \code{na.omit}. Another possible value is \c
 \item{contrasts}{an optional list. See the \code{contrasts.arg}
     of \code{model.matrix.default}.}
 
-\item{pwt}{Weight on the prior relative to the likelihood function at the the maximum likelihood estimate. If n_prior is provided, it is calculated as pwt=n_prior/(n_prior+n_likelihood) where n_likelihood is the number of observations for the likelihood function.}
+\item{pwt}{Weight on the prior relative to the likelihood function at the maximum likelihood 
+estimate. If supplied, this value is used directly. If \code{n_prior} is provided, it is 
+calculated as \code{pwt = n_prior / (n_prior + n_likelihood)}, where \code{n_likelihood} is the 
+effective number of likelihood observations. If \code{sd} is provided, \code{pwt} is computed 
+from the prior standard deviations. If none of these are supplied, \code{pwt} defaults to 
+\code{pwt_default_low} for models with fewer than 14 coefficients, and 
+\code{pwt_default_high} otherwise.}
+
+\item{pwt_default_low}{Default prior weight used when \code{pwt} is not supplied and the model 
+dimension is below 14. Defaults to 0.01.}
+
+\item{pwt_default_high}{Default prior weight used when \code{pwt} is not supplied and the model 
+dimension is 14 or greater. Defaults to 0.05.}
 
 \item{n_prior}{Optional argument with number of prior observations (either a scalar or a vector). When provided, this is used together with the number of likelihood observations to compute pwt. If not provided but pwt is a scalar, it is computed as n_prior=n_likelihood*(pwt/(1-pwt)).}
 

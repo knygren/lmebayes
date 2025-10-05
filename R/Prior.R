@@ -5,7 +5,17 @@
 #' data, second a \code{na.action} setting of \link{options}, and third \code{na.fail} if that is unset. 
 #' The \code{factory-fresh} default is \code{na.omit}. Another possible value is \code{NULL}.
 #' @param family a description of the error distribution and link function to be used in the model.
-#' @param pwt Weight on the prior relative to the likelihood function at the the maximum likelihood estimate. If n_prior is provided, it is calculated as pwt=n_prior/(n_prior+n_likelihood) where n_likelihood is the number of observations for the likelihood function.
+#' @param pwt Weight on the prior relative to the likelihood function at the maximum likelihood 
+#' estimate. If supplied, this value is used directly. If \code{n_prior} is provided, it is 
+#' calculated as \code{pwt = n_prior / (n_prior + n_likelihood)}, where \code{n_likelihood} is the 
+#' effective number of likelihood observations. If \code{sd} is provided, \code{pwt} is computed 
+#' from the prior standard deviations. If none of these are supplied, \code{pwt} defaults to 
+#' \code{pwt_default_low} for models with fewer than 14 coefficients, and 
+#' \code{pwt_default_high} otherwise.
+#' @param pwt_default_low Default prior weight used when \code{pwt} is not supplied and the model 
+#' dimension is below 14. Defaults to 0.01.
+#' @param pwt_default_high Default prior weight used when \code{pwt} is not supplied and the model 
+#' dimension is 14 or greater. Defaults to 0.05.
 #' @param n_prior Optional argument with number of prior observations (either a scalar or a vector). When provided, this is used together with the number of likelihood observations to compute pwt. If not provided but pwt is a scalar, it is computed as n_prior=n_likelihood*(pwt/(1-pwt)).
 #' @param sd Optional vector argument with the prior standard deviations for the coefficients
 #' @param intercept_source Specifies the method through which the prior mean for the intercept term is set. Options are based on the null intercept only model (null_model) or full_models. The default is the null model which is safer if variables are not centered. 
@@ -129,7 +139,9 @@ Prior_Setup <- function(
     na.action   = na.fail,
     offset=NULL,
     contrasts   = NULL,
-    pwt         = 0.01,
+    pwt         = NULL,
+    pwt_default_low = 0.01,      # new: low-d default
+    pwt_default_high = 0.05,     # new: high-d default
     n_prior     = NULL,
     sd          = NULL,
     intercept_source = c("null_model", "full_model"),
@@ -210,7 +222,11 @@ Prior_Setup <- function(
   
   nvar=ncol(x)
   
-  
+  if (is.null(pwt)) {
+    pwt <- if (nvar < 14) pwt_default_low else pwt_default_high
+    message("Using default pwt = ", pwt,
+            " (", if (nvar < 14) "low-d" else "high-d", " default).")
+  }
   
   ## Make sure the *columns* of x are named correctly:
   
