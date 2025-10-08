@@ -451,6 +451,8 @@ List EnvelopeBuild_c(NumericVector bStar,
     // Estimate per-grid cost and fixed cost
     double per_grid_cost = (time_B - time_A) / std::max(1.0, (double)(m1_pilot_B - m1_pilot_A));
     double fixed_cost = time_A - m1_pilot_A * per_grid_cost;
+  
+   
     
     if (per_grid_cost <= 0.0) {
       Rcpp::Rcout << "[WARNING] Negative per-grid cost — falling back to Pilot B average.\n";
@@ -458,6 +460,13 @@ List EnvelopeBuild_c(NumericVector bStar,
       fixed_cost = 0.0;
     }
     
+    
+    // Fallback if intercept is negative
+    if (fixed_cost < 0.0) {
+      Rcpp::Rcout << "[WARNING] Negative fixed cost — overriding to 0 and using Pilot B average.\n";
+      per_grid_cost = time_B / m1_pilot_B;
+      fixed_cost = 0.0;
+    }
     
     est_time_sec = fixed_cost + per_grid_cost * m1_total;
     

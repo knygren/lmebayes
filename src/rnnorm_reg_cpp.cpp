@@ -531,6 +531,14 @@ List rnnorm_reg_std_cpp_parallel(
   int any_hit_after_test = any_flag->load(std::memory_order_relaxed);
 //  Rcpp::Rcout << "[TEST] any_maxdraw_flag = " << any_hit_after_test << "\n";
   
+  
+  
+  
+
+  
+  
+  
+  
   /////////////////////////////////////////////////
   
   if (any_hit_after_test != 0) {
@@ -585,7 +593,64 @@ List rnnorm_reg_std_cpp_parallel(
   }
 
 
+  double est_total_sec;
 
+  // --- runtime estimate based on single-sample pilot ---
+  int candidates_used = static_cast<int>(draws[0]);  // from pilot sample
+  if (candidates_used > 0 && !Rcpp::NumericVector::is_na(E_draws)) {
+    double per_candidate_ms = static_cast<double>(elapsed_ms) / candidates_used;
+    double est_total_ms = per_candidate_ms * E_draws * static_cast<double>(n);
+    
+    auto fmt_hms = [](double seconds) {
+      int s = static_cast<int>(std::round(seconds));
+      int h = s / 3600; s %= 3600;
+      int m = s / 60;   s %= 60;
+      std::ostringstream oss;
+      oss << h << "h " << m << "m " << s << "s";
+      return oss.str();
+    };
+    
+     est_total_sec = est_total_ms / 1000.0;
+    Rcpp::Rcout << "Estimated simulation time (" << n << " draws): "
+                << est_total_sec << " seconds (" << fmt_hms(est_total_sec) << ").\n"
+                << "Note: this phase uses RcppParallel and cannot be safely interrupted.\n";
+  }  
+  
+
+  // --- yes/no option if estimate exceeds 5 minutes ---
+  if (est_total_sec > 300.0) {
+    Rcpp::Function readline("readline");
+    std::string prompt = "Estimated simulation exceeds 5 minutes. Continue? [y/N]: ";
+    while (true) {
+      SEXP ans_sexp = readline(Rcpp::wrap(prompt));
+      std::string ans = Rcpp::as<std::string>(ans_sexp);
+      // trim whitespace
+      auto ltrim = [](std::string &s) {
+        s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+                        [](unsigned char ch){ return !std::isspace(ch); }));
+      };
+      auto rtrim = [](std::string &s) {
+        s.erase(std::find_if(s.rbegin(), s.rend(),
+                             [](unsigned char ch){ return !std::isspace(ch); }).base(), s.end());
+      };
+      ltrim(ans); rtrim(ans);
+      
+      if (ans == "y" || ans == "yes" || ans == "1" || ans == "continue") {
+        Rcpp::Rcout << "[INFO] User chose to continue full run.\n";
+        break; // proceed to parallel simulation
+      } else if (ans == "n" || ans == "no" || ans == "2" || ans.empty()) {
+        Rcpp::Rcout << "[INFO] User declined. Stopping simulation.\n";
+        Rcpp::stop("Simulation stopped by user after time estimate.");
+      } else {
+        Rcpp::Rcout << "Invalid input. Please enter y (continue) or N (stop).\n";
+      }
+    }
+  }
+
+  
+    
+  
+  
   
   ////////////////////////////////////////////////////////////////
   
