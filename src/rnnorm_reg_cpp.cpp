@@ -625,6 +625,7 @@ List rnnorm_reg_std_cpp_parallel(
 
   int m1 = std::max(1, (int)std::ceil(0.01 * (double)n));
   int m2 = std::max(1, (int)std::floor(300000.0 / std::max(1.0, est_per_draw_ms_serial))); // 300k ms = 5 min
+
   int m_stage = std::min(m1, m2);  
   
   
@@ -647,34 +648,66 @@ List rnnorm_reg_std_cpp_parallel(
   RcppParallel::parallelFor(0, m_stage, worker);
   auto t_cal1 = std::chrono::steady_clock::now();
   
-  long long cal_elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_cal1 - t_cal0).count();
-  double per_draw_ms_parallel = static_cast<double>(cal_elapsed_ms) / static_cast<double>(m_stage);
-  double est_total_ms_parallel = per_draw_ms_parallel * static_cast<double>(n);
+  double cal_elapsed_sec =
+    std::chrono::duration<double>(t_cal1 - t_cal0).count();
   
-  // pretty-print
-  auto fmt_hms = [](double seconds) {
-    int s = static_cast<int>(std::round(seconds));
-    int h = s / 3600; s %= 3600;
-    int m = s / 60;   s %= 60;
-    std::ostringstream oss;
-    oss << h << "h " << m << "m " << s << "s";
-    return oss.str();
-  };
   
-  double est_total_sec_parallel = est_total_ms_parallel / 1000.0;
-  Rcpp::Rcout << "[CALIB] Parallel calibration elapsed = " << cal_elapsed_ms << " ms for "
-              << m_stage << " draws ("
-              << per_draw_ms_parallel << " ms/draw).\n";
+  // Sum over all pilot draws
+  long long total_candidates = 0;
+  for (int i = 0; i < m_stage; ++i) {
+    total_candidates += static_cast<int>(draws[i]);
+  }
   
-  Rcpp::Rcout << "Refined simulation time estimate (" << n << " draws): "
-              << est_total_sec_parallel << " seconds ("
-              << fmt_hms(est_total_sec_parallel) << ").\n"
-              << "Note: estimate is based on parallel calibration and may vary with system load.\n";
+  // Average candidates per accepted draw (empirical)
+  double avg_candidates_per_draw =
+    static_cast<double>(total_candidates) / m_stage;
+  
+  // Per‑candidate cost from calibration
+  double per_candidate_sec = cal_elapsed_sec / std::max(1.0, static_cast<double>(total_candidates));
+  
+  // Per‑draw cost: scale by expected candidates per acceptance
+  double est_per_draw_sec = per_candidate_sec * E_draws;
+  
+  // Total estimate for n draws
+  est_total_sec = est_per_draw_sec * static_cast<double>(n);
+  
+  
+  // --- print diagnostics ---
+  Rcpp::Rcout << "[CALIB] Calibration elapsed = " << cal_elapsed_sec
+              << " s for " << m_stage << " accepted draws using "
+              << total_candidates << " candidates.\n";
+  
+  Rcpp::Rcout << "[CALIB] avg_candidates_per_draw (empirical) = "
+              << avg_candidates_per_draw
+              << " vs E_draws = " << E_draws << "\n";
+  
+  Rcpp::Rcout << "[CALIB] per_candidate_sec = " << per_candidate_sec
+              << " s, est_per_draw_sec = " << est_per_draw_sec << " s\n";
+  
+//  Rcpp::Rcout << "Refined simulation time estimate (" << n << " draws): "
+//              << est_total_sec << " seconds\n";
     
-
+    auto fmt_hms = [](double seconds) {
+      long long s = static_cast<long long>(std::round(seconds));
+      long long h = s / 3600; s %= 3600;
+      long long m = s / 60;   s %= 60;
+      std::ostringstream oss;
+      if (h > 0) oss << h << "h ";
+      if (m > 0 || h > 0) oss << m << "m ";
+      oss << s << "s";
+      return oss.str();
+    };
+    
+    // ...
+    
+    Rcpp::Rcout << "Refined simulation time estimate (" << n << " draws): "
+                << est_total_sec << " seconds ("
+                << fmt_hms(est_total_sec) << ").\n";
+    
+    
     
   // --- yes/no option if estimate exceeds 5 minutes ---
-  if (est_total_sec_parallel > 300.0) {
+  if (est_total_sec  > 300.0) {
     Rcpp::Function readline("readline");
     std::string prompt = "Estimated simulation exceeds 5 minutes. Continue? [y/N]: ";
     while (true) {

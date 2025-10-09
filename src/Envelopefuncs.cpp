@@ -416,8 +416,18 @@ List EnvelopeBuild_c(NumericVector bStar,
     int m1_pilot_A = std::max(100, (int)(m1_total * frac_A));
   int m1_pilot_B = std::max(m1_pilot_A + 100, (int)(m1_total * frac_B));
   
+  // --- Cap at m1_total ---
+  m1_pilot_A = std::min(m1_pilot_A, m1_total);
+  m1_pilot_B = std::min(m1_pilot_B, m1_total);
 
+  // And enforce a sensible floor (e.g. at least 1)
+  m1_pilot_A = std::max(1, m1_pilot_A);
+  m1_pilot_B = std::max(1, m1_pilot_B);
+  
+  
   double est_time_sec = NA_REAL;
+  
+  double refined_est_total_sec;
   
   if (m1_total > 50000 && use_opencl) {
     auto slice_grid = [&](int m1_pilot) {
@@ -470,14 +480,67 @@ List EnvelopeBuild_c(NumericVector bStar,
     
     est_time_sec = fixed_cost + per_grid_cost * m1_total;
     
+    int m1_grid = std::max(1, (int)std::ceil(0.01 * static_cast<double>(m1_total))); 
+    double est_time_sec_m1 = fixed_cost + per_grid_cost * static_cast<double>(m1_grid);
     
-    long total = static_cast<long>(std::round(est_time_sec));
+    int m2_grid = std::max(1, (int)std::floor((300.0 - fixed_cost) / std::max(1e-12, per_grid_cost)));
+    
+    int m_stage_grid = std::min(m1_grid, m2_grid);
+    
+    // Cap at total grid size
+    m_stage_grid = std::min(m_stage_grid, m1_total);
+    
+    // And enforce a sensible floor (e.g. at least 1)
+    m_stage_grid = std::max(1, m_stage_grid);
+    
+    
+//    Rcpp::Rcout << "[GRID EST] m1_grid (1% of total grid) = " << m1_grid << "\n";
+//    Rcpp::Rcout << "[GRID EST] est_time_sec_m1 = " << est_time_sec_m1 << " seconds\n";
+//    Rcpp::Rcout << "[GRID EST] m2_grid (5-minute budget) = " << m2_grid << "\n";
+//    Rcpp::Rcout << "[GRID EST] Selected m_stage_grid = " << m_stage_grid << "\n";
+//    Rcpp::Rcout << "[GRID EST] m1_pilot_A = " << m1_pilot_A << "\n";
+//    Rcpp::Rcout << "[GRID EST] m1_pilot_B = " << m1_pilot_B << "\n";
+    
+
+    
+    Rcpp::Rcout << "Running timed grid slice of size " << m_stage_grid << "...\n";
+    
+    // Slice the grid
+    auto G4_pilot = slice_grid(m_stage_grid);
+    
+    // Time the evaluation
+    auto t0p = std::chrono::high_resolution_clock::now();
+    Rcpp::List pilot = f2_f3_opencl(family, link, G4_pilot, y, x, mu, P, alpha, wt, 0);
+    auto t1p = std::chrono::high_resolution_clock::now();
+    
+    double time_p = std::chrono::duration<double>(t1p - t0p).count();  // seconds
+    double per_grid_sec_parallel = time_p / static_cast<double>(m_stage_grid);
+    refined_est_total_sec = per_grid_sec_parallel * m1_total;
+    
+    // Pretty print
+    auto fmt_hms = [](double seconds) {
+      int s = static_cast<int>(std::round(seconds));
+      int h = s / 3600; s %= 3600;
+      int m = s / 60;   s %= 60;
+      std::ostringstream oss;
+      oss << h << "h " << m << "m " << s << "s";
+      return oss.str();
+    };
+    
+    Rcpp::Rcout << "[GRID CALIB] Calibration elapsed = " << time_p << " s for "
+                << m_stage_grid << " grid points (" << per_grid_sec_parallel << " s/grid).\n";
+    
+    Rcpp::Rcout << "Refined grid build time estimate: " << refined_est_total_sec << " seconds ("
+                << fmt_hms(refined_est_total_sec) << ").\n";
+        
+    
+    long total = static_cast<long>(std::round(refined_est_total_sec));
     long h = total / 3600;
     long m = (total % 3600) / 60;
     long s = total % 60;
     
     Rcpp::Rcout << "Estimated full f2_f3 evaluation time: "
-                << est_time_sec << " seconds ("
+                << refined_est_total_sec << " seconds ("
                 << h << "h " << m << "m " << s << "s)"
                 << " (fixed=" << fixed_cost
                 << ", per-grid=" << per_grid_cost << ").\n"
@@ -487,8 +550,8 @@ List EnvelopeBuild_c(NumericVector bStar,
   
   
   
-  if (est_time_sec > 300.0) {
-    Rcpp::Rcout << "\nEstimated run time exceeds 5 minutes (" << est_time_sec << " seconds).\n";
+  if (refined_est_total_sec > 300.0) {
+    Rcpp::Rcout << "\nEstimated run time exceeds 5 minutes (" << refined_est_total_sec << " seconds).\n";
     Rcpp::Rcout << "Do you want to continue? [y/N]: ";
     Rcpp::Function readline("readline");
     std::string response = Rcpp::as<std::string>(readline("Do you want to continue? [y/N]: "));
