@@ -398,7 +398,9 @@ List EnvelopeBuild_c(NumericVector bStar,
   
   arma::colvec NegLL_2(NegLL.begin(), NegLL.size(), false);
   
-  
+
+  if(use_opencl==1 ){
+    
   //////////////////  Pilot Phase
 
   
@@ -564,7 +566,7 @@ List EnvelopeBuild_c(NumericVector bStar,
     }
   }
   
-  
+  }
   
   //    G4b.print("tangent points");
   
@@ -1059,6 +1061,8 @@ List EnvelopeBuild_c(NumericVector bStar,
     }
     cbars2=f3_gaussian(G4,y, x,mu,P,alpha,wt);
   }
+  
+  
   
   
   //  Rcpp::Rcout << "Finished cbars Calculations: "
