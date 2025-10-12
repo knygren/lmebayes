@@ -5,6 +5,10 @@ EnvelopeSize <- function(a, G1, Gridtype = 2L, n = 1000L, n_envopt = -1L, use_op
     .Call(`_glmbayes_EnvelopeSize`, a, G1, Gridtype, n, n_envopt, use_opencl, verbose)
 }
 
+EnvelopeEval <- function(G4, y, x, mu, P, alpha, wt, family, link, use_opencl = FALSE, verbose = FALSE) {
+    .Call(`_glmbayes_EnvelopeEval`, G4, y, x, mu, P, alpha, wt, family, link, use_opencl, verbose)
+}
+
 .EnvelopeBuild_cpp <- function(bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose) {
     .Call(`_glmbayes_EnvelopeBuild_c`, bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose)
 }

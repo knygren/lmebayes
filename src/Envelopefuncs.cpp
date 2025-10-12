@@ -448,6 +448,52 @@ Rcpp::List EnvelopeSize(const arma::vec& a,
 
 
 
+// [[Rcpp::export]]
+Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4,   // grid (parameters × grid points)
+                        const Rcpp::NumericVector& y,
+                        const Rcpp::NumericMatrix& x,
+                        const Rcpp::NumericMatrix& mu,
+                        const Rcpp::NumericMatrix& P,
+                        const Rcpp::NumericVector& alpha,
+                        const Rcpp::NumericVector& wt,
+                        const std::string& family,
+                        const std::string& link,
+                        bool use_opencl = false,
+                        bool verbose = false) {
+  int progbar = 0;
+  
+  // Optional pilot timing for large parameter dimension
+  // (originally: if (l1 >= 14) ...; here we use number of columns in G4)
+  if (G4.ncol() >= 14) {
+    double est_time = run_opencl_pilot(G4, y, x, mu, P, alpha, wt,
+                                       family, link, use_opencl, verbose);
+    if (verbose) {
+      Rcpp::Rcout << "[INFO] OpenCL pilot estimated time = "
+                  << est_time << " seconds\n";
+    }
+  }
+  
+  
+  // Dispatch to OpenCL or CPU evaluation
+  Rcpp::List prepGrad;
+  if (use_opencl && family != "gaussian") {
+    if (verbose) Rcpp::Rcout << "Initiating f2_f3_opencl...\n";
+    prepGrad = f2_f3_opencl(family, link, G4, y, x, mu, P, alpha, wt, progbar);
+  } else {
+    if (verbose) Rcpp::Rcout << "Initiating f2_f3_non_opencl...\n";
+    prepGrad = f2_f3_non_opencl(family, link, G4, y, x, mu, P, alpha, wt, progbar);
+  }
+  
+  // Unpack results
+  Rcpp::NumericVector NegLL = prepGrad["qf"];          // negative log likelihood values
+  arma::mat cbars = Rcpp::as<arma::mat>(prepGrad["grad"]); // gradient matrix
+  
+  return Rcpp::List::create(
+    Rcpp::Named("NegLL") = NegLL,
+    Rcpp::Named("cbars") = cbars
+  );
+}
+
 
 // [[Rcpp::export(".EnvelopeBuild_cpp")]]
 
@@ -597,47 +643,58 @@ List EnvelopeBuild_c(NumericVector bStar,
   
   arma::colvec NegLL_2(NegLL.begin(), NegLL.size(), false);
   
- if(l1>=14){
-  double est_time = run_opencl_pilot(G4, y, x, mu, P, alpha, wt,
-                                     family, link, use_opencl, verbose);
- }
+
+  Rcpp::List eval_info = EnvelopeEval(G4, y, x, mu, P, alpha, wt,
+                                      family, link, use_opencl, verbose);
   
-  ///// New simpler paths ///////////////////////////
+
+  NegLL = eval_info["NegLL"];
+  cbars2 = Rcpp::as<arma::mat>(eval_info["cbars"]);
+  
+
   
   
-  Rcpp::List prepGrad;
- 
- if (use_opencl == 1 && family != "gaussian") {
-   // OpenCL path for supported families
-   if (verbose) {
-     Rcpp::Rcout << "Initiating f2_f3_opencl: "
-                 << Rcpp::as<std::string>(
-     Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
-     << "\n";
-   }
-   
-   prepGrad = f2_f3_opencl(
-     family, link,
-     G4, y, x, mu, P, alpha, wt, progbar
-   );
- } else {
-   // CPU fallback (either use_opencl==0, or family==gaussian)
-   if (verbose) {
-     Rcpp::Rcout << "Initiating f2_f3_non_opencl: "
-                 << Rcpp::as<std::string>(
-     Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
-     << "\n";
-   }
-   
-   prepGrad = f2_f3_non_opencl(
-     family, link,
-     G4, y, x, mu, P, alpha, wt, progbar
-   );
- }
- 
- // Unpack results (same structure regardless of path)
- NegLL  = prepGrad["qf"];
- cbars2 = Rcpp::as<arma::mat>(prepGrad["grad"]);
+ // if(l1>=14){
+ //  double est_time = run_opencl_pilot(G4, y, x, mu, P, alpha, wt,
+ //                                     family, link, use_opencl, verbose);
+ // }
+ //  
+ //  ///// New simpler paths ///////////////////////////
+ //  
+ //  
+ //  Rcpp::List prepGrad;
+ // 
+ // if (use_opencl == 1 && family != "gaussian") {
+ //   // OpenCL path for supported families
+ //   if (verbose) {
+ //     Rcpp::Rcout << "Initiating f2_f3_opencl: "
+ //                 << Rcpp::as<std::string>(
+ //     Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
+ //     << "\n";
+ //   }
+ //   
+ //   prepGrad = f2_f3_opencl(
+ //     family, link,
+ //     G4, y, x, mu, P, alpha, wt, progbar
+ //   );
+ // } else {
+ //   // CPU fallback (either use_opencl==0, or family==gaussian)
+ //   if (verbose) {
+ //     Rcpp::Rcout << "Initiating f2_f3_non_opencl: "
+ //                 << Rcpp::as<std::string>(
+ //     Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
+ //     << "\n";
+ //   }
+ //   
+ //   prepGrad = f2_f3_non_opencl(
+ //     family, link,
+ //     G4, y, x, mu, P, alpha, wt, progbar
+ //   );
+ // }
+ // 
+ // // Unpack results (same structure regardless of path)
+ // NegLL  = prepGrad["qf"];
+ // cbars2 = Rcpp::as<arma::mat>(prepGrad["grad"]);
 
   // Do a temporary correction here cbars3 should point to correct memory
   // See if this sets cbars
