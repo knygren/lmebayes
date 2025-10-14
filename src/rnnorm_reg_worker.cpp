@@ -16,6 +16,14 @@
 
   // operator() implements the parallel loop
   void rnnorm_reg_worker::operator()(std::size_t begin, std::size_t end) {
+    // Per-call lightweight views; no allocations of K×p
+    arma::vec  PLSD   (PLSD_r.begin(),    PLSD_r.length(),               false, true);
+    arma::vec  LLconst(LLconst_r.begin(), LLconst_r.length(),            false, true);
+    arma::mat  loglt  (loglt_r.begin(),   loglt_r.nrow(), loglt_r.ncol(), false, true);
+    arma::mat  logrt  (logrt_r.begin(),   logrt_r.nrow(), logrt_r.ncol(), false, true);
+    arma::mat  cbars  (cbars_r.begin(),   cbars_r.nrow(), cbars_r.ncol(), false, true);
+    
+    
     
     // Create Armadillo views directly from RMatrix/RVector memory
     arma::vec y2(y_r.begin(), y_r.length(), false);

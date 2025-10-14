@@ -480,10 +480,22 @@ Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4,   // grid (parameters × 
   // Dispatch to OpenCL or CPU evaluation
   Rcpp::List prepGrad;
   if (use_opencl && family != "gaussian") {
-    if (verbose) Rcpp::Rcout << "Initiating f2_f3_opencl...\n";
+    if (verbose) {
+  
+      Rcpp::Rcout << "Initiating f2_f3_opencl: "                  << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")())) 
+                  << "\n";
+    }
+    
+    
+    
     prepGrad = f2_f3_opencl(family, link, G4, y, x, mu, P, alpha, wt, progbar);
   } else {
-    if (verbose) Rcpp::Rcout << "Initiating f2_f3_non_opencl...\n";
+    if (verbose) {
+      
+      Rcpp::Rcout << "Initiating f2_f3_non_opencl: "                  << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")())) 
+                  << "\n";
+    }
+    
     prepGrad = f2_f3_non_opencl(family, link, G4, y, x, mu, P, alpha, wt, progbar);
   }
   

@@ -654,12 +654,22 @@ List rnnorm_reg_std_cpp_parallel(
     CharacterVector       link,
     int                   progbar = 1
 ) {
-  // allocate output buffers
+  
+  // local debug toggle (temporary)
+  const bool debug = true;
+  
+  auto mb = [](double bytes) {
+    return bytes / (1024.0 * 1024.0);
+  };
+  
+  // 0) allocate output buffers (always a big one)
   int p = mu.nrow();
+
+  
+  // allocate output buffers
   NumericMatrix out(n, p);
   NumericVector draws(n);
   
-  // Extract from Envelope List
 
   Rcpp::NumericVector PLSD    = Envelope["PLSD"];
   Rcpp::NumericMatrix loglt   = Envelope["loglt"];
@@ -671,21 +681,18 @@ List rnnorm_reg_std_cpp_parallel(
   if (Envelope.containsElementNamed("E_draws")) {
     E_draws = Rcpp::as<double>(Envelope["E_draws"]);
   }
-//  Rcpp::Rcout << "Estimated draws per Acceptance: " << E_draws << "\n";  
+  Rcpp::Rcout << "Estimated draws per Acceptance: " << E_draws << "\n";  
+
+
+
+  arma::vec PLSD2(PLSD.begin(), PLSD.size(), false, true);
+  arma::vec LLconst2(LLconst.begin(), LLconst.size(), false, true);
+  arma::mat loglt2(loglt.begin(), loglt.nrow(), loglt.ncol(), false, true);
+  arma::mat logrt2(logrt.begin(), logrt.nrow(), logrt.ncol(), false, true);
+  arma::mat cbars2(cbars.begin(), cbars.nrow(), cbars.ncol(), false, true);
+  
   
 
-  
-  // Convert to Armadillo (deep-safe versions)
-  arma::vec PLSD2    = Rcpp::as<arma::vec>(PLSD);
-  arma::vec LLconst2 = Rcpp::as<arma::vec>(LLconst);
-  arma::mat loglt2   = Rcpp::as<arma::mat>(loglt);
-  arma::mat logrt2   = Rcpp::as<arma::mat>(logrt);
-  arma::mat cbars2   = Rcpp::as<arma::mat>(cbars);
-  
-  
-//  Rcpp::Rcout << " 1.0 Launching Worker \n" <<;
-//  Rcpp::Rcout << "1.0 Launching Worker " <<  std::endl;
-  
   // Create thread-safe views from R-native containers
   RcppParallel::RVector<double> y_r(y);
   RcppParallel::RMatrix<double> x_r(x);
@@ -696,18 +703,8 @@ List rnnorm_reg_std_cpp_parallel(
   RcppParallel::RMatrix<double> out_r(out);
   RcppParallel::RVector<double> draws_r(draws);
   
-  // launch parallel worker
   
-  // rnnorm_reg_worker worker(
-  //     n, y, x, mu, P,
-  //     alpha, wt,
-  //   //  Envelope,
-  //     PLSD2,LLconst2, loglt2, logrt2, cbars2, 
-  //     family, link,
-  //     progbar,
-  //     out, draws
-  // );
-  
+
   // create shared atomic flag (init 0)
   auto any_flag = std::make_shared<std::atomic<int>>(0);
   
@@ -717,26 +714,30 @@ List rnnorm_reg_std_cpp_parallel(
   
   double max_draws = std::ceil(std::log(p_max_draws) / std::log(1.0 - p_accept));
   
-  // construct worker for test run (pass shared flag, use default max_draws)
+
+  
+  RVector<double> PLSD_r(PLSD);
+  RVector<double> LLconst_r(LLconst);
+  RMatrix<double> loglt_r(loglt);
+  RMatrix<double> logrt_r(logrt);
+  RMatrix<double> cbars_r(cbars);
+  
+  
+
   rnnorm_reg_worker test_worker(
-      n,
-      y_r, x_r, mu_r, P_r,
-      alpha_r, wt_r,
-      PLSD2, LLconst2, loglt2, logrt2, cbars2,
-      family, link,
-      progbar,
-      out_r, draws_r,
-      any_flag,    // shared atomic flag
-      max_draws           // max_draws (optional; keep -1 for no cap)
+      n, y_r, x_r, mu_r, P_r, alpha_r, wt_r,
+      PLSD_r, LLconst_r, loglt_r, logrt_r, cbars_r,
+      family, link, progbar, out_r, draws_r,
+      any_flag, max_draws
   );
   
   
-  
+
   rnnorm_reg_worker worker(
       n,
       y_r, x_r, mu_r, P_r,
       alpha_r, wt_r,
-      PLSD2, LLconst2, loglt2, logrt2, cbars2, 
+      PLSD_r, LLconst_r, loglt_r, logrt_r, cbars_r,
       family, link,
       progbar,
       out_r, draws_r,
@@ -745,8 +746,7 @@ List rnnorm_reg_std_cpp_parallel(
   );
   
   
-  
-  
+
   if (p >= 14) {
    
    auto pilot_res = run_rcppparallel_pilot(
@@ -763,7 +763,7 @@ List rnnorm_reg_std_cpp_parallel(
   }
   
   
-  
+
   ////////////////////////////////////////////////////////////////
   
   

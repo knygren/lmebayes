@@ -33,9 +33,60 @@
 #' @export
 #' @keywords internal
 
+EnvelopeSort <- function(l1, l2,
+                         GIndex, G3, cbars, logU, logrt, loglt,
+                         logP, LLconst, PLSD, a1, E_draws) {
+  # Order indices by decreasing PLSD
+  ord <- order(PLSD, decreasing = TRUE)
+  sel <- ord[seq_len(l2)]  # top l2 rows
+  
+  # Reorder inputs once
+  GIndex <- GIndex[sel, , drop = FALSE]
+  G3     <- G3[sel, , drop = FALSE]
+  cbars  <- cbars[sel, , drop = FALSE]
+  logU   <- logU[sel]
+  logrt  <- logrt[sel, , drop = FALSE]
+  loglt  <- loglt[sel, , drop = FALSE]
+  logP   <- logP[sel, 1, drop = TRUE]
+  LLconst<- LLconst[sel]
+  PLSD   <- PLSD[sel]
+  
+  # Build output list
+  if (l1 == 1) {
+    outlist <- list(
+      GridIndex = GIndex,
+      thetabars = G3,
+      cbars     = matrix(cbars, nrow = l2, ncol = l1),
+      logU      = logU,
+      logrt     = matrix(logrt, nrow = l2, ncol = l1),
+      loglt     = matrix(loglt, nrow = l2, ncol = l1),
+      LLconst   = LLconst,
+      logP      = logP,
+      PLSD      = PLSD,
+      a1        = a1,
+      E_draws   = E_draws
+    )
+  } else {
+    outlist <- list(
+      GridIndex = GIndex,
+      thetabars = G3,
+      cbars     = cbars,
+      logU      = logU,
+      logrt     = logrt,
+      loglt     = loglt,
+      LLconst   = LLconst,
+      logP      = logP,
+      PLSD      = PLSD,
+      a1        = a1,
+      E_draws   = E_draws
+    )
+  }
+  
+  outlist
+}
 
 
-EnvelopeSort<-function(l1,l2,GIndex,G3,cbars,logU,logrt,loglt,logP,LLconst,PLSD,a1,E_draws){
+EnvelopeSort_Old<-function(l1,l2,GIndex,G3,cbars,logU,logrt,loglt,logP,LLconst,PLSD,a1,E_draws){
   
   Envelope<-data.frame(GIndex=GIndex,G3=G3,cbars=cbars,logU=logU,logrt=logrt,loglt=loglt,logP=logP[,1],LLconst=LLconst,PLSD=PLSD)
   Envelope<-Envelope[order(-Envelope$PLSD),]
@@ -59,3 +110,5 @@ EnvelopeSort<-function(l1,l2,GIndex,G3,cbars,logU,logrt,loglt,logP,LLconst,PLSD,
   return(outlist)
   
 }
+
+

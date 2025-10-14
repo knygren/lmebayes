@@ -32,11 +32,19 @@ struct rnnorm_reg_worker : public RcppParallel::Worker {
   RVector<double>       alpha_r;   // predictor offset
   RVector<double>       wt_r;      // observation weights
   
-  arma::vec             PLSD;      // slice density
-  arma::vec             LLconst;   // envelope constants
-  arma::mat             loglt;     // envelope lower bounds
-  arma::mat             logrt;     // envelope upper bounds
-  arma::mat             cbars;     // envelope centers
+  // Envelope components as thread-safe handles (no copies)
+  RVector<double> PLSD_r;
+  RVector<double> LLconst_r;
+  RMatrix<double> loglt_r;
+  RMatrix<double> logrt_r;
+  RMatrix<double> cbars_r;
+  
+  
+  //   arma::vec             PLSD;      // slice density
+  // arma::vec             LLconst;   // envelope constants
+  // arma::mat             loglt;     // envelope lower bounds
+  // arma::mat             logrt;     // envelope upper bounds
+  // arma::mat             cbars;     // envelope centers
   
   CharacterVector       family;    // GLM family
   CharacterVector       link;      // link function
@@ -61,11 +69,18 @@ struct rnnorm_reg_worker : public RcppParallel::Worker {
     const RMatrix<double>& P_r_,
     const RVector<double>& alpha_r_,
     const RVector<double>& wt_r_,
-    const arma::vec& PLSD_,
-    const arma::vec& LLconst_,
-    const arma::mat& loglt_,
-    const arma::mat& logrt_,
-    const arma::mat& cbars_,
+    
+    const RcppParallel::RVector<double>& PLSD_r_,
+    const RcppParallel::RVector<double>& LLconst_r_,
+    const RcppParallel::RMatrix<double>& loglt_r_,
+    const RcppParallel::RMatrix<double>& logrt_r_,
+    const RcppParallel::RMatrix<double>& cbars_r_,
+    
+    // const arma::vec& PLSD_,
+    // const arma::vec& LLconst_,
+    // const arma::mat& loglt_,
+    // const arma::mat& logrt_,
+    // const arma::mat& cbars_,
     const CharacterVector& family_,
     const CharacterVector& link_,
     int progbar_,
@@ -77,8 +92,10 @@ struct rnnorm_reg_worker : public RcppParallel::Worker {
     : n(n_),
       y_r(y_r_), x_r(x_r_), mu_r(mu_r_), P_r(P_r_),
       alpha_r(alpha_r_), wt_r(wt_r_),
-      PLSD(PLSD_), LLconst(LLconst_),
-      loglt(loglt_), logrt(logrt_), cbars(cbars_),
+      PLSD_r(PLSD_r_), LLconst_r(LLconst_r_),
+      loglt_r(loglt_r_), logrt_r(logrt_r_), cbars_r(cbars_r_),
+      // PLSD(PLSD_), LLconst(LLconst_),
+      // loglt(loglt_), logrt(logrt_), cbars(cbars_),
       family(family_), link(link_), progbar(progbar_),
       out(out_), draws(draws_), ncol(out_.ncol())
     , any_maxdraw_flag(any_maxdraw_flag_),
