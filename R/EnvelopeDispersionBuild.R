@@ -83,9 +83,12 @@ EnvelopeDispersionBuild <- function(
   dispstar <- rate3 / (shape2 - 1)
   
   
+  cat("[DEBUG] Entering EnvBuildLinBound  \n")
   
   # Step 6: Face slopes at dispstar
   New_LL_Slope <- EnvBuildLinBound(thetabars, cbars, y, x, P, alpha, dispstar)
+  
+  cat("[DEBUG] Exiting EnvBuildLinBound  \n")
   
   # Step 7: Linear extrapolation of face constants to bounds
   thetabar_const_upp_apprx <- thetabar_const_base + (upp - dispstar) * New_LL_Slope
@@ -118,6 +121,8 @@ EnvelopeDispersionBuild <- function(
   dispstar <- b1 / (-c1)  # equivalently (upp - low)/log(upp/low)
   
     
+  cat("[DEBUG] Entering Loop inside EnvelopeDispersionBuild  \n")
+  
 
   # Step 9: Mixture weights per face (match original)
   New_logP2  <- numeric(gs)
@@ -130,6 +135,9 @@ EnvelopeDispersionBuild <- function(
       thetabar_const_low_apprx[j] - max_low
     )
   }
+  
+  cat("[DEBUG] Exited Loop inside EnvelopeDispersionBuild  \n")
+  
   lg_prob_factor <- prob_factor
   prob_factor <- exp(New_logP2 + prob_factor)
   prob_factor <- prob_factor / sum(prob_factor)

@@ -561,11 +561,22 @@ Rcpp::List  rindep_norm_gamma_reg_std_v3_cpp(int n,NumericVector y,NumericMatrix
     iters_out[i]=1;  
     while(a1==0){
       
+      
+      // inside the while (a1==0) loop, right after entering:
+   
+      Rcpp::checkUserInterrupt();
+      
+      
+      
       dispersion=r_invgamma(shape3,rate2,disp_upper,disp_lower);
       
       wt2=wt/dispersion;
       
       // Simulate from discrete distribution
+      
+      if (l1 > 4) {
+        Rcpp::Rcout << "1.0" << std::endl;
+      }
       
       U=R::runif(0.0, 1.0);
       a2=0;
@@ -579,18 +590,35 @@ Rcpp::List  rindep_norm_gamma_reg_std_v3_cpp(int n,NumericVector y,NumericMatrix
         }
       }
       
-
+      if (l1 > 4) {
+        Rcpp::Rcout << "2.0" << std::endl;
+      }
+      
       NumericMatrix cbars_small = cbars( Range(J(0),J(0)) , Range(0,cbars.ncol()-1) );
       
       arma::mat theta2 =Inv_f3_gaussian(transpose(cbars_small), y,x, mu, P, alpha, wt2);  
 
+      if (l1 > 4) {
+        Rcpp::Rcout << "3.0" << std::endl;
+      }
+      
+      
       thetabarsb_new=theta2;
       NumericVector LL_New2=-f2_gaussian(transpose(thetabars_new),  y, x, mu, P, alpha, wt2);  
       
 
+      if (l1 > 4) {
+        Rcpp::Rcout << "4.0" << std::endl;
+      }
+      
       
       for(int j=0;j<l1;j++){  out(0,j)=ctrnorm_cpp(logrt(J(0),j),loglt(J(0),j),-cbars(J(0),j),1.0);          }
 
+      
+      if (l1 > 4) {
+        Rcpp::Rcout << "5.0" << std::endl;
+      }
+      
       
       U2=R::runif(0.0, 1.0);
       
@@ -605,9 +633,17 @@ Rcpp::List  rindep_norm_gamma_reg_std_v3_cpp(int n,NumericVector y,NumericMatrix
       arma::vec  cbars_temp2(cbars_temp.begin(), l1);
       
       
-
+      if (l1 > 4) {
+        Rcpp::Rcout << "6.0" << std::endl;
+      }
+      
       NumericVector LL_Test=-f2_gaussian(transpose(out),  y, x, mu, P, alpha, wt2);
 
+      
+      if (l1 > 4) {
+        Rcpp::Rcout << "7.0" << std::endl;
+      }
+      
       // Block 1: UB1 
       //   Same form as in fixed dispersion case but thetabar is a function of the dispersion
       //   So all components that include thetabar must now be bounded as well
@@ -620,6 +656,11 @@ Rcpp::List  rindep_norm_gamma_reg_std_v3_cpp(int n,NumericVector y,NumericMatrix
 
       arma::colvec yxbeta=(y2-alpha2-x2*thetabars_temp2)%sqrt(wt1b); 
       UB2=0.5*(1/dispersion)*(arma::as_scalar(trans(yxbeta)*yxbeta)-RSS_ML);
+      
+      if (l1 > 4) {
+        Rcpp::Rcout << "8.0" << std::endl;
+      }
+      
       
 
       // Block 3: UB3A (adjusts because probabilities of components in grid are different from original grid)
@@ -640,6 +681,12 @@ Rcpp::List  rindep_norm_gamma_reg_std_v3_cpp(int n,NumericVector y,NumericMatrix
                                     +trans(cbars_temp2)*thetabars_temp2);
         
       }
+        
+        if (l1 > 4) {
+          Rcpp::Rcout << "9.0" << std::endl;
+        }
+        
+        
       
 
       // Modified UB3A 
@@ -682,6 +729,11 @@ Rcpp::List  rindep_norm_gamma_reg_std_v3_cpp(int n,NumericVector y,NumericMatrix
       disp_out[i]=dispersion;  
       beta_out(i,_)=out(0,_);
 
+      if (l1 > 4) {
+        Rcpp::Rcout << "10.0" << std::endl;
+      }
+      
+      
       if(test>=0) a1=1;
       else{iters_out[i]=iters_out[i]+1;}        
       
@@ -698,6 +750,86 @@ Rcpp::List  rindep_norm_gamma_reg_std_v3_cpp(int n,NumericVector y,NumericMatrix
   
   
 }
+
+
+
+
+
+// [[Rcpp::export]]
+Rcpp::List Inv_f3_precompute_disp(NumericMatrix cbars,
+                                  NumericVector y,
+                                  NumericMatrix x,
+                                  NumericMatrix mu,
+                                  NumericMatrix P,
+                                  NumericVector alpha,
+                                  NumericVector wt) {
+  int n = x.nrow();
+  int p = x.ncol();
+  int m = cbars.ncol();
+  
+  arma::mat X(x.begin(), n, p, false);
+  arma::mat Xt = X.t();
+  arma::vec yv(y.begin(), n, false);
+  arma::vec alphav(alpha.begin(), n, false);
+  arma::vec xb = alphav - yv;
+  
+  arma::mat Pmat(P.begin(), p, p, false);
+  Pmat = 0.5 * (Pmat + Pmat.t());
+  
+  arma::mat Mu(mu.begin(), p, 1, false);
+  arma::mat Pmu = Pmat * Mu;
+  
+  arma::vec wv(wt.begin(), n, false);
+  
+  arma::vec base_B0 = Xt * (wv % xb);
+  arma::mat base_A  = Xt * (X.each_col() % wv);
+  
+  arma::mat C(cbars.begin(), p, m, false);
+  
+  return Rcpp::List::create(
+    Rcpp::Named("Pmat")    = Pmat,
+    Rcpp::Named("Pmu")     = Pmu,
+    Rcpp::Named("base_B0") = base_B0,
+    Rcpp::Named("base_A")  = base_A,
+    Rcpp::Named("C")       = C
+  );
+}
+
+// [[Rcpp::export]]
+arma::mat Inv_f3_with_disp(Rcpp::List cache,
+                           double dispersion,
+                           Rcpp::NumericMatrix cbars_small) {
+  arma::mat Pmat    = cache["Pmat"];
+  arma::mat Pmu     = cache["Pmu"];
+  arma::vec base_B0 = cache["base_B0"];
+  arma::mat base_A  = cache["base_A"];
+  
+  // Scale the base terms
+  arma::vec B0 = base_B0 / dispersion + Pmu;
+  arma::mat A  = Pmat + base_A / dispersion;
+  A = 0.5 * (A + A.t());
+  
+  arma::mat R = arma::chol(A);
+  
+  // Wrap cbars_small into an Armadillo view
+  arma::mat Csmall(cbars_small.begin(), Pmat.n_rows, cbars_small.ncol(), false);
+  
+  // Use Armadillo's n_cols
+  arma::mat Out(Pmat.n_rows, Csmall.n_cols);
+  
+  for (arma::uword i = 0; i < Csmall.n_cols; i++) {
+    arma::vec cbars_i(Csmall.colptr(i), Pmat.n_rows, false);
+    arma::vec b = -cbars_i + B0;
+    
+    arma::vec ytmp = arma::solve(arma::trimatl(R.t()), b);
+    arma::vec sol  = arma::solve(arma::trimatu(R), ytmp);
+    
+    Out.col(i) = -sol;
+  }
+  
+  return Out.t(); // m × p
+}
+
 
 
 
@@ -788,41 +920,50 @@ Rcpp::List  rindep_norm_gamma_reg_std_v4_cpp(int n,NumericVector y,NumericMatrix
   NumericVector PLSD=Envelope["PLSD"];
   NumericMatrix loglt=Envelope["loglt"];
   NumericMatrix logrt=Envelope["logrt"];
+  
+
+//  if (l1 > 4) {
+//    Rcpp::Rcout << "[DEBUG] PLSD = " << PLSD << std::endl;
+//  }
 
 //  if(progbar==1){ Rcpp::Rcout << "Starting Simulation:" << std::endl;  };
 
-Rcpp::Rcout << "Function checking interactive:" << std::endl;
+//Rcpp::Rcout << "Function checking interactive:" << std::endl;
 
-  if (progbar == 1 && Rcpp::as<bool>(interactive())) {
-    Rcpp::Rcout << "Starting Simulation:" << std::endl;
-  }
+  // if (progbar == 1 && Rcpp::as<bool>(interactive())) {
+  //   Rcpp::Rcout << "Starting Simulation:" << std::endl;
+  // }
+  
+  
+  // Build cache once outside the loop
+  Rcpp::List cache = Inv_f3_precompute_disp(cbars, y, x, mu, P, alpha, wt);
   
   
   for(int i=0;i<n;i++){
 
     Rcpp::checkUserInterrupt();
     
-//    if(progbar==1){
-//      progress_bar3(i, n-1);
-//      if(i==n-1) {Rcpp::Rcout << "" << std::endl;}
-//    }
+    if(progbar==1){
+      progress_bar3(i, n-1);
+      if(i==n-1) {Rcpp::Rcout << "" << std::endl;}
+    }
     
     // 3. Test progbar *and* interactive()
 
 
-    if (progbar == 1 && Rcpp::as<bool>(interactive())) {
-      progress_bar3(i, n - 1);
-      if (i == n - 1) {
-        Rcpp::Rcout << std::endl;
-      }
-    }
+    // if (progbar == 1 && Rcpp::as<bool>(interactive())) {
+    //   progress_bar3(i, n - 1);
+    //   if (i == n - 1) {
+    //     Rcpp::Rcout << std::endl;
+    //   }
+    // }
     
     
     a1=0;
     iters_out[i]=1;  
     while(a1==0){
 
-            
+          
       
       // Simulate from discrete distribution
       
@@ -838,26 +979,37 @@ Rcpp::Rcout << "Function checking interactive:" << std::endl;
         }
       }
       
-      
+
+            
       // Simulate for beta
       
       for(int j=0;j<l1;j++){  out(0,j)=ctrnorm_cpp(logrt(J(0),j),loglt(J(0),j),-cbars(J(0),j),1.0);          }
       
       
+
       // Update this to make distribution contingent on component of the grid
       
       dispersion=r_invgamma(shape3,rate2,disp_upper,disp_lower);
       
+      
+      
       wt2=wt/dispersion;
       NumericMatrix cbars_small = cbars( Range(J(0),J(0)) , Range(0,cbars.ncol()-1) );
-      arma::mat theta2 =Inv_f3_gaussian(transpose(cbars_small), y,x, mu, P, alpha, wt2);  
       
-      thetabarsb_new=theta2;
+      // Compute Adjusted theta (accounting for changed dispersion) - New tangency points
+    
+      arma::mat theta2 = Inv_f3_with_disp(cache, dispersion, transpose(cbars_small));
+      thetabarsb_new = theta2;
+      
+
+      // theta2 =Inv_f3_gaussian(transpose(cbars_small), y,x, mu, P, alpha, wt2);  
+      // thetabarsb_new=theta2;
+      
+
+      // Recompoute LL at the new gradient point
       NumericVector LL_New2=-f2_gaussian(transpose(thetabars_new),  y, x, mu, P, alpha, wt2);  
       
-      
-      
-      
+    
       
       U2=R::runif(0.0, 1.0);
       
@@ -874,6 +1026,8 @@ Rcpp::Rcout << "Function checking interactive:" << std::endl;
       
       
       NumericVector LL_Test=-f2_gaussian(transpose(out),  y, x, mu, P, alpha, wt2);
+      
+
       
       // Block 1: UB1 
       //   Same form as in fixed dispersion case but thetabar is a function of the dispersion
@@ -895,6 +1049,8 @@ Rcpp::Rcout << "Function checking interactive:" << std::endl;
       
       // This is likely time consuming part
       
+
+      
       for(int j=J_out(0);j<(J_out(0)+1);j++){
         thetabars_temp=thetabars_new(0,_); // Changed
         
@@ -908,6 +1064,8 @@ Rcpp::Rcout << "Function checking interactive:" << std::endl;
         
       }
       
+      
+
       
       // Modified UB3A 
       
@@ -943,15 +1101,33 @@ Rcpp::Rcout << "Function checking interactive:" << std::endl;
       //   So all components that include thetabar must now be bounded as well
       
       
-      test=test-log_U2;
+
       
+
+      test = test - log_U2;
       
-      disp_out[i]=dispersion;  
-      beta_out(i,_)=out(0,_);
+      disp_out[i] = dispersion;
+      beta_out(i, _) = out(0, _);
       
-      if(test>=0) a1=1;
-      else{iters_out[i]=iters_out[i]+1;}        
+      // if (l1 > 2) {
+      //   Rcpp::Rcout << "iters_out=" << iters_out[i]
+      //               << " test=" << test
+      //               << std::endl;
+      // }
       
+            
+      if(test>=0){
+        
+
+        
+        a1=1;
+        
+      }
+      else{
+        iters_out[i]=iters_out[i]+1;
+        }    
+      
+
     }  
     
     

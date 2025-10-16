@@ -989,8 +989,11 @@ List EnvelopeBuild_Ind_Normal_Gamma(NumericVector bStar,NumericMatrix A,
 Rcpp::List eval_info2 = EnvelopeEval(G4, y, x, mu,0*P, alpha, wt,
                                     family, link, use_opencl, verbose);
 
-NegLL_slope = eval_info2["NegLL"];
-cbars_slope2 = Rcpp::as<arma::mat>(eval_info2["cbars"]);
+
+NegLL_slope   = eval_info2["NegLL"];
+cbars_slope2  = Rcpp::as<arma::mat>(eval_info2["cbars"]);
+
+Rcpp::Rcout << "[DEBUG] Finished assigning NegLL_slope and cbars_slope2" << std::endl;
 
     
 //    NegLL_slope=f2_gaussian(G4,y, x, mu, 0*P, alpha, wt);  
@@ -1007,13 +1010,23 @@ cbars_slope2 = Rcpp::as<arma::mat>(eval_info2["cbars"]);
   
   cbars3=cbars2;
   cbars_slope3=cbars_slope2;
+
+
+
+  Rcpp::Rcout << "[DEBUG] Entering Set_Grid_C2" << std::endl;
   
   Set_Grid_C2(GIndex, cbars, Lint1,Down,Up,loglt,logrt,logct,logU,logP);
+
+  Rcpp::Rcout << "[DEBUG] Entering Set_logP_C2" << std::endl;
   
   setlogP_C2(logP,NegLL,cbars,G3,LLconst);
   
-  NumericMatrix::Column logP2 = logP( _, 1);
   
+  Rcpp::Rcout << "[DEBUG] Computing PLSD" << std::endl;
+  
+  NumericMatrix::Column logP2 = logP( _, 1);
+
+    
   
   double  maxlogP=max(logP2);
   
@@ -1031,6 +1044,7 @@ cbars_slope2 = Rcpp::as<arma::mat>(eval_info2["cbars"]);
   //    return(outlist);
   //  }
   
+  Rcpp::Rcout << "[DEBUG] Finished Computing PLSD" << std::endl;
   
   return Rcpp::List::create(Rcpp::Named("GridIndex")=GIndex,
                             Rcpp::Named("thetabars")=G3,

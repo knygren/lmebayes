@@ -696,9 +696,12 @@ rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,fam
                      n_envopt=n_envopt,
                      sortgrid=TRUE,use_opencl = use_opencl,verbose = verbose)
   
+  cat("[DEBUG] EnvelopeBuild returned\n")
   
   
   ###  Call new function to build shared envelope
+  
+  cat("[DEBUG] Entering EnvelopeDispersionBuild \n")
   
   
   disp_env_out <- EnvelopeDispersionBuild(
@@ -715,6 +718,7 @@ rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,fam
     max_disp_perc = max_disp_perc
   )
   
+  cat("[DEBUG] Existing EnvelopeDispersionBuild \n")
   
   
 
@@ -725,8 +729,12 @@ rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,fam
   upp            <- gamma_list_new$disp_upper  
   diagnostics     <- disp_env_out$diagnostics
   
-  
 
+  cat("[DEBUG] disp_lower =", low,
+      " disp_upper =", upp, "\n")
+  
+  cat("[DEBUG] Calling .rindep_norm_gamma_reg_std_V4_cpp \n")
+  
   
   
   sim_temp=.rindep_norm_gamma_reg_std_V4_cpp (n=n, y=y, x=x2, mu=mu2, P=P2, alpha=alpha, wt,
@@ -734,6 +742,8 @@ rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,fam
                                               gamma_list=gamma_list_new,
                                               UB_list=UB_list_new,
                                               family="gaussian",link="identity", progbar =progbar)
+
+  cat("[DEBUG] Exiting .rindep_norm_gamma_reg_std_V4_cpp \n")
   
 
   print(paste("Interactive status:", interactive()))
@@ -793,24 +803,43 @@ rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,fam
 
 EnvBuildLinBound<-function(thetabars,cbars,y,x2,P2,alpha,dispstar){
   
-  gs=nrow(cbars)
-  n_vars=ncol(cbars)
+  # gs=nrow(cbars)
+  # n_vars=ncol(cbars)
+  # 
+  # New_LL_Slope_test2=c(1:gs)
+  # New_LL_Slope_test3=c(1:gs)
   
-  New_LL_Slope_test2=c(1:gs)
-  New_LL_Slope_test3=c(1:gs)
+  XtX   <- crossprod(x2)
+  rhs   <- crossprod(x2, y - alpha)
+  M     <- XtX + dispstar * P2
+  Minv  <- solve(M)
+  H1    <- -Minv %*% P2 %*% Minv
   
-  for(j in 1:gs){
-    
-    cbars_temp=as.matrix(cbars[j,1:n_vars],ncol=1)
-    thetabars_temp=as.matrix(thetabars[j,1:n_vars],ncol=1)
-    New_LL_Slope_test2[j]=(-t(thetabars_temp)%*%P2+t(cbars_temp))%*%solve(t(x2)%*%x2+dispstar*P2)%*%cbars_temp
-    
-    H1=-solve(t(x2)%*%x2+dispstar*P2)%*%P2%*%solve(t(x2)%*%x2+dispstar*P2)
-    New_LL_Slope_test3[j]=New_LL_Slope_test2[j]+(-t(thetabars_temp)%*%P2+t(cbars_temp))%*%H1%*%(t(x2)%*%(y-alpha)+dispstar*cbars_temp)
-    
-  }
+  V <- -(thetabars %*% P2) + cbars          # gs x p
+  Minv_cbars <- t(Minv %*% t(cbars))        # gs x p
+  term1 <- rowSums(V * Minv_cbars)
   
-  return(New_LL_Slope_test3)
+  # replicate rhs across gs columns
+  rhs_mat <- matrix(rhs, nrow = length(rhs), ncol = nrow(cbars))
+  H1_rhs  <- t(H1 %*% (rhs_mat + dispstar * t(cbars)))  # gs × p
+  
+  term2 <- rowSums(V * H1_rhs)
+  
+  New_LL_Slope <- term1 + term2
+  
+  return(New_LL_Slope)
+  # for(j in 1:gs){
+  #   
+  #   cbars_temp=as.matrix(cbars[j,1:n_vars],ncol=1)
+  #   thetabars_temp=as.matrix(thetabars[j,1:n_vars],ncol=1)
+  #   New_LL_Slope_test2[j]=(-t(thetabars_temp)%*%P2+t(cbars_temp))%*%solve(t(x2)%*%x2+dispstar*P2)%*%cbars_temp
+  #   
+  #   H1=-solve(t(x2)%*%x2+dispstar*P2)%*%P2%*%solve(t(x2)%*%x2+dispstar*P2)
+  #   New_LL_Slope_test3[j]=New_LL_Slope_test2[j]+(-t(thetabars_temp)%*%P2+t(cbars_temp))%*%H1%*%(t(x2)%*%(y-alpha)+dispstar*cbars_temp)
+  #   
+  # }
+  # 
+  # return(New_LL_Slope_test3)
   
 }
 
@@ -916,9 +945,23 @@ rNormal_Gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussi
   if(missing(prior_list)) stop("Prior Specification Missing")
   if(!missing(prior_list)){
     if(!is.null(prior_list$mu)) mu=prior_list$mu
-    if(!is.null(prior_list$Sigma)) Sigma=prior_list$Sigma
-    if(!is.null(prior_list$P)) P=prior_list$P
-    if(is.null(prior_list$P)) P=solve(prior_list$Sigma)
+    if (!is.null(prior_list$Sigma)) {
+      Sigma <- prior_list$Sigma
+      if (!isSymmetric(Sigma)) 
+        stop("matrix Sigma must be symmetric")
+    }
+    
+    if (!is.null(prior_list$P)) {
+      P <- prior_list$P
+      if (!isSymmetric(P)) 
+        stop("matrix P must be symmetric")
+    }
+    
+    if (is.null(prior_list$P)) {
+      P <- solve(prior_list$Sigma)
+      # enforce symmetry on the computed precision
+      P <- 0.5 * (P + t(P))
+    }
     if(!is.null(prior_list$dispersion)) dispersion=prior_list$dispersion
     else dispersion=NULL
     if(!is.null(prior_list$shape)) shape=prior_list$shape

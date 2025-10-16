@@ -248,23 +248,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// Inv_f3_gaussian
-arma::mat Inv_f3_gaussian(NumericMatrix cbars, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt);
-RcppExport SEXP _glmbayes_Inv_f3_gaussian(SEXP cbarsSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericMatrix >::type cbars(cbarsSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type P(PSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type alpha(alphaSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type wt(wtSEXP);
-    rcpp_result_gen = Rcpp::wrap(Inv_f3_gaussian(cbars, y, x, mu, P, alpha, wt));
-    return rcpp_result_gen;
-END_RCPP
-}
 // f2_binomial_logit_prep_opencl
 Rcpp::List f2_binomial_logit_prep_opencl(Rcpp::NumericMatrix b, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericMatrix mu, Rcpp::NumericMatrix P, Rcpp::NumericVector alpha, Rcpp::NumericVector wt, int progbar);
 RcppExport SEXP _glmbayes_f2_binomial_logit_prep_opencl(SEXP bSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP progbarSEXP) {
@@ -445,6 +428,36 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type link(linkSEXP);
     Rcpp::traits::input_parameter< int >::type progbar(progbarSEXP);
     rcpp_result_gen = Rcpp::wrap(rindep_norm_gamma_reg_std_v3_cpp(n, y, x, mu, P, alpha, wt, f2, Envelope, gamma_list, UB_list, family, link, progbar));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Inv_f3_precompute_disp
+Rcpp::List Inv_f3_precompute_disp(NumericMatrix cbars, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt);
+RcppExport SEXP _glmbayes_Inv_f3_precompute_disp(SEXP cbarsSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type cbars(cbarsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type P(PSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type wt(wtSEXP);
+    rcpp_result_gen = Rcpp::wrap(Inv_f3_precompute_disp(cbars, y, x, mu, P, alpha, wt));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Inv_f3_with_disp
+arma::mat Inv_f3_with_disp(Rcpp::List cache, double dispersion, Rcpp::NumericMatrix cbars_small);
+RcppExport SEXP _glmbayes_Inv_f3_with_disp(SEXP cacheSEXP, SEXP dispersionSEXP, SEXP cbars_smallSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type cache(cacheSEXP);
+    Rcpp::traits::input_parameter< double >::type dispersion(dispersionSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type cbars_small(cbars_smallSEXP);
+    rcpp_result_gen = Rcpp::wrap(Inv_f3_with_disp(cache, dispersion, cbars_small));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -642,7 +655,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmbayes_f2_binomial_logit_prep_v3", (DL_FUNC) &_glmbayes_f2_binomial_logit_prep_v3, 8},
     {"_glmbayes_RSS", (DL_FUNC) &_glmbayes_RSS, 5},
     {"_glmbayes_f2_gaussian", (DL_FUNC) &_glmbayes_f2_gaussian, 7},
-    {"_glmbayes_Inv_f3_gaussian", (DL_FUNC) &_glmbayes_Inv_f3_gaussian, 7},
     {"_glmbayes_f2_binomial_logit_prep_opencl", (DL_FUNC) &_glmbayes_f2_binomial_logit_prep_opencl, 8},
     {"_glmbayes_f2_binomial_logit_prep_grad_opencl", (DL_FUNC) &_glmbayes_f2_binomial_logit_prep_grad_opencl, 8},
     {"_glmbayes_f2_prep_grad_opencl", (DL_FUNC) &_glmbayes_f2_prep_grad_opencl, 10},
@@ -653,6 +665,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmbayes_rindep_norm_gamma_reg_std_cpp", (DL_FUNC) &_glmbayes_rindep_norm_gamma_reg_std_cpp, 12},
     {"_glmbayes_rindep_norm_gamma_reg_std_v2_cpp", (DL_FUNC) &_glmbayes_rindep_norm_gamma_reg_std_v2_cpp, 14},
     {"_glmbayes_rindep_norm_gamma_reg_std_v3_cpp", (DL_FUNC) &_glmbayes_rindep_norm_gamma_reg_std_v3_cpp, 14},
+    {"_glmbayes_Inv_f3_precompute_disp", (DL_FUNC) &_glmbayes_Inv_f3_precompute_disp, 7},
+    {"_glmbayes_Inv_f3_with_disp", (DL_FUNC) &_glmbayes_Inv_f3_with_disp, 3},
     {"_glmbayes_rindep_norm_gamma_reg_std_v4_cpp", (DL_FUNC) &_glmbayes_rindep_norm_gamma_reg_std_v4_cpp, 14},
     {"_glmbayes_rindep_norm_gamma_reg_std_v5_cpp", (DL_FUNC) &_glmbayes_rindep_norm_gamma_reg_std_v5_cpp, 14},
     {"_glmbayes_rmath_test_wrapper", (DL_FUNC) &_glmbayes_rmath_test_wrapper, 0},
