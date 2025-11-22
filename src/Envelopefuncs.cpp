@@ -14,6 +14,7 @@
 #include "kernel_wrappers.h"
 #include <RcppParallel.h>
 
+
 using namespace Rcpp;
 
 
@@ -1364,6 +1365,8 @@ NumericVector thetabar_const_cpp(NumericMatrix P,
 
 
 
+
+
 // [[Rcpp::export]]
 List EnvelopeDispersionBuild_cpp(
     List Env,
@@ -1496,7 +1499,8 @@ List EnvelopeDispersionBuild_cpp(
     Rcpp::List res = optim(
       Rcpp::Named("par")     = par0,
       Rcpp::Named("fn")      = rss_fn,
-      Rcpp::Named("method")  = "Brent",
+//      Rcpp::Named("method")  = "Brent",
+      Rcpp::Named("method")  = "L-BFGS-B",
       Rcpp::Named("lower")   = low,
       Rcpp::Named("upper")   = upp,
       Rcpp::Named("cache")   = cache,
@@ -1592,7 +1596,8 @@ List EnvelopeDispersionBuild_cpp(
     Rcpp::List res = optim(
       Rcpp::Named("par")     = par0,
       Rcpp::Named("fn")      = ub2_fn,
-      Rcpp::Named("method")  = "Brent",
+      //      Rcpp::Named("method")  = "Brent",
+      Rcpp::Named("method")  = "L-BFGS-B",
       Rcpp::Named("lower")   = low,
       Rcpp::Named("upper")   = upp,
       Rcpp::Named("cache")   = cache,

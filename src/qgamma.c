@@ -41,6 +41,12 @@
 
 #include "nmath_local.h"
 #include "dpq_local.h"
+#include <errno.h>   // always include explicitly
+
+#ifndef errno
+extern int errno;    // fallback for toolchains that don’t expose it
+#endif
+
 
 #ifdef DEBUG_qgamma
 # define DEBUG_q

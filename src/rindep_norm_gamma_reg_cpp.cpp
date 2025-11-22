@@ -503,6 +503,9 @@ void rindep_loop_rmat(
   RcppParallel::RVector<double> wt2_r(wt2_nv);     // matches f2_gaussian_rmat signature
   
   for (int i = 0; i < n; ++i) {
+    
+    Rcpp::checkUserInterrupt();  // allow user to break out
+    
     iters_out_r[i] = 1;
     weight_out_r[i] = 1.0;
     
