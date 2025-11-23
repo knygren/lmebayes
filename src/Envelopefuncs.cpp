@@ -103,17 +103,11 @@ double run_opencl_pilot(const Rcpp::NumericMatrix& G4,
     m_stage_grid = std::min(m_stage_grid, m1_total);
     m_stage_grid = std::max(1, m_stage_grid);
     
+
     if (verbose) {
-      // Optional debug prints (commented in your original)
-      // Rcpp::Rcout << "[GRID EST] m1_grid = " << m1_grid << "\n";
-      // Rcpp::Rcout << "[GRID EST] est_time_sec_m1 = " << est_time_sec_m1 << "\n";
-      // Rcpp::Rcout << "[GRID EST] m2_grid = " << m2_grid << "\n";
-      // Rcpp::Rcout << "[GRID EST] Selected m_stage_grid = " << m_stage_grid << "\n";
-      // Rcpp::Rcout << "[GRID EST] m1_pilot_A = " << m1_pilot_A << "\n";
-      // Rcpp::Rcout << "[GRID EST] m1_pilot_B = " << m1_pilot_B << "\n";
+      Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Running timed grid slice of size "
+                << m_stage_grid << "...\n";
     }
-    
-    Rcpp::Rcout << "Running timed grid slice of size " << m_stage_grid << "...\n";
     
     auto G4_pilot = slice_grid(m_stage_grid);
     auto t0p = std::chrono::high_resolution_clock::now();
@@ -132,25 +126,35 @@ double run_opencl_pilot(const Rcpp::NumericMatrix& G4,
       oss << h << "h " << m << "m " << s << "s";
       return oss.str();
     };
-    
-    Rcpp::Rcout << "[GRID CALIB] Calibration elapsed = " << time_p
+
+    if (verbose) {
+      
+    Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Calibration elapsed = " << time_p
                 << " s for " << m_stage_grid
                 << " grid points (" << per_grid_sec_parallel << " s/grid).\n";
     
-    Rcpp::Rcout << "Refined grid build time estimate: " << refined_est_total_sec
-                << " seconds (" << fmt_hms(refined_est_total_sec) << ").\n";
+    Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Refined grid build time estimate = "
+                << refined_est_total_sec << " seconds (" << fmt_hms(refined_est_total_sec) << ")\n";
     
+    }
     long total = (long)std::round(refined_est_total_sec);
     long h = total / 3600;
     long m = (total % 3600) / 60;
     long s = total % 60;
     
-    Rcpp::Rcout << "Estimated full f2_f3 evaluation time: "
-                << refined_est_total_sec << " seconds ("
-                << h << "h " << m << "m " << s << "s)"
-                << " (fixed=" << fixed_cost
-                << ", per-grid=" << per_grid_cost << ").\n"
-                << "Note: estimate is approximate and may vary with system load.\n";
+    if (verbose) {
+      
+      Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Estimated full f2_f3 evaluation time = "
+                  << refined_est_total_sec << " seconds (" << h << "h " << m << "m " << s << "s)\n";
+      
+      Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Components: fixed=" << fixed_cost
+                  << ", per-grid=" << per_grid_cost << "\n";
+      
+      Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Note: estimate is approximate and may vary with system load.\n"; 
+   
+   
+    }
+    
   }
   
   if (refined_est_total_sec > threshold_sec) {
@@ -459,6 +463,36 @@ Rcpp::List EnvelopeSize(const arma::vec& a,
 
 
 
+
+inline std::string now_hms() {
+  std::time_t t = std::time(nullptr);
+  char buf[16];
+  std::strftime(buf, sizeof(buf), "%H:%M:%S", std::localtime(&t));
+  return std::string(buf);
+}
+
+struct Timer {
+  std::chrono::steady_clock::time_point start;
+  void begin() { start = std::chrono::steady_clock::now(); }
+  std::tuple<int,int,int> hms() const {
+    auto dur = std::chrono::duration_cast<std::chrono::seconds>(
+      std::chrono::steady_clock::now() - start
+    ).count();
+    int h = static_cast<int>(dur / 3600);
+    int m = static_cast<int>((dur - h*3600) / 60);
+    int s = static_cast<int>(dur - h*3600 - m*60);
+    return {h,m,s};
+  }
+};
+
+inline void print_completed(const char* prefix, const Timer& tm) {
+  auto [h,m,s] = tm.hms();
+  Rcpp::Rcout << prefix << " completed in: " << h << "h " << m << "m " << s << "s.\n";
+}
+
+
+
+
 // [[Rcpp::export]]
 Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4,   // grid (parameters × grid points)
                         const Rcpp::NumericVector& y,
@@ -475,43 +509,37 @@ Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4,   // grid (parameters × 
   
   // Optional pilot timing for large parameter dimension
   // (originally: if (l1 >= 14) ...; here we use number of columns in G4)
+  // --- Pilot timing ---
   if (G4.ncol() >= 14) {
+    Timer t_pilot; if (verbose) t_pilot.begin();
     double est_time = run_opencl_pilot(G4, y, x, mu, P, alpha, wt,
                                        family, link, use_opencl, verbose);
     if (verbose) {
-      Rcpp::Rcout << "[INFO] OpenCL pilot estimated time = "
+      print_completed("[EnvelopeBuild::EnvelopeEval] Pilot", t_pilot);
+      Rcpp::Rcout << "[EnvelopeBuild::EnvelopeEval] Pilot estimated time = "
                   << est_time << " seconds\n";
     }
   }
   
   
-  // Dispatch to OpenCL or CPU evaluation
+  // --- Dispatch timing ---
+  Timer t_dispatch; if (verbose) t_dispatch.begin();
   Rcpp::List prepGrad;
-//  if (use_opencl && family != "gaussian") {
-if (use_opencl) {
-  if (verbose) {
-    Rcpp::Rcout << "Initiating f2_f3_opencl: "
-                << Rcpp::as<std::string>(
-    Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
-    << "\n";
-  }
-  
-  prepGrad = f2_f3_opencl(family, link, G4, y, x, mu, P, alpha, wt, progbar);
-  
-  // temporary guard: bail out immediately for gaussian
-  // if (family == "gaussian") {
-  //   Rcpp::stop("OpenCL gaussian path not yet implemented — stopping after prepGrad");
-  // }
-}
-      
-         else {
+  if (use_opencl) {
     if (verbose) {
-      
-      Rcpp::Rcout << "Initiating f2_f3_non_opencl: "                  << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")())) 
-                  << "\n";
+      Rcpp::Rcout << "[EnvelopeBuild::EnvelopeEval] Initiating f2_f3_opencl at "
+                  << now_hms() << "\n";
     }
-    
+    prepGrad = f2_f3_opencl(family, link, G4, y, x, mu, P, alpha, wt, progbar);
+  } else {
+    if (verbose) {
+      Rcpp::Rcout << "[EnvelopeEval] Initiating f2_f3_non_opencl at "
+                  << now_hms() << "\n";
+    }
     prepGrad = f2_f3_non_opencl(family, link, G4, y, x, mu, P, alpha, wt, progbar);
+  }
+  if (verbose) {
+    print_completed("[EnvelopeBuild::EnvelopeEval] Dispatch", t_dispatch);
   }
   
   // Unpack results
@@ -1059,36 +1087,52 @@ List EnvelopeBuild_Ind_Normal_Gamma(NumericVector bStar,NumericMatrix A,
     // (iii) Term from the LL that depends on the dispersion but not beta
     // (iv) Term from the LL that depends on beta and the dispersion (scaled RSS)
     
-    Rcpp::List eval_info = EnvelopeEval(G4, y, x, mu, P, alpha, wt,
-                                        family, link, use_opencl, verbose);
+    if (verbose) {
+      Rcpp::Rcout << "[EnvelopeBuild] >>> Starting EnvelopeEval (NegLL, cbars) at " << now_hms() << " <<<\n";
+    }
+    Timer t_eval1; if (verbose) t_eval1.begin();
     
-    
-    // Copy results into cbars/NegLL structures used downstream
-    
+    Rcpp::List eval_info = EnvelopeEval(G4, y, x, mu, P, alpha, wt, family, link, use_opencl, verbose);
     NegLL = eval_info["NegLL"];
     cbars2 = Rcpp::as<arma::mat>(eval_info["cbars"]);
     
+    if (verbose) {
+      Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting EnvelopeEval (NegLL, cbars) at " << now_hms() << " <<<\n";
+      print_completed("[EnvelopeBuild] EnvelopeEval (NegLL, cbars)", t_eval1);
+    }
     
-//    NegLL=f2_gaussian(G4,y, x, mu, P, alpha, wt);  
-    //Rcpp::Rcout << "Finding Value of Gradients at Log-posteriors:" << std::endl;
-//    cbars2=f3_gaussian(G4,y, x,mu,P,alpha,wt);
-
-Rcpp::List eval_info2 = EnvelopeEval(G4, y, x, mu,0*P, alpha, wt,
-                                    family, link, use_opencl, verbose);
-
-
-NegLL_slope   = eval_info2["NegLL"];
-cbars_slope2  = Rcpp::as<arma::mat>(eval_info2["cbars"]);
-
-
-if (verbose) {
-  Rcpp::Rcout << "Finished assigning NegLL_slope and cbars_slope2" << std::endl;
-}
-
-//    NegLL_slope=f2_gaussian(G4,y, x, mu, 0*P, alpha, wt);  
-//    cbars_slope2=f3_gaussian(G4,y, x,mu,0*P,alpha,wt);
-    RSS_Out=RSS(y, x,G4,alpha,wt); // Note currenly includes the dispersion in the weight
     
+//    Rcpp::List eval_info = EnvelopeEval(G4, y, x, mu, P, alpha, wt,
+//                                        family, link, use_opencl, verbose);
+    
+    
+    if (verbose) {
+      Rcpp::Rcout << "[EnvelopeBuild] >>> Starting EnvelopeEval (slope variants) at " << now_hms() << " <<<\n";
+    }
+    Timer t_eval2; if (verbose) t_eval2.begin();
+    
+    Rcpp::List eval_info2 = EnvelopeEval(G4, y, x, mu, 0*P, alpha, wt, family, link, use_opencl, verbose);
+    NegLL_slope  = eval_info2["NegLL"];
+    cbars_slope2 = Rcpp::as<arma::mat>(eval_info2["cbars"]);
+    
+    if (verbose) {
+      Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting EnvelopeEval (slope variants) at " << now_hms() << " <<<\n";
+      print_completed("[EnvelopeBuild] EnvelopeEval (slope variants)", t_eval2);
+      Rcpp::Rcout << "[EnvelopeBuild] Finished assigning NegLL_slope and cbars_slope2\n";
+    }
+    
+    
+    if (verbose) {
+      Rcpp::Rcout << "[EnvelopeBuild] >>> Starting RSS evaluation at " << now_hms() << " <<<\n";
+    }
+    Timer t_rss; if (verbose) t_rss.begin();
+    
+    RSS_Out = RSS(y, x, G4, alpha, wt); // includes dispersion in weight
+    
+    if (verbose) {
+      Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting RSS evaluation at " << now_hms() << " <<<\n";
+      print_completed("[EnvelopeBuild] RSS evaluation", t_rss);
+    } 
   }
   
   
@@ -1101,37 +1145,47 @@ if (verbose) {
   cbars_slope3=cbars_slope2;
 
   if (verbose) {
-    Rcpp::Rcout << "Entering Set_Grid_C2" << std::endl;
+    Rcpp::Rcout << "[EnvelopeBuild] >>> Entering Set_Grid_C2 at " << now_hms() << " <<<\n";
   }
+  Timer t_setgrid; if (verbose) t_setgrid.begin();
   
-
-  
-  Set_Grid_C2(GIndex, cbars, Lint1,Down,Up,loglt,logrt,logct,logU,logP);
-
-  if (verbose) {
-    Rcpp::Rcout << "Entering Set_logP_C2" << std::endl;
-  }
-  
-  
-  setlogP_C2(logP,NegLL,cbars,G3,LLconst);
-  
+  Set_Grid_C2(GIndex, cbars, Lint1, Down, Up, loglt, logrt, logct, logU, logP);
   
   if (verbose) {
-    Rcpp::Rcout << "Computing PLSD" << std::endl;
+    Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting Set_Grid_C2 at " << now_hms() << " <<<\n";
+    print_completed("[EnvelopeBuild] Set_Grid_C2", t_setgrid);
   }
   
-    
-  NumericMatrix::Column logP2 = logP( _, 1);
-
-    
+  if (verbose) {
+    Rcpp::Rcout << "[EnvelopeBuild] >>> Entering Set_logP_C2 at " << now_hms() << " <<<\n";
+  }
+  Timer t_setlogp; if (verbose) t_setlogp.begin();
   
-  double  maxlogP=max(logP2);
+  setlogP_C2(logP, NegLL, cbars, G3, LLconst);
   
-  NumericVector PLSD=exp(logP2-maxlogP);
+  if (verbose) {
+    Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting Set_logP_C2 at " << now_hms() << " <<<\n";
+    print_completed("[EnvelopeBuild] Set_logP_C2", t_setlogp);
+  }  
   
-  double sumP=sum(PLSD);
   
-  PLSD=PLSD/sumP;
+  if (verbose) {
+    Rcpp::Rcout << "[EnvelopeBuild] >>> Starting PLSD computation at " << now_hms() << " <<<\n";
+  }
+  Timer t_plsd; if (verbose) t_plsd.begin();
+  
+  NumericMatrix::Column logP2 = logP(_, 1);
+  double maxlogP = max(logP2);
+  NumericVector PLSD = exp(logP2 - maxlogP);
+  double sumP = sum(PLSD);
+  PLSD = PLSD / sumP;
+  
+  if (verbose) {
+    Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting PLSD computation at " << now_hms() << " <<<\n";
+    print_completed("[EnvelopeBuild] PLSD computation", t_plsd);
+  }
+  
+  
   
   // Add sorting step back later after modifying EnvSort function
   // Should accomodate ready List
@@ -1141,10 +1195,6 @@ if (verbose) {
   //    return(outlist);
   //  }
   
-  
-  if (verbose) {
-    Rcpp::Rcout << "Finished Computing PLSD" << std::endl;
-  }
   
   
   return Rcpp::List::create(Rcpp::Named("GridIndex")=GIndex,
