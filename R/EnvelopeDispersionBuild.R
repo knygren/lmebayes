@@ -229,7 +229,10 @@ EnvBuildLinBound<-function(thetabars,cbars,y,x2,P2,alpha,dispstar){
   XtX   <- crossprod(x2)
   rhs   <- crossprod(x2, y - alpha)
   M     <- XtX + dispstar * P2
-  Minv  <- solve(M)
+  # Replace solve(M) with Cholesky inversion
+  R    <- chol(M)
+  Minv <- chol2inv(R)
+  Minv <- 0.5 * (Minv + t(Minv))   # enforce symmetry
   H1    <- -Minv %*% P2 %*% Minv
   
   V <- -(thetabars %*% P2) + cbars          # gs x p

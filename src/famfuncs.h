@@ -170,15 +170,58 @@ NumericVector dnorm_glmb( NumericVector x, NumericVector means, NumericVector sd
 NumericVector  f1_gaussian(NumericMatrix b,NumericVector y,NumericMatrix x,NumericVector alpha,NumericVector wt);
 NumericVector  f2_gaussian(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt);
 arma::vec  f2_gaussian_arma(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt);
-arma::vec f2_gaussian_rmat(const RMatrix<double>& b,       // candidate coefficients
-                        const RVector<double>& y,       // observed counts
-                        const RMatrix<double>& x,       // design matrix
-                        const RMatrix<double>& mu,      // mode vector
-                        const RMatrix<double>& P,       // precision matrix
-                        const RVector<double>& alpha,   // predictor offset
-                        const RVector<double>& wt,      // observation weights
-                        int progbar );          // progress toggle
+// Original version (unchanged)
+arma::vec f2_gaussian_rmat(const RcppParallel::RMatrix<double>& b,       // candidate coefficients
+                           const RcppParallel::RVector<double>& y,       // observed counts
+                           const RcppParallel::RMatrix<double>& x,       // design matrix
+                           const RcppParallel::RMatrix<double>& mu,      // mode vector
+                           const RcppParallel::RMatrix<double>& P,       // precision matrix
+                           const RcppParallel::RVector<double>& alpha,   // predictor offset
+                           const RcppParallel::RVector<double>& wt,      // observation weights
+                           int progbar);                                 // progress toggle
+
+// New parallel-safe variant (wt as RMatrix)
+arma::vec f2_gaussian_rmat_mat(const RcppParallel::RMatrix<double>& b,   // candidate coefficients
+                               const RcppParallel::RVector<double>& y,   // observed counts
+                               const RcppParallel::RMatrix<double>& x,   // design matrix
+                               const RcppParallel::RMatrix<double>& mu,  // mode vector
+                               const RcppParallel::RMatrix<double>& P,   // precision matrix
+                               const RcppParallel::RVector<double>& alpha, // predictor offset
+                               const RcppParallel::RMatrix<double>& wt,  // observation weights (matrix view)
+                               int progbar);                             // progress toggle
 
 arma::mat  f3_gaussian(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt);
 NumericVector RSS(NumericVector y, NumericMatrix x,NumericMatrix b,NumericVector alpha,NumericVector wt);
 arma::mat  Inv_f3_gaussian(NumericMatrix cbars,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt);
+
+
+
+
+RcppParallel::RMatrix<double> Inv_f3_with_disp_rmat(
+    const RcppParallel::RMatrix<double>& Pmat_r,
+    const RcppParallel::RMatrix<double>& Pmu_r,
+    const RcppParallel::RVector<double>& base_B0_r,
+    const RcppParallel::RMatrix<double>& base_A_r,
+    double dispersion,
+    const RcppParallel::RMatrix<double>& cbars_r // p × m
+);
+
+Rcpp::List Inv_f3_precompute_disp(NumericMatrix cbars,
+                                  NumericVector y,
+                                  NumericMatrix x,
+                                  NumericMatrix mu,
+                                  NumericMatrix P,
+                                  NumericVector alpha,
+                                  NumericVector wt);
+
+
+
+
+arma::mat Inv_f3_with_disp_rmat_v2(
+    const RcppParallel::RMatrix<double>& Pmat_r,
+    const RcppParallel::RMatrix<double>& Pmu_r,
+    const RcppParallel::RVector<double>& base_B0_r,
+    const RcppParallel::RMatrix<double>& base_A_r,
+    double dispersion,
+    const RcppParallel::RMatrix<double>& cbars_r // p × m
+);

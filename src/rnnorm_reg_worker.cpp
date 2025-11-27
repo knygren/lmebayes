@@ -323,3 +323,160 @@
   }     // operator()
 
 
+
+  // --- rindep_norm_gamma_worker implementation ---
+  void rindep_norm_gamma_worker::operator()(std::size_t begin, std::size_t end) {
+    const int l2 = x_r.nrow();
+    const int l1 = x_r.ncol();
+    
+    for (std::size_t i = begin; i < end; ++i) {
+      // Thread-local buffers and views (no shared state)
+      std::vector<double> out_buf(static_cast<std::size_t>(l1), 0.0);
+      RcppParallel::RMatrix<double> out_row(out_buf.data(), 1,  l1);  // 1×l1
+      RcppParallel::RMatrix<double> out_col(out_buf.data(), l1, 1);   // l1×1
+      
+      std::vector<double> theta_buf(static_cast<std::size_t>(l1), 0.0);
+      RcppParallel::RMatrix<double> theta_row(theta_buf.data(), 1,  l1); // 1×l1
+      RcppParallel::RMatrix<double> theta_col(theta_buf.data(), l1, 1);  // l1×1
+      
+      std::vector<double> cbars_col_buf(static_cast<std::size_t>(l1), 0.0);
+      RcppParallel::RMatrix<double> cbars_small_col(cbars_col_buf.data(), l1, 1); // l1×1
+      
+      
+      // Scaled weights: classical logic requires wt2 = wt / dispersion before likelihood
+   //   Rcpp::NumericVector wt2_nv(l2);                  // thread-local
+    //  RcppParallel::RVector<double> wt2_r_old(wt2_nv);     // matches f2_gaussian_rmat signature
+      
+      
+      std::vector<double> wt2_buf(static_cast<std::size_t>(l2), 0.0);
+      // Wrap as a 1‑column matrix (l1 × 1)
+      RcppParallel::RMatrix<double> wt2_r(wt2_buf.data(), l2, 1);
+
+            
+      iters_out_r[i]  = 1.0;
+      weight_out_r[i] = 1.0;
+      
+      int accept = 0;
+      
+
+      
+      while (accept == 0) {
+        // 1) Slice/component selection via PLSD
+        double U = safe_runif();
+        int J_idx = 0;
+        double U_left = U;
+        while (true) {
+          if (U_left <= PLSD_r[J_idx]) break;
+          U_left -= PLSD_r[J_idx];
+          ++J_idx;
+        }
+        
+        // 2) Draw truncated-normal beta row
+        for (int j = 0; j < l1; ++j) {
+          out_row(0, j) = ctrnorm_cpp(
+            logrt_r(J_idx, j),
+            loglt_r(J_idx, j),
+            -cbars_r(J_idx, j),
+            1.0
+          );
+        }
+        
+        // 3) Draw dispersion
+        double dispersion = r_invgamma_safe(shape3, rate2, disp_upper, disp_lower);
+        
+        // 4) Solve theta (strict row-only)
+        for (int j = 0; j < l1; ++j) cbars_small_col(j, 0) = cbars_r(J_idx, j);
+        
+        // RcppParallel::RMatrix<double> theta_sol_r =
+        //   Inv_f3_with_disp_rmat(Pmat_r, Pmu_r, base_B0_r, base_A_r,
+        //                         dispersion, cbars_small_col);
+        
+        arma::mat theta_sol = Inv_f3_with_disp_rmat_v2(Pmat_r, Pmu_r, base_B0_r, base_A_r,
+                                                       dispersion, cbars_small_col);
+        
+        
+        //for (int j = 0; j < l1; ++j) theta_row(0, j) = theta_sol_r(0, j);
+        
+        for (int j = 0; j < l1; ++j) {
+          theta_row(0, j) = theta_sol(0, j);
+        }
+        
+        // 5) Scale weights before likelihood
+        for (int r = 0; r < l2; ++r) {
+          wt2_r(r, 0) = wt_r[r] / dispersion;
+        }
+        
+        
+
+        
+#if !defined(__EMSCRIPTEN__) && !defined(__wasm__)
+        tbb::mutex::scoped_lock lock(f2_mutex);
+#endif  
+        
+        // Rcout << "Entering f2_gaussian_rmat_mat 1"  << std::endl;
+        
+        // 6) Likelihood calls (column views, pre-scaled weights)
+        double LL_New2_scalar =
+          -f2_gaussian_rmat_mat(theta_col, y_r, x_r, mu_r, P_r, alpha_r, wt2_r, 0)[0];
+
+          // Rcout << "Entering f2_gaussian_rmat_mat 2"  << std::endl;
+          
+          double LL_Test_scalar =
+          -f2_gaussian_rmat_mat(out_col,   y_r, x_r, mu_r, P_r, alpha_r, wt2_r, 0)[0];
+          
+
+          
+          // 7) Upper bounds
+          double U2     = safe_runif();
+          double log_U2 = std::log(U2);
+          
+          double UB1 = LL_New2_scalar;
+          for (int j = 0; j < l1; ++j)
+            UB1 -= cbars_r(J_idx, j) * (out_row(0, j) - theta_row(0, j));
+          
+          double quad_sum = 0.0;
+          for (int r = 0; r < l2; ++r) {
+            double x_theta = 0.0;
+            for (int c = 0; c < l1; ++c) x_theta += x_r(r, c) * theta_row(0, c);
+            double resid  = (y_r[r] - alpha_r[r] - x_theta);
+            double scaled = resid * std::sqrt(wt_r[r]);
+            quad_sum += scaled * scaled;
+                      }
+          double UB2 = 0.5 * (1.0 / dispersion) * (quad_sum - RSS_Min);
+          UB2 -= UB2min_r[J_idx];
+          
+          double theta_P_theta = 0.0;
+          for (int r = 0; r < l1; ++r) {
+            double acc = 0.0;
+            for (int c = 0; c < l1; ++c) acc += P_r(r, c) * theta_row(0, c);
+            theta_P_theta += theta_row(0, r) * acc;
+          }
+          double c_theta = 0.0;
+          for (int j = 0; j < l1; ++j) c_theta += cbars_r(J_idx, j) * theta_row(0, j);
+          double New_LL_J = -0.5 * theta_P_theta + c_theta;
+          
+          double UB3A = lg_prob_factor_r[J_idx] + lmc1 + lmc2 * dispersion - New_LL_J;
+          double New_LL_log_disp = lm_log1 + lm_log2 * std::log(dispersion);
+          double UB3B = (max_New_LL_UB - max_LL_log_disp + New_LL_log_disp)
+            - (lmc1 + lmc2 * dispersion);
+          
+          double test1 = (LL_Test_scalar - UB1);
+          double test  = test1 - (UB2 + UB3A + UB3B);
+          test = test - log_U2;
+          
+          
+          // Rcout << "Entering Output assignment"  << std::endl;
+          
+          // 8) Record outputs and accept/reject
+          disp_out_r[i] = dispersion;
+          for (int j = 0; j < l1; ++j) beta_out_r(i, j) = out_row(0, j);
+          
+          if (test >= 0.0) {
+            accept = 1;
+          } else {
+            iters_out_r[i] = iters_out_r[i] + 1;
+          }
+      } // while (accept == 0)
+    }   // for i
+  }
+  

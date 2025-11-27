@@ -34,21 +34,3 @@ arma::mat Inv_f3_with_disp(Rcpp::List cache,
                            Rcpp::NumericMatrix cbars_small);
 
 
-RcppParallel::RMatrix<double> Inv_f3_with_disp_rmat(
-    const RcppParallel::RMatrix<double>& Pmat_r,
-    const RcppParallel::RMatrix<double>& Pmu_r,
-    const RcppParallel::RVector<double>& base_B0_r,
-    const RcppParallel::RMatrix<double>& base_A_r,
-    double dispersion,
-    const RcppParallel::RMatrix<double>& cbars_r // p × m
-);
-
-Rcpp::List Inv_f3_precompute_disp(NumericMatrix cbars,
-                       NumericVector y,
-                       NumericMatrix x,
-                       NumericMatrix mu,
-                       NumericMatrix P,
-                       NumericVector alpha,
-                       NumericVector wt);
-
-

@@ -6,4 +6,9 @@
 // Thread-safe uniform RNG [0, 1)
 double safe_runif();
 
+double r_invgamma_safe(double shape,
+                       double rate,
+                       double disp_upper,
+                       double disp_lower);
+
 #endif

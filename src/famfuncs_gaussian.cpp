@@ -370,6 +370,67 @@ arma::vec f2_gaussian_rmat(
 }
 
 
+// Parallel-safe variant: wt passed as RMatrix (l1 × 1)
+arma::vec f2_gaussian_rmat_mat(
+    const RcppParallel::RMatrix<double>& b,
+    const RcppParallel::RVector<double>& y,
+    const RcppParallel::RMatrix<double>& x,
+    const RcppParallel::RMatrix<double>& mu,
+    const RcppParallel::RMatrix<double>& P,
+    const RcppParallel::RVector<double>& alpha,
+    const RcppParallel::RMatrix<double>& wt,   // l1 × 1
+    const int progbar = 0
+) {
+  // Dimensions
+  const std::size_t l1 = x.nrow(); // observations
+  const std::size_t l2 = x.ncol(); // predictors
+  const std::size_t m1 = b.ncol(); // number of beta columns
+  
+  // Armadillo views over contiguous memory (no copies)
+  arma::mat b2full(const_cast<double*>(&*b.begin()),  l2, m1, false);
+  arma::mat x2    (const_cast<double*>(&*x.begin()),  l1, l2, false);
+  arma::mat mu2   (const_cast<double*>(&*mu.begin()), l2, 1,  false);
+  arma::mat P2    (const_cast<double*>(&*P.begin()),  l2, l2, false);
+  arma::mat alpha2(const_cast<double*>(&*alpha.begin()), l1, 1, false);
+  
+  // Wrap wt (l1 × 1) as a column vector
+  arma::colvec wt2(const_cast<double*>(&*wt.begin()), l1, false);
+  
+  arma::vec res(m1, arma::fill::none);
+  
+  // invwt = 1/sqrt(wt) (length l1), identical to classical
+  std::vector<double> invwt(l1);
+  for (std::size_t i = 0; i < l1; ++i) {
+    invwt[i] = 1.0 / std::sqrt(wt2(i));
+  }
+  
+  // Temporary buffers (length l1), shallow view into xb_temp
+  std::vector<double> xb_temp(l1), yy_temp(l1);
+  arma::colvec xb_temp2(xb_temp.data(), l1, false);
+  
+  // Reused buffer
+  arma::mat bmu(l2, 1, arma::fill::none);
+  
+  for (std::size_t i = 0; i < m1; ++i) {
+    // Current beta column (size l2×1)
+    arma::mat b_i(b2full.colptr(i), l2, 1, false);
+    
+    // Prior quadratic term: 0.5*(b - mu)^T P (b - mu)
+    bmu = b_i - mu2;
+    const double mahal = 0.5 * arma::as_scalar(bmu.t() * P2 * bmu);
+    
+    // Linear predictor: xb = alpha + x*b
+    xb_temp2 = alpha2 + x2 * b_i;
+    
+    // Per-observation negative log-likelihood
+    neg_dnorm_glmb_rmat(y, xb_temp, invwt, yy_temp, 1.0);
+    
+    // Sum yy and add prior quadratic
+    res(i) = std::accumulate(yy_temp.begin(), yy_temp.end(), mahal);
+  }
+  
+  return res;
+}
 
 arma::mat  f3_gaussian(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt)
 {
@@ -508,3 +569,134 @@ arma::mat Inv_f3_gaussian(NumericMatrix cbars,
   return Out.t(); // m x p
 }
 
+
+
+
+// [[Rcpp::export("Inv_f3_with_disp")]]
+arma::mat Inv_f3_with_disp(Rcpp::List cache,
+                           double dispersion,
+                           Rcpp::NumericMatrix cbars_small) {
+  arma::mat Pmat    = cache["Pmat"];
+  arma::mat Pmu     = cache["Pmu"];
+  arma::vec base_B0 = cache["base_B0"];
+  arma::mat base_A  = cache["base_A"];
+  
+  // Scale the base terms
+  arma::vec B0 = base_B0 / dispersion + Pmu;
+  arma::mat A  = Pmat + base_A / dispersion;
+  A = 0.5 * (A + A.t());
+  
+  arma::mat R = arma::chol(A);
+  
+  // Wrap cbars_small into an Armadillo view
+  arma::mat Csmall(cbars_small.begin(), Pmat.n_rows, cbars_small.ncol(), false);
+  
+  // Use Armadillo's n_cols
+  arma::mat Out(Pmat.n_rows, Csmall.n_cols);
+  
+  for (arma::uword i = 0; i < Csmall.n_cols; i++) {
+    arma::vec cbars_i(Csmall.colptr(i), Pmat.n_rows, false);
+    arma::vec b = -cbars_i + B0;
+    
+    arma::vec ytmp = arma::solve(arma::trimatl(R.t()), b);
+    arma::vec sol  = arma::solve(arma::trimatu(R), ytmp);
+    
+    Out.col(i) = -sol;
+  }
+  
+  return Out.t(); // m × p
+}
+
+
+
+
+// Internal: rmat-in/rmat-out, uses Armadillo for chol/solve inside.
+RcppParallel::RMatrix<double> Inv_f3_with_disp_rmat(
+    const RcppParallel::RMatrix<double>& Pmat_r,
+    const RcppParallel::RMatrix<double>& Pmu_r,
+    const RcppParallel::RVector<double>& base_B0_r,
+    const RcppParallel::RMatrix<double>& base_A_r,
+    double dispersion,
+    const RcppParallel::RMatrix<double>& cbars_r // p × m
+) {
+  const int p = Pmat_r.nrow();
+  const int m = cbars_r.ncol();
+  
+  arma::vec B0(p);
+  for (int i = 0; i < p; ++i) {
+    B0[i] = base_B0_r[i] / dispersion + Pmu_r(i, 0);
+  }
+  
+  arma::mat A(p, p);
+  for (int r = 0; r < p; ++r) {
+    for (int c = 0; c < p; ++c) {
+      double val = Pmat_r(r, c) + base_A_r(r, c) / dispersion;
+      double sym = 0.5 * (val + (Pmat_r(c, r) + base_A_r(c, r) / dispersion));
+      A(r, c) = sym;
+    }
+  }
+  
+  arma::mat R = arma::chol(A);
+  
+  Rcpp::NumericMatrix Out_nm(m, p);
+  RcppParallel::RMatrix<double> Out_r(Out_nm);
+  
+  for (int j = 0; j < m; ++j) {
+    arma::vec cbars_i(p);
+    for (int r = 0; r < p; ++r) cbars_i[r] = cbars_r(r, j);
+    
+    arma::vec b = -cbars_i + B0;
+    arma::vec ytmp = arma::solve(arma::trimatl(R.t()), b);
+    arma::vec sol  = arma::solve(arma::trimatu(R), ytmp);
+    
+    for (int r = 0; r < p; ++r) Out_r(j, r) = -sol[r];
+  }
+  
+  return Out_r;
+}
+
+
+
+arma::mat Inv_f3_with_disp_rmat_v2(
+    const RcppParallel::RMatrix<double>& Pmat_r,
+    const RcppParallel::RMatrix<double>& Pmu_r,
+    const RcppParallel::RVector<double>& base_B0_r,
+    const RcppParallel::RMatrix<double>& base_A_r,
+    double dispersion,
+    const RcppParallel::RMatrix<double>& cbars_r // p × m
+) {
+  const int p = Pmat_r.nrow();
+  const int m = cbars_r.ncol();
+  
+  // Build Armadillo views over the RcppParallel memory
+  arma::mat Pmat(const_cast<double*>(Pmat_r.begin()), p, p, false, true);
+  arma::mat Pmu(const_cast<double*>(Pmu_r.begin()), p, 1, false, true);
+  arma::mat base_A(const_cast<double*>(base_A_r.begin()), p, p, false, true);
+  
+  // Scale base terms
+  arma::vec B0(p);
+  for (int i = 0; i < p; ++i) {
+    B0[i] = base_B0_r[i] / dispersion + Pmu(i, 0);
+  }
+  
+  // Symmetrize and factor
+  arma::mat A = Pmat + base_A / dispersion;
+  A = 0.5 * (A + A.t());
+  arma::mat R = arma::chol(A);
+  
+  // Output: m × p
+  arma::mat Out(m, p, arma::fill::none);
+  
+  for (int j = 0; j < m; ++j) {
+    arma::vec cbars_j(p);
+    for (int r = 0; r < p; ++r) cbars_j[r] = cbars_r(r, j);
+    
+    arma::vec b    = -cbars_j + B0;
+    arma::vec ytmp = arma::solve(arma::trimatl(R.t()), b);
+    arma::vec sol  = arma::solve(arma::trimatu(R),     ytmp);
+    
+    Out.row(j) = (-sol).t();
+  }
+  
+  return Out; // m × p
+}

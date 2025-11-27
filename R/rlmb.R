@@ -114,8 +114,6 @@ rlmb<-function(n=1,y,x,pfamily,offset=rep(0,nobs),weights=NULL)
 #  if(is.numeric(n)==FALSE||is.numeric(y)==FALSE||is.numeric(x)==FALSE||
 #     is.numeric(mu)==FALSE||is.numeric(P)==FALSE) stop("non-numeric argument to numeric function")
 
-  #P=solve(prior_list$Sigma)
-    
   x <- as.matrix(x)
   #mu<-as.matrix(as.vector(prior_list$mu))
   #P<-as.matrix(P)    

@@ -17,10 +17,6 @@ EnvelopeEval <- function(G4, y, x, mu, P, alpha, wt, family, link, use_opencl = 
     .Call(`_glmbayes_EnvelopeEval`, G4, y, x, mu, P, alpha, wt, family, link, use_opencl, verbose)
 }
 
-Inv_f3_with_disp <- function(cache, dispersion, cbars_small) {
-    .Call(`_glmbayes_Inv_f3_with_disp`, cache, dispersion, cbars_small)
-}
-
 .EnvelopeBuild_cpp <- function(bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose) {
     .Call(`_glmbayes_EnvelopeBuild_c`, bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose)
 }
@@ -79,6 +75,10 @@ f2_binomial_logit_prep_v3 <- function(b, y, x, mu, P, alpha, wt, progbar = 0L) {
 
 Inv_f3_gaussian <- function(cbars, y, x, mu, P, alpha, wt) {
     .Call(`_glmbayes_Inv_f3_gaussian`, cbars, y, x, mu, P, alpha, wt)
+}
+
+Inv_f3_with_disp <- function(cache, dispersion, cbars_small) {
+    .Call(`_glmbayes_Inv_f3_with_disp`, cache, dispersion, cbars_small)
 }
 
 f2_binomial_logit_prep_opencl <- function(b, y, x, mu, P, alpha, wt, progbar) {

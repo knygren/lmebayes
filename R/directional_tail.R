@@ -43,7 +43,11 @@ directional_tail <- function(fit, mu0 = NULL) {
 ##    bstar <- matrix(bstar, ncol = 1)
     y      <- fit$y
     x      <- fit$x
-    P0     <- solve(V0)
+    # Use Cholesky inversion
+    R <- chol(V0)
+    P0 <- chol2inv(R)
+    P0 <- 0.5 * (P0 + t(P0))   # enforce symmetry
+    
     alpha  <- tryCatch(fit$offset, error = function(e) fit$glm$offset)
     if (is.null(alpha)) alpha <- 0
     wt     <- fit$prior.weights
