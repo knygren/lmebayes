@@ -867,9 +867,98 @@ Rcpp::List rindep_norm_gamma_reg_std_parallel_cpp(
       beta_out_r, disp_out_r, iters_out_r, weight_out_r
   );
 
-              Rcout << "Entering Parallel Worker"  << std::endl;
   
-
+  // --- Single-draw test (serial) ---
+  int m_test = 1;
+  auto t0 = std::chrono::steady_clock::now();
+  worker(0, m_test);  // run worker serially for 1 observation
+  auto t1 = std::chrono::steady_clock::now();
+  double elapsed_test_sec = std::chrono::duration<double>(t1 - t0).count();
+  
+  Rcpp::Rcout << "[Pilot] Single test run took " << elapsed_test_sec << "s.\n";
+  
+  // --- Conservative calibration sizing (time-bounded) ---
+  // Use single test to bound worst-case per-observation time in ms
+  double per_obs_ms_serial = elapsed_test_sec * 1000.0 / std::max(1, m_test);
+  
+  // Aim for ~1% of n but cap at ~5 minutes worst-case based on serial bound
+  int m1 = std::max(1, (int)std::ceil(0.01 * (double)n));
+  int m2 = std::max(1, (int)std::floor(300000.0 / std::max(1.0, per_obs_ms_serial))); // 300k ms ≈ 5 min
+  int m_stage = std::min(m1, m2);   // <-- defined here, before use
+  
+  Rcpp::Rcout << "Calibrating simulation time estimate using " << m_stage
+              << " observations at "
+              << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
+              << "\n";
+  
+  // --- Calibration run (parallel) ---
+  auto t_cal0 = std::chrono::steady_clock::now();
+  RcppParallel::parallelFor(0, m_stage, worker);   // <-- now m_stage is defined
+  auto t_cal1 = std::chrono::steady_clock::now();
+  double cal_elapsed_sec = std::chrono::duration<double>(t_cal1 - t_cal0).count();
+  
+  // Per‑observation cost from calibration
+  double per_obs_sec   = cal_elapsed_sec / std::max(1.0, (double)m_stage);
+  double est_total_sec = per_obs_sec * (double)n;
+  
+  // Diagnostics
+  Rcpp::Rcout << "[CALIB] Calibration elapsed = " << cal_elapsed_sec
+              << " s for " << m_stage << " observations.\n";
+  Rcpp::Rcout << "[CALIB] per_obs_sec = " << per_obs_sec
+              << " s; estimated total = " << est_total_sec << " s\n";
+  
+  auto fmt_hms = [](double seconds) {
+    long long s = static_cast<long long>(std::round(seconds));
+    long long h = s / 3600; s %= 3600;
+    long long m = s / 60;   s %= 60;
+    std::ostringstream oss;
+    if (h > 0) oss << h << " h  ";
+    if (m > 0 || h > 0) oss << m << " m  ";
+    oss << s << " s";
+    return oss.str();
+  };
+  
+  Rcpp::Rcout << "[Estimate] Simulation time for " << n << " observations: "
+              << fmt_hms(est_total_sec) << " (" << est_total_sec << " seconds).\n";
+  
+  
+  // --- Interactive safeguard if estimate exceeds 5 minutes ---
+  if (est_total_sec > 300.0) {
+    std::string prompt = "Estimated simulation exceeds 5 minutes. Continue? [y/N]: ";
+    Rcpp::Function r_interactive("interactive");
+    bool is_interactive = Rcpp::as<bool>(r_interactive());
+    
+    if (is_interactive) {
+      Rcpp::Function readline("readline");
+      while (true) {
+        std::string ans = Rcpp::as<std::string>(readline(Rcpp::wrap(prompt)));
+        // trim whitespace
+        auto ltrim = [](std::string &s) {
+          s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+                          [](unsigned char ch){ return !std::isspace(ch); }));
+        };
+        auto rtrim = [](std::string &s) {
+          s.erase(std::find_if(s.rbegin(), s.rend(),
+                               [](unsigned char ch){ return !std::isspace(ch); }).base(), s.end());
+        };
+        ltrim(ans); rtrim(ans);
+        
+        if (ans == "y" || ans == "yes" || ans == "1" || ans == "continue") {
+          Rcpp::Rcout << "[INFO] User chose to continue full run.\n";
+          break; // proceed
+        } else if (ans == "n" || ans == "no" || ans == "2" || ans.empty()) {
+          Rcpp::Rcout << "[INFO] User declined. Stopping simulation.\n";
+          Rcpp::stop("Simulation stopped by user after time estimate.");
+        } else {
+          Rcpp::Rcout << "Invalid input. Please enter y (continue) or N (stop).\n";
+        }
+      }
+    } else {
+      Rcpp::Rcout << "[NOTE] Non-interactive session: proceeding automatically.\n";
+      Rcpp::Rcout << "[INFO] Proceeding with full run.\n";
+    }
+  }  
+  
   // Parallel loop
   RcppParallel::parallelFor(0, n, worker);
 //    worker(0,n);
@@ -887,6 +976,8 @@ Rcpp::List rindep_norm_gamma_reg_std_parallel_cpp(
     Rcpp::Named("weight_out") = weight_out
   );
 }
+
+
 
 
 // // [[Rcpp::export(".rindep_norm_gamma_reg_std_parallel_cpp")]]
