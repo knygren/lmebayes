@@ -1,12 +1,11 @@
 #ifdef USE_OPENCL
 
-
 //#include <Rcpp.h>
 #include <RcppArmadillo.h>
 
 #include <fstream>
 #include <sstream>
-#include <iostream>
+// #include <iostream>           // removed: avoid std::cerr / std::cout
 #include <string>
 #include <filesystem>  // C++17
 #include <vector>
@@ -15,13 +14,11 @@
 #include <string>
 #include <stdexcept>
 #include <algorithm>
-
+#include <R.h>                  // added: for Rprintf
 
 namespace fs = std::filesystem;
 
 // Load a single file like "nmath/bd0.cl"
-
-
 
 #ifdef USE_OPENCL
 std::string load_kernel_source(const std::string& relative_path,
@@ -50,11 +47,10 @@ std::string load_kernel_source(const std::string& relative_path,
 }
 #endif
 
-
 /////////////////////////////
 
 #ifdef USE_OPENCL
-std::string load_kernel_library(const std::string& subdir, const std::string& package = "glmbayes",bool verbose=false ) {
+std::string load_kernel_library(const std::string& subdir, const std::string& package = "glmbayes", bool verbose = false) {
   std::string dir_path = Rcpp::as<std::string>(
     Rcpp::Function("system.file")("cl", subdir, Rcpp::Named("package") = package)
   );
@@ -63,11 +59,11 @@ std::string load_kernel_library(const std::string& subdir, const std::string& pa
   std::map<std::string, std::set<std::string>> depends_map;
   std::map<std::string, std::filesystem::path> file_map;
   
-if (verbose)  std::cerr << "\n📂 Files found in '" << subdir << "':\n";
+  if (verbose)  Rprintf("\n📂 Files found in '%s':\n", subdir.c_str());
   for (const auto& entry : std::filesystem::directory_iterator(dir_path)) {
     if (entry.path().extension() == ".cl") {
       std::string file_id = entry.path().stem().string();
-      if (verbose)      std::cerr << " - " << file_id << "\n";
+      if (verbose) Rprintf(" - %s\n", file_id.c_str());
       
       std::ifstream infile(entry.path());
       std::string line;
@@ -83,11 +79,9 @@ if (verbose)  std::cerr << "\n📂 Files found in '" << subdir << "':\n";
           std::string item;
           while (ss >> item) {
             // Remove only ‘,’ characters
-            item.erase(std::remove(item.begin(), item.end(), ','),item.end()  );
-            //  item.erase(std::remove_if(item.begin(), item.end(), ::ispunct), item.end());
+            item.erase(std::remove(item.begin(), item.end(), ','), item.end());
+            // item.erase(std::remove_if(item.begin(), item.end(), ::ispunct), item.end());
             depends.insert(item);
-            
-            
           }
         }
       }
@@ -102,26 +96,26 @@ if (verbose)  std::cerr << "\n📂 Files found in '" << subdir << "':\n";
   std::set<std::string> sorted_set;
   std::set<std::string> unsorted_set;
   
-  if (verbose)  std::cerr << "\n📤 Files with no dependencies:\n";
+  if (verbose)  Rprintf("\n📤 Files with no dependencies:\n");
   for (const auto& [file, _] : file_map) {
     if (depends_map[file].empty()) {
       sorted.push_back(file);
       sorted_set.insert(file);
-      if (verbose)      std::cerr << " + " << file << "\n";
+      if (verbose) Rprintf(" + %s\n", file.c_str());
     } else {
       unsorted_set.insert(file);
     }
   }
   
-  if (verbose)  std::cerr << "\n🧪 Unsorted files:\n";
+  if (verbose)  Rprintf("\n🧪 Unsorted files:\n");
   for (const auto& file : unsorted_set) {
-    if (verbose)    std::cerr << " - " << file << "\n";
+    if (verbose) Rprintf(" - %s\n", file.c_str());
   }
   
   int pass_count = 0;
   while (!unsorted_set.empty()) {
     ++pass_count;
-    if (verbose)    std::cerr << "\n🔁 While Loop Pass #" << pass_count << " — Remaining unsorted: " << unsorted_set.size() << "\n";
+    if (verbose) Rprintf("\n🔁 While Loop Pass #%d — Remaining unsorted: %d\n", pass_count, (int)unsorted_set.size());
     
     std::vector<std::string> newly_sorted;
     bool progress_made = false;
@@ -129,34 +123,34 @@ if (verbose)  std::cerr << "\n📂 Files found in '" << subdir << "':\n";
     
     for (const std::string& file : unsorted_set) {
       ++file_counter;
-      if (verbose)      std::cerr << "   🔍 File #" << file_counter << ": " << file << "\n";
+      if (verbose) Rprintf("   🔍 File #%d: %s\n", file_counter, file.c_str());
       
       const auto& deps = depends_map[file];
       int depends_counter = static_cast<int>(deps.size());
-      if (verbose)      std::cerr << "      📦 Dependency Count: " << depends_counter << "\n";
+      if (verbose) Rprintf("      📦 Dependency Count: %d\n", depends_counter);
       
       int found_counter = 0;
       int dep_index = 0;
       for (const std::string& dep : deps) {
         ++dep_index;
-        if (verbose)        std::cerr << "         🔎 Checking classified #" << dep_index << ": " << dep << "\n";
+        if (verbose) Rprintf("         🔎 Checking classified #%d: %s\n", dep_index, dep.c_str());
         
         auto it = sorted_set.find(dep);
         if (it != sorted_set.end()) {
-          if (verbose)          std::cerr << "            ➤ Found in sorted? ✅ Yes\n";
+          if (verbose) Rprintf("            ➤ Found in sorted? ✅ Yes\n");
           ++found_counter;
         } else {
-          if (verbose)        std::cerr << "            ➤ Found in sorted? ❌ No\n";
+          if (verbose) Rprintf("            ➤ Found in sorted? ❌ No\n");
         }
       }
       
-      if (verbose)      std::cerr << "      🔍 Found count: " << found_counter << "\n";
+      if (verbose) Rprintf("      🔍 Found count: %d\n", found_counter);
       if (found_counter == depends_counter) {
         sorted.push_back(file);
         sorted_set.insert(file);
         newly_sorted.push_back(file);
         progress_made = true;
-        if (verbose)      std::cerr << " ✅ Promoted to Sorted: " << file << "\n";
+        if (verbose) Rprintf(" ✅ Promoted to Sorted: %s\n", file.c_str());
       }
     }
     
@@ -165,17 +159,19 @@ if (verbose)  std::cerr << "\n📂 Files found in '" << subdir << "':\n";
     }
     
     if (!progress_made) {
-      if (verbose)      std::cerr << "\n❌ No files promoted on pass #" << pass_count << "; possible circular or missing dependencies:\n";
-      for (const std::string& file : unsorted_set) {
-        if (verbose)        std::cerr << " - " << file << "\n";
+      if (verbose) {
+        Rprintf("\n❌ No files promoted on pass #%d; possible circular or missing dependencies:\n", pass_count);
+        for (const std::string& file : unsorted_set) {
+          Rprintf(" - %s\n", file.c_str());
+        }
       }
       throw std::runtime_error("Dependency sort failed: unresolved dependencies remain.");
     }
   }
   
-  if (verbose)  std::cerr << "\n🔗 Final Sorted Load Order:\n";
+  if (verbose)  Rprintf("\n🔗 Final Sorted Load Order:\n");
   for (const auto& file : sorted) {
-    if (verbose)    std::cerr << " - " << file << "\n";
+    if (verbose) Rprintf(" - %s\n", file.c_str());
   }
   
   std::string combined_source;

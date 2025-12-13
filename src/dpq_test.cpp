@@ -1,16 +1,15 @@
 #ifdef USE_OPENCL
 #include "kernel_loader.h"
 #include <CL/cl.h>
-#include <iostream>
+// #include <iostream>   // removed: avoid std::cout / std::cerr
 #include <vector>
 #include <Rcpp.h>
-
-
+#include <R.h>          // added: for Rprintf
 
 #ifdef USE_OPENCL
 void dpq_test_runner(const std::string& source,
-                            const char* kernel_name,
-                            std::vector<float>& output) {
+                     const char* kernel_name,
+                     std::vector<float>& output) {
   if (output.size() != 25) {
     throw std::runtime_error("Output vector must be preallocated with size 25.");
   }
@@ -62,16 +61,15 @@ Rcpp::NumericVector dpq_test_wrapper() {
   const size_t stride = 25;  // Number of values we expect back
   std::vector<float> output(stride);
   
-  //std::string dpq_prelude = load_kernel_source("nmath/dpq_prelude.cl"); 
-  std::string dpq_source      = load_kernel_library("dpq");
-  
+  // std::string dpq_prelude = load_kernel_source("nmath/dpq_prelude.cl"); 
+  std::string dpq_source = load_kernel_library("dpq");
   
   // 🚀 Load standalone test kernel
   std::string test_kernel = load_kernel_source("test/dpq_test_kernel.cl");  // Should contain test_kernel()
   
   std::string kernel_code = dpq_source + test_kernel;
   // std::string kernel_code = test_kernel;
-  std::cout << kernel_code << std::endl;
+  Rprintf("%s\n", kernel_code.c_str());   // replaced std::cout
   
   // 👾 Dispatch minimal kernel
   dpq_test_runner(kernel_code, "dpq_test_kernel", output);

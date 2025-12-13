@@ -15,8 +15,12 @@
 \alias{EnvelopeUB2_parallel_internal}
 \title{Builds Dispersion-Aware Envelope for Simulation}
 \usage{
-EnvelopeDispersionBuild(Env, Shape, Rate, P, y, x, alpha, n_obs, RSS_post, RSS_ML, 
-mu, wt, max_disp_perc = 0.99, disp_lower = NULL, disp_upper = NULL, verbose = FALSE, use_parallel = TRUE)
+EnvelopeDispersionBuild(
+  Env, Shape, Rate, P, y, x, alpha, n_obs, RSS_post, RSS_ML,
+  mu, wt, max_disp_perc = 0.99,
+  disp_lower = NULL, disp_upper = NULL,
+  verbose = FALSE, use_parallel = TRUE
+)
 
 EnvBuildLinBound(thetabars,cbars,y,x2,P2,alpha,dispstar)
 
@@ -30,9 +34,15 @@ rss_face_at_disp(dispersion, cache, cbars_j, y, x, alpha, wt)
 
 drss_ddisp(dispersion, cache, cbars_j, y, x, alpha, wt)
 
-EnvelopeDispersionBuild_parallel(par0, low, upp, cache, cbars, y, x, alpha, wt, cores,use_parallel=TRUE)
+EnvelopeDispersionBuild_parallel(
+  par0, low, upp, cache, cbars, y, x, alpha, wt,
+  cores, use_parallel = TRUE
+)
 
-EnvelopeUB2_parallel(par0, low, upp, cache, cbars, y, x, alpha, wt, rss_min_global, cores,use_parallel = TRUE)
+EnvelopeUB2_parallel(
+  par0, low, upp, cache, cbars, y, x, alpha, wt,
+  rss_min_global, cores, use_parallel = TRUE
+)
 
 EnvelopeDispersionBuild_parallel_internal(
   par0,

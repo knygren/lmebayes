@@ -136,8 +136,8 @@ extern "C" {
 #if (defined (_WIN32) && defined(_MSC_VER))
   
 #if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wlanguage-extension-token"
+//#pragma clang diagnostic push
+//#pragma clang diagnostic ignored "-Wlanguage-extension-token"
 #endif
   
   /* intptr_t is used in cl.h and provided by stddef.h in Visual C++, but not in clang */
@@ -161,7 +161,7 @@ extern "C" {
   typedef double                  cl_double;
   
 #if defined(__clang__)
-#pragma clang diagnostic pop
+//#pragma clang diagnostic pop
 #endif
   
   /* Macro names and corresponding values defined by OpenCL */
@@ -521,8 +521,8 @@ extern "C" {
   
 #if defined(_WIN32) && defined(_MSC_VER) && __CL_HAS_ANON_STRUCT__
   /* Disable warning C4201: nonstandard extension used : nameless struct/union */
-#pragma warning( push )
-#pragma warning( disable : 4201 )
+//#pragma warning( push )
+//#pragma warning( disable : 4201 )
 #endif
   
   /* Define alignment keys */
@@ -1401,7 +1401,7 @@ extern "C" {
 #endif
 
 #if defined(_WIN32) && defined(_MSC_VER) && __CL_HAS_ANON_STRUCT__
-#pragma warning( pop )
+//#pragma warning( pop )
 #endif
 
 #endif  /* __CL_PLATFORM_H  */

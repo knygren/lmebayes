@@ -16,3 +16,9 @@
 ^missing$
 ^my_r_packages\\.Rdata$
 ^stamp-h1$
+^aclocal\.m4$
+^config\.h$
+^config\.h\.in$
+^my_r_packages\.Rdata$
+^packages\.json$
+^pandoc.*\.deb$

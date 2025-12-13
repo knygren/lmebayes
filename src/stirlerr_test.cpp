@@ -2,10 +2,11 @@
 #include "kernel_loader.h"
 #include <CL/cl.h>
 #endif
-#include <iostream>
+
+// #include <iostream>   // removed to avoid std::cout / std::cerr
 #include <vector>
 #include <Rcpp.h>
-
+#include <R.h>          // added for Rprintf
 
 #ifdef USE_OPENCL
 
@@ -79,20 +80,21 @@ Rcpp::NumericVector stirlerr_test_wrapper() {
   std::vector<double> output(stride);
   
 #ifdef USE_OPENCL
-
-  std::string dpq_source     = load_kernel_library("dpq");
-  std::string rmath_source     = load_kernel_library("rmath");
-  std::string nmath_source     = load_kernel_library("nmath");
-  std::string test_kernel_code    = load_kernel_source("test/stirlerr_test_kernel.cl");
- // std::string kernel_code         = dpq_source+ rmath_source + nmath_source + test_kernel_code;
-  std::string kernel_code         = dpq_source+ rmath_source+nmath_source+ test_kernel_code;
-  std::cout << kernel_code << std::endl;
+  std::string dpq_source        = load_kernel_library("dpq");
+  std::string rmath_source      = load_kernel_library("rmath");
+  std::string nmath_source      = load_kernel_library("nmath");
+  std::string test_kernel_code  = load_kernel_source("test/stirlerr_test_kernel.cl");
+  
+  // std::string kernel_code = dpq_source + rmath_source + nmath_source + test_kernel_code;
+  std::string kernel_code = dpq_source + rmath_source + nmath_source + test_kernel_code;
+  
+  Rprintf("%s\n", kernel_code.c_str());   // replaced std::cout
   
   stirlerr_test_runner(kernel_code, "stirlerr_test_kernel", output);
-
+  
 #else  
-    Rcpp::Rcout << "[INFO] OpenCL not available — returning zero vector.\n";
-
+  Rcpp::Rcout << "[INFO] OpenCL not available — returning zero vector.\n";
 #endif  
+  
   return Rcpp::NumericVector(output.begin(), output.end());
 }

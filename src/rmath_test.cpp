@@ -1,12 +1,13 @@
 // rmath_test.cpp
 #ifdef USE_OPENCL
-
 #include "kernel_loader.h"
 #include <CL/cl.h>
 #endif
-#include <iostream>
+
+// #include <iostream>   // removed to avoid std::cout / std::cerr
 #include <vector>
 #include <Rcpp.h>
+#include <R.h>          // added for Rprintf
 
 #ifdef USE_OPENCL
 
@@ -46,7 +47,7 @@ void rmath_test_runner(const std::string& source,
   clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
   char *log = (char *)malloc(log_size);
   clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-  printf("Build Log:\n%s\n", log);
+  Rprintf("Build Log:\n%s\n", log);   // replaced printf with Rprintf
   free(log);
   
   // 📦 Kernel
@@ -93,24 +94,21 @@ Rcpp::NumericVector rmath_test_wrapper() {
   std::vector<double> output(stride);
   
 #ifdef USE_OPENCL
-
   // Load rmath core and test kernel
   std::string OPENCL_source     = load_kernel_source("OPENCL.CL");
   std::string rmath_source      = load_kernel_library("rmath");
   std::string test_kernel_code  = load_kernel_source("test/rmath_test_kernel.cl");
   std::string kernel_code       = OPENCL_source + rmath_source + test_kernel_code;
   
-  // Optional: dump the combined kernel to stdout for debugging
-  std::cout << kernel_code << std::endl;
+  // Optional: dump the combined kernel for debugging
+  Rprintf("%s\n", kernel_code.c_str());   // replaced std::cout
   
   // Dispatch minimal kernel
   rmath_test_runner(kernel_code, "rmath_test_kernel", output);
   
 #else  
   Rcpp::Rcout << "[INFO] OpenCL not available — returning zero vector.\n";
-  
 #endif
-  
   
   // Return results back to R
   return Rcpp::NumericVector(output.begin(), output.end());
