@@ -1,4 +1,7 @@
 #include "OpenCL_helper.h"
+#include <Rcpp.h>
+
+using namespace Rcpp;
 
 namespace OpenCLHelper {
 
@@ -22,4 +25,14 @@ std::vector<double> copyVector(const Rcpp::NumericVector& vec) {
   return std::vector<double>(vec.begin(), vec.end());
 }
 
+}
+
+
+// [[Rcpp::export]]
+bool has_opencl() {
+#ifdef USE_OPENCL
+  return true;
+#else
+  return false;
+#endif
 }

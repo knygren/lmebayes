@@ -512,9 +512,13 @@ Rcpp::List run_rcppparallel_pilot(
     };
     
     est_total_sec = est_total_ms / 1000.0;
+    
+    if(verbose){
     Rcpp::Rcout << "Estimated simulation time (" << n << " draws): "
                 << est_total_sec << " seconds (" << fmt_hms(est_total_sec) << ").\n"
                 << "Note: this phase uses RcppParallel and cannot be safely interrupted.\n";
+    }
+  
   }
   
   // --- conservative calibration sizing based on serial bound ---
@@ -526,10 +530,12 @@ Rcpp::List run_rcppparallel_pilot(
   int m2 = std::max(1, (int)std::floor(300000.0 / std::max(1.0, est_per_draw_ms_serial))); // 300k ms = ~5 minutes
   int m_stage = std::min(m1, m2);
   
+  if(verbose){
   Rcpp::Rcout << "Calibrating simulation time estimate using " << m_stage
               << " draws at "
               << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
               << "\n";
+  }
   
   // --- calibration run for m_stage draws ---
   auto t_cal0 = std::chrono::steady_clock::now();
@@ -556,6 +562,8 @@ Rcpp::List run_rcppparallel_pilot(
   est_total_sec = est_per_draw_sec * static_cast<double>(n);
   
   // --- print diagnostics ---
+  
+  if (verbose){
   Rcpp::Rcout << "[CALIB] Calibration elapsed = " << cal_elapsed_sec
               << " s for " << m_stage << " accepted draws using "
               << total_candidates << " candidates.\n";
@@ -566,6 +574,7 @@ Rcpp::List run_rcppparallel_pilot(
   
   Rcpp::Rcout << "[CALIB] per_candidate_sec = " << per_candidate_sec
               << " s, est_per_draw_sec = " << est_per_draw_sec << " s\n";
+  }
   
   auto fmt_hms2 = [](double seconds) {
     long long s = static_cast<long long>(std::round(seconds));
@@ -578,9 +587,10 @@ Rcpp::List run_rcppparallel_pilot(
     return oss.str();
   };
   
-  Rcpp::Rcout << "Refined simulation time estimate (" << n << " draws): "
+  if (verbose) {Rcpp::Rcout << "Refined simulation time estimate (" << n << " draws): "
               << est_total_sec << " seconds ("
               << fmt_hms2(est_total_sec) << ").\n";
+  }
   
   // --- yes/no option if estimate exceeds 5 minutes ---
   if (est_total_sec > 300.0) {
@@ -685,6 +695,8 @@ List rnnorm_reg_std_cpp_parallel(
   if (Envelope.containsElementNamed("E_draws")) {
     E_draws = Rcpp::as<double>(Envelope["E_draws"]);
   }
+  
+
   if (verbose)  Rcpp::Rcout << "Estimated draws per Acceptance: " << E_draws << "\n";  
 
 
@@ -728,6 +740,7 @@ List rnnorm_reg_std_cpp_parallel(
   
   
 
+
   rnnorm_reg_worker test_worker(
       n, y_r, x_r, mu_r, P_r, alpha_r, wt_r,
       PLSD_r, LLconst_r, loglt_r, logrt_r, cbars_r,
@@ -761,7 +774,7 @@ List rnnorm_reg_std_cpp_parallel(
      out,           // original NumericMatrix
      any_flag,      // shared atomic flag
      E_draws,       // scalar double
-     /*verbose=*/true
+     verbose
    );
     
   }
@@ -772,12 +785,12 @@ List rnnorm_reg_std_cpp_parallel(
   
   
   
-  
+
   
   RcppParallel::parallelFor(0, n, worker);  // grain size == n → serial chunk
 //      worker(0, n);  // Call serially
 
-    
+
     //  RcppParallel::parallelFor(0, n, worker, n);  // grain size == n → serial chunk
     //int cores = std::thread::hardware_concurrency();
     //int grainSize = std::max(n / cores, 1);

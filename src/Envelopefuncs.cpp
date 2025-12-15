@@ -185,6 +185,8 @@ double run_opencl_pilot(const Rcpp::NumericMatrix& G4,
   
   return refined_est_total_sec;
 }
+
+
 /*
  EnvelopeBuild_c — envelope grid construction for models with Gaussian priors
  and log-concave likelihoods

@@ -257,6 +257,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// has_opencl
+bool has_opencl();
+RcppExport SEXP _glmbayes_has_opencl() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(has_opencl());
+    return rcpp_result_gen;
+END_RCPP
+}
 // Set_Grid
 Rcpp::List Set_Grid(Rcpp::NumericMatrix GIndex, Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint);
 RcppExport SEXP _glmbayes_Set_Grid(SEXP GIndexSEXP, SEXP cbarsSEXP, SEXP LintSEXP) {
@@ -702,6 +712,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmbayes_UB2", (DL_FUNC) &_glmbayes_UB2, 8},
     {"_glmbayes_UB2_Fun", (DL_FUNC) &_glmbayes_UB2_Fun, 8},
     {"_glmbayes_EnvelopeDispersionBuild_cpp", (DL_FUNC) &_glmbayes_EnvelopeDispersionBuild_cpp, 17},
+    {"_glmbayes_has_opencl", (DL_FUNC) &_glmbayes_has_opencl, 0},
     {"_glmbayes_Set_Grid", (DL_FUNC) &_glmbayes_Set_Grid, 3},
     {"_glmbayes_setlogP", (DL_FUNC) &_glmbayes_setlogP, 4},
     {"_glmbayes_arithmetic_test_wrapper", (DL_FUNC) &_glmbayes_arithmetic_test_wrapper, 0},

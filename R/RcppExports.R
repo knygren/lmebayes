@@ -49,6 +49,10 @@ EnvelopeDispersionBuild_cpp <- function(Env, Shape, Rate, P, y, x, alpha, n_obs,
     .Call(`_glmbayes_EnvelopeDispersionBuild_cpp`, Env, Shape, Rate, P, y, x, alpha, n_obs, RSS_post, RSS_ML, mu, wt, max_disp_perc, disp_lower, disp_upper, verbose, use_parallel)
 }
 
+has_opencl <- function() {
+    .Call(`_glmbayes_has_opencl`)
+}
+
 .Set_Grid_cpp <- function(GIndex, cbars, Lint) {
     .Call(`_glmbayes_Set_Grid`, GIndex, cbars, Lint)
 }

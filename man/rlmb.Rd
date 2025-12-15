@@ -161,7 +161,7 @@ for (i in 1:1000) {
 colMeans(beta_out)
 mean(disp_out)
 
-
+\donttest{
 
 lmb.D9_v4 <- lmb(
   n       = 10000,
@@ -212,33 +212,7 @@ lmb.D9_v4 <- glmb(
 )
 summary(lmb.D9_v4)
 
-
-
-
-# ps$y
-# 
-# ps$mf
-# 
-# 
-# 
-# #mu[1, 1] <- mean(weight)
-# 
-# # Prior_Check(
-# #   weight ~ group,
-# #   family  = gaussian(),
-# #   pfamily = dNormal(mu = mu, Sigma = V)
-# # )
-# 
-# lm.D9 <- lm(weight ~ group, x = TRUE, y = TRUE)
-# y <- lm.D9$y
-
-#ps$dispersion
-
-## Dispersion for maximum likelihood estimate
-# disp_ML  <- sigma(lm.D9)^2
-# n_prior  <- 2
-# shape    <- n_prior / 2
-# rate     <- disp_ML * shape
+}
 }
 \references{
 \insertAllCited{}
