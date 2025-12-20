@@ -19,3 +19,375 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(glmbayes)
 ```
+
+
+# 1. Introduction
+
+Explain the motivation for GPU acceleration in envelope construction.  
+Highlight why OpenCL is chosen (cross‑platform, vendor‑neutral).  
+Note limitations of CPU‑only runs (toy examples vs. real models).
+
+# 2. Installing OpenCL
+
+## 2.1 Installing and Validating OpenCL on Windows (NVIDIA GPUs)
+
+
+### Step 1: Verify GPU Presence
+Open *Device Manager* → *Display Adapters* → confirm your NVIDIA GPU model (e.g., "NVIDIA GeForce RTX 5060 Laptop GPU").  
+Open a Command Prompt and run:
+
+    nvidia-smi
+
+This should display GPU details, driver version, and CUDA runtime information.  
+You can also run:
+
+    nvcc --version
+
+to verify the installed CUDA Toolkit version.
+
+---
+
+### Step 2: Install the CUDA Toolkit
+
+Most NVIDIA drivers include the OpenCL runtime, but the full CUDA Toolkit provides developer tools, headers, and libraries needed for building packages and verifying GPU acceleration.
+
+- Download the latest CUDA Toolkit from the official NVIDIA site:  
+  https://developer.nvidia.com/cuda-downloads
+
+- Run the installer and select the default options (this will install CUDA, OpenCL support, and update your GPU driver if needed).
+
+- After installation, confirm the toolkit is available by running:
+
+    nvcc --version
+
+---
+
+### Step 3: Look for and, if needed, Install the OpenCL SDK
+Check for an existing OpenCL installation:
+
+- On Windows, `OpenCL.dll` is typically found in `C:\Windows\System32`.
+
+If `OpenCL.dll` is not present, download and install the OpenCL SDK from either:  
+- Khronos OpenCL SDK: https://www.khronos.org/opencl/  
+- Intel OpenCL SDK: https://www.intel.com/content/www/us/en/developer/tools/opencl-sdk/overview.html  
+
+After installation, confirm that `OpenCL.dll` is available in `C:\Windows\System32`.
+
+
+### Step 4: Add CUDA Toolkit to Environment Variables
+
+To make CUDA and OpenCL tools accessible system‑wide, you need to add the CUDA Toolkit directories to your Windows PATH.  
+The exact folder names may differ depending on your CUDA version (e.g., `v12.9`, `v12.8`, etc.) and installation options.
+
+1. Open **File Explorer** and navigate to your CUDA installation directory.  
+   By default this is usually:
+
+    C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\vx.y
+
+   (where `vx.y` is the CUDA version, e.g., `v12.9`).
+
+2. Locate the following subfolders inside your CUDA installation:
+   - **bin** → contains CUDA executables like `nvcc` and `nvidia-smi`  
+   - **libnvvp** → contains libraries for the NVIDIA Visual Profiler  
+   - **lib\x64** → contains `OpenCL.lib` and other 64‑bit libraries  
+   - **include** → contains the `CL` folder with `cl.h` and other headers
+
+If you can't locate the needed "OpenCL.lib" and "CL\cl.h" items in these locations, do a more general search to try to locate the files.
+
+3. Open **Control Panel → System → Advanced system settings → Environment Variables**.
+4. Under *System variables*, edit the variable named `Path` and add entries for each of the folders you found:
+   - `<CUDA install folder>\bin`  
+   - `<CUDA install folder>\libnvvp`  
+   - `<CUDA install folder>\lib\x64`  
+   - `<CUDA install folder>\include`
+
+   Example (for CUDA 12.9):
+
+    C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\bin  
+    C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\libnvvp  
+    C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\lib\x64  
+    C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\include  
+
+5. (Optional but recommended) Create a new system variable named `CUDA_PATH` and set its value to the root of your CUDA installation:
+
+    C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9
+
+6. Click **OK** to save changes, then restart Command Prompt or RStudio so the updated environment variables are recognized.
+
+---
+
+**Validation:**  
+After updating the environment variables, open a new Command Prompt and run:
+
+    nvcc --version
+
+This should return the CUDA compiler version. If successful, your system is correctly configured to expose CUDA and OpenCL libraries to R and other applications.
+
+**Diagnostic tip:**  
+- If `nvcc` is not found, check that the `bin` folder is in PATH.  
+- If compilation fails with “cannot find OpenCL.lib,” check that the `lib\x64` folder is in PATH.  
+- If compilation fails with “cannot find cl.h,” check that the `include` folder is in PATH.
+
+
+### Step 5: Install `glmbayes`
+
+To use GPU acceleration, you need the `glmbayes` package. There are two installation options depending on where the package is available:
+
+#### Option A: Install from CRAN (recommended release version)
+When `glmbayes` is available on CRAN, install it directly:
+
+    install.packages("glmbayes",  type = "source")
+
+This will fetch the latest **release version**, which is the stable build intended for general use.
+
+---
+
+#### Option B: Install from R‑Universe (development version)
+If the package is not yet on CRAN, or if you want the latest development build, install from R‑Universe:
+
+install.packages(
+  "glmbayes",
+  repos = c("https://knygren.r-universe.dev", "https://cloud.r-project.org"),
+  type = "source"
+)
+This will fetch the **development version** from R‑Universe, while dependencies are pulled from CRAN.
+
+---
+
+**Note:**  
+- When the package is available on both CRAN and R‑Universe, treat the CRAN version as the **release** build and the R‑Universe version as the **development** build.  
+- The development build may include new or experimental features (such as `has_opencl()`), while the CRAN release emphasizes stability.
+
+### Step 6: Check that OpenCL is Present in R
+
+After reinstalling `glmbayes`, verify that OpenCL is available to R:
+
+    library(glmbayes)
+    has_opencl()
+
+- If `TRUE`, OpenCL is detected and GPU acceleration is available.  
+- If `FALSE`, R is only seeing CPU devices. In that case, revisit Steps 2–4 to confirm CUDA Toolkit and OpenCL runtime are correctly installed and exposed.
+
+
+
+## 2.2 Installing and Validating OpenCL on LINUX (NVIDIA GPUs)
+
+### Step 0: Detect Your Environment
+
+Run:
+
+    cat /etc/os-release
+
+Look at the NAME or ID field in the output.
+- If it says "Ubuntu" or "Debian" → follow the Ubuntu/Debian instructions.
+- If it says "Fedora" → follow the Fedora instructions.
+- If it says "Arch" → follow the Arch Linux instructions.
+- If it says ID_LIKE="Cygwin arch" → you are running inside a Cygwin/MSYS2 environment on Windows. Follow the MSYS2 instructions.
+
+---
+
+### Step 1: Verify GPU Presence
+
+Run:
+
+    nvidia-smi
+
+This confirms driver installation and GPU status, and lists your NVIDIA GPU model.
+
+---
+
+### Step 2: IF needed, install NVIDIA Drivers
+
+#### Ubuntu/Debian
+
+Check if the driver is already installed:
+
+    dpkg -l | grep nvidia-driver
+
+If nothing is listed, install:
+
+    sudo apt update
+    sudo apt install nvidia-driver-535
+
+---
+
+#### Fedora
+
+Check if akmod-nvidia is already installed:
+
+    rpm -qa | grep akmod-nvidia
+
+If not installed, run:
+
+    sudo dnf install akmod-nvidia
+
+---
+
+#### Arch Linux
+
+Check if the nvidia package is already installed:
+
+    pacman -Qs nvidia
+
+If not installed, run:
+
+    sudo pacman -S nvidia
+
+---
+
+#### MSYS2 / Cygwin Arch (Windows)
+
+Drivers must be installed via the official NVIDIA Windows installer. Confirm with:
+
+    nvidia-smi
+
+Then, inside the MSYS2 shell, install OpenCL support:
+
+    pacman -S mingw-w64-x86_64-opencl-icd-loader mingw-w64-x86_64-opencl-headers
+
+---
+
+After installation, reboot (Linux) or restart your shell (MSYS2) and confirm driver status:
+
+    nvidia-smi
+
+---
+
+### Step 3: Install CUDA Toolkit and Add nvcc to PATH
+
+1. **Check if CUDA is installed**
+   Run:
+       nvcc --version
+   If you see "command not found," CUDA is not on your PATH.
+
+2. **Install CUDA Toolkit**
+   - Ubuntu/Debian:   sudo apt install nvidia-cuda-toolkit
+   - Fedora:          sudo dnf install cuda
+   - Arch Linux:      sudo pacman -S cuda
+   - MSYS2/Windows:   Install via the official NVIDIA Windows installer.
+
+3. **Locate nvcc**
+
+   Find the directory containing nvcc (nvcc.exe on Windows):
+
+   Common locations are:
+   
+   - Ubuntu/Debian: /usr/local/cuda/bin or /usr/bin
+   - Fedora:        /usr/local/cuda/bin
+   - Arch Linux:    /opt/cuda/bin
+   - Windows/MSYS2: C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/vX.Y/bin
+
+   Confirm with:
+       which nvcc
+   or search manually:
+       find /usr -name nvcc 2>/dev/null
+       find /opt -name nvcc 2>/dev/null
+       find /c -name nvcc 2>/dev/null
+
+4. **Add to PATH (permanent)**
+
+   To make the PATH change permanent, append the directory you located above to your ~/.bashrc file.
+
+   On Linux:
+       echo 'export PATH=$PATH:/usr/local/cuda/bin' >> ~/.bashrc
+
+   On Windows/MSYS2 (quoted for spaces): 
+       echo 'export PATH=$PATH:"/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/bin"' >> ~/.bashrc
+
+   Note: You can use CTR+C to copye and then SHIFT+INSERT inside Windows/MSYS2 to paste the above line
+
+   Reload the updated PATH:
+       source ~/.bashrc
+
+   - On Linux: sourcing ~/.bashrc applies changes immediately.
+   - On MSYS2: restart the MSYS2 terminal to ensure all subshells pick up the new PATH.
+
+5. **Verify**
+   Run:
+       nvcc --version
+       which nvcc
+   Both should now work in any new shell session.
+
+### Step 4: Install OpenCL ICD Loader and Headers
+
+These packages install:
+- The OpenCL ICD loader (runtime dispatcher that loads vendor OpenCL drivers)
+- The OpenCL headers (required to compile OpenCL programs)
+
+Ubuntu/Debian:
+    sudo apt install ocl-icd-opencl-dev opencl-headers
+
+Fedora:
+    sudo dnf install ocl-icd opencl-headers
+
+Arch Linux:
+    sudo pacman -S opencl-nvidia opencl-headers
+
+MSYS2 / Cygwin Arch (Windows):
+    pacman -S mingw-w64-x86_64-opencl-icd mingw-w64-x86_64-opencl-headers
+    
+
+### Step 5: Install glmbayes
+
+Launch R from your terminal:
+
+    R
+
+This starts an interactive R session.
+
+Once inside R, install the package:
+
+#### Option A: Install from CRAN (recommended release version)
+
+    install.packages("glmbayes")
+
+---
+
+#### Option B: Install from R-Universe (development version)
+
+    install.packages(
+      "glmbayes",
+      repos = c("https://knygren.r-universe.dev", "https://cloud.r-project.org")
+    )
+
+---
+
+### Step 6: Check OpenCL in R
+
+After installation, load the package and check OpenCL:
+
+    library(glmbayes)
+    has_opencl()
+    
+## macOS
+Mention built‑in OpenCL support (deprecated but available).  
+Note Apple’s transition to Metal and implications for R users.
+
+# Detecting Devices
+Explain how to query available OpenCL devices (CPU vs GPU).  
+Provide example helper function to skip tests if no GPU is found.  
+Show how to log device type and compute units.
+
+# Toy Examples (Portable Mode)
+Demonstrate envelope construction on a small dataset (e.g., Cleveland heart data).  
+Emphasize reproducibility and portability for CRAN/R‑universe.  
+Show correctness on CPU/OpenCL with limited cores.
+
+# GPU‑Accelerated Examples (Full Mode)
+Run larger synthetic or real‑world datasets.  
+Compare runtime differences: CPU vs GPU.  
+Include benchmark plots (runtime vs. model size).
+
+# Best Practices
+Discuss guarding tests with `skip_on_cran()` and `skip_if(!has_opencl())`.  
+Explain keeping toy examples for CI and reserving large models for GPU users.  
+Document fallback behavior (CPU OpenCL vs GPU OpenCL).
+
+# Troubleshooting
+List common installation issues (missing headers, drivers not found).  
+Explain how to interpret build logs (like those from R‑universe).  
+Provide tips for ensuring GPU drivers are correctly installed.
+
+# Conclusion
+Summarize benefits of GPU acceleration for envelope construction.  
+Discuss future directions (multi‑GPU, CUDA/ROCm integration, hybrid workflows).

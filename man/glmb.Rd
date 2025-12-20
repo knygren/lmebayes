@@ -294,6 +294,8 @@ DIC_Out=rbind(extractAIC(glmb.out1),extractAIC(glmb.out2),extractAIC(glmb.out3))
 rownames(DIC_Out)=c("logit","probit","clog-log")
 colnames(DIC_Out)=c("pD","DIC")
 DIC_Out
+
+
 }
 \references{
 \insertAllCited{}
