@@ -1,0 +1,102 @@
+   user  system elapsed 
+ 274.50    7.42  123.25 
+   user  system elapsed 
+ 110.22    3.19   34.98 
+Call
+glmb(formula = hd ~ age + sex + cp + trestbps + chol + fbs + 
+    restecg + thalach + exang + oldpeak + slope + ca + thal, 
+    family = binomial(link = "logit"), pfamily = dNormal(mu = ps$mu, 
+        Sigma = ps$Sigma), n = 20000, data = Cleveland, use_parallel = TRUE, 
+    use_opencl = TRUE, verbose = FALSE, Gridtype = 2)
+
+Expected Residuals:
+       Min         1Q     Median         3Q        Max 
+-2.7988633 -0.5309032 -0.1926461  0.4265085  2.3779252 
+
+Prior and Maximum Likelihood Estimates with Standard Deviations
+
+            Null Mode Prior Mean  Prior.sd Max Like. Like.sd
+(Intercept) -0.155193  -0.155193 12.551345 -7.372042   2.879
+age          0.000000   0.000000  0.104482 -0.014164   0.024
+sex          0.000000   0.000000  2.129210  1.312073   0.488
+cp           0.000000   0.000000  0.833410  0.575898   0.191
+trestbps     0.000000   0.000000  0.046772  0.024044   0.011
+chol         0.000000   0.000000  0.016449  0.004995   0.004
+fbs          0.000000   0.000000  2.420625 -1.021918   0.555
+restecg      0.000000   0.000000  0.806417  0.245153   0.185
+thalach      0.000000   0.000000  0.044570 -0.020665   0.010
+exang        0.000000   0.000000  1.801719  0.926104   0.413
+oldpeak      0.000000   0.000000  0.923354  0.247386   0.212
+slope        0.000000   0.000000  1.582650  0.570009   0.363
+ca           0.000000   0.000000  1.156782  1.267719   0.265
+thal         0.000000   0.000000  0.437463  0.343936   0.100
+
+Bayesian Estimates Based on 20000 iid draws
+
+             Post.Mode  Post.Mean    Post.Sd   MC Error Pr(Null_tail) SE(tail)
+(Intercept) -7.030e+00 -7.526e+00  2.860e+00  2.022e-02     5.250e-03    0.001
+age         -1.349e-02 -1.527e-02  2.351e-02  1.662e-04     2.616e-01    0.003
+sex          1.250e+00  1.333e+00  4.798e-01  3.393e-03     2.050e-03    0.000
+cp           5.485e-01  5.952e-01  1.919e-01  1.357e-03     6.500e-04    0.000
+trestbps     2.292e-02  2.479e-02  1.062e-02  7.512e-05     8.050e-03    0.001
+chol         4.759e-03  5.154e-03  3.806e-03  2.692e-05     8.695e-02    0.002
+fbs         -9.737e-01 -1.048e+00  5.455e-01  3.858e-03     2.480e-02    0.001
+restecg      2.335e-01  2.520e-01  1.819e-01  1.286e-03     8.330e-02    0.002
+thalach     -1.969e-02 -2.106e-02  1.012e-02  7.158e-05     1.805e-02    0.001
+exang        8.820e-01  9.360e-01  4.087e-01  2.890e-03     1.125e-02    0.001
+oldpeak      2.357e-01  2.542e-01  2.089e-01  1.477e-03     1.098e-01    0.002
+slope        5.430e-01  5.734e-01  3.553e-01  2.512e-03     5.285e-02    0.002
+ca           1.208e+00  1.300e+00  2.605e-01  1.842e-03     0.000e+00    0.000
+thal         3.274e-01  3.483e-01  9.980e-02  7.057e-04     4.500e-04    0.000
+            Pr(Prior_tail)    
+(Intercept)        0.00525 ** 
+age                0.26160    
+sex                0.00205 ** 
+cp                 0.00065 ***
+trestbps           0.00805 ** 
+chol               0.08695 .  
+fbs                0.02480 *  
+restecg            0.08330 .  
+thalach            0.01805 *  
+exang              0.01125 *  
+oldpeak            0.10975    
+slope              0.05285 .  
+ca                 < 2e-16 ***
+thal               0.00045 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+  Directional Tail Summaries:
+
+               Metric vs Null vs Prior
+ Mahalanobis Distance 10.0005  10.0005
+     Tail Probability  0.0000   0.0000
+  [Tail probabilities are P(delta^T * Z <= 0) in whitened space]
+
+
+Distribution Percentiles
+
+                  1.0%       2.5%       5.0%     Median      95.0%      97.5%  99.0%
+(Intercept) -1.428e+01 -1.324e+01 -1.226e+01 -7.498e+00 -2.898e+00 -1.974e+00 -0.904
+age         -7.002e-02 -6.112e-02 -5.382e-02 -1.530e-02  2.335e-02  3.055e-02  0.039
+sex          2.424e-01  4.132e-01  5.582e-01  1.325e+00  2.129e+00  2.295e+00  2.505
+cp           1.515e-01  2.251e-01  2.831e-01  5.912e-01  9.137e-01  9.780e-01  1.056
+trestbps     6.726e-04  4.125e-03  7.467e-03  2.468e-02  4.234e-02  4.576e-02  0.050
+chol        -3.624e-03 -2.231e-03 -1.068e-03  5.138e-03  1.146e-02  1.270e-02  0.014
+fbs         -2.344e+00 -2.144e+00 -1.962e+00 -1.040e+00 -1.669e-01 -2.187e-03  0.200
+restecg     -1.642e-01 -1.047e-01 -4.579e-02  2.535e-01  5.482e-01  6.054e-01  0.673
+thalach     -4.559e-02 -4.117e-02 -3.794e-02 -2.098e-02 -4.687e-03 -1.412e-03  0.002
+exang       -1.994e-02  1.382e-01  2.724e-01  9.346e-01  1.612e+00  1.755e+00  1.902
+oldpeak     -2.282e-01 -1.474e-01 -8.351e-02  2.520e-01  5.997e-01  6.698e-01  0.748
+slope       -2.689e-01 -1.212e-01 -7.816e-03  5.722e-01  1.152e+00  1.266e+00  1.399
+ca           7.269e-01  8.100e-01  8.830e-01  1.293e+00  1.741e+00  1.826e+00  1.931
+thal         1.182e-01  1.548e-01  1.854e-01  3.474e-01  5.117e-01  5.447e-01  0.582
+
+Effective Number of Parameters: 13.28406 
+Expected Residual Deviance: 218.0108 
+DIC: 231.2949 
+
+Expected Mean dispersion: 1 
+Sq.root of Expected Mean dispersion: 1 
+
+Mean Likelihood Subgradient Candidates Per iid sample: 5.57005 
+

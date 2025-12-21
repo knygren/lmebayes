@@ -95,7 +95,7 @@ Rcpp::NumericVector rmath_test_wrapper() {
   
 #ifdef USE_OPENCL
   // Load rmath core and test kernel
-  std::string OPENCL_source     = load_kernel_source("OPENCL.CL");
+  std::string OPENCL_source     = load_kernel_source("OPENCL.cl");
   std::string rmath_source      = load_kernel_library("rmath");
   std::string test_kernel_code  = load_kernel_source("test/rmath_test_kernel.cl");
   std::string kernel_code       = OPENCL_source + rmath_source + test_kernel_code;

@@ -225,7 +225,7 @@ Rcpp::List f2_prep_grad_opencl(
   
 #ifdef USE_OPENCL
   
-   std::string OPENCL_source     = load_kernel_source("OPENCL.CL");
+   std::string OPENCL_source     = load_kernel_source("OPENCL.cl");
 //   std::string rmath_source     = load_kernel_library("rmath");
 //   std::string nmath_source     = load_kernel_library("nmath");
 //   std::string dpq_source     = load_kernel_library("dpq");
@@ -430,7 +430,7 @@ Rcpp::List f2_f3_opencl(
 
 #ifdef USE_OPENCL
   
-  std::string OPENCL_source     = load_kernel_source("OPENCL.CL");
+  std::string OPENCL_source     = load_kernel_source("OPENCL.cl");
      std::string rmath_source     = load_kernel_library("rmath","glmbayes", false);
      std::string nmath_source     = load_kernel_library("nmath","glmbayes", false);
      std::string dpq_source     = load_kernel_library("dpq","glmbayes", false);

@@ -45,9 +45,6 @@ UCI Machine Learning Repository: Heart Disease Data Set.
 # Load the dataset
 data("Cleveland")
 
-# Basic summary
-summary(Cleveland)
-
 # ------------------------------------------------------------------
 # OpenCL-accelerated Bayesian logistic regression example
 # This example only runs if OpenCL is available.
@@ -62,21 +59,23 @@ if (has_opencl()) {
     data = Cleveland
   )
 
-  # Fit Bayesian GLM with OpenCL acceleration
+t_opencl <- system.time({
   fit <- glmb(
     hd ~ age + sex + cp + trestbps + chol +
       fbs + restecg + thalach + exang + oldpeak + slope + ca + thal,
     family       = binomial(link = "logit"),
     pfamily      = dNormal(mu = ps$mu, Sigma = ps$Sigma),
     data         = Cleveland,
-    n            = 20000,      # Larger MCMC to showcase OpenCL
+    n            = 20000,
     Gridtype     = 2,
     use_parallel = TRUE,
     use_opencl   = TRUE,
     verbose      = FALSE
   )
+})
 
-  print(fit)
+t_opencl
+
   summary(fit)
 }
 }

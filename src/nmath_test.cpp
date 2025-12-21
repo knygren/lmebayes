@@ -90,7 +90,7 @@ Rcpp::NumericVector nmath_test_wrapper() {
   std::vector<float> output(stride);
   
 #ifdef USE_OPENCL
-  std::string OPENCL_source     = load_kernel_source("OPENCL.CL");
+  std::string OPENCL_source     = load_kernel_source("OPENCL.cl");
   std::string rmath_source      = load_kernel_library("rmath");
   std::string nmath_source      = load_kernel_library("nmath");
   std::string dpq_source        = load_kernel_library("dpq");

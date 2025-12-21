@@ -1,0 +1,268 @@
+══ Documenting ═══════════════════════════════════════════════════════════════════════
+Exports from C:/Rpackages/glmbayes/src/Envelopefuncs.cpp:
+   double run_opencl_pilot(const Rcpp::NumericMatrix& G4, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericMatrix& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& alpha, const Rcpp::NumericVector& wt, const std::string& family, const std::string& link, bool use_opencl, bool verbose, double threshold_sec = 300.0)
+   Rcpp::List f2_f3_non_opencl(std::string family, std::string link, Rcpp::NumericMatrix b, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericMatrix mu, Rcpp::NumericMatrix P, Rcpp::NumericVector alpha, Rcpp::NumericVector wt, int progbar)
+   Rcpp::List EnvelopeSize(const arma::vec& a, const Rcpp::NumericMatrix& G1, int Gridtype = 2, int n = 1000, int n_envopt = -1, bool use_opencl = false, bool verbose = false)
+   Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericMatrix& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& alpha, const Rcpp::NumericVector& wt, const std::string& family, const std::string& link, bool use_opencl = false, bool verbose = false)
+   List EnvelopeBuild_c(NumericVector bStar, NumericMatrix A, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt, std::string family, std::string link, int Gridtype, int n, int n_envopt, bool sortgrid, bool use_opencl, bool verbose)
+   List EnvelopeBuild_Ind_Normal_Gamma(NumericVector bStar, NumericMatrix A, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt, std::string family = "binomial", std::string link = "logit", int Gridtype = 2, int n = 1, int n_envopt = -1, bool sortgrid = false, bool use_opencl = false, bool verbose = false)
+   Rcpp::List Inv_f3_precompute_disp(NumericMatrix cbars, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt)
+   double rss_face_at_disp(double dispersion, Rcpp::List cache, Rcpp::NumericVector cbars_j, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericVector alpha, Rcpp::NumericVector wt)
+   double drss_ddisp(double dispersion, Rcpp::List cache, Rcpp::NumericVector cbars_j, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericVector alpha, Rcpp::NumericVector wt)
+   double UB2(double dispersion, Rcpp::List cache, Rcpp::NumericVector cbars_j, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericVector alpha, Rcpp::NumericVector wt, double rss_min_global)
+   double UB2_Fun(double dispersion, Rcpp::List cache, Rcpp::NumericVector cbars_j, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericVector alpha, Rcpp::NumericVector wt, double rss_min_global)
+   List EnvelopeDispersionBuild_cpp(List Env, double Shape, double Rate, NumericMatrix P, NumericVector y, NumericMatrix x, NumericVector alpha, int n_obs, double RSS_post, double RSS_ML, NumericMatrix mu, NumericVector wt, double max_disp_perc = 0.99, Nullable<double> disp_lower = R_NilValue, Nullable<double> disp_upper = R_NilValue, bool verbose = false, bool use_parallel = true)
+
+Exports from C:/Rpackages/glmbayes/src/OpenCL_helper.cpp:
+   bool has_opencl()
+
+Exports from C:/Rpackages/glmbayes/src/Set_Grid.cpp:
+   Rcpp::List Set_Grid(Rcpp::NumericMatrix GIndex, Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint)
+
+Exports from C:/Rpackages/glmbayes/src/Set_Grid.h:
+
+Exports from C:/Rpackages/glmbayes/src/Set_LogP.cpp:
+   Rcpp::List setlogP(NumericMatrix logP, NumericVector NegLL, NumericMatrix cbars, NumericMatrix G3)
+
+Exports from C:/Rpackages/glmbayes/src/arithmetic_test.cpp:
+   Rcpp::NumericVector arithmetic_test_wrapper()
+
+Exports from C:/Rpackages/glmbayes/src/ctrnorm_cpp.cpp:
+
+Exports from C:/Rpackages/glmbayes/src/famfuncs_binomial.cpp:
+   List f2_binomial_logit_prep(NumericMatrix b, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt, int progbar)
+   List f2_binomial_logit_prep_v3(NumericMatrix b, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt, int progbar = 0)
+
+Exports from C:/Rpackages/glmbayes/src/famfuncs_gaussian.cpp:
+   NumericVector RSS(NumericVector y, NumericMatrix x, NumericMatrix b, NumericVector alpha, NumericVector wt)
+   NumericVector f2_gaussian(NumericMatrix b, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt)
+   arma::mat Inv_f3_gaussian(NumericMatrix cbars, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt)
+   arma::mat Inv_f3_with_disp(Rcpp::List cache, double dispersion, Rcpp::NumericMatrix cbars_small)
+
+Exports from C:/Rpackages/glmbayes/src/kernel_wrappers.cpp:
+   Rcpp::List f2_binomial_logit_prep_opencl(Rcpp::NumericMatrix b, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericMatrix mu, Rcpp::NumericMatrix P, Rcpp::NumericVector alpha, Rcpp::NumericVector wt, int progbar)
+   Rcpp::List f2_binomial_logit_prep_grad_opencl(Rcpp::NumericMatrix b, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericMatrix mu, Rcpp::NumericMatrix P, Rcpp::NumericVector alpha, Rcpp::NumericVector wt, int progbar)
+   Rcpp::List f2_prep_grad_opencl(std::string family, std::string link, Rcpp::NumericMatrix b, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericMatrix mu, Rcpp::NumericMatrix P, Rcpp::NumericVector alpha, Rcpp::NumericVector wt, int progbar)
+   Rcpp::List f2_f3_opencl(std::string family, std::string link, Rcpp::NumericMatrix b, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericMatrix mu, Rcpp::NumericMatrix P, Rcpp::NumericVector alpha, Rcpp::NumericVector wt, int progbar)
+   Rcpp::NumericVector f2_accum(std::string family, std::string link, Rcpp::NumericMatrix xb, Rcpp::NumericVector qf, Rcpp::NumericVector y, Rcpp::NumericVector wt, int progbar)
+   int get_opencl_core_count()
+
+Exports from C:/Rpackages/glmbayes/src/nmath_test.cpp:
+   Rcpp::NumericVector nmath_test_wrapper()
+
+Exports from C:/Rpackages/glmbayes/src/rindep_norm_gamma_reg_cpp.cpp:
+   Rcpp::List rindep_norm_gamma_reg_std_cpp(int n, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt, Function f2, Rcpp::List Envelope, Rcpp::List gamma_list, Rcpp::List UB_list, Rcpp::CharacterVector family, Rcpp::CharacterVector link, bool progbar = true, bool verbose = false)
+   Rcpp::List rindep_norm_gamma_reg_std_parallel_cpp(int n, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericMatrix mu, Rcpp::NumericMatrix P, Rcpp::NumericVector alpha, Rcpp::NumericVector wt, Rcpp::Function f2, Rcpp::List Envelope, Rcpp::List gamma_list, Rcpp::List UB_list, Rcpp::CharacterVector family, Rcpp::CharacterVector link, bool progbar = true, bool verbose = false)
+
+Exports from C:/Rpackages/glmbayes/src/rmath_test.cpp:
+   Rcpp::NumericVector rmath_test_wrapper()
+
+Exports from C:/Rpackages/glmbayes/src/rnnorm_reg_cpp.cpp:
+   Rcpp::List glmb_Standardize_Model(NumericVector y, NumericMatrix x, NumericMatrix P, NumericMatrix bstar, NumericMatrix A1)
+   Rcpp::List rnnorm_reg_std_cpp(int n, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt, Function f2, Rcpp::List Envelope, Rcpp::CharacterVector family, Rcpp::CharacterVector link, int progbar = 1, bool verbose = false)
+   List rnnorm_reg_std_cpp_parallel(int n, NumericVector y, NumericMatrix x, NumericMatrix mu, NumericMatrix P, NumericVector alpha, NumericVector wt, Function f2, List Envelope, CharacterVector family, CharacterVector link, int progbar = 1, bool verbose = false)
+   Rcpp::List rnnorm_reg_cpp(int n, NumericVector y, NumericMatrix x, NumericVector mu, NumericMatrix P, NumericVector offset, NumericVector wt, double dispersion, Function f2, Function f3, NumericVector start, std::string family = "binomial", std::string link = "logit", int Gridtype = 2, int n_envopt = -1, bool use_parallel = true, bool use_opencl = false, bool verbose = false)
+
+Exports from C:/Rpackages/glmbayes/src/rnorm_reg_cpp.cpp:
+   Rcpp::List rnorm_reg_cpp(int n, NumericVector y, NumericMatrix x, NumericVector mu, NumericMatrix P, NumericVector offset, NumericVector wt, double dispersion, Function f2, Function f3, NumericVector start, std::string family = "gaussian", std::string link = "identity", int Gridtype = 2)
+
+Exports from C:/Rpackages/glmbayes/src/stirlerr_test.cpp:
+   Rcpp::NumericVector stirlerr_test_wrapper()
+
+C:/Rpackages/glmbayes/src/RcppExports.cpp updated.
+C:/Rpackages/glmbayes/R/RcppExports.R updated.
+── R CMD INSTALL ─────────────────────────────────────────────────────────────────────
+  ─  installing *source* package 'glmbayes' ... (1.6s)
+     ** this is package 'glmbayes' version '0.1.0'
+   ** using staged installation
+     🛠 [configure.win] Starting OpenCL detection
+     Shell = /usr/bin/bash
+   Initial PATH = /x86_64-w64-mingw32.static.posix/bin:/usr/bin:/c/PROGRA~1/R/R-45~1.1/bin/x64:/x86_64-w64-mingw32.static.posix/bin:/usr/bin:/x86_64-w64-mingw32.static.posix/bin:/usr/bin:/c/Program Files/R/R-4.5.1/bin/x64:/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/bin:/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/libnvvp:/c/Windows/System32:/c/Windows:/c/Windows/System32/wbem:/c/Windows/System32/WindowsPowerShell/v1.0:/c/Windows/System32/OpenSSH:/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/c/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR:/c/Program Files/dotnet:/usr/bin:/bin:/c/Program Files/Git/cmd:/c/Program Files/Git/bin:/c/Program Files/NVIDIA Corporation/Nsight Compute 2025.2.1:/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include:/c/Users/kjell/AppData/Local/Programs/MiKTeX/miktex/bin/x64:/c/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit:/c/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64:/c/Program Files/R/R-4.5.1/bin:/c/Program Files/Pandoc:/c/Users/kjell/AppData/Local/Microsoft/WindowsApps:/c/Users/kjell/AppData/Local/Programs/MiKTeX/miktex/bin/x64:/c/Program Files/RStudio/resources/app/bin/quarto/bin:/c/Program Files/RStudio/resources/app/bin/postback/
+     🔍 Loading MACHINE Path with PowerShell
+     🔍 Current SEARCH_PATHS:
+        - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\bin
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\libnvvp
+      - C:\Windows\system32
+      - C:\Windows
+      - C:\Windows\System32\Wbem
+      - C:\Windows\System32\WindowsPowerShell\v1.0\
+      - C:\Windows\System32\OpenSSH\
+      - C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common
+      - C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR
+      - C:\Program Files\dotnet\
+      - c:\rtools45\usr\bin
+      - c:\rtools45\bin
+      - C:\Program Files\Git\cmd
+      - c:\program Files\Git\bin
+      - C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.2.1\
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\include
+      - C:\Users\kjell\AppData\Local\Programs\MiKTeX\miktex\bin\x64
+      - C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\
+      - C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64
+      - C:\Program Files\R\R-4.5.1\bin
+      - C:\Program Files\Pandoc\
+   🔍 Current SEARCH_PATHS:
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\bin
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\libnvvp
+      - C:\Windows\system32
+      - C:\Windows
+      - C:\Windows\System32\Wbem
+      - C:\Windows\System32\WindowsPowerShell\v1.0\
+      - C:\Windows\System32\OpenSSH\
+      - C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common
+      - C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR
+      - C:\Program Files\dotnet\
+      - c:\rtools45\usr\bin
+      - c:\rtools45\bin
+      - C:\Program Files\Git\cmd
+      - c:\program Files\Git\bin
+      - C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.2.1\
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\include
+      - C:\Users\kjell\AppData\Local\Programs\MiKTeX\miktex\bin\x64
+      - C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\
+      - C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64
+      - C:\Program Files\R\R-4.5.1\bin
+    - C:\Program Files\Pandoc        - C:\Program Files\Pandoc\
+   🔎 Checking for known OpenCL SDK installations...
+   ❌ Intel oneAPI Toolkit not found at: C:/Program Files (x86)/Intel/oneAPI
+   ❌ AMD APP SDK not found at: C:/Program Files (x86)/AMD APP SDK
+   ❌ Intel OpenCL SDK not found at: C:/Program Files (x86)/IntelSWTools/OpenCL SDK
+   ✅ Found NVIDIA CUDA Toolkit at: C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA
+   🔍 Current SEARCH_PATHS:
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\bin
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\libnvvp
+      - C:\Windows\system32
+      - C:\Windows
+      - C:\Windows\System32\Wbem
+      - C:\Windows\System32\WindowsPowerShell\v1.0\
+      - C:\Windows\System32\OpenSSH\
+      - C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common
+      - C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR
+      - C:\Program Files\dotnet\
+      - c:\rtools45\usr\bin
+      - c:\rtools45\bin
+      - C:\Program Files\Git\cmd
+      - c:\program Files\Git\bin
+      - C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.2.1\
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\include
+      - C:\Users\kjell\AppData\Local\Programs\MiKTeX\miktex\bin\x64
+      - C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\
+      - C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64
+      - C:\Program Files\R\R-4.5.1\bin
+      - C:\Program Files\Pandoc\
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/include
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/include/CL
+     🔍 Found CUDA subdir: C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9
+   🔍 Current SEARCH_PATHS:
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\bin
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\libnvvp
+      - C:\Windows\system32
+      - C:\Windows
+      - C:\Windows\System32\Wbem
+      - C:\Windows\System32\WindowsPowerShell\v1.0\
+      - C:\Windows\System32\OpenSSH\
+      - C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common
+      - C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR
+      - C:\Program Files\dotnet\
+      - c:\rtools45\usr\bin
+      - c:\rtools45\bin
+      - C:\Program Files\Git\cmd
+      - c:\program Files\Git\bin
+      - C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.2.1\
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\include
+      - C:\Users\kjell\AppData\Local\Programs\MiKTeX\miktex\bin\x64
+      - C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\
+      - C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64
+      - C:\Program Files\R\R-4.5.1\bin
+      - C:\Program Files\Pandoc\
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/include
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/include/CL
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/CL
+   ❌ Static path not found: C:/OpenCL-SDK
+   ❌ Static path not found: C:/opt
+   📦 Adding static path: C:/Program Files (x86)
+   🔍 Current SEARCH_PATHS:
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\bin
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\libnvvp
+      - C:\Windows\system32
+      - C:\Windows
+      - C:\Windows\System32\Wbem
+      - C:\Windows\System32\WindowsPowerShell\v1.0\
+      - C:\Windows\System32\OpenSSH\
+      - C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common
+      - C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR
+    - C:\Program Files\dotnet\        - C:\Program Files\dotnet\
+      - c:\rtools45\usr\bin
+      - c:\rtools45\bin
+      - C:\Program Files\Git\cmd
+      - c:\program Files\Git\bin
+      - C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.2.1\
+      - C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\include
+      - C:\Users\kjell\AppData\Local\Programs\MiKTeX\miktex\bin\x64
+      - C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\
+      - C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64
+      - C:\Program Files\R\R-4.5.1\bin
+      - C:\Program Files\Pandoc\
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/include
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/include/CL
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include
+      - C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/CL
+      - C:/Program Files (x86)
+🔍 Combined SEARCH_PATHS (n=27): C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\bin C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\libnvvp C:\Windows\system32 C:\Windows C:\Windows\System32\Wbem C:\Windows\System32\WindowsPowerShell\v1.0\ C:\Windows\System32\OpenSSH\ C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR C:\Program Files\dotnet\ c:\rtools45\usr\bin c:\rtools45\bin C:\Program Files\Git\cmd c:\program Files\Git\bin C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.2.1\ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\include C:\Users\kjell\AppData\Local\Programs\MiKTeX\miktex\bin\x64 C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\ C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64 C:\Program Files\R\R-4.5.1\bin C:\Program Files\Pandoc\ C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/include C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/include/CL C:/P     🔍 Combined SEARCH_PATHS (n=27): C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\bin C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\libnvvp C:\Windows\system32 C:\Windows C:\Windows\System32\Wbem C:\Windows\System32\WindowsPowerShell\v1.0\ C:\Windows\System32\OpenSSH\ C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR C:\Program Files\dotnet\ c:\rtools45\usr\bin c:\rtools45\bin C:\Program Files\Git\cmd c:\program Files\Git\bin C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.2.1\ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\include C:\Users\kjell\AppData\Local\Programs\MiKTeX\miktex\bin\x64 C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\ C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64 C:\Program Files\R\R-4.5.1\bin C:\Program Files\Pandoc\ C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/include C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/include/CL C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/CL C:/Program Files (x86)
+   🔎 CL_HEADER = C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9\include\CL\cl.h
+     ⚙️  INCLUDE_FLAG = -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include"
+     ⚙️  LIB_FLAG     = -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/lib/x64"
+   📦 MAKEVARS_CONTENT:
+   PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -DUSE_OPENCL -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include"
+   PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/lib/x64" -lOpenCL  $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+     ** libs
+     using C compiler: 'gcc.exe (GCC) 14.2.0'
+     using C++ compiler: 'G__~1.EXE (GCC) 14.2.0'
+     g++ -std=gnu++17  -I"C:/PROGRA~1/R/R-45~1.1/include" -DNDEBUG  -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/Rcpp/include' -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include' -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppParallel/include'   -I"C:/rtools45/x86_64-w64-mingw32.static.posix/include"   -fopenmp -DUSE_OPENCL -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include"   -O2 -Wall -gdwarf-2 -mfpmath=sse -msse2 -mstackrealign   -UNDEBUG -Wall -pedantic -g -O0  -c RcppExports.cpp -o RcppExports.o
+     In file included from C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include/current/armadillo:26,
+                    from C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include/RcppArmadillo/interface/RcppArmadilloForward.h:57,
+                    from C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include/RcppArmadillo.h:32,
+                    from RcppExports.cpp:4:
+   C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include/current/armadillo_bits/config.hpp:373:72: note: '#pragma message: NOTE: option ARMA_CRIPPLED_LAPACK is not supported'
+     373 |   #pragma message ("NOTE: option ARMA_CRIPPLED_LAPACK is not supported")
+         |                                                                        ^
+     g++ -std=gnu++17  -I"C:/PROGRA~1/R/R-45~1.1/include" -DNDEBUG  -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/Rcpp/include' -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include' -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppParallel/include'   -I"C:/rtools45/x86_64-w64-mingw32.static.posix/include"   -fopenmp -DUSE_OPENCL -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include"   -O2 -Wall -gdwarf-2 -mfpmath=sse -msse2 -mstackrealign   -UNDEBUG -Wall -pedantic -g -O0  -c kernel_wrappers.cpp -o kernel_wrappers.o
+     In file included from C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include/current/armadillo:26,
+                    from C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include/RcppArmadillo/interface/RcppArmadilloForward.h:57,
+                    from C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include/RcppArmadillo.h:32,
+                    from OpenCL_helper.h:4,
+                    from kernel_wrappers.cpp:6:
+   C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include/current/armadillo_bits/config.hpp:373:72: note: '#pragma message: NOTE: option ARMA_CRIPPLED_LAPACK is not supported'
+     373 |   #pragma message ("NOTE: option ARMA_CRIPPLED_LAPACK is not supported")
+         |                                                                        ^
+     g++ -std=gnu++17  -I"C:/PROGRA~1/R/R-45~1.1/include" -DNDEBUG  -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/Rcpp/include' -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include' -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppParallel/include'   -I"C:/rtools45/x86_64-w64-mingw32.static.posix/include"   -fopenmp -DUSE_OPENCL -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include"   -O2 -Wall -gdwarf-2 -mfpmath=sse -msse2 -mstackrealign   -UNDEBUG -Wall -pedantic -g -O0  -c nmath_test.cpp -o nmath_test.o
+     In file included from C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/CL/cl.h:20,
+                    from nmath_test.cpp:3:
+   C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/CL/cl_version.h:22:104: note: '#pragma message: cl_version.h: CL_TARGET_OPENCL_VERSION is not defined. Defaulting to 300 (OpenCL 3.0)'
+      22 | #pragma message("cl_version.h: CL_TARGET_OPENCL_VERSION is not defined. Defaulting to 300 (OpenCL 3.0)")
+         |                                                                                                        ^
+     g++ -std=gnu++17  -I"C:/PROGRA~1/R/R-45~1.1/include" -DNDEBUG  -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/Rcpp/include' -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppArmadillo/include' -I'C:/Users/kjell/AppData/Local/R/win-library/4.5/RcppParallel/include'   -I"C:/rtools45/x86_64-w64-mingw32.static.posix/include"   -fopenmp -DUSE_OPENCL -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include"   -O2 -Wall -gdwarf-2 -mfpmath=sse -msse2 -mstackrealign   -UNDEBUG -Wall -pedantic -g -O0  -c rmath_test.cpp -o rmath_test.o
+     In file included from C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/CL/cl.h:20,
+                    from rmath_test.cpp:4:
+   C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/CL/cl_version.h:22:104: note: '#pragma message: cl_version.h: CL_TARGET_OPENCL_VERSION is not defined. Defaulting to 300 (OpenCL 3.0)'
+      22 | #pragma message("cl_version.h: CL_TARGET_OPENCL_VERSION is not defined. Defaulting to 300 (OpenCL 3.0)")
+         |                                                                                                        ^
+     g++ -std=gnu++17 -shared -static-libgcc -o glmbayes.dll tmp.def Envelopefuncs.o OpenCL_helper.o OpenCL_proxy_kernels.o RcppExports.o Set_Grid.o Set_LogP.o arithmetic_test.o bd0.o chebyshev.o configure_OpenCL.o ctrnorm_cpp.o dbinom.o dgamma.o dnorm.o dpois.o dpq_test.o famfuncs_Gamma.o famfuncs_binomial.o famfuncs_gaussian.o famfuncs_poisson.o kernel_loader.o kernel_runners.o kernel_wrappers.o lgamma.o lgammacor.o log1p.o nmath_test.o pgamma.o pnorm.o qgamma.o rindep_norm_gamma_reg_cpp.o rmath_test.o rng_utils.o rnnorm_reg_cpp.o rnnorm_reg_worker.o rnorm_reg_cpp.o stirlerr.o stirlerr_test.o -fopenmp -LC:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/lib/x64 -lOpenCL -LC:/PROGRA~1/R/R-45~1.1/bin/x64 -lRlapack -LC:/PROGRA~1/R/R-45~1.1/bin/x64 -lRblas -lgfortran -lquadmath -LC:/rtools45/x86_64-w64-mingw32.static.posix/lib/x64 -LC:/rtools45/x86_64-w64-mingw32.static.posix/lib -LC:/PROGRA~1/R/R-45~1.1/bin/x64 -lR
+     installing to C:/Users/kjell/AppData/Local/Temp/RtmpoHXMTR/devtools_install_ba90288a4cdd/00LOCK-glmbayes/00new/glmbayes/libs/x64
+  ─  DONE (glmbayes)
+
+══ Building ══════════════════════════════════════════════════════════════════════════
+Setting env vars:
+• CFLAGS    : -Wall -pedantic
+• CXXFLAGS  : -Wall -pedantic
+• CXX11FLAGS: -Wall -pedantic
+• CXX14FLAGS: -Wall -pedantic
+• CXX17FLAGS: -Wall -pedantic
+• CXX20FLAGS: -Wall -pedantic
+── R CMD build ───────────────────────────────────────────────────────────────────────
+      ✔  checking for file 'C:\Rpackages\glmbayes/DESCRIPTION'
+
