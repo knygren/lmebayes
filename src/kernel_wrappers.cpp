@@ -493,7 +493,8 @@ Rcpp::List f2_f3_opencl(
     "\n" +nmath_source   
   + "\n" +   ksrc;
   
-
+  Rcpp::Rcout << "Entering f2_f3_kernel runner \n";
+  
   
   f2_f3_kernel_runner(
     all_src,
@@ -506,7 +507,10 @@ Rcpp::List f2_f3_opencl(
     grad_flat,
     progbar
   );
+
+  Rcpp::Rcout << "Exiting f2_f3_kernel runner \n";
   
+    
   // rebuild xb, qf exactly as before
   for (int j = 0; j < m1; ++j) {
     qf[j] = qf_flat[j];

@@ -311,22 +311,22 @@ void f2_f3_kernel_runner(
     std::vector<double>&       qf_flat,       // OUT: length = m1
     // std::vector<double>&       xb_flat,       // OUT: length = m1*l1
     std::vector<double>&       grad_flat,     // OUT: length = m1*l2
-    int                       progbar 
+    int                        progbar 
 ) {
-  // 0) Sanity‐check sizes
-  if ((int)X_flat.size()   != l1*l2 ||
-      (int)B_flat.size()   != m1*l2 ||
-      (int)mu_flat.size()  != l2 ||
-      (int)P_flat.size()   != l2*l2 ||
-      (int)alpha_flat.size()!= l1 ||
-      (int)y_flat.size()   != l1 ||
-      (int)wt_flat.size()  != l1) {
-    throw std::runtime_error("Input flat‐vector sizes mismatch dimensions.");
+  // 0) Sanity-check sizes
+  if ((int)X_flat.size()    != l1*l2 ||
+      (int)B_flat.size()    != m1*l2 ||
+      (int)mu_flat.size()   != l2    ||
+      (int)P_flat.size()    != l2*l2 ||
+      (int)alpha_flat.size()!= l1    ||
+      (int)y_flat.size()    != l1    ||
+      (int)wt_flat.size()   != l1) {
+    throw std::runtime_error("Input flat-vector sizes mismatch dimensions.");
   }
   
   // 1) Initialize output buffers
-  qf_flat  .assign(m1,           0.0);
-//  xb_flat  .assign((size_t)l1*m1, 0.0);
+  qf_flat.assign(m1,           0.0);
+  // xb_flat.assign((size_t)l1*m1, 0.0);
   grad_flat.assign((size_t)l2*m1, 0.0);
   
   cl_int status;
@@ -351,6 +351,8 @@ void f2_f3_kernel_runner(
   cl_kernel kernel = clCreateKernel(program, kernel_name, &status);
   
   // 5) Device Buffers
+  Rcpp::Rcout << "[runner] A: before buffer creation\n";
+  
   cl_mem bufX    = clCreateBuffer(context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR,
                                   sizeof(double)*X_flat.size(),   (void*)X_flat.data(),   &status);
   cl_mem bufB    = clCreateBuffer(context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR,
@@ -373,6 +375,8 @@ void f2_f3_kernel_runner(
   cl_mem bufGrad = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
                                   sizeof(double)*grad_flat.size(), nullptr, &status);
   
+  Rcpp::Rcout << "[runner] B: after buffer creation\n";
+  
   // 6) Set Kernel Args (must match the .cl signature exactly)
   int arg = 0;
   clSetKernelArg(kernel, arg++, sizeof(cl_mem), &bufX);
@@ -383,7 +387,7 @@ void f2_f3_kernel_runner(
   clSetKernelArg(kernel, arg++, sizeof(cl_mem), &bufY);
   clSetKernelArg(kernel, arg++, sizeof(cl_mem), &bufW);
   clSetKernelArg(kernel, arg++, sizeof(cl_mem), &bufQF);
-  //  clSetKernelArg(kernel, arg++, sizeof(cl_mem), &bufXB);
+  // clSetKernelArg(kernel, arg++, sizeof(cl_mem), &bufXB);
   clSetKernelArg(kernel, arg++, sizeof(cl_mem), &bufGrad);
   clSetKernelArg(kernel, arg++, sizeof(int),    &l1);
   clSetKernelArg(kernel, arg++, sizeof(int),    &l2);
@@ -391,68 +395,72 @@ void f2_f3_kernel_runner(
   
   // 7) Launch
   size_t global = (size_t)m1;
+  Rcpp::Rcout << "[runner] C: before enqueue\n";
   status = clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &global, nullptr, 0, nullptr, nullptr);
+  Rcpp::Rcout << "[runner] D: after enqueue\n";
   
   // 8) Read back outputs
+  Rcpp::Rcout << "[runner] E: before read qf\n";
   status = clEnqueueReadBuffer(queue, bufQF,   CL_TRUE, 0,
                                sizeof(double)*qf_flat.size(),   qf_flat.data(),
                                0, nullptr, nullptr);
+  Rcpp::Rcout << "[runner] F: after read qf\n";
   
   // status = clEnqueueReadBuffer(queue, bufXB,   CL_TRUE, 0,
   //                              sizeof(double)*xb_flat.size(),   xb_flat.data(),
   //                              0, nullptr, nullptr);
   
+  Rcpp::Rcout << "[runner] G: before read grad\n";
   status = clEnqueueReadBuffer(queue, bufGrad, CL_TRUE, 0,
                                sizeof(double)*grad_flat.size(), grad_flat.data(),
                                0, nullptr, nullptr);
-  
+  Rcpp::Rcout << "[runner] H: after read grad\n";
   
   // 8a) Sanity-check: error out if both outputs are all zeros
-                               {
-                                 auto all_zero = [](auto& vec){
-                                   return std::all_of(vec.begin(), vec.end(),
-                                                      [](double x){ return x == 0.0; });
-                                 };
-                                 
-                                 bool qf_is_zero   = all_zero(qf_flat);
-                                 bool grad_is_zero = all_zero(grad_flat);
-                                 
-                                 if (qf_is_zero || grad_is_zero) {
-                                   std::ostringstream msg;
-                                   msg << "OpenCL kernel returned "
-                                       << (qf_is_zero   ? "qf_flat all zeros "   : "")
-                                       << (grad_is_zero ? "grad_flat all zeros." : "");
-                                   throw std::runtime_error(msg.str());
-                                 }
-                               }
-                               
-                               // --- Begin modified cleanup section ---
-                               // 9a) Drain any pending commands
-                               clFlush(queue);
-                               clFinish(queue);
-                               
-                               // 9b) Release buffers (inverse creation order)
-                               clReleaseMemObject(bufGrad);
-                               // clReleaseMemObject(bufXB);
-                               clReleaseMemObject(bufQF);
-                               clReleaseMemObject(bufW);
-                               clReleaseMemObject(bufY);
-                               clReleaseMemObject(bufA);
-                               clReleaseMemObject(bufP);
-                               clReleaseMemObject(bufMu);
-                               clReleaseMemObject(bufB);
-                               clReleaseMemObject(bufX);
-                               
-                               // 9c) Release kernel, program, queue, context
-                               clReleaseKernel       (kernel);
-                               clReleaseProgram      (program);
-                               clReleaseCommandQueue (queue);
-                               clReleaseContext      (context);
-                               // --- End modified cleanup section ---
-                               
+  {
+    auto all_zero = [](auto& vec){
+      return std::all_of(vec.begin(), vec.end(),
+                         [](double x){ return x == 0.0; });
+    };
+    
+    bool qf_is_zero   = all_zero(qf_flat);
+    bool grad_is_zero = all_zero(grad_flat);
+    
+    if (qf_is_zero || grad_is_zero) {
+      std::ostringstream msg;
+      msg << "OpenCL kernel returned "
+          << (qf_is_zero   ? "qf_flat all zeros "   : "")
+          << (grad_is_zero ? "grad_flat all zeros." : "");
+      throw std::runtime_error(msg.str());
+    }
+  }
+  
+  // --- Begin modified cleanup section ---
+  // 9a) Drain any pending commands
+  clFlush(queue);
+  clFinish(queue);
+  
+  // 9b) Release buffers (inverse creation order)
+  clReleaseMemObject(bufGrad);
+  // clReleaseMemObject(bufXB);
+  clReleaseMemObject(bufQF);
+  clReleaseMemObject(bufW);
+  clReleaseMemObject(bufY);
+  clReleaseMemObject(bufA);
+  clReleaseMemObject(bufP);
+  clReleaseMemObject(bufMu);
+  clReleaseMemObject(bufB);
+  clReleaseMemObject(bufX);
+  
+  // 9c) Release kernel, program, queue, context
+  clReleaseKernel       (kernel);
+  clReleaseProgram      (program);
+  clReleaseCommandQueue (queue);
+  clReleaseContext      (context);
+  // --- End modified cleanup section ---
 }
-#endif
 
+#endif
 #ifdef USE_OPENCL
 
 int detect_num_gpus_internal() {
