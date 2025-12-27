@@ -200,7 +200,8 @@ int main() {
     return (status == CL_SUCCESS && n > 0) ? 0 : 1;
 }
 EOF
-  ${CC} conftest_opencl.c -lOpenCL -o conftest_opencl >/dev/null 2>&1
+# ${CC} conftest_opencl.c -lOpenCL -o conftest_opencl >/dev/null 2>&1
+  ${CC} conftest_opencl.c $OPENCL_LIB -o conftest_opencl >/dev/null 2>&1
   # Replacing with safer probe
 #  if env LD_LIBRARY_PATH=/usr/lib/wsl/lib:$LD_LIBRARY_PATH ./conftest_opencl >/dev/null 2>&1; then
   if env LD_LIBRARY_PATH=$OPENCL_LIBDIR:$LD_LIBRARY_PATH ./conftest_opencl >/dev/null 2>&1; then
