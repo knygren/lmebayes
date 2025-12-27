@@ -140,6 +140,7 @@ for dir in $SYSTEM_LIB_DIRS; do
     # Accept libOpenCL.so, libOpenCL.so.1, libOpenCL.so.1.2.0, etc.
     if ls "$dir"/libOpenCL.so* >/dev/null 2>&1; then
         OPENCL_LIB="-L$dir -lOpenCL"
+        OPENCL_LIBDIR="$dir"          # <-- THIS IS THE MISSING LINE
         OPENCL_LIB_FOUND=yes
         echo "✅ Found OpenCL library in: $dir"
         break
