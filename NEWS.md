@@ -1,79 +1,38 @@
+# glmbayes (development version – 0.1.0)
 
-# glmbayes (development version - 0.1.0)
+## Major Enhancements
 
+### OpenCL and GPU Acceleration
+- Completed the OpenCL-based grid construction framework for large models.
+- Added GPU-aware envelope sizing and improved OpenCL failure handling.
+- Introduced diagnostic utilities to assess OpenCL availability and performance.
+- Improved configure scripts to detect OpenCL and provide informative messages.
+- Expanded OpenCL documentation and added a dedicated vignette chapter.
 
-* 12/29-25 - Update Readme and glmbayes-packages.Rmd files
+### Parallel CPU Sampling (RcppParallel)
+- Enabled parallel envelope construction and parallel iid sampling.
+- Added pilot functions for large-dimension grid estimation.
+- Implemented thread-safe parallel sampling for independent normal-gamma models.
 
-* 12/28-25 - Improve configure and makevars files
+### Core Statistical Improvements
+- Migrated to an improved independent normal-gamma simulation algorithm.
+- Added theoretical derivations for independent normal-gamma regression.
+- Improved UB2 and RSS minimization routines, including scaling corrections.
+- Enhanced Prior_Setup() to support family-specific prior construction.
+- Added dedicated envelope evaluation and sizing functions.
 
-* 12/25-25 - Add utility function to diagnose and asses OpenCL functionality
+### Package Infrastructure
+- Significant cleanup to remove NOTES and improve CRAN readiness.
+- Improved configure and Makevars files for portability.
+- Added testthat tests, including OpenCL-specific tests.
+- Consolidated envelope-building functions into a cleaner structure.
 
-* 12/22-25 - Improve configure script to uncover missing OpenCL functionality
+### Documentation
+- Major updates to README and package-level documentation.
+- Added multiple new vignettes and expanded existing ones.
+- Improved examples for `lmb()`, `rlmb()`, and OpenCL models.
 
-* 12/21-25 - Improve OpenCL Vignette Documentation
-
-* 12/15-25 - Add testthat functionality for OpenCL model
-
-* 12/13-25 - Cleanup to remove Notes
-
-* 12/12-25 - Enhancements to lmb and rlmb functions and related examples
-
-* 12/5-25  - Corrected scaling for UB2 function used in UB2 minimization
-
-* 11/28-25 - Add pilot functions for rss and UB2 minimizations
-
-* 11/27-25 - Add use_parallel option for EnvelopeDispersionbuild
-
-* 11/23-25 - Add & Improve verbose output for independent normal gamma models
-
-* 11/23-25 - Implement paralle optimization for RSS_Min and UB2
-
-* 11/20-25 - Implement thread safe parallel sampling for independent normal gamma sampling
-
-* 11/15-25 - Enhanced EnvelopedDispersionBuild Documentation
-
-* 11/12-25 - Migrate to improved Independent Normal Gamma simulation algorithm
-
-* 11/3-25  - Add Theoretical derivations for independent normal-gamma regression models
-
-* 10/13-25 - Add dedicated Envelope Eval function
-
-* 10/11-25 - Pull EnvelopeSize and EnvelopeOpe into a dedicated help file
-
-* 10/11-25 - Add EnvelopeSize function
-
-* 10/11-25 - Add f2_f3_non_opencl functio
-
-* 10/10-25 - Build dedicate RcppParallel pilot function and only trigger for larger dimensions 
-
-* 10/8-25  - Improve estimate for simulation time
-
-* 10/8-25  - Add Pilot phase for Grid Construction and Estimate Build Time 
-
-* 9/29-25  - Improve EnvelopeOpe to factor in core_cnt  12
-
-* 9/25-25  - Combinate Envelope Build related Function into a single EnvBuild.R file
-
-* 9/14-25  - Add dedicated simfunction.R file/framework
-
-* 8/31-25  - Account for GPU computing units in envelope Sizing
-
-* 8/16-25  - Upgrades to Prior_Setup function to take family as argument
-
-* 8/15-25  - Completed Most of OpenCL Grid implementation
-
-* 8/4-25   - Upgrade function to take use_parallel and use_opencl arguments
-
-* 8/4-25   - Updates to Configure Script to identify RcppParallel and OpenCL availability
-
-* 8/3-25   - Upgrades to allow OpenCL to fail gracefully when not present
-
-* 8/3-25   - Upgrades to pass R CMD check error/warning free on MSYS2 UCRT64 and Powershell WSL 
-
-* 7/31-25  - Enabled Parallel Envelope Construction using OpenCL
-
-* 7/21-25  - Enabled Parallel Simulation using RcppParallel 
-
-* 7/14-25  - Made Extensive Changes to Remove Errors/Warnings to approach CRAN compliance
- 
-* 7/12-25  - Updated Package to work with latest version of R
+## Bug Fixes
+- Corrected scaling in UB2 minimization.
+- Improved error handling for missing OpenCL functionality.
+- Fixed various small issues uncovered during parallelization work.
