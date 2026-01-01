@@ -165,12 +165,12 @@ It is symmetric and interpretable in terms of **log‑odds**.
 We use the **Menarche** dataset introduced in Chapter 06:
 
 ```{r Menarche}
-data(menarche2)
-Age2 <- menarche2$Age - 13
+data(menarche,package="MASS")
+Age2 <- menarche$Age - 13
 Menarche_Model_Data <- data.frame(
-  Age = menarche2$Age,
-  Total = menarche2$Total,
-  Menarche = menarche2$Menarche,
+  Age = menarche$Age,
+  Total = menarche$Total,
+  Menarche = menarche$Menarche,
   Age2 = Age2
 )
 Menarche_Model_Data

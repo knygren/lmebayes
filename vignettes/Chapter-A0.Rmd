@@ -294,11 +294,11 @@ outtemp4=rlmb(n=1000,y=y,x=x,pfamily=dNormal_Gamma(mu=mu,Sigma=solve(P),shape=sh
 *Calling the rglmb function*
 
 ```{r calling rglmb}
-data(menarche2)
-Age2=menarche2$Age-13
+data(menarche,package="MASS")
+Age2=menarche$Age-13
 
-y=menarche2$Menarche/menarche2$Total
-wt=menarche2$Total
+y=menarche$Menarche/menarche$Total
+wt=menarche$Total
 
 ## Use model.frame and model.matrix to derive x
 #mf=model.frame(formula)

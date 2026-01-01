@@ -35,7 +35,7 @@ As we saw in the previous chapter, using the Bayesian version *glmb* of the clas
  
 # The Age of Menarche Data 
 
-The data we will be using here is the *menarche2* data covering the *Age of Menarche* for girls in Warsaw. This data appears in [@Venables2002] and in their supporting *MASS* package. It is provided (and renamed) here so as to allow examples to run during build without loading of the *MASS* package.  
+The data we will be using here is the *menarche* data covering the *Age of Menarche* for girls in Warsaw. This data appears in [@Venables2002] and in their supporting *MASS* package. It is provided (and renamed) here so as to allow examples to run during build without loading of the *MASS* package.  
 
 In the data, there are observations related to 25 cohorts of girls at ages ranging from an average age of 9.21 to an average age of 17.58. The average age for each cohort is captured in a column named *Age*.  For each of the cohorts, there is also a column (*Total*) giving the total number of girls in the cohort and a column *Menarche* giving the number of girls out of the cohort who had experienced Menarche at that age.
 
@@ -43,8 +43,8 @@ The first 5 observations are printed below. It is important to note that in Baye
 
 ```{r menarche data}
 ## Load menarche data
-data(menarche2)
-head(menarche2, 5)
+data(menarche,package="MASS")
+head(menarche, 5)
 
 ```
 
@@ -58,7 +58,7 @@ In addition to the intercept, our model will contain a slope coefficient for the
 
 ```{r Analysis Setup}
 ## Number of variables in model
-Age=menarche2$Age
+Age=menarche$Age
 nvars=2
 set.seed(333)
 
@@ -185,8 +185,8 @@ We are now ready to run a Logit model using the above specification. As a best p
 The below code performs the step creating the Model data frame and then submits the model. 
 
 ```{r Run Logit,results = "hide"}
-Menarche_Model_Data=data.frame(Age=menarche2$Age,Total=as.integer(menarche2$Total),
-Menarche=as.integer(menarche2$Menarche),Age2)
+Menarche_Model_Data=data.frame(Age=menarche$Age,Total=as.integer(menarche$Total),
+Menarche=as.integer(menarche$Menarche),Age2)
 
 glmb.out1<-glmb(n=1000,cbind(Menarche, as.integer(Total-Menarche)) ~Age2,family=binomial(logit),
 pfamily=dNormal(mu=mu1,Sigma=V1),data=Menarche_Model_Data)

@@ -123,14 +123,14 @@ library(glmbayes)
 
 ```{r menarche data,results = "hide",echo = FALSE}
 ## Load menarche data
-data(menarche2)
-head(menarche2, 5)
+data(menarche,package="MASS")
+head(menarche, 5)
 
 ```
 
 ```{r Analysis Setup,echo = FALSE}
 ## Number of variables in model
-Age=menarche2$Age
+Age=menarche$Age
 nvars=2
 set.seed(333)
 
@@ -222,7 +222,7 @@ print(V1)
 ```
 
 ```{r Run Logit,results = "hide",echo = FALSE}
-Menarche_Model_Data=data.frame(Age=menarche2$Age,Total=menarche2$Total,Menarche=menarche2$Menarche,Age2)
+Menarche_Model_Data=data.frame(Age=menarche$Age,Total=menarche$Total,Menarche=menarche$Menarche,Age2)
 prior1=list(mu=mu1,Sigma=V1)
 #glmb.out1<-glmb(n=1000,cbind(Menarche, Total-Menarche) ~ #Age2,family=binomial(logit),mu=mu1,Sigma=V1,data=Menarche_Model_Data)
 glmb.out1<-glmb(n=1000,cbind(Menarche, Total-Menarche) ~ Age2,family=binomial(logit),pfamily=dNormal(mu=mu1,Sigma=V1),data=Menarche_Model_Data)
@@ -256,8 +256,8 @@ As we can see from this plot, the predictions in general seems visually to match
 pred1=predict(glmb.out1,type="response")
 pred1_m=colMeans(pred1)
 
-plot(Menarche/Total ~ Age, data=menarche2,main="% of girls Who have had their first period")
-lines(menarche2$Age, pred1_m,lty=1)
+plot(Menarche/Total ~ Age, data=menarche,main="% of girls Who have had their first period")
+lines(menarche$Age, pred1_m,lty=1)
 
 
 ```
@@ -273,15 +273,15 @@ In order to perform the simulation, we first set up a new dataset for the indepe
 ## Pull Model Info
 mod_Object=glmb.out1
 n=nrow(mod_Object$coefficients)
-obs_size=median(menarche2$Total) ## Median of Total counts
+obs_size=median(menarche$Total) ## Median of Total counts
 
 # Generate New Data for The Independent Variable
 Age_New <- seq(8, 20, 0.25)
 Age2_New=Age_New-13
 
 # olddata - Should contain all variables used in original model formula
-olddata=data.frame(Age=menarche2$Age,
-Menarche=menarche2$Menarche,Total=menarche2$Total,Age2=Age2)
+olddata=data.frame(Age=menarche$Age,
+Menarche=menarche$Menarche,Total=menarche$Total,Age2=Age2)
 
 # Should contain all variables used on RHS of model formula
 newdata=data.frame(Age=Age_New,Age2=Age2_New)
@@ -322,7 +322,7 @@ We now plot most of these summarized measures and the original data together in 
 
 ```{r Model_Plots,fig.height = 5, fig.width = 7}
 
-plot(Menarche/Total ~ Age, data=menarche2,main="Percentage of girls Who have had their first period")
+plot(Menarche/Total ~ Age, data=menarche,main="Percentage of girls Who have had their first period")
 lines(Age_New, pred_m,lty=1)
 lines(Age_New, quant1_m,lty=2)
 lines(Age_New, quant2_m,lty=2)
@@ -450,8 +450,8 @@ print(V2)
 
 
 ## ----Run Probit,results = "hide"-----------------------------------------------
-Menarche_Model_Data=data.frame(Age=menarche2$Age,Total=menarche2$Total,
-                               Menarche=menarche2$Menarche,Age2)
+Menarche_Model_Data=data.frame(Age=menarche$Age,Total=menarche$Total,
+                               Menarche=menarche$Menarche,Age2)
 
 glmb.out2<-glmb(n=1000,cbind(Menarche, Total-Menarche) ~Age2,family=binomial(probit),
                 pfamily=dNormal(mu=mu2,Sigma=V2),data=Menarche_Model_Data)
@@ -517,8 +517,8 @@ print(V3)
 
 
 ## ----Run cloglog,results = "hide"-----------------------------------------------
-Menarche_Model_Data=data.frame(Age=menarche2$Age,Total=menarche2$Total,
-                               Menarche=menarche2$Menarche,Age2)
+Menarche_Model_Data=data.frame(Age=menarche$Age,Total=menarche$Total,
+                               Menarche=menarche$Menarche,Age2)
 
 glmb.out3<-glmb(n=1000,cbind(Menarche, Total-Menarche) ~Age2,family=binomial(cloglog),
                 pfamily=dNormal(mu=mu3,Sigma=V3),data=Menarche_Model_Data)
@@ -584,8 +584,8 @@ print(V4)
 
 
 ## ----Run cloglog,results = "hide"-----------------------------------------------
-Menarche_Model_Data=data.frame(Age=menarche2$Age,Total=menarche2$Total,
-                               Menarche=menarche2$Menarche,Age2)
+Menarche_Model_Data=data.frame(Age=menarche$Age,Total=menarche$Total,
+                               Menarche=menarche$Menarche,Age2)
 
 glmb.out4<-glmb(n=1000,cbind(Total-Menarche,Menarche) ~Age2,family=binomial(cloglog),
                 pfamily=dNormal(mu=mu4,Sigma=V4),data=Menarche_Model_Data)
@@ -666,7 +666,7 @@ quant2_m_y=apply(pred_y/obs_size,2,FUN=quantile,probs=c(0.975))
 
 ```{r Model_Plots2,fig.height = 5, fig.width = 7}
 
-plot(Menarche/Total ~ Age, data=menarche2,main="Percentage of girls Who have had their first period")
+plot(Menarche/Total ~ Age, data=menarche,main="Percentage of girls Who have had their first period")
 lines(Age_New, pred_m,lty=1)
 lines(Age_New, quant1_m,lty=2)
 lines(Age_New, quant2_m,lty=2)
@@ -742,7 +742,7 @@ quant2_m_y=apply(pred_y/obs_size,2,FUN=quantile,probs=c(0.975))
 
 ```{r Model_Plots3,fig.height = 5, fig.width = 7}
 
-plot(Menarche/Total ~ Age, data=menarche2,main="Percentage of girls Who have had their first period")
+plot(Menarche/Total ~ Age, data=menarche,main="Percentage of girls Who have had their first period")
 lines(Age_New, pred_m,lty=1)
 lines(Age_New, quant1_m,lty=2)
 lines(Age_New, quant2_m,lty=2)
@@ -818,7 +818,7 @@ quant2_m_y=apply(pred_y/obs_size,2,FUN=quantile,probs=c(0.975))
 
 ```{r Model_Plots4,fig.height = 5, fig.width = 7}
 
-plot(Menarche/Total ~ Age, data=menarche2,main="Percentage of girls Who have had their first period")
+plot(Menarche/Total ~ Age, data=menarche,main="Percentage of girls Who have had their first period")
 lines(Age_New, 1-pred_m,lty=1)
 lines(Age_New, 1-quant1_m,lty=2)
 lines(Age_New, 1-quant2_m,lty=2)
