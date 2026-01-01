@@ -164,7 +164,7 @@ It is symmetric and interpretable in terms of **log‑odds**.
 
 We use the **Menarche** dataset introduced in Chapter 06:
 
-```r
+```{r Menarche}
 data(menarche2)
 Age2 <- menarche2$Age - 13
 Menarche_Model_Data <- data.frame(
@@ -173,11 +173,12 @@ Menarche_Model_Data <- data.frame(
   Menarche = menarche2$Menarche,
   Age2 = Age2
 )
+Menarche_Model_Data
 ```
 
 ### 5.2 Prior Setup
 
-```r
+```{r Menarche_Prior_Logit}
 ps <- Prior_Setup(
   cbind(Menarche, Total - Menarche) ~ Age2,
   family = binomial(link = "logit"),
@@ -189,7 +190,7 @@ V  <- ps$Sigma
 
 ### 5.3 Fit the Model
 
-```r
+```{r Menarche_Model_Logit}
 glmb.logit <- glmb(
   cbind(Menarche, Total - Menarche) ~ Age2,
   family  = binomial(link = "logit"),
@@ -201,7 +202,7 @@ glmb.logit <- glmb(
 
 ### 5.4 Summary
 
-```r
+```{r Menarche_Summary_Logit}
 summary(glmb.logit)
 ```
 
@@ -229,7 +230,7 @@ It is similar to the logit link but has slightly thinner tails and a more Gaussi
 
 ### 6.1 Prior Setup
 
-```r
+```{r Menarche_Prior_Probit}
 ps2 <- Prior_Setup(
   cbind(Menarche, Total - Menarche) ~ Age2,
   family = binomial(link = "probit"),
@@ -241,7 +242,7 @@ V2  <- ps2$Sigma
 
 ### 6.2 Fit the Model
 
-```r
+```{r Menarche_Model_Probit}
 glmb.probit <- glmb(
   cbind(Menarche, Total - Menarche) ~ Age2,
   family  = binomial(link = "probit"),
@@ -253,7 +254,7 @@ glmb.probit <- glmb(
 
 ### 6.3 Summary
 
-```r
+```{r Menarche_Summary_Probit}
 summary(glmb.probit)
 ```
 
@@ -283,7 +284,7 @@ It is useful when:
 
 ### 7.1 Prior Setup
 
-```r
+```{r Menarche_Prior_cloglog}
 ps3 <- Prior_Setup(
   cbind(Menarche, Total - Menarche) ~ Age2,
   family = binomial(link = "cloglog"),
@@ -295,7 +296,7 @@ V3  <- ps3$Sigma
 
 ### 7.2 Fit the Model
 
-```r
+```{r Menarche_Model_Cloglog}
 glmb.cloglog <- glmb(
   cbind(Menarche, Total - Menarche) ~ Age2,
   family  = binomial(link = "cloglog"),
@@ -307,7 +308,7 @@ glmb.cloglog <- glmb(
 
 ### 7.3 Summary
 
-```r
+```{r Menarche_Summary_cloglog}
 summary(glmb.cloglog)
 ```
 
@@ -323,14 +324,16 @@ The cloglog model often fits poorly for symmetric S‑shaped curves (as shown in
 
 The Deviance Information Criterion (DIC) provides a Bayesian analogue to AIC:
 
-```r
-rbind(
+```{r Menarche_DIC_Compare}
+DIC_comp<-rbind(
   extractAIC(glmb.logit),
   extractAIC(glmb.probit),
-  extractAIC(glmb.cloglog)
-)
-```
+  extractAIC(glmb.cloglog))
 
+rownames(DIC_comp)<-c("logit","probit","cloglog")
+DIC_comp
+
+```
 Typical patterns:
 
 - **logit** and **probit** often perform similarly  
