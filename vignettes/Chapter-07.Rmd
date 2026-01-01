@@ -58,9 +58,9 @@ We build on the foundations from Chapters 05 and 06, especially the role of link
 
 A binomial observation can be represented in three equivalent ways:
 
-- **Binary outcome:** `y ∈ {0,1}`  
+- **Binary outcome:** `y \in \{0,1\}`  
 - **Proportion:** `y = successes / trials` with `weights = trials`  
-- **Two‑column matrix:** `cbind(successes, failures)`
+- **Two-column matrix:** `cbind(successes, failures)`
 
 The binomial likelihood for a single observation is:
 

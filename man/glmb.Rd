@@ -298,6 +298,32 @@ rownames(DIC_Out)=c("logit","probit","clog-log")
 colnames(DIC_Out)=c("pD","DIC")
 DIC_Out
 
+### Gamma regression
+
+data(carinsca)
+carinsca$Merit <- ordered(carinsca$Merit)
+carinsca$Class <- factor(carinsca$Class)
+options(contrasts=c("contr.treatment","contr.treatment"))
+Claims=carinsca$Claims
+Insured=carinsca$Insured
+Merit=carinsca$Merit
+Class=carinsca$Class
+Cost=carinsca$Cost
+
+
+out <- glm(Cost/Claims~Merit+Class,family=Gamma(link="log"),weights=Claims,x=TRUE)
+summary(out)
+disp=gamma.dispersion(out)
+ps=Prior_Setup(Cost/Claims~Merit+Class,family=Gamma(link="log"),weights=Claims)
+mu=ps$mu
+V=ps$Sigma
+
+out3 <- glmb(Cost/Claims~Merit+Class,family=Gamma(link="log"),
+             pfamily=dNormal(mu=mu,Sigma=V,dispersion=disp),weights=Claims)
+
+summary(out)
+summary(out3)
+
 
 }
 \references{
