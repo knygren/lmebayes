@@ -888,6 +888,8 @@ Rcpp::List rnnorm_reg_cpp(int n,NumericVector y,NumericMatrix x,
   NumericVector parin=start-mu;  // Starting value for optimization is now start - mu
   NumericVector mu1=mu-mu;       // new prior means are zero
   Rcpp::Function optfun("optim");
+  Rcpp::Function tryfun("try");   // add this
+  
   
   arma::vec mu1b(mu1.begin(),l2,false);
   
@@ -902,11 +904,54 @@ Rcpp::List rnnorm_reg_cpp(int n,NumericVector y,NumericMatrix x,
   //Rcout << "Entering optimization" << std::endl;
   
     
-  List opt=optfun(_["par"]=parin,_["fn"]=f2, _["gr"]=f3,_["y"]=y,
-                  _["x"]=x,
-                  _["mu"]=mu1,_["P"]=P,_["alpha"]=alpha,_["wt"]=wt2,_["method"]="BFGS",_["hessian"]=true);
+  // List opt=optfun(_["par"]=parin,_["fn"]=f2, _["gr"]=f3,_["y"]=y,
+  //                 _["x"]=x,
+  //                 _["mu"]=mu1,_["P"]=P,_["alpha"]=alpha,_["wt"]=wt2,_["method"]="BFGS",_["hessian"]=true);
+  
+   ///Trying safe optimization
+   
+   // Wrap optim() in try()
+   SEXP optSEXP = tryfun(
+     optfun(
+       Rcpp::_["par"]     = parin,
+       Rcpp::_["fn"]      = f2,
+       Rcpp::_["gr"]      = f3,
+       Rcpp::_["y"]       = y,
+       Rcpp::_["x"]       = x,
+       Rcpp::_["mu"]      = mu1,
+       Rcpp::_["P"]       = P,
+       Rcpp::_["alpha"]   = alpha,
+       Rcpp::_["wt"]      = wt2,
+       Rcpp::_["method"]  = "BFGS",
+       Rcpp::_["hessian"] = true
+     ),
+     Rcpp::_["silent"] = true
+   );
+   
+   // Check for try-error using R API
+   if (Rf_inherits(optSEXP, "try-error")) {
+     Rcpp::stop("Optimization failed in rnnorm_reg_cpp");
+   }
+   
+   // Safe to convert to List
+   Rcpp::List opt(optSEXP);   
   
 
+  // Extract convergence code
+  int conv = Rcpp::as<int>(opt["convergence"]);
+  
+  // If not converged, print the code and message
+  if (conv != 0) {
+    Rcpp::Rcout << "optim() returned non-zero convergence code: "
+                << conv << std::endl;
+    
+    if (opt.containsElementNamed("message")) {
+      Rcpp::Rcout << "optim() message: "
+                  << Rcpp::as<std::string>(opt["message"])
+                  << std::endl;
+    }
+  }
+  
   //Rcout << "Completed optimization"  << std::endl;
   
   NumericMatrix b2a=asMat(opt[0]);  // optimized value

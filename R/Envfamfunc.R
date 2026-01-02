@@ -343,10 +343,23 @@ glmbfamfunc<-function(family){
     }
     
     #  f1<-f1_gamma
-    f2<-function(b,y,x,mu,P,alpha=0,wt=1){
-      mu2<-t(exp(alpha+x%*%b))
-      disp2<-1/wt
-      -sum(dgamma(y,shape=1/disp2,scale=mu2*disp2,log=TRUE))+0.5*t((b-mu))%*%P%*%(b-mu)
+    f2 <- function(b, y, x, mu, P, alpha = 0, wt = 1) {
+      
+      eta    <- alpha + x %*% b
+      scale2 <- t(exp(eta - log(wt)))
+      disp2  <- 1 / wt
+      
+      ## TEMPORARY DIAGNOSTIC (optional)
+#      if (any(!is.finite(scale2)) || any(scale2 == 0)) {
+#        cat("\n*** scale2 is zero or non-finite in f2 ***\n")
+#        cat("alpha:\n")
+#        print(alpha)
+#        cat("range(eta):", range(eta), "\n")
+#        cat("range(scale2):", range(scale2), "\n")
+#      }
+      
+      -sum(dgamma(y, shape = 1/disp2, scale = scale2, log = TRUE)) +
+        0.5 * t((b - mu)) %*% P %*% (b - mu)
     }
     
     

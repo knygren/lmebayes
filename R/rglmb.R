@@ -204,7 +204,13 @@ rglmb<-function(n=1,y,x,family=gaussian(),pfamily,offset=NULL,
   if (is.null(colnames(outlist$coefficients))) {
     colnames(outlist$coefficients) <- colnames(outlist$x)
   }
-  names(outlist$coef.mode) <- colnames(outlist$x)
+  
+  if (!is.null(outlist$coef.mode) &&
+      !is.null(outlist$x) &&
+      !is.null(colnames(outlist$x))) {
+    
+    names(outlist$coef.mode) <- colnames(outlist$x)
+  }
   
   return(outlist)
   

@@ -249,29 +249,12 @@ Prior_Setup <- function(
   
   var_names <- colnames(x)
   colnames(x) <- var_names
-  #nvar=length(object$coefficients)
-#  mu=matrix(0,nrow=nvar,ncol=1, 
-#            dimnames = list(var_names, "mu")
-#            )
 
   mu_internal <- matrix(0, nrow = nvar, ncol = 1, dimnames = list(var_names, "mu"))
  
   
   
-##  glm_full=glm(formula, family = family,data=data)
-  
-##  glm_full <- glm(
-##    formula = formula,
-##    family = family,
-##    data = data,
-##    data = mf,
-##    weights = weights,
-##    offset = offset,
-##    subset = subset,
-##    na.action = na.action,
-##    ...
-##  )
-  
+
   glm_full <- glm.fit(
     x       = X,
     y       = Y,
@@ -281,12 +264,7 @@ Prior_Setup <- function(
     ,control = glm.control(...)
   )
   
-  #glm.fit(x, y, weights = rep.int(1, nobs),
-  #        start = NULL, etastart = NULL, mustart = NULL,
-  #        offset = rep.int(0, nobs), family = gaussian(),
-  #        control = list(), intercept = TRUE, singular.ok = TRUE)
-  
-  
+
   glm_full$call      <- call
   glm_full$formula   <- formula
   glm_full$terms     <- mt
@@ -296,8 +274,7 @@ Prior_Setup <- function(
   glm_full$xlevels   <- .getXlevels(mt, mf)
   class(glm_full)    <- c("glm", "lm")
   
-##    glm_full=glm(formula, family = family,data=data)
-  
+
   V0 <- vcov(glm_full)
   
   glm_summary=summary(glm_full)
@@ -349,10 +326,16 @@ if (!is.null(sd)) {
   if (family$family == "gaussian") {
     dispersion <- summary(glm_full)$dispersion
   } else if (family$family == "Gamma") {
+    ## for now, use glm dispersion as prior
+    ## Current implemented sampler may be a quasi-likelihood based sampler
+    ## Sampler may need algorithmic adjustmenst to make it 
+    ## Consisent with the gamma.dispersion values
+  ##  dispersion <- summary(glm_full)$dispersion   # <-- revert to GLM dispersion
     dispersion <- MASS::gamma.dispersion(glm_full)
   } else {
     dispersion <- NULL
   }
+  
   
   ## Compute shape and rate if n_prior is not null and n_prior is scalar
   if (!is.null(n_prior)&& length(n_prior) == 1L&&!is.null(dispersion) ) {
@@ -385,29 +368,7 @@ if (!is.null(sd)) {
       "This usually means the classical GLM is rank-deficient."
     )
   }
-  
-  
-  
-##  if(var_names[1]=='(Intercept)'){
-    ##lm_out=lm(formula,data=mf,y=TRUE)
-    ##y=lm_out$y
-    ##mu[1,1]=mean(y)
-    
-##    f<-formula
-    
-##    lhs<-f[[2]]
-##    intercept_only<-as.formula(paste(deparse(lhs),"~1") ,env=environment(f))
-    
 
-##    glm_null=update(glm_full,formula=intercept_only)
-    
-##    chosen_int <- switch(intercept_source,
-##                         null_model = coef(glm_null)[1],
-##                         full_model = coef(glm_full)[1])
-##    mu_internal[1, 1] <- chosen_int
-  
-##  } 
-  
   if (var_names[1] == "(Intercept)") {
     # build 1-column design matrix for intercept only
     X0 <- matrix(1, nrow = NROW(Y), ncol = 1,
@@ -433,9 +394,7 @@ if (!is.null(sd)) {
     mu_internal[1, 1] <- chosen_int
   }
   
-  
-  
-  
+
   # 5) effects prior means
   if (nvar > 1) {
     effect_names <- var_names[-1]
@@ -487,9 +446,7 @@ if (!is.null(sd)) {
     scale_mat <- outer(scale_vec, scale_vec)
     Sigma <- V0 * scale_mat
   }  
-  
-  
-  
+
   rownames(mu)=var_names
   colnames(mu)=c("mu")
   rownames(Sigma)=var_names

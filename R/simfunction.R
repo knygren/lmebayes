@@ -306,12 +306,21 @@ rGamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussian(),
 
   ## Argument renaming and prior
   
-  wt=weights
-  alpha=offset
+  ## Argument renaming and prior
   
-  b=prior_list$beta
-  shape=prior_list$shape
-  rate=prior_list$rate
+  wt    <- weights
+  alpha <- offset
+  
+  # Ensure alpha is numeric; if no offset is provided, set to 0
+  if (is.null(alpha)) {
+    alpha <- 0
+  } else if (!is.numeric(alpha)) {
+    stop("offset (alpha) must be numeric if supplied.")
+  }
+  
+  b     <- prior_list$beta
+  shape <- prior_list$shape
+  rate  <- prior_list$rate
 
   ## New: extract optional low/upp from prior_list
   if (!is.null(prior_list$disp_lower))  disp_lower <- prior_list$disp_lower  else disp_lower <- NULL
@@ -388,12 +397,10 @@ rGamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussian(),
     
   }
   
-  if(family$family=="Gamma")
-  {
+  if (family$family=="Gamma") {
     
     ## Compute mu1 using the fixed coefficients
-    
-    mu1<-t(exp(alpha+x%*%b))
+    mu1 <- t(exp(alpha + x %*% b))
     
     ## testfunc is part of the log-likelihood (excluding a constant and the part included in the 
     ## ) 
@@ -403,9 +410,16 @@ rGamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussian(),
     }
     
     ## Update the shape and rate using the fitted values from the likelihood
-    
-    shape2=shape + 0.5 *n1
+
+    # shape2=shape + 0.5 *n1
+    # Consistent withg glm function
     rate1=rate +sum(wt*((y/mu1)-log(y/mu1)-1))
+
+
+    ## Changes 1/2/2026 - Proposed by copilot  
+    ## Potentially Consistent with gamma.dispersion
+    shape2 <- shape + 0.5 * n1
+    #rate1  <- rate + sum(wt * ( (y / mu1) - log(y / mu1) ))
     
     ## Initialize vstar1 to the ratio (i.e., posterior mode)
     
@@ -431,9 +445,15 @@ rGamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussian(),
     testbar<-testfunc(vstar,wt)
     cbar<--sum((wt*digamma(wt*vstar) -wt*log(wt*vstar) + 0.5/vstar))
     
-    ## Set the rate to correspond to the posterior mode
-    
+    ## Set the rate to correspond to the posterior mode (this mught be quasi based)
+    ## Consistent with dispersion reported by glm
+        
     rate2=  rate +sum(wt*((y/mu1)-log(y/mu1)-1))-sum((wt*digamma(wt*vstar) -wt*log(wt*vstar) + 0.5/vstar) )
+
+
+    ## Potental future Change 1/2/26 - Proposed by copilot for exact base 
+    ## Might be consistent with gamma.dispersion output
+    #rate2 <- rate + sum(wt * ( (y / mu1) - log(y / mu1) )) -  sum(wt * digamma(wt * vstar) - wt * log(wt * vstar) + 0.5 / vstar)
     
     out<-matrix(0,n)
     test<-matrix(0,n)

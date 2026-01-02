@@ -254,6 +254,8 @@ dGamma<-function(shape,rate,beta,disp_lower=NULL,disp_upper=NULL){
 
 }
 
+
+
 #' @export 
 #' @rdname pfamily
 #' @order 4

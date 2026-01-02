@@ -294,7 +294,7 @@ rate     <- ps$rate
 ```
 
 
-## 4. Priors for the Dispersion Parameter Only
+## 3.1 Priors for the Dispersion Parameter Only
 
 A conjugate prior for the precision (inverse dispersion)\( \tau = 1/\phi \) is
 
@@ -337,7 +337,7 @@ The posterior mean of the dispersion is then:
   mean(out_rlmb$dispersion)
 ```
 
-## 5. Joint Conjugate Normal–Gamma Prior
+## 3.2 Joint Conjugate Normal–Gamma Prior
 
 A conjugate prior for the Gaussian model is
 
@@ -366,7 +366,7 @@ summary(lmb.D9_v2)$dispersion
 
 ```
 
-## 6. Independent Normal-Gamma Prior
+## 3.3 Independent Normal-Gamma Prior
 
 The independent Normal-Gamma prior removes the conjugate coupling between coefficients and dispersion:
 
@@ -377,7 +377,7 @@ The independent Normal-Gamma prior removes the conjugate coupling between coeffi
 
 so that \( \beta \) and \( \tau \) are a priori independent.
 
-### 6.1 Independent Normal Gamma Prior in glmbayes
+### 3.3.1 Independent Normal Gamma Prior in glmbayes
 
 This prior is implemented in glmbayes using the below specification (but where a truncated gamma replaces the full gamma).
 
@@ -405,7 +405,7 @@ sd(lmb.D9_v3$dispersion)
 ```
 
 
-### 6.2 Two-Block Gibbs Sampling using glmbayes
+### 3.3.2 Two-Block Gibbs Sampling using glmbayes
 
 If iid sampling is not desired, or if the user wants to inspect mixing behavior, a simple two-block Gibbs sampler may be used:
 
@@ -461,7 +461,7 @@ mean(disp_out)
 sd(disp_out)
 ```
 
-### 6.3 Comparison of the Two Samplers
+### 3.3.3 Comparison of the Two Samplers
 
 Under default settings, both the truncated‑Gamma iid sampler and the two‑block Gibbs sampler produce nearly identical posterior summaries for the regression coefficients and the dispersion parameter.  
 
@@ -494,9 +494,158 @@ the complete envelope construction and accept‑reject algorithm for the indepen
 
 
 
-## 7. Gamma regression models with unknown dispersion parameter
+## 4. Gamma regression models with unknown dispersion parameter
 
-### 7.2 Conditional Sampling for the Dispersion Parameter
+
+
+```{r Carinsca}
+data(carinsca)
+carinsca$Merit <- ordered(carinsca$Merit)
+carinsca$Class <- factor(carinsca$Class)
+options(contrasts=c("contr.treatment","contr.treatment"))
+Claims=carinsca$Claims
+Insured=carinsca$Insured
+Merit=carinsca$Merit
+Class=carinsca$Class
+Cost=carinsca$Cost
+```
+
+
+
+```{r Prior_Setup_gamma,results = "hide"}
+ps=Prior_Setup(Cost/Claims~Merit+Class,family=Gamma(link="log"),weights=Claims)
+mu=ps$mu
+V=ps$Sigma
+shape    <- ps$shape
+rate     <- ps$rate
+x  <- ps$x
+y  <- ps$y
+
+m<-nrow(x)
+p<-ncol(x)
+
+```
+
+
+
+## 4.1 Priors for the Dispersion Parameter Only
+
+A prior for the precision (inverse dispersion)\( \tau = 1/\phi \) is
+
+\[
+\tau \sim \mathrm{Gamma}(a_{0}, b_{0}).
+\]
+
+
+
+```{r glm_call_gamma_prior}
+## Call to glm
+glm.carinsca <- glm(Cost/Claims~Merit+Class,family=Gamma(link="log"),weights=Claims,x=TRUE)
+
+gamma.dispersion(glm.carinsca)
+
+beta = glm.carinsca$coefficients
+ 
+out2 <- rglmb(
+    n = 1000, y = y, x = x,
+    family  =Gamma(link="log"),
+    pfamily = dGamma(shape = shape, rate = rate,
+                     beta = glm.carinsca$coefficients),
+weights = Claims
+  )
+
+mean(out2$dispersion)
+
+```
+
+
+
+
+## 4.2 Indepdent Normal Gamma Prior 
+
+Just like for the gaussian() regression, we can can give the regression coefficients and the inverse dispersion independent priors.
+
+\[
+\beta \sim N(\mu_{0}, \Sigma_{0}), \qquad
+\tau \sim \text{Gamma}(a_{0}, b_{0}),
+\]
+
+so that \( \beta \) and \( \tau \) are a priori independent.
+
+```{r Block_Gibbs_gamma_Regression}
+
+for(i in 1:1000){
+
+  ## --- Block 1: Regression coefficients ---
+  out1 <- rglmb(
+    n = 1, y = y, x = x,
+    family  = Gamma(link="log"),
+    pfamily = dNormal(mu = mu, Sigma = V, dispersion = dispersion2),
+    weights = Claims
+  )
+
+  ## --- Block 2: Dispersion (quasi-likelihood sampler) ---
+  out2 <- rglmb(
+    n = 1, y = y, x = x,
+    family  = Gamma(link="log"),
+    pfamily = dGamma(shape = shape, rate = rate,
+                     beta = out1$coefficients[1,]),
+    weights = Claims
+  )
+
+  ## --- SCALE dispersion for the next β-update ---
+  ## Convert quasi  (from out2) to MLE for consistency
+  dispersion2 <- out2$dispersion * ((m - p)/m)
+
+}
+
+## Run 1000 additional iterations and store output
+beta_out <- matrix(0, nrow = 1000, ncol = 8)
+disp_out <- rep(0, 1000)
+
+for (i in 1:1000) {
+  out1 <- rglmb(
+    n = 1, y = y, x = x,
+    family  =Gamma(link="log"),
+    pfamily = dNormal(mu = mu, Sigma = V, dispersion = dispersion2),
+weights = Claims)
+
+  out2 <- rglmb(
+    n = 1, y = y, x = x,
+    family  =Gamma(link="log"),
+    pfamily = dGamma(shape = shape, rate = rate,
+                     beta = out1$coefficients[1,]),
+weights = Claims
+  )
+  dispersion2 <- out2$dispersion * ((m - p)/m)
+  beta_out[i, 1:8] <- out1$coefficients[1, 1:8]
+  disp_out[i]      <- out2$dispersion * ((m - p)/m)
+}
+
+## Review output
+
+
+beta_mean  <- colMeans(beta_out)
+beta_sd    <- apply(beta_out, 2, sd)
+beta_tlike <- beta_mean / beta_sd   # analogous to GLM t-values
+
+bayes_coef_table <- data.frame(
+  Estimate = beta_mean,
+  Std.Error = beta_sd,
+  t.like = beta_tlike
+)
+
+bayes_coef_table
+
+mean(disp_out)
+
+
+```
+
+
+
+
+### 4.3 Conditional Sampling for the Dispersion Parameter
 
 Chapter A6 provides a detailed derivation of the conditional posterior for the precision parameter \( v = 1/\phi \) in Gamma regression. The posterior can be written in the form
 
