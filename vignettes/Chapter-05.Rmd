@@ -21,24 +21,32 @@ This section reviews the core concepts behind exponential families, explains why
 
 ## 1.1 Exponential Families: A Unifying Framework
 
-Many common statistical models belong to the *exponential family*, a class of distributions that can be written in the form
+Many common statistical models belong to the exponential family, a class of distributions that can be written in the **weighted** form
 
 \[
-f(y \mid \theta, \phi) = \exp\left\{ \frac{y \theta - b(\theta)}{a(\phi)} + c(y, \phi) \right\}.
+f(y \mid \theta, \phi, w)
+= \exp\left\{
+  \sum_{i=1}^{n}
+    w_i \left[
+      \frac{y_i \theta_i - b(\theta_i)}{a(\phi)}
+      + c(y_i, \phi)
+    \right]
+\right\}.
 \]
 
 Here:
 
-- $\theta$ is the **canonical (natural) parameter**  
-- $b(\theta)$ is the **cumulant function**, ensuring normalization  
-- $a(\phi)$ is a **dispersion** or **scale** parameter  
-- $c(y, \phi)$ collects terms not involving $\theta$
+- \( \theta_i \) is the canonical (natural) parameter  
+- \( b(\theta_i) \) is the cumulant function  
+- \( a(\phi) \) is a dispersion or scale parameter  
+- \( c(y_i, \phi) \) collects terms not involving \( \theta_i \)  
+- \( w_i \) is an observation weight (typically nonnegative)
 
 This formulation includes the Gaussian, Poisson, Binomial, Gamma, and many others.  
 The exponential-family form is not merely aesthetic: it guarantees several structural properties that GLMs rely on:
 
-- The mean is given by $\mu = b'(\theta)$.  
-- The variance is $\mathrm{Var}(Y) = b''(\theta)\, a(\phi)$.  
+- The mean is \( \mu_i = b'(\theta_i) \).  
+- The variance is \( \mathrm{Var}(Y_i) = b''(\theta_i)\, a(\phi) \).  
 - Sufficient statistics are low-dimensional (often just the sample mean).  
 - Likelihoods are typically smooth and well-behaved.
 

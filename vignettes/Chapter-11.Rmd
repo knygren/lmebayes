@@ -48,78 +48,91 @@ weight <- c(ctl, trt)
 
 ```
 
-## 2. Exponential‑Family Background and Log‑Concavity
 
-Many likelihoods used in generalized linear models belong to the **exponential family**, which can be written in the general form
+# 2. Exponential-Family Background and Log-Concavity
+
+Many likelihoods used in generalized linear models belong to the exponential family, which can be written in the general weighted form independent observations  
+\((y_{1},\ldots,y_{n})\) with weights \((w_{1},\ldots,w_{n})\) can be written as
 
 \[
-f(y \mid \theta,\phi)
+f(y \mid \theta,\phi,w)
 = \exp\!\left\{
-  \frac{y\theta - b(\theta)}{a(\phi)}
-  + c(y,\phi)
+  \sum_{i=1}^{n}
+    w_{i}
+    \left[
+      \frac{y_{i}\,\theta_{i} - b(\theta_{i})}{a(\phi)}
+      + c(y_{i},\phi)
+    \right]
 \right\}.
 \]
 
 Here:
 
-- \( \theta \) is the **canonical (natural) parameter**  
-- \( b(\theta) \) is the **cumulant function**  
-- \( a(\phi) \) is a **dispersion or scale parameter**  
-- \( c(y,\phi) \) collects terms not involving \( \theta \)
-
-For a GLM with linear predictor \( \eta = X\beta \) and mean \( \mu = b'(\theta) \), the log‑likelihood for \( n \) independent observations is
+- \( \theta_{i} \) is the canonical (natural) parameter  
+- \( b(\theta_{i}) \) is the cumulant function  
+- \( a(\phi) \) is a dispersion or scale parameter  
+- \( c(y_{i},\phi) \) collects terms not involving \( \theta_{i} \)  
+- \( w_{i} \) is the observation weight (typically \( w_{i} \ge 0 \))
+When observations carry nonnegative weights \( w_i \), the weighted log-likelihood becomes
 
 \[
 \ell(\beta,\phi)
 = \sum_{i=1}^{n}
-  \left[
+  w_i \left[
     \frac{y_i\theta_i - b(\theta_i)}{a(\phi)}
     + c(y_i,\phi)
   \right].
 \]
 
-### 2.1 Log‑Concavity in the Exponential Family
+This is the form used by both `glm` and the Bayesian functions `glmb`, `lmb`, `rglmb`, and `rlmb`.
 
-For many canonical‑link GLMs (Gaussian, Poisson, Binomial, Gamma with log link), the following properties hold:
+---
+
+## 2.1 Log-Concavity in the Exponential Family
+
+For many canonical-link GLMs (Gaussian, Poisson, Binomial, Gamma with log link), the following properties hold.
 
 1. **For fixed dispersion \( \phi \)**,  
-   the log‑likelihood is **concave in \( \beta \)** because  
+   the weighted log-likelihood is concave in \( \beta \) because  
    \[
    \theta_i = \theta(\eta_i), \qquad \eta_i = x_i^{T}\beta,
-   \]
-   and the cumulant function \( b(\theta) \) is convex.
+   \]  
+   and \( b(\theta) \) is convex.  
+   The weights \( w_i \) simply scale each contribution and preserve concavity.
 
 2. **For fixed coefficients \( \beta \)**,  
-   the log‑likelihood is often **concave in the precision**  
+   the weighted log-likelihood is often concave in the precision  
    \[
    \tau = \frac{1}{\phi},
-   \]
-   because \( a(\phi) \) typically enters as a positive scalar factor.
+   \]  
+   because \( a(\phi) \) enters as a positive scalar factor and the weights again preserve concavity.
 
 These concavity properties are essential for:
 
 - unique posterior modes  
-- valid tangent‑envelope construction for accept–reject sampling  
+- valid tangent-envelope construction for accept-reject sampling  
 - stable Gibbs updates for dispersion parameters  
 - efficient iid sampling in the glmbayes framework  
 
-The Gaussian model is a special case where these properties become fully explicit.
-
 ---
 
-## 2.2 Special Case: Gaussian Linear Regression
+# 2.2 Special Case: Gaussian Linear Regression
 
-A Gaussian linear model with response vector \( y \in \mathbb{R}^{n} \), design matrix \( X \), coefficients \( \beta \), and dispersion \( \phi \) has density
+A weighted Gaussian linear model with response vector \( y \in \mathbb{R}^{n} \), design matrix \( X \), coefficients \( \beta \), weights \( w_i \ge 0 \), and dispersion \( \phi \) has log-likelihood
 
 \[
-f(y \mid \beta,\phi)
-= \exp\!\left(
-  -\frac{1}{2\phi}(y - X\beta)^{T}(y - X\beta)
-  - \frac{n}{2}\log(2\pi\phi)
-\right).
+\ell(\beta,\phi)
+=
+-\frac{1}{2\phi}
+\sum_{i=1}^{n}
+w_i (y_i - x_i^{T}\beta)^{2}
+\;-\;
+\frac{1}{2}
+\sum_{i=1}^{n}
+w_i \log(2\pi\phi).
 \]
 
-This fits the exponential‑family template with
+This matches the exponential-family form with
 
 \[
 \theta = \mu = X\beta, \qquad
@@ -128,33 +141,53 @@ a(\phi) = \phi, \qquad
 c(y,\phi) = -\tfrac{1}{2\phi}y^{2} - \tfrac{1}{2}\log(2\pi\phi).
 \]
 
-### Log‑Concavity Properties in the Gaussian Case
+Weighted least squares in base R is implemented by transforming the data as
+
+\[
+y^{\ast} = W^{1/2} y, \qquad
+X^{\ast} = W^{1/2} X,
+\]
+
+where \( W = \mathrm{diag}(w_1,\ldots,w_n) \).  
+The glmbayes functions use the same weighted likelihood, so the theoretical expressions above apply directly.
+
+---
+
+## Log-Concavity Properties in the Weighted Gaussian Case
 
 1. **Concavity in \( \beta \)**  
-   For fixed \( \phi \), the negative log‑likelihood is quadratic in \( \beta \):
+   For fixed \( \phi \), the negative weighted log-likelihood is  
    \[
    -\ell(\beta \mid \phi)
-   = \frac{1}{2\phi}(y - X\beta)^{T}(y - X\beta) + \text{const},
+   =
+   \frac{1}{2\phi}
+   (y - X\beta)^{T} W (y - X\beta)
+   + \text{const},
    \]
-   which is strictly convex.  
-   Therefore the log‑likelihood is strictly concave in \( \beta \).
+   which is strictly convex whenever \( W \) has positive diagonal entries.  
+   Therefore the weighted log-likelihood is strictly concave in \( \beta \).
 
 2. **Concavity in precision \( \tau = 1/\phi \)**  
-   Rewriting the likelihood in terms of \( \tau \):
+   Rewriting the weighted likelihood in terms of \( \tau \):
    \[
    \ell(\beta,\tau)
-   = \frac{\tau}{2}(y - X\beta)^{T}(y - X\beta)
-     - \frac{n}{2}\log\tau + \text{const},
+   =
+   \frac{\tau}{2}
+   (y - X\beta)^{T} W (y - X\beta)
+   - \frac{1}{2}
+   \left( \sum_{i=1}^{n} w_i \right)
+   \log \tau
+   + \text{const},
    \]
    which is concave in \( \tau \) because the first term is linear in \( \tau \) and the second is concave.
 
 These properties guarantee:
 
 - unique posterior modes for both \( \beta \) and \( \tau \)  
-- efficient iid sampling under Normal, Normal‑Gamma, and Independent Normal‑Gamma priors  
-- stable two‑block Gibbs sampling when the dispersion is updated separately  
+- efficient iid sampling under Normal, Normal-Gamma, and Independent Normal-Gamma priors  
+- stable two-block Gibbs sampling when the dispersion is updated separately  
 
-The Gaussian model thus provides the cleanest illustration of the general exponential‑family structure and motivates the dispersion‑sampling strategies used throughout this chapter.
+The weighted Gaussian model thus provides the cleanest illustration of how weights enter the exponential-family structure and how they preserve log-concavity.
 
 ## 2.3 Special Case: Gamma Regression With a Log Link
 
