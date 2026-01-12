@@ -31,7 +31,9 @@ knitr::opts_chunk$set(
 
 
 
-## Posterior Sampling for Dispersion in Gamma GLMs
+
+
+# 1. Introduction 
 
 This vignette explains the derivation of the posterior for the dispersion parameter
 in a Gamma GLM with log link, and the construction of the surrogate function
@@ -52,7 +54,7 @@ v = \frac{1}{\phi}.
 
 Throughout this chapter, we treat the regression coefficients \(\beta\) and offsets \(\alpha_i\) as fixed and known.
 
-### 1. Likelihood
+## 1.2 Likelihood
 
 We use the standard Gamma parameterization
 
@@ -104,30 +106,265 @@ v\log \mu_i
 \right].
 \]
 
-### 2. Prior
+## 1.3 Prior
 
 We place a Gamma prior on the precision:
 
 \[
 v \sim \mathrm{Gamma}(a_0, b_0),
 \qquad
-\log p(v) = (a_0 - 1)\log v - b_0 v.
+\log p(v)
+= a_0 \log b_0 \;-\; \log\Gamma(a_0)
+\;+\; (a_0 - 1)\log v \;-\; b_0 v.
 \]
 
-### 3. Posterior Log‑Density (Old)
+## 1.4. Posterior Log‑Density
 
-The unnormalized posterior log‑density is
+The posterior log‑density is
 
 \[
 f(v)
 =
 \ell(v)
 +
-(a_0 - 1)\log v
--
-b_0 v.
+\log p(v)
+\;-\; \log (C_{1})
 \]
 
+where \( C_{1}\) is a normalizing constant for the posterior density.
+
+
+# 2. The sampler
+
+
+To build effective envelopes for the Gamma family with a Gamma prior for the precision, it is important to
+be able to center the proposal close to the center of the posterior. To enable this, we introduce the following proposal
+distribution and associated bounding function and establish a key claims.
+
+## 2.1 Proposal Distribution
+
+Let \( \bar{c}(v_{\text{tangent}}) \) be a gradient for \( \ell(.)\) at $v_{\text{tangent}}$. We then defined a gamma proposal distribution by:
+
+\[
+v \sim \mathrm{Gamma}_{prop}(a_0+  \frac{1}{2}\sum_i w_i, b_0 - \bar{c}(v_{\text{tangent}}))\
+\]
+
+where the log of the proposal distribution specifically takes the form
+
+\[
+\begin{array}
+\log p_{prop}(v) & = (a_0+  \frac{1}{2}\sum_i w_i )\log [ b_0 - \bar{c}(v_{\text{tangent}})] \;-\; \log\Gamma(a_0+  \frac{1}{2}\sum_i w_i ) \\[4pt]
+&  \;+\; ((a_0+  \frac{1}{2}\sum_i w_i ) - 1)\log v \;-\; [ b_0 - \bar{c}(v_{\text{tangent}})] v.
+\end{array}
+\]
+---
+
+## 2.2 Bounding function
+
+Let $v_{\min}$ be lower bound for the precision $v$. We can then define a bounding function \(\log h(\cdot)\) by
+
+\[
+\log h(v)
+=
+\ell(v)
+-
+\bigl[\ell(v_{\text{tangent}})
+-
+\bar{c}(v_{\text{tangent}})(v - v_{\text{tangent}})\bigr]
+-
+\frac{1}{2}\Bigl(\sum_i w_i\Bigr)\log\!\left(\frac{v}{v_{\min}}\right).
+\]
+
+
+It follows from the concavity of the function $\ell(.)$ and the definition of a lower bound that for all $v \geq v_{\min}$, 
+$\log h(v) \leq 0$.
+
+
+## 2.3 Equivalence Claim
+
+
+**Claim 1:**  
+
+The posterior log density $f(.)$ satisfies the property that 
+
+\[ f(v)=\log p_{prop}(v)+\log h(v) + C_{2} \]
+
+where \[\begin{aligned}
+C_{2} 
+& = \Bigl( -  \log (C_{1}) \\[4pt]
+& - [(a_0+  \frac{1}{2}\sum_i w_i )\log [ b_0 - \bar{c}(v_{\text{tangent}})] \;-\; \log\Gamma(a_0+  \frac{1}{2}\sum_i w_i )] \\[4pt]
+& + [a_0 \log b_0 \;-\; \log\Gamma(a_0) ] \\[4pt]
+& +[\ell(v_{\text{tangent}})+\bar{c}(v_{\text{tangent}})v_{\text{tangent}} ]\\[4pt]
+& - [\frac{1}{2}\sum_i w_i] \log v_{\text{min}}\Bigr)\end{aligned}
+\].
+
+**Proof:**
+
+\[
+\begin{aligned}
+f(v) & = \log p(v) +\ell(v) - \log (C_{1}) \\[4pt]
+& = \Bigl( [a_0 \log b_0 \;-\; \log\Gamma(a_0)
+\;+\; (a_0 - 1)\log v \;-\; b_0 v]  \\[4pt]
+& + [[\frac{1}{2}\sum_i w_i] \log v - [-\bar{c}(v_{\text{tangent}}) v]   \\[4pt]
+& + [(a_0+  \frac{1}{2}\sum_i w_i )\log [ b_0 - \bar{c}(v_{\text{tangent}})] \;-\; \log\Gamma(a_0+  \frac{1}{2}\sum_i w_i )] \\[4pt]
+& - [a_0 \log b_0 \;-\; \log\Gamma(a_0) ] \Bigr) \\[4pt]
+&   + \Bigl(\ell(v) -  [[\frac{1}{2}\sum_i w_i] \log v -[- \bar{c}(v_{\text{tangent}}) v]] \Bigr) \\[4pt]
+& + \Bigl( -  \log (C_{1}) \\[4pt]
+& - [(a_0+  \frac{1}{2}\sum_i w_i )\log [ b_0 - \bar{c}(v_{\text{tangent}})] \;-\; \log\Gamma(a_0+  \frac{1}{2}\sum_i w_i )] \\[4pt]
+& + [a_0 \log b_0 \;-\; \log\Gamma(a_0) ] \Bigr) \\[4pt]
+& = \Bigl( [(a_0+  \frac{1}{2}\sum_i w_i )\log [ b_0 - \bar{c}(v_{\text{tangent}})] \;-\; \log\Gamma(a_0+  \frac{1}{2}\sum_i w_i )] \\[4pt]
+& + ((a_0+  \frac{1}{2}\sum_i w_i ) - 1)\log v \;-\; [ b_0 - \bar{c}(v_{\text{tangent}})]v  \Bigr) \\[4pt]
+&   + \Bigl(\ell(v) -  [[\frac{1}{2}\sum_i w_i] \log v -[- \bar{c}(v_{\text{tangent}}) v]] \\[4pt]
+& -[\ell(v_{\text{tangent}})+\bar{c}(v_{\text{tangent}})v_{\text{tangent}} ]  \\[4pt]
+& + [\frac{1}{2}\sum_i w_i] \log v_{\text{min}} \Bigr) \\[4pt]
+& + \Bigl( -  \log (C_{1}) \\[4pt]
+& - [(a_0+  \frac{1}{2}\sum_i w_i )\log [ b_0 - \bar{c}(v_{\text{tangent}})] \;-\; \log\Gamma(a_0+  \frac{1}{2}\sum_i w_i )] \\[4pt]
+& + [a_0 \log b_0 \;-\; \log\Gamma(a_0) ] \\[4pt]
+& +[\ell(v_{\text{tangent}})+\bar{c}(v_{\text{tangent}})v_{\text{tangent}} ]\\[4pt]
+& - [\frac{1}{2}\sum_i w_i] \log v_{\text{min}} \Bigr) \\[4pt]
+& = \log p_{prop}(v) \\[4pt]
+&   + \Bigl([\ell(v)-[\ell(v_{\text{tangent}})-\bar{c}(v_{\text{tangent}})(v - v_{\text{tangent}})]] \\[4pt]
+& - \frac{1}{2}\Bigl(\sum_i w_i\Bigr)\log\!\left(\frac{v}{v_{\min}}\right) \Bigr) \\[4pt]
+& + \Bigl( -  \log (C_{1}) \\[4pt]
+& - [(a_0+  \frac{1}{2}\sum_i w_i )\log [ b_0 - \bar{c}(v_{\text{tangent}})] \;-\; \log\Gamma(a_0+  \frac{1}{2}\sum_i w_i )] \\[4pt]
+& + [a_0 \log b_0 \;-\; \log\Gamma(a_0) ] \\[4pt]
+& +[\ell(v_{\text{tangent}})+\bar{c}(v_{\text{tangent}})v_{\text{tangent}} ]\\[4pt]
+& - [\frac{1}{2}\sum_i w_i] \log v_{\text{min}}\Bigr) \\[4pt]
+& = \log p_{prop}(v) + \log h(v) + C_{2}
+\end{aligned}
+\]
+
+
+
+## 4.1 Proxy Model and Shape Adjustment
+
+**Step 1 (proxy model).**  
+We build an equivalent “proxy model” with the following three key properties:
+
+1. **Shape shift.**  
+   \[
+   \text{shape}_\text{prop} = \text{shape}_\text{prior} + \frac{1}{2}\sum_i w_i.
+   \]
+
+2. **Proxy log‑likelihood.**  
+   \[
+   \ell^\*(v) = \ell(v) - \frac{1}{2}\Bigl(\sum_i w_i\Bigr)\log v,
+   \]
+   where \(\ell(v)\) is the original weighted log‑likelihood for the precision \(v\).
+
+3. **Concavity preserved.**  
+   The proxy log‑likelihood \(\ell^\*(\cdot)\) is constructed so that it **retains the concavity** of the
+   original log‑likelihood in \(v\). This ensures that tangent envelopes based on \(\ell^\*\) produce valid
+   upper bounds for the posterior log‑density.
+
+The purpose of this step is to allow a **shape‑shifted Gamma proposal** whose shape parameter incorporates
+\(\tfrac{1}{2}\sum_i w_i\), while working with a proxy log‑likelihood that is still concave in \(v\).
+This makes it possible to construct tight envelopes with proposals that are centered near the posterior.
+
+---
+
+## 4.2 Tangency, Proposal, and Bounding Function
+
+**Step 2 (tangency and linear shift).**  
+We pick one or more tangency points, and for each component of the grid (if more than one), we **shift a
+linear term** from the proxy model into the rate of the Gamma proposal.
+
+In the case of a single tangency, it is best to use a tangency point at the **posterior mean**. Generally,
+denote by \(\bar{c}(v)\) a gradient for \(-\ell(v)\) at \(v\). Then we build a proposal and a bounding
+function \(\log h(\cdot)\) as follows.
+
+### Gamma proposal
+
+We define a Gamma proposal with
+
+- **shape:**
+  \[
+  \text{shape}_\text{prop}
+  =
+  \text{shape}_\text{prior} + \frac{1}{2}\sum_i w_i,
+  \]
+
+- **rate:**
+  \[
+  \text{rate}_\text{prop}
+  =
+  \text{rate}_\text{prior} - \bar{c}(v_{\text{tangent}}),
+  \]
+
+where
+\[
+-\bar{c}(v_{\text{tangent}})
+=
+\sum_i w_i
+\Bigl[
+\log(v_{\text{tangent}})
++ 1
+- \log(\mu_i)
++ \log(y_i)
+- \psi(v_{\text{tangent}})
+- \frac{y_i}{\mu_i}
+\Bigr],
+\]
+and \(\psi(\cdot)\) is the digamma function.
+
+
+### Bounding function
+
+The bounding function \(\log h(\cdot)\) is defined by
+\[
+\log h(v)
+=
+\ell(v)
+-
+\bigl[\ell(v_{\text{tangent}})
++
+\ell'(v_{\text{tangent}})(v - v_{\text{tangent}})\bigr]
+-
+\frac{1}{2}\Bigl(\sum_i w_i\Bigr)\log\!\left(\frac{v}{v_{\min}}\right),
+\]
+
+where \(\bar{c}(v_{\text{tangent}}) = -\ell'(v_{\text{tangent}})\) and \(v_{\min}>0\) is a lower bound
+derived from the curvature‑based Gamma surrogate and optional dispersion bounds.
+
+Because \(\ell(\cdot)\) is concave and the penalty term
+\(-\tfrac{1}{2}(\sum_i w_i)\log(v / v_{\min})\) is non‑positive for \(v \ge v_{\min}\), we have
+\[
+\log h(v) \le 0
+\quad\text{for all } v \ge v_{\min},
+\]
+which is the key inequality needed for a valid accept–reject envelope.
+
+---
+
+## 4.3 Implementation Outline
+
+To implement the sampler, we proceed as follows:
+
+1. **Find the posterior mode** \(v_\star\) using a Gamma‑surrogate fixed‑point iteration.
+2. **Approximate the posterior mean** \(v_{\text{mean}}\) using curvature at \(v_\star\) and a
+   Gamma surrogate \(\Gamma(\alpha_{\!bar}, \beta_{\!bar})\).
+3. **Set the tangency point** to
+   \[
+   v_{\text{tangent}} = v_{\text{mean}}.
+   \]
+4. **Build the proposal and bounding function** using \(v_{\text{tangent}}\) as above.
+5. **Sample** as follows:
+   - (a) Generate a candidate \(v_{\text{cand}}\) from the (possibly truncated) proposal
+     \(\mathrm{Gamma}(\text{shape}_\text{prop}, \text{rate}_\text{prop})\).
+   - (b) Draw \(u \sim \mathrm{Uniform}(0,1)\).
+   - (c) Accept if
+     \[
+     \log h(v_{\text{cand}}) - \log u > 0.
+     \]
+
+The accepted draws for \(v\) are then transformed to dispersion by \(\phi = 1/v\).
+
+
+### 4.   
+
+
+
+### 
 To construct an envelope for rejection sampling, we rewrite the posterior as
 
 \[
@@ -145,7 +382,7 @@ f(v)
 where
 
 \[
-\text{shape}_2 = a_0 + \frac{1}{2}\sum_i w_i,
+\text{shape}_2 = a_0 ,
 \]
 
 \[
@@ -171,15 +408,13 @@ and the concave remainder is
 \left[
 \log\Gamma(v)
 +
-\frac{1}{2}\log v
-+
 v
 -
 v\log v
 \right].
 \]
 
-This decomposition isolates the part of the posterior that is not Gamma‑shaped.
+This decomposition isolates the part of the posterior that will be utilized in the accept/reject procedure.
 
 ### 4. Tangent‑Envelope Construction
 
@@ -199,119 +434,6 @@ g^{*} = \left.\frac{d}{dv}\text{testfunc}(v)\right|_{v=v^{*}},
 \]
 
 
-From the definitions, we can write \(\text{testfunc}(v)\) explicitly as the log‑likelihood plus two extra terms.
-
-The weighted log‑likelihood is
-\[
-\ell(v)
-=
-\sum_{i=1}^n
-w_i
-\left[
-v\log v
--
-v\log \mu_i
-+
-(v-1)\log y_i
--
-\log\Gamma(v)
--
-\frac{v}{\mu_i} y_i
-\right].
-\]
-
-The remainder term is
-\[
-\text{testfunc}(v)
-=
-\sum_{i=1}^n w_i
-\left[
-v\log v
--
-(v-1)*1
-- \log\Gamma(v)
-- \frac{1}{2}\log v
--1
-\right].
-\]
-
-
-
-The remainder term is
-\[
-\text{testfunc}(v)
-=
-- \sum_{i=1}^n w_i
-*(\frac{1}{2}\log v)
-+
-\sum_{i=1}^n w_i
-\left[
-v\log v
--
-(v-1)*1
-- \log\Gamma(v)
--1
-\right].
-\]
-
-
-
-Then
-\[
-\text{testfunc}(v)
-=
-\ell(v)
-+
-\text{term}_1(v)
-+
-\text{term}_2(v),
-\]
-where
-\[
-\text{term}_1(v)
-=
-\sum_{i=1}^n w_i\Big[-\tfrac{1}{2}\log v - v\Big]
-=
--\Big(\tfrac{1}{2}\sum_{i=1}^n w_i\Big)\log v
--
-\Big(\sum_{i=1}^n w_i\Big)v,
-\]
-and
-\[
-\text{term}_2(v)
-=
-\sum_{i=1}^n w_i
-\left[
-v\log \mu_i
--
-(v-1)\log y_i
-+
-\frac{v}{\mu_i} y_i
-\right].
-\]
-
-Equivalently, for each \(v>0\),
-\[
-\boxed{
-\text{testfunc}(v)
-=
-\ell(v)
--
-\Big(\tfrac{1}{2}\sum_i w_i\Big)\log v
--
-\Big(\sum_i w_i\Big)v
-+
-\sum_i w_i
-\left[
-v\log \mu_i
--
-(v-1)\log y_i
-+
-\frac{v}{\mu_i} y_i
-\right].
-}
-\]
-
 **Claim**
 
 Define a proposal distribution by  
@@ -325,12 +447,14 @@ Then:
 (i)
 \[
 \begin{aligned}
-\log \pi(v)
-&= (\text{shape}_2 - 1)\log v - \text{rate}_1 v + \text{testfunc}(v) \\[6pt]
-&= (\text{shape}_2 - 1)\log v - \text{rate}_2 v
-   + \text{testfunc}(v) - \text{testfunc}(v^{*}) - g^{*}(v - v^{*}).
+f(v) &= (\text{shape}_2 - 1)\log v - \text{rate}_2 v +
+\text{const} \\[6pt]
+&   +  \text{testfunc}(v) - \text{testfunc}(v^{*}) - g^{*}(v - v^{*}) \\[6pt]
+&  +  \text{testfunc}(v^{*}) - g^{*}v^{*}
 \end{aligned}
 \]
+
+and 
 
 (ii)
 \[
@@ -350,18 +474,15 @@ To see (i), note that
 
 \[
 \begin{aligned}
-\log \pi(v)
-&= (\text{shape}_2 - 1)\log v - \text{rate}_1 v + \text{testfunc}(v) \\[6pt]
-&= (\text{shape}_2 - 1)\log v - (\text{rate}_2 + g^{*})\, v + \text{testfunc}(v) \\[6pt]
-&= (\text{shape}_2 - 1)\log v - \text{rate}_2 v
-   + \text{testfunc}(v) - \text{testfunc}(v^{*}) - g^{*}(v - v^{*}),
+f(v) &= (\text{shape}_2 - 1)\log v - \text{rate}_1 v + \text{testfunc}(v) + \text{const} \\[6pt]
+&= (\text{shape}_2 - 1)\log v - (\text{rate}_2 + g^{*})\, v + \text{testfunc}(v) + \text{const} \\[6pt]
+&= (\text{shape}_2 - 1)\log v - \text{rate}_2 v + \text{const} \\[6pt]
+&   + \text{testfunc}(v) - \text{testfunc}(v^{*}) - g^{*}(v - v^{*}) \\[6pt]
+&   +  \text{testfunc}(v^{*}) - g^{*}v^{*}
 \end{aligned}
 \]
 
-where the first equality follows from the definition of the log‑posterior,  
-the second equality follows from substituting \(\text{rate}_1 = \text{rate}_2 + g^{*}\),  
-and the third equality follows from adding and subtracting  
-\(\text{testfunc}(v^{*}) + g^{*}(v - v^{*})\).
+where the first equality follows from the definition of the log‑posterior,  the second from the definition of  \( \text{rate}_2 \) and the third from adding and subtracting \(\text{testfunc}(v^{*}) - g^{*}v^{*}\).
 
 To see (ii), we first show that \(\text{testfunc}\) is concave.
 
@@ -371,8 +492,6 @@ Recall
 =
 -\sum_i w_i\Big[
 \log\Gamma(v)
-+
-\tfrac{1}{2}\log v
 +
 v
 -
@@ -390,16 +509,12 @@ The first derivative is
 \Big[
 \frac{d}{dv}\log\Gamma(v)
 +
-\frac{1}{2}\frac{1}{v}
-+
 \frac{d}{dv}\{v - v\log v\}
 \Big] \\[4pt]
 &=
 -\sum_i w_i
 \Big[
 \psi(v)
-+
-\frac{1}{2}\frac{1}{v}
 -
 \log v
 \Big],
@@ -416,16 +531,12 @@ The second derivative is
 \Big[
 \psi'(v)
 -
-\frac{1}{2}\frac{1}{v^2}
--
 \frac{1}{v}
 \Big] \\[4pt]
 &=
 \sum_i w_i
 \Big[
 -\psi'(v)
-+
-\frac{1}{2}\frac{1}{v^2}
 +
 \frac{1}{v}
 \Big].
@@ -445,35 +556,18 @@ Hence \(\psi_1(v) = \psi'(v) > 0\) for all \(v>0\), and in fact
 =
 \sum_{n=0}^{\infty}\frac{1}{(v+n)^2}
 \;\ge\;
-\frac{1}{v^2}.
+\frac{1}{v}.
 \]
 
 Therefore, for each \(v>0\),
 \[
 -\psi'(v)
 +
-\frac{1}{2}\frac{1}{v^2}
-+
-\frac{1}{v}
-=
--\psi_1(v)
-+
-\frac{1}{2}\frac{1}{v^2}
-+
 \frac{1}{v}
 \le
--\frac{1}{v^2}
-+
-\frac{1}{2}\frac{1}{v^2}
-+
-\frac{1}{v}
-=
--\frac{1}{2}\frac{1}{v^2}
-+
-\frac{1}{v}
-\le 0
+ 0
 \]
-for \(v\) in the parameter range of interest (and in particular for sufficiently large \(v\)); with nonnegative weights \(w_i\), this yields
+Hence this yields
 \[
 \text{testfunc}''(v) \le 0,
 \]
@@ -714,8 +808,120 @@ Show several equalities establishing 1. Demonstrated that \text{testfunc}(v) is 
  
 
 
+### Redundant
+
+From the definitions, we can write \(\text{testfunc}(v)\) explicitly as the log‑likelihood plus two extra terms.
+
+The weighted log‑likelihood is
+\[
+\ell(v)
+=
+\sum_{i=1}^n
+w_i
+\left[
+v\log v
+-
+v\log \mu_i
++
+(v-1)\log y_i
+-
+\log\Gamma(v)
+-
+\frac{v}{\mu_i} y_i
+\right].
+\]
+
+The remainder term is
+\[
+\text{testfunc}(v)
+=
+\sum_{i=1}^n w_i
+\left[
+v\log v
+-
+(v-1)*1
+- \log\Gamma(v)
+- \frac{1}{2}\log v
+-1
+\right].
+\]
 
 
+
+The remainder term is
+\[
+\text{testfunc}(v)
+=
+- \sum_{i=1}^n w_i
+*(\frac{1}{2}\log v)
++
+\sum_{i=1}^n w_i
+\left[
+v\log v
+-
+(v-1)*1
+- \log\Gamma(v)
+-1
+\right].
+\]
+
+
+
+Then
+\[
+\text{testfunc}(v)
+=
+\ell(v)
++
+\text{term}_1(v)
++
+\text{term}_2(v),
+\]
+where
+\[
+\text{term}_1(v)
+=
+\sum_{i=1}^n w_i\Big[-\tfrac{1}{2}\log v - v\Big]
+=
+-\Big(\tfrac{1}{2}\sum_{i=1}^n w_i\Big)\log v
+-
+\Big(\sum_{i=1}^n w_i\Big)v,
+\]
+and
+\[
+\text{term}_2(v)
+=
+\sum_{i=1}^n w_i
+\left[
+v\log \mu_i
+-
+(v-1)\log y_i
++
+\frac{v}{\mu_i} y_i
+\right].
+\]
+
+Equivalently, for each \(v>0\),
+\[
+\boxed{
+\text{testfunc}(v)
+=
+\ell(v)
+-
+\Big(\tfrac{1}{2}\sum_i w_i\Big)\log v
+-
+\Big(\sum_i w_i\Big)v
++
+\sum_i w_i
+\left[
+v\log \mu_i
+-
+(v-1)\log y_i
++
+\frac{v}{\mu_i} y_i
+\right].
+}
+\]
 
 
 
@@ -1090,3 +1296,1065 @@ To apply an accept-reject sampler, one must specify:
 - a pseudo-likelihood or empirical-Bayes surrogate.
 
 Without such a surrogate, the method cannot be directly applied.
+
+
+##  Old Theoretical Development
+
+## Introduction
+
+This Vignette extends the theory of the Nygren and Nygren (2006) paper to the case of gamma priors with log-concave likelihood functions. In section 1, we restate some of the basic theory and then state a key claim similar to that for Multivariate normal priors in that paper. 
+
+## 1.0 General theory
+
+## 1.1 Likelihood-Subgradient Densities and Envelope Construction
+
+The accept-reject construction used in this chapter relies on factorizations of the form
+\[
+\pi(v \mid y) = a \, h(v) \, q(v),
+\]
+where \(q\) is a density from which we can sample directly, \(0 \le h(v) \le 1\), and \(a > 1\) is the normalizing constant that determines the acceptance rate. To motivate the specific envelopes used later, we summarize the key definitions from Nygren and Nygren (2006).
+
+### Definition (Subgradient)
+Let \(h : \mathcal{V} \to \mathbb{R}\) be a function defined on a convex set \(\mathcal{V}\).  
+A number \(c(v_0)\) is a subgradient of \(h\) at \(v_0\) if
+\[
+h(v) \ge h(v_0) + c(v_0)\,(v - v_0)
+\qquad \text{for all } v \in \mathcal{V}.
+\]
+If \(h\) is differentiable and convex, then \(c(v_0) = h'(v_0)\).
+
+In our setting, the function of interest is the negative log of a bounding function for the likelihood.  
+Let \(g(v)\) satisfy
+\[
+f(y \mid v) \le g(v) \qquad \text{for all } v>0.
+\]
+If the likelihood is log-concave in \(v\), then \(-\log g(v)\) is convex and admits a subgradient at every interior point.
+
+### Definition (Generalized likelihood-subgradient density)
+Let \(v_0 > 0\) be an anchor point, and let \(c(v_0)\) be a subgradient of \(-\log g(v)\) at \(v_0\).  
+Given a prior density \(\pi(v)\), define the exponentially tilted density
+\[
+q(v)
+=
+\frac{\exp\{-c(v_0)\,v\}\,\pi(v)}
+     {\operatorname{MGF}_{\pi}(-c(v_0))},
+\qquad v>0,
+\]
+where
+\[
+\operatorname{MGF}_{\pi}(t)
+=
+\int_0^\infty e^{t v}\,\pi(v)\,dv.
+\]
+We call \(q\) the generalized likelihood-subgradient density at \(v_0\).
+
+This construction has two key properties:
+
+1. **Preservation of tractability.**  
+   For exponential-family priors (including finite mixtures of Gamma distributions), exponential tilting preserves the family.  
+   Each mixture component remains Gamma with the same shape and a shifted rate.  
+   Thus sampling from \(q\) is straightforward.
+
+2. **Envelope factorization.**  
+   The posterior admits the factorization
+   \[
+   \pi(v \mid y)
+   =
+   a(v_0)\, h_{v_0}(v)\, q(v),
+   \]
+   where
+   \[
+   h_{v_0}(v)
+   =
+   \frac{\exp\{-c(v_0)(v - v_0)\}\, g(v)}{g(v_0)},
+   \qquad 0 \le h_{v_0}(v) \le 1,
+   \]
+   and
+   \[
+   a(v_0)
+   =
+   \frac{g(v_0)\, \operatorname{MGF}_{\pi}(-c(v_0))}{f(y)}.
+   \]
+   The acceptance rate in an accept-reject sampler is \(1/a(v_0)\).
+
+These definitions provide the foundation for Claim 1, where the prior is a finite mixture of Gamma distributions. In that case, exponential tilting yields closed-form expressions for the updated mixture weights and rate parameters, making the likelihood-subgradient construction especially convenient for the dispersion parameter \(v\) in Gamma regression.
+
+**Claim (Gamma-mixture likelihood-subgradient density).**
+
+Suppose the prior for the scalar precision parameter \(v>0\) is a finite mixture of 
+Gamma distributions,
+\[
+\pi(v) = \sum_{i=1}^k p_i \,\pi_i(v),
+\qquad
+\pi_i(v)
+= \frac{\beta_i^{\alpha_i}}{\Gamma(\alpha_i)} v^{\alpha_i - 1} e^{-\beta_i v}, 
+\]
+with weights \(p_i>0\) satisfying \(\sum_{i=1}^k p_i = 1\), and shapes \(\alpha_i>0\), 
+rates \(\beta_i>0\).
+
+Let \(g(\cdot)\) be a function that bounds the likelihood from above,
+\[
+f(y\mid v) \le g(v), \qquad v>0,
+\]
+and let \(c(v_0)\) be a subgradient of \(-\log g\) at a point \(v_0>0\),
+\[
+c(v_0) \in \partial[-\log g(v)]\Big|_{v=v_0}.
+\]
+
+Define the tilted density
+\[
+q(v)
+= \frac{\exp\{-c(v_0)\,v\}\,\pi(v)}{\operatorname{MGF}_\pi(-c(v_0))},
+\qquad v>0,
+\]
+where \(\operatorname{MGF}_\pi(t) = \mathbb{E}_\pi[e^{t v}]\).
+
+Then:
+
+1. The moment generating function at \(-c(v_0)\) is
+   \[
+   \operatorname{MGF}_\pi(-c(v_0))
+   = \sum_{i=1}^k p_i 
+     \left(\frac{\beta_i}{\beta_i + c(v_0)}\right)^{\alpha_i},
+     \qquad c(v_0) > -\min_i \beta_i.
+   \]
+
+2. The generalized likelihood-subgradient density \(q(v)\) is also a finite
+   mixture of Gamma distributions,
+   \[
+   q(v) = \sum_{i=1}^k \tilde{p}_i\,\tilde{\pi}_i(v),
+   \]
+   where each component \(\tilde{\pi}_i\) is Gamma with the **same shape** 
+   and a **shifted rate**,
+   \[
+   \tilde{\pi}_i(v)
+   = \frac{(\beta_i + c(v_0))^{\alpha_i}}{\Gamma(\alpha_i)}
+     v^{\alpha_i - 1} e^{-(\beta_i + c(v_0)) v},
+   \]
+   and the updated mixture weights are
+   \[
+   \tilde{p}_i
+   = \frac{p_i \left(\dfrac{\beta_i}{\beta_i + c(v_0)}\right)^{\alpha_i}}
+           {\displaystyle
+            \sum_{j=1}^k 
+            p_j \left(\dfrac{\beta_j}{\beta_j + c(v_0)}\right)^{\alpha_j}},
+   \qquad i=1,\dots,k.
+   \]
+
+In particular, exponential tilting by \(\exp\{-c(v_0)\,v\}\) preserves the Gamma
+family within each mixture component and only shifts the rate parameters from
+\(\beta_i\) to \(\beta_i + c(v_0)\), while the mixture weights are updated via the
+component-wise factors \((\beta_i/(\beta_i + c(v_0)))^{\alpha_i}\).
+
+
+### Theorem 1 (Envelope factorization for generalized likelihood-subgradient densities)
+
+Let \(q(\cdot)\) be the generalized likelihood-subgradient density at a point \(v_{0}\), constructed from a prior
+\(\pi(v)\), a bounding function \(g(v)\) satisfying \(f(y \mid v) \le g(v)\), and a subgradient
+\(c(v_{0})\) of \(-\log g(v)\) at \(v_{0}\).
+
+Define
+\[
+a(v_{0})
+=
+\frac{g(v_{0}) \, \operatorname{MGF}_{\pi}(-c(v_{0}))}
+     {f(y)} ,
+\]
+and
+\[
+h_{v_{0}}(v)
+=
+\frac{\exp\{-c(v_{0})(v - v_{0})\} \, g(v)}
+     {g(v_{0})}.
+\]
+
+Then the posterior density satisfies the factorization
+\[
+\pi(v \mid y)
+=
+a(v_{0}) \, h_{v_{0}}(v) \, q(v),
+\]
+and the remainder term obeys the bound
+\[
+0 \le h_{v_{0}}(v) \le 1
+\qquad \text{for all } v>0.
+\]
+
+If the bounding function is chosen to be the likelihood itself,
+\(g(v) = f(y \mid v)\),
+then the envelope is exact at the anchor point:
+\[
+h_{v_{0}}(v_{0}) = 1.
+\]
+
+### Interpretation
+
+The theorem shows that every likelihood-subgradient density produces a valid
+accept-reject envelope for the posterior.  
+The acceptance probability is \(1/a(v_{0})\), and the tightness of the envelope
+is determined by the choice of the anchor point \(v_{0}\) and the subgradient
+\(c(v_{0})\).  
+For exponential-family priors (including Gamma mixtures), the tilted density
+\(q(v)\) remains in the same family, making this construction especially useful
+for dispersion sampling in Gamma regression.
+
+
+## 1.2 Models with Normal Data - Examples
+
+In section, we work throi
+
+### Example 1 (Normal likelihood with Gamma prior on precision)
+
+Let \(y_1,\dots,y_n\) be i.i.d. normal with known mean \(\mu\) and unknown precision
+\(\lambda > 0\):
+\[
+y_i \mid \lambda \sim \mathcal{N}\!\left(\mu,\; \lambda^{-1}\right).
+\]
+Define the sufficient statistic
+\[
+S = \sum_{i=1}^n (y_i - \mu)^2.
+\]
+
+The likelihood for \(\lambda\) is
+\[
+f(y \mid \lambda)
+= (2\pi)^{-n/2}\,\lambda^{n/2}
+  \exp\!\left(-\frac{\lambda S}{2}\right),
+\]
+so the log-likelihood is
+\[
+\ell(\lambda)
+= \log f(y \mid \lambda)
+= -\frac{n}{2}\log(2\pi)
+  + \frac{n}{2}\log\lambda
+  - \frac{\lambda S}{2}.
+\]
+
+Assume a Gamma prior on the precision,
+\[
+\lambda \sim \mathrm{Gamma}(\alpha_0,\beta_0),
+\qquad
+\pi(\lambda)
+= \frac{\beta_0^{\alpha_0}}{\Gamma(\alpha_0)}
+  \lambda^{\alpha_0 - 1} e^{-\beta_0 \lambda},
+\quad \lambda>0,
+\]
+with shape \(\alpha_0>0\) and rate \(\beta_0>0\).
+
+The posterior is conjugate:
+\[
+\lambda \mid y \sim
+\mathrm{Gamma}\!\left(\alpha_n,\beta_n\right),
+\qquad
+\alpha_n = \alpha_0 + \frac{n}{2},
+\quad
+\beta_n  = \beta_0 + \frac{S}{2},
+\]
+so the posterior density is
+\[
+\pi(\lambda \mid y)
+= \frac{\beta_n^{\alpha_n}}{\Gamma(\alpha_n)}
+  \lambda^{\alpha_n - 1} e^{-\beta_n \lambda},
+\quad \lambda>0.
+\]
+
+We now construct a likelihood-subgradient density using the prior
+\(\pi\) and the likelihood \(f(y\mid\lambda)\), following Definition 2 in
+Nygren and Nygren (2006).
+
+Take the bounding function \(g\) equal to the likelihood:
+\[
+g(\lambda) = f(y\mid\lambda),
+\]
+and let \(\lambda_0>0\) be a fixed anchor point. The negative log of the
+bounding function is
+\[
+-\log g(\lambda)
+= \frac{n}{2}\log(2\pi)
+  - \frac{n}{2}\log\lambda
+  + \frac{\lambda S}{2}.
+\]
+The derivative (subgradient in the univariate, smooth case) at
+\(\lambda_0\) is
+\[
+c(\lambda_0)
+= \frac{d}{d\lambda}\bigl[-\log g(\lambda)\bigr]_{\lambda=\lambda_0}
+= -\frac{n}{2\lambda_0} + \frac{S}{2}.
+\]
+
+The corresponding likelihood-subgradient density is
+\[
+q(\lambda)
+=
+\frac{\exp\{-c(\lambda_0)\,\lambda\}\,\pi(\lambda)}
+     {\operatorname{MGF}_\pi(-c(\lambda_0))},
+\qquad \lambda>0,
+\]
+where
+\[
+\operatorname{MGF}_\pi(t)
+= \mathbb{E}_\pi[e^{t\lambda}]
+= \left(\frac{\beta_0}{\beta_0 - t}\right)^{\alpha_0},
+\quad t < \beta_0.
+\]
+For \(t = -c(\lambda_0)\) we obtain
+\[
+\operatorname{MGF}_\pi(-c(\lambda_0))
+= \left(\frac{\beta_0}{\beta_0 + c(\lambda_0)}\right)^{\alpha_0},
+\qquad
+\beta_0 + c(\lambda_0) > 0.
+\]
+
+Because the prior is Gamma, the likelihood-subgradient density is also
+Gamma, with the same shape and a shifted rate:
+\[
+q(\lambda)
+= \mathrm{Gamma}\bigl(\alpha_0,\;\beta_0 + c(\lambda_0)\bigr),
+\]
+i.e.
+\[
+q(\lambda)
+= \frac{(\beta_0 + c(\lambda_0))^{\alpha_0}}{\Gamma(\alpha_0)}
+  \lambda^{\alpha_0 - 1}
+  \exp\!\bigl(-(\beta_0 + c(\lambda_0))\lambda\bigr).
+\]
+
+To study the efficiency of the resulting envelope, we define the
+accept–reject constant \(a(\lambda_0)\) in analogy with equation (6) in
+Nygren and Nygren (2006). From Theorem 1 in that paper,
+\[
+a(\lambda_0)
+=
+\frac{g(\lambda_0)\operatorname{MGF}_\pi(-c(\lambda_0))}
+     {f(y)\,\exp\{-c(\lambda_0)\lambda_0\}},
+\]
+where \(f(y)\) is the marginal likelihood,
+\[
+f(y)
+=
+\int_0^\infty f(y\mid\lambda)\,\pi(\lambda)\,d\lambda.
+\]
+
+For this normal–Gamma model, the marginal likelihood is available in
+closed form:
+\[
+f(y)
+=
+(2\pi)^{-n/2}
+\frac{\beta_0^{\alpha_0}}{\Gamma(\alpha_0)}
+\frac{\Gamma(\alpha_n)}{\beta_n^{\alpha_n}}.
+\]
+
+Substituting
+\[
+g(\lambda_0) = f(y\mid\lambda_0)
+= (2\pi)^{-n/2}\lambda_0^{n/2}\exp\!\left(-\frac{\lambda_0 S}{2}\right),
+\]
+\[
+\operatorname{MGF}_\pi(-c(\lambda_0))
+=
+\left(\frac{\beta_0}{\beta_0 + c(\lambda_0)}\right)^{\alpha_0},
+\]
+and
+\[
+\exp\{-c(\lambda_0)\lambda_0\}
+=
+\exp\!\left\{
+-\left(-\frac{n}{2\lambda_0} + \frac{S}{2}\right)\lambda_0
+\right\}
+=
+\exp\!\left(-\frac{n}{2} + \frac{\lambda_0 S}{2}\right),
+\]
+into the expression for \(a(\lambda_0)\), we obtain
+\[
+a(\lambda_0)
+=
+\frac{
+ (2\pi)^{-n/2}\lambda_0^{n/2}
+ \exp\!\left(-\frac{\lambda_0 S}{2}\right)
+ \left(\dfrac{\beta_0}{\beta_0 + c(\lambda_0)}\right)^{\alpha_0}
+}{
+ (2\pi)^{-n/2}
+ \dfrac{\beta_0^{\alpha_0}}{\Gamma(\alpha_0)}
+ \dfrac{\Gamma(\alpha_n)}{\beta_n^{\alpha_n}}
+ \exp\!\left(-\frac{n}{2} + \frac{\lambda_0 S}{2}\right)
+}.
+\]
+
+The \((2\pi)^{-n/2}\) terms cancel, and the exponential terms
+\(\exp(-\lambda_0 S/2)\) and \(\exp(\lambda_0 S/2)\) combine to
+\(\exp(-n/2)\), yielding the explicit envelope constant
+\[
+a(\lambda_0)
+=
+\exp\!\left(-\frac{n}{2}\right)
+\lambda_0^{n/2}
+\left(\frac{\beta_0}{\beta_0 + c(\lambda_0)}\right)^{\alpha_0}
+\frac{\Gamma(\alpha_0)\,\beta_n^{\alpha_n}}{\beta_0^{\alpha_0}\,\Gamma(\alpha_n)},
+\]
+with
+\[
+c(\lambda_0)
+= -\frac{n}{2\lambda_0} + \frac{S}{2},
+\qquad
+\alpha_n = \alpha_0 + \frac{n}{2},
+\quad
+\beta_n  = \beta_0 + \frac{S}{2}.
+\]
+
+This scalar expression plays the same role for the Gamma–precision
+model as equation (7) does for the multivariate normal example in
+Nygren and Nygren (2006): it quantifies the tightness of the envelope
+resulting from a single likelihood-subgradient density anchored at
+\(\lambda_0\), and it can be minimized over \(\lambda_0\) to obtain the
+“best” single-tangent envelope.
+
+In particular, differentiating \(\log a(\lambda_0)\) with respect to
+\(\lambda_0\) shows that the minimizing value of \(\lambda_0\) coincides
+with the posterior mode of \(\lambda\), mirroring the optimality
+property of \(\theta^*\) in Example 1 of Nygren and Nygren (2006).
+As in that example, the optimal \(a(\lambda_0)\) deteriorates as \(n\)
+increases, illustrating the limitations of a single-tangent envelope and
+motivating mixture constructions in more complex models.
+
+
+##
+
+### Posterior mode (or mean) and minimization of \(a(\lambda_0)\)
+
+Recall from the example:
+
+- Prior:
+  \[
+  \lambda \sim \mathrm{Gamma}(\alpha_0,\beta_0),
+  \qquad
+  \pi(\lambda)
+  = \frac{\beta_0^{\alpha_0}}{\Gamma(\alpha_0)}
+    \lambda^{\alpha_0 - 1} e^{-\beta_0 \lambda}.
+  \]
+- Likelihood:
+  \[
+  f(y \mid \lambda)
+  = (2\pi)^{-n/2}\,\lambda^{n/2}
+    \exp\!\left(-\frac{\lambda S}{2}\right),
+  \qquad
+  S = \sum_{i=1}^n (y_i - \mu)^2.
+  \]
+- Posterior:
+  \[
+  \lambda \mid y \sim
+  \mathrm{Gamma}(\alpha_n,\beta_n),
+  \qquad
+  \alpha_n = \alpha_0 + \frac{n}{2},
+  \quad
+  \beta_n  = \beta_0 + \frac{S}{2}.
+  \]
+
+The negative log of the bounding function \(g(\lambda)=f(y\mid\lambda)\) is
+\[
+-\log g(\lambda)
+= \frac{n}{2}\log(2\pi)
+  - \frac{n}{2}\log\lambda
+  + \frac{\lambda S}{2},
+\]
+so the subgradient at \(\lambda_0>0\) is
+\[
+c(\lambda_0)
+= \frac{d}{d\lambda}\bigl[-\log g(\lambda)\bigr]_{\lambda=\lambda_0}
+= -\frac{n}{2\lambda_0} + \frac{S}{2}.
+\]
+
+The envelope constant from Theorem 1 of Nygren & Nygren (2006) is
+\[
+a(\lambda_0)
+=
+\frac{g(\lambda_0)\operatorname{MGF}_\pi(-c(\lambda_0))}
+     {f(y)\,\exp\{-c(\lambda_0)\lambda_0\}},
+\]
+where
+\[
+g(\lambda_0) = f(y\mid\lambda_0)
+= (2\pi)^{-n/2}\lambda_0^{n/2}
+  \exp\!\left(-\frac{\lambda_0 S}{2}\right),
+\]
+\[
+\operatorname{MGF}_\pi(-c(\lambda_0))
+=
+\left(\frac{\beta_0}{\beta_0 + c(\lambda_0)}\right)^{\alpha_0},
+\qquad
+\beta_0 + c(\lambda_0) > 0,
+\]
+and the marginal likelihood is
+\[
+f(y)
+=
+(2\pi)^{-n/2}
+\frac{\beta_0^{\alpha_0}}{\Gamma(\alpha_0)}
+\frac{\Gamma(\alpha_n)}{\beta_n^{\alpha_n}}.
+\]
+
+Moreover,
+\[
+\exp\{-c(\lambda_0)\lambda_0\}
+=
+\exp\!\left\{
+-\left(-\frac{n}{2\lambda_0} + \frac{S}{2}\right)\lambda_0
+\right\}
+=
+\exp\!\left(-\frac{n}{2} + \frac{\lambda_0 S}{2}\right).
+\]
+
+Putting these together and cancelling the \((2\pi)^{-n/2}\) factors yields
+\[
+a(\lambda_0)
+=
+\exp\!\left(-\frac{n}{2}\right)
+\lambda_0^{n/2}
+\left(\frac{\beta_0}{\beta_0 + c(\lambda_0)}\right)^{\alpha_0}
+\frac{\Gamma(\alpha_0)\,\beta_n^{\alpha_n}}{\beta_0^{\alpha_0}\,\Gamma(\alpha_n)},
+\]
+with
+\[
+c(\lambda_0)
+= -\frac{n}{2\lambda_0} + \frac{S}{2},
+\qquad
+\alpha_n = \alpha_0 + \frac{n}{2},
+\quad
+\beta_n  = \beta_0 + \frac{S}{2}.
+\]
+
+For optimization it is convenient to note that
+\[
+\beta_0 + c(\lambda_0)
+= \beta_0 + \frac{S}{2} - \frac{n}{2\lambda_0}
+= \beta_n - \frac{n}{2\lambda_0}.
+\]
+
+Ignoring multiplicative constants that do not depend on \(\lambda_0\),
+we can write
+\[
+\log a(\lambda_0)
+= \frac{n}{2}\log\lambda_0
+  + \alpha_0\bigl[\log\beta_0 - \log(\beta_n - \tfrac{n}{2\lambda_0})\bigr]
+  + \text{const},
+\]
+where "const" does not depend on \(\lambda_0\).
+
+Differentiate with respect to \(\lambda_0\):
+\[
+\frac{d}{d\lambda_0}\log a(\lambda_0)
+= \frac{n}{2}\cdot\frac{1}{\lambda_0}
+  - \alpha_0\,
+    \frac{\tfrac{n}{2\lambda_0^2}}{\beta_n - \tfrac{n}{2\lambda_0}}.
+\]
+
+Set this derivative equal to zero to find the minimizer:
+\[
+\frac{n}{2}\cdot\frac{1}{\lambda_0}
+=
+\alpha_0\,
+\frac{\tfrac{n}{2\lambda_0^2}}{\beta_n - \tfrac{n}{2\lambda_0}}.
+\]
+
+Cancel the common factor \(n/2\) and multiply both sides by \(\lambda_0^2\):
+\[
+\lambda_0
+=
+\frac{\alpha_0}{\beta_n - \tfrac{n}{2\lambda_0}}.
+\]
+
+Rearrange:
+\[
+\lambda_0\left(\beta_n - \frac{n}{2\lambda_0}\right)
+= \alpha_0
+\quad\Longrightarrow\quad
+\lambda_0\beta_n - \frac{n}{2}
+= \alpha_0.
+\]
+
+Hence the unique stationary point is
+\[
+\lambda_0^{\star}
+= \frac{\alpha_0 + \frac{n}{2}}{\beta_n}
+= \frac{\alpha_n}{\beta_n}.
+\]
+
+Because the second derivative of \(\log a(\lambda_0)\) at this point is
+negative (for \(\alpha_0>0\), \(\beta_n>0\)), this stationary point
+is the unique minimizer of \(a(\lambda_0)\).
+
+Thus, in this normal–Gamma precision example, the envelope constant
+\(a(\lambda_0)\) is minimized when the anchor point \(\lambda_0\) is set
+equal to the **posterior mean**
+\[
+\mathbb{E}[\lambda\mid y] = \frac{\alpha_n}{\beta_n},
+\]
+rather than the posterior mode \((\alpha_n-1)/\beta_n\).
+For large \(n\), however, the posterior mean and mode are asymptotically
+close, so the optimal \(\lambda_0^{\star}\) and the posterior mode coincide
+up to \(O(1/n)\) terms, mirroring the behavior of the multivariate normal
+example in Nygren and Nygren (2006).
+
+Substituting \(\lambda_0^{\star} = \alpha_n/\beta_n\) into the expression
+for \(a(\lambda_0)\), we obtain
+\[
+\beta_0 + c(\lambda_0^{\star})
+= \beta_n - \frac{n}{2\lambda_0^{\star}}
+= \beta_n - \frac{n}{2}\cdot\frac{\beta_n}{\alpha_n}
+= \beta_n\left(1 - \frac{n}{2\alpha_n}\right)
+= \beta_n\frac{2\alpha_n - n}{2\alpha_n}
+= \beta_n\frac{2\alpha_0}{2\alpha_n}
+= \beta_n\frac{\alpha_0}{\alpha_n},
+\]
+so that
+\[
+\frac{\beta_0}{\beta_0 + c(\lambda_0^{\star})}
+=
+\frac{\beta_0}{\beta_n\,\alpha_0/\alpha_n}
+=
+\frac{\beta_0\alpha_n}{\beta_n\alpha_0},
+\]
+and
+\[
+\left(\frac{\beta_0}{\beta_0 + c(\lambda_0^{\star})}\right)^{\alpha_0}
+=
+\left(\frac{\beta_0\alpha_n}{\beta_n\alpha_0}\right)^{\alpha_0}.
+\]
+
+Thus the optimized envelope constant simplifies to
+\[
+a(\lambda_0^{\star})
+=
+\exp\!\left(-\frac{n}{2}\right)
+\left(\frac{\alpha_n}{\beta_n}\right)^{n/2}
+\left(\frac{\beta_0\alpha_n}{\beta_n\alpha_0}\right)^{\alpha_0}
+\frac{\Gamma(\alpha_0)\,\beta_n^{\alpha_n}}{\beta_0^{\alpha_0}\,\Gamma(\alpha_n)}.
+\]
+
+This explicit form plays the same role here as equation (7) does in
+Example 1 of Nygren and Nygren (2006): it quantifies the tightness of
+the best single-tangent envelope in this normal–Gamma precision setting
+and makes the deterioration of \(a(\lambda_0^{\star})\) with increasing
+sample size \(n\) analytically transparent.
+
+<!-- ### Special case: \(\beta_0/\alpha_0 = \beta_n/\alpha_n = S/n\) -->
+
+<!-- Assume -->
+<!-- \[ -->
+<!-- \frac{\beta_0}{\alpha_0} = \frac{\beta_n}{\alpha_n} = \frac{S}{n} = c, -->
+<!-- \quad S/n \text{ fixed in } n. -->
+<!-- \] -->
+<!-- Then -->
+<!-- \[ -->
+<!-- \beta_0 = c\,\alpha_0,\qquad -->
+<!-- \beta_n = c\,\alpha_n, -->
+<!-- \qquad -->
+<!-- \alpha_n = \alpha_0 + \frac{n}{2}. -->
+<!-- \] -->
+
+<!-- The optimized envelope constant is -->
+<!-- \[ -->
+<!-- a(\lambda_0^{\star}) -->
+<!-- = -->
+<!-- \exp\!\left(-\frac{n}{2}\right) -->
+<!-- \left(\frac{\alpha_n}{\beta_n}\right)^{n/2} -->
+<!-- \left(\frac{\beta_0\alpha_n}{\beta_n\alpha_0}\right)^{\alpha_0} -->
+<!-- \frac{\Gamma(\alpha_0)\,\beta_n^{\alpha_n}}{\beta_0^{\alpha_0}\,\Gamma(\alpha_n)}. -->
+<!-- \] -->
+
+<!-- Under the special case: -->
+
+<!-- 1. **Second factor**: -->
+<!--    \[ -->
+<!--    \frac{\alpha_n}{\beta_n} -->
+<!--    = \frac{\alpha_n}{c\,\alpha_n} -->
+<!--    = \frac{1}{c}, -->
+<!--    \] -->
+<!--    so -->
+<!--    \[ -->
+<!--    \left(\frac{\alpha_n}{\beta_n}\right)^{n/2} -->
+<!--    = \left(\frac{1}{c}\right)^{n/2}, -->
+<!--    \] -->
+<!--    which is *independent of* \(\alpha_n,\beta_n\) (and thus independent of how the posterior updates), but still depends on \(n\) through the exponent. -->
+
+<!-- 2. **Third factor**: -->
+<!--    \[ -->
+<!--    \frac{\beta_0\alpha_n}{\beta_n\alpha_0} -->
+<!--    = \frac{c\,\alpha_0\,\alpha_n}{c\,\alpha_n\,\alpha_0} -->
+<!--    = 1, -->
+<!--    \] -->
+<!--    hence -->
+<!--    \[ -->
+<!--    \left(\frac{\beta_0\alpha_n}{\beta_n\alpha_0}\right)^{\alpha_0} = 1. -->
+<!--    \] -->
+
+<!-- So under your calibration, the expression simplifies to -->
+<!-- \[ -->
+<!-- a(\lambda_0^{\star}) -->
+<!-- = -->
+<!-- \exp\!\left(-\frac{n}{2}\right) -->
+<!-- \left(\frac{1}{c}\right)^{n/2} -->
+<!-- \frac{\Gamma(\alpha_0)\,(c\,\alpha_n)^{\alpha_n}}{(c\,\alpha_0)^{\alpha_0}\,\Gamma(\alpha_n)}. -->
+<!-- \] -->
+
+<!-- Equivalently, -->
+<!-- \[ -->
+<!-- a(\lambda_0^{\star}) -->
+<!-- = -->
+<!-- \exp\!\left(-\frac{n}{2}\right) -->
+<!-- \left(\frac{1}{c}\right)^{n/2} -->
+<!-- \cdot -->
+<!-- \frac{\Gamma(\alpha_0)}{\Gamma(\alpha_n)} -->
+<!-- \cdot -->
+<!-- c^{\alpha_n-\alpha_0}\, -->
+<!-- \frac{\alpha_n^{\alpha_n}}{\alpha_0^{\alpha_0}}. -->
+<!-- \] -->
+
+<!-- You’re exactly right that, in this calibrated case, the “shape” of the behavior is driven by -->
+
+<!-- - the exponential term \(\exp(-n/2)\),   -->
+<!-- - the Stirling-type behavior of \(\Gamma(\alpha_n)\),   -->
+<!-- - and the \(\alpha_n^{\alpha_n}\) factor, -->
+
+<!-- rather than by any drift in \(\beta_n/\alpha_n\), which has been pinned down to equal \(S/n\). -->
+
+
+<!-- ### Special case analysis: \(\beta_0/\alpha_0 = \beta_n/\alpha_n = S/n\) -->
+
+<!-- Your instinct to look at the ratio \(\beta_n/\alpha_n\) is exactly right; it’s the quantity that behaves like an “effective variance” in this precision story. -->
+
+<!-- Recall: -->
+<!-- \[ -->
+<!-- \alpha_n = \alpha_0 + \frac{n}{2}, -->
+<!-- \qquad -->
+<!-- \beta_n  = \beta_0 + \frac{S}{2}. -->
+<!-- \] -->
+
+<!-- Impose the special case -->
+<!-- \[ -->
+<!-- \frac{\beta_0}{\alpha_0} = \frac{\beta_n}{\alpha_n} = \frac{S}{n} =: c, -->
+<!-- \] -->
+<!-- with \(c>0\) fixed and \(S/n\) constant in \(n\). -->
+
+<!-- Then: -->
+
+<!-- 1. From \(\beta_0/\alpha_0 = c\), we get -->
+<!--    \[ -->
+<!--    \beta_0 = c\,\alpha_0. -->
+<!--    \] -->
+<!-- 2. From \(\beta_n/\alpha_n = c\), we get -->
+<!--    \[ -->
+<!--    \beta_n = c\,\alpha_n. -->
+<!--    \] -->
+<!-- 3. From the definition of \(\beta_n\), -->
+<!--    \[ -->
+<!--    \beta_n = \beta_0 + \frac{S}{2} -->
+<!--    \quad\Longrightarrow\quad -->
+<!--    c\,\alpha_n = c\,\alpha_0 + \frac{c n}{2}, -->
+<!--    \] -->
+<!--    because \(S = cn\). But \(\alpha_n = \alpha_0 + n/2\), so this identity is automatically satisfied. Thus the constraint is internally consistent for all \(n\), given \(\beta_0 = c\,\alpha_0\). -->
+
+<!-- Under this special case, the posterior mean -->
+<!-- \[ -->
+<!-- \lambda_0^{*} = \frac{\alpha_{n}}{\beta_{n}} = \frac{1}{c} -->
+<!-- \] -->
+<!-- is **constant in \(n\)**, which matches your intuition: the “target precision” stays fixed, so the optimized anchor \(\lambda_0^{*} \) does not move as you add more data. -->
+
+<!-- --- -->
+
+<!-- ### Behavior of \(a(\lambda_0^{*} )\) in this special case -->
+
+<!-- From the earlier derivation (which didn’t use any assumption on \(\beta_n/\alpha_n\)), we already simplified the optimized envelope constant to -->
+<!-- \[ -->
+<!-- \log a(\lambda_0^{*} ) -->
+<!-- = -->
+<!-- -\frac{n}{2} -->
+<!-- + \Bigl(\frac{n}{2} + \alpha_0\Bigr)\log \alpha_n -->
+<!-- - \log \Gamma(\alpha_n) -->
+<!-- + \text{const}, -->
+<!-- \] -->
+<!-- with \(\alpha_n = \alpha_0 + n/2\). Under the special case, nothing in this expression changes algebraically: the \(\log\beta_n\) terms have already cancelled, so the \(\beta_n/\alpha_n\) constraint doesn’t further alter the formula. -->
+
+<!-- Hence the large-\(n\) asymptotics are governed by the balance between -->
+
+<!-- - the linear term \(-n/2\), -->
+<!-- - the “entropy” term \(\log\Gamma(\alpha_n)\), -->
+<!-- - and the \((n/2+\alpha_0)\log\alpha_n\) term. -->
+
+<!-- Using Stirling again, -->
+<!-- \[ -->
+<!-- \log \Gamma(\alpha_n) -->
+<!-- = -->
+<!-- \Bigl(\alpha_n - \tfrac{1}{2}\Bigr)\log \alpha_n -->
+<!-- - \alpha_n -->
+<!-- + O(1), -->
+<!-- \] -->
+<!-- so -->
+<!-- \[ -->
+<!-- \log a(\lambda_0^{*}  ) -->
+<!-- = -->
+<!-- -\frac{n}{2} -->
+<!-- + \Bigl(\frac{n}{2} + \alpha_0\Bigr)\log \alpha_n -->
+<!-- - \Bigl(\alpha_n - \tfrac{1}{2}\Bigr)\log \alpha_n -->
+<!-- + \alpha_n -->
+<!-- + O(1). -->
+<!-- \] -->
+
+<!-- As before, the coefficient of \(\log\alpha_n\) is -->
+<!-- \[ -->
+<!-- \frac{n}{2} + \alpha_0 - \Bigl(\alpha_0 + \frac{n}{2} - \frac{1}{2}\Bigr) -->
+<!-- = \frac{1}{2}, -->
+<!-- \] -->
+<!-- and \(\alpha_n = \alpha_0 + n/2\) gives -->
+<!-- \[ -->
+<!-- \log a(\lambda_0^{*}) -->
+<!-- = -->
+<!-- -\frac{n}{2} -->
+<!-- + \frac{1}{2}\log(\alpha_0 + n/2) -->
+<!-- + \alpha_0 + \frac{n}{2} -->
+<!-- + O(1) -->
+<!-- = -->
+<!-- \alpha_0 + \frac{1}{2}\log(\alpha_0 + n/2) + O(1). -->
+<!-- \] -->
+
+<!-- Thus, even in the special case where -->
+<!-- \[ -->
+<!-- \frac{\beta_0}{\alpha_0} -->
+<!-- = \frac{\beta_n}{\alpha_n} -->
+<!-- = \frac{S}{n} -->
+<!-- = c, -->
+<!-- \] -->
+<!-- and the anchor \(\lambda_0^{*}\) is fixed, we still get the same asymptotic behavior: -->
+<!-- \[ -->
+<!-- \log a(\lambda_0^{*} ) = \frac{1}{2}\log n + O(1), -->
+<!-- \qquad -->
+<!-- a(\lambda_0^{*}) \asymp \text{const}\cdot n^{1/2}. -->
+<!-- \] -->
+
+<!-- So you’re exactly right that: -->
+
+<!-- - **You cannot infer the asymptotics from any single multiplicative factor** like \(\exp(-n/2)\); it’s the cancellation pattern—particularly with \(\log\Gamma(\alpha_n)\)—that determines the rate. -->
+<!-- - In this carefully calibrated “constant \(\beta_n/\alpha_n\)” regime, the optimized single-tangent envelope still deteriorates, but only at a **\(\sqrt{n}\)** rate, and that conclusion only appears after tracking each term in \(\log a(\lambda_0^{*})\) and using Stirling. -->
+
+<!-- What your special case buys you is conceptual clarity: it decouples the “effective precision level” (fixed via \(\beta_n/\alpha_n\)) from the pure sample-size effect, making it transparent that the growth in \(a(\lambda_0^{*})\) is driven entirely by the combinatorial/entropy structure of the Gamma shape parameter, not by drift in the posterior mean precision itself. -->
+
+##
+
+## Gradient of the log‑posterior \( f'(v) \) for the Gamma–GLM precision
+
+For observations  
+\[
+Y_i \mid v \sim \text{Gamma}(\text{shape}=v,\ \text{rate}=v/\mu_i),
+\qquad 
+\mu_i = \exp(x_i^\top\beta + \alpha_i),
+\]
+with weights \(w_i\), and prior  
+\[
+v \sim \text{Gamma}(a_0, b_0),
+\]
+the unnormalized log‑posterior is
+\[
+f(v)
+=
+\sum_{i=1}^n
+w_i\Big[
+v\log v
+- v\log\mu_i
++ (v-1)\log y_i
+- \log\Gamma(v)
+- v\,\frac{y_i}{\mu_i}
+\Big]
++
+(a_0 - 1)\log v
+- b_0 v.
+\]
+
+Differentiating term by term with respect to \(v\), the gradient of the log‑posterior is
+\[
+\boxed{
+f'(v)
+=
+\sum_{i=1}^n
+w_i\Big[
+\log v + 1
+- \log\mu_i
++ \log y_i
+- \psi(v)
+- \frac{y_i}{\mu_i}
+\Big]
++
+\frac{a_0 - 1}{v}
+- b_0
+}
+\]
+where \( \psi(v) \) is the digamma function.
+###
+
+
+
+\[
+f'(v)
+=
+\underbrace{
+\left(\sum_{i=1}^n w_i\right)\big[\log v - \psi(v)\big]
++
+\frac{a_0 - 1}{v}
+}_{\text{terms depending on } v}
+\;+\;
+\underbrace{
+\sum_{i=1}^n w_i\Big[1 - \log\mu_i + \log y_i - \frac{y_i}{\mu_i}\Big]
+- b_0
+}_{\text{terms not depending on } v}
+\]
+
+
+\[
+\boxed{
+b_{\text{post}}(v)
+=
+b_0
++
+\sum_{i=1}^n
+w_i\Big[
+\frac{y_i}{\mu_i}
++ \log\mu_i
+- \log y_i
+- 1
+\Big]
+}
+\]
+
+where the sum is guaranteed to be non-negative.
+
+## Second derivative of the log‑posterior \( f''(v) \) for the Gamma–GLM precision
+
+Recall the gradient for the full log‑posterior
+\[
+f'(v)
+=
+\sum_{i=1}^n
+w_i\Big[
+\log v + 1
+- \log\mu_i
++ \log y_i
+- \psi(v)
+- \frac{y_i}{\mu_i}
+\Big]
++
+\frac{a_0 - 1}{v}
+- b_0,
+\]
+where \( \psi(v) \) is the digamma function.
+
+Differentiate term by term with respect to \(v\).
+
+- For the likelihood part inside the sum:
+  - \( \dfrac{d}{dv}(\log v) = \dfrac{1}{v} \)
+  - \( \dfrac{d}{dv}(1) = 0 \)
+  - \( \dfrac{d}{dv}(-\log\mu_i) = 0 \) (since \(\mu_i\) is fixed here)
+  - \( \dfrac{d}{dv}(\log y_i) = 0 \) (data)
+  - \( \dfrac{d}{dv}[-\psi(v)] = -\psi_1(v) \), where \( \psi_1(v) \) is the trigamma function
+  - \( \dfrac{d}{dv}\Big(-\dfrac{y_i}{\mu_i}\Big) = 0 \) (since \(y_i,\mu_i\) are fixed)
+
+So for each \(i\),
+\[
+\frac{d}{dv}
+\Big[
+\log v + 1
+- \log\mu_i
++ \log y_i
+- \psi(v)
+- \frac{y_i}{\mu_i}
+\Big]
+=
+\frac{1}{v} - \psi_1(v).
+\]
+
+Multiplying by \(w_i\) and summing over \(i\),
+\[
+\frac{d}{dv}
+\left(
+\sum_{i=1}^n
+w_i\Big[
+\log v + 1
+- \log\mu_i
++ \log y_i
+- \psi(v)
+- \frac{y_i}{\mu_i}
+\Big]
+\right)
+=
+\sum_{i=1}^n
+w_i\Big(
+\frac{1}{v} - \psi_1(v)
+\Big).
+\]
+
+- For the prior term:
+  - \( \dfrac{d}{dv}\left(\dfrac{a_0 - 1}{v}\right) = -\dfrac{a_0 - 1}{v^2} \)
+  - \( \dfrac{d}{dv}(-b_0) = 0 \)
+
+Putting it all together,
+\[
+f''(v)
+=
+\sum_{i=1}^n
+w_i\Big(
+\frac{1}{v} - \psi_1(v)
+\Big)
+-
+\frac{a_0 - 1}{v^2}.
+\]
+
+Equivalently,
+\[
+\boxed{
+f''(v)
+=
+\left(\sum_{i=1}^n w_i\right)\frac{1}{v}
+-
+\left(\sum_{i=1}^n w_i\right)\psi_1(v)
+-
+\frac{a_0 - 1}{v^2}
+}
+\]
+
+and, after putting everything over a common denominator \(v^2\),
+\[
+\boxed{
+f''(v)
+=
+\frac{
+\left(\sum_{i=1}^n w_i\right)v
+-
+\left(\sum_{i=1}^n w_i\right)\psi_1(v)\,v^2
+-
+(a_0 - 1)
+}{
+v^2
+}
+}
+\]
+where \( \psi_1(v) \) is the trigamma function.
+
+This motivates defining the curvature‑based quantity
+\[
+a_{\text{post}}(v)
+=
+a_0
++
+\left(\sum_{i=1}^n w_i\right)\psi_1(v)\,v^2
+-
+\left(\sum_{i=1}^n w_i\right)v,
+\]
+so that it satisfies the identity
+\[
+a_{\text{post}}(v) - 1
+=
+-\,v^2\, f''(v).
+\]
+
+
+In the above results, we noted that the optimal positioning of the tangency point is at the expected value for the precision under the posterior. To derive an estimate for this
+
+
