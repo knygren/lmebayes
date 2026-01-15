@@ -198,10 +198,10 @@ estimation procedures, likelihood subgradient densities, envelope construction, 
 sampling, and technical reports on sampler design including implementation aspects for GPU acceleration using
 OpenCL.
 
-- **Chapter A1 — Overview of Estimation Procedures**  
+- **Chapter A1 — A detailed overview of the glmbayes package**  
 https://knygren.r-universe.dev/articles/glmbayes/Chapter-A1.html
 
-- **Chapter A2 — Simulation Methods - Likelihood Subgradient Densities**  
+- **Chapter A2 — Overview of Estimation Procedures**  
 https://knygren.r-universe.dev/articles/glmbayes/Chapter-A2.html
 
 - **Chapter A3 — Methods Available in glmbayes**  

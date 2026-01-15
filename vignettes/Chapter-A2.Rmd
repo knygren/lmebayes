@@ -1,12 +1,12 @@
 Yaml
 
 ---
-title: "Chapter A1: Overview of Estimation Procedures"
+title: "Chapter A2: Overview of Estimation Procedures"
 author: "Kjell Nygren"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Chapter A1: Overview of Estimation Procedures}
+  %\VignetteIndexEntry{Chapter A2: Overview of Estimation Procedures}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -22,7 +22,7 @@ knitr::opts_chunk$set(
 library(glmbayes)
 ```
 
-# Chapter A1: Overview of Estimation Procedures
+# Chapter A2: Overview of Estimation Procedures
 
 ## Introduction
 
