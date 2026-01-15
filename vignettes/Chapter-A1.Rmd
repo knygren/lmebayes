@@ -22,87 +22,309 @@ knitr::opts_chunk$set(
 library(glmbayes)
 ```
 
+# Chapter A1: Overview of Estimation Procedures
 
-# Chapter A1: Simulation Functions for Bayesian Generalized Linear Models
+## Introduction
 
-Kjell Nygren  
-2026-01-XX
+This vignette describes the computational architecture used by the glmbayes package to generate
+independent and identically distributed (iid) samples from Bayesian generalized linear models
+(GLMs). The central idea is that posterior simulation is handled by a small set of low-level
+simulation functions ("simfunctions") that implement either conjugate sampling formulas or
+envelope-based accept-reject methods. These simfunctions are called by higher-level modeling
+functions such as `glmb()` and `lmb()`, which provide formula interfaces, model frames, and
+S3 methods.
 
-This chapter provides an overview of the simulation functions ("simfunctions") that form the computational
-core of the glmbayes package. These functions generate independent and identically distributed (iid) samples
-from posterior distributions for Bayesian generalized linear models (GLMs). They are lower-level, high-performance
-building blocks used internally by the higher-level modeling functions `glmb()` and `lmb()`, and they are
-also suitable for use in Gibbs samplers, block samplers, and other custom simulation-based inference methods.
+The simfunctions implement both classical conjugate Bayesian updating and the likelihood-subgradient
+envelope methods developed in Nygren and Nygren (2006). The envelope-based methods are documented
+in detail in Appendix A2 and A5 (coefficient envelopes), Appendix A6 (Gamma-family dispersion envelopes),
+and Appendix A7 (joint envelopes for Gaussian regression with independent Normal-Gamma priors).
 
-The simfunctions implement both classical conjugate sampling procedures and the envelope-based accept-reject
-methods developed in Nygren and Nygren (2006). The envelope-based methods are documented in detail in
-Appendix A5 (coefficient samplers), Appendix A6 (Gamma-family dispersion sampler), and Appendix A7
-(joint sampling for Gaussian regression with independent Normal-Gamma priors).
-
-All functions described here are implemented in the file `simfunctions.R`, and many call optimized C or C++
-routines for envelope construction and sampling. These routines include:
-
-- `EnvelopeBuild` and `EnvelopeBuild_c.cpp`
-- `EnvelopeDispersionBuild_cpp`
-- `.rnnorm_reg_cpp`
-- `.rindep_norm_gamma_reg_std_cpp`
-- `.rindep_norm_gamma_reg_std_parallel_cpp`
-- `.rnorm_reg_cpp`
-- The numerically robust truncated-Gamma sampler `ctrgamma`
-
-The purpose of this chapter is to describe how these functions fit together, how they map to families and
-pfamilies, and how they relate to the theoretical results in the JASA paper and the appendix chapters.
+This chapter begins by describing the role of `rglmb()`,  `rlmb()`and the `pfamily` system, which together
+determine which simfunction is used for a given model. Later sections describe the simfunctions
+themselves, the mapping between likelihood families and prior families, and the C++ routines used
+for envelope construction and sampling.
 
 
-## 1. What the Simulation Functions Do
+## 1. rglmb/rlmb, pfamilies, and the Simulation Architecture
 
-The simulation functions provide a unified interface for generating posterior samples for:
+The functions `rglmb()` and `rlmb()`are the minimalistic engines for Bayesian GLM simulation. They are called
+internally by `glmb()` and `lmb()` respectively, which provides formula-based interfaces similar to `glm()` and `lm()` respectively. In contrast, `rglmb()` and `rlmb()`works directly with numeric inputs and avoids the overhead of model frames, formulas, and method dispatches. Their main purpose is to generate iid posterior draws given:
 
-1. Regression coefficients beta
-2. Dispersion or precision parameters phi or tau
-3. Joint sampling of (beta, phi) when required by the prior structure
+- a response vector `y`
+- a design matrix `x`
+- a likelihood family (e.g., `gaussian()`, `poisson()`, `binomial()`)
+- a prior family (`pfamily`)
+- optional weights, offsets, and envelope controls
 
-They are designed to:
+Unlike `glmb()`and `lmb(), `rglmb()` and `rlmb()` do not compute fitted values, residuals, or diagnostics. They simply
+dispatche to the correct simfunctions and return the resulting posterior draws. The lower overhead associated with these functions make them a good choice when calling the estimation procedures repeatedly (say as part of Gibbs sampling procedures). 
 
-- Produce iid samples (not MCMC chains)
-- Use conjugate sampling when available
-- Use envelope-based accept-reject sampling when conjugacy is not available
-- Provide minimal overhead for use inside Gibbs samplers or custom algorithms
-- Expose internal quantities such as posterior modes, envelopes, iteration counts, and standardized models
 
-The higher-level functions `glmb()` and `lmb()` wrap these simfunctions with additional overhead:
-model frames, formulas, fitted objects, diagnostics, and S3 methods. The simfunctions avoid this overhead
-and are therefore preferred when building custom samplers or when performance is critical.
+### 1.1 How glmb and lmb use rglmb and rlmb respectively 
+
+The functions `glmb()` and `lmb()` are the high-level modeling interface. They:
+
+- parse formulas
+- construct model frames
+- handle missing data
+- attach S3 methods for printing, summarizing, predicting, and extracting diagnostics
+
+Once the model frames are constructed, `glmb()` and `lmb()`call `rglmb()` and `rlmb()`respectively to generate the posterior samples.
+
+Thus:
+
+glmb()  -->  rglmb()  -->  simfunction  -->  posterior draws
+
+and 
+
+lmb()  -->  rlmb()  -->  simfunction  -->  posterior draws
+
+respectively.
+
+This separation mirrors the classical distinction between `glm()`/ `lm()`and the underlying IRLS routines.
+
+
+
+
+### 1.2 pfamilies: the Bayesian analogue of family()
+
+In classical GLMs, the `family` object determines the likelihood and link. In glmbayes, the
+`pfamily` object plays the same role for priors. Each pfamily object:
+
+- names the prior family (`pfamily$pfamily`)
+- stores the prior hyperparameters (`pfamily$prior_list`)
+- records the likelihood families it supports (`pfamily$okfamilies`)
+- provides a function for the allowable links (`pfamily$plinks`)
+- embeds the simulation function to call (`pfamily$simfun`)
+
+This design mirrors the structure of `glm()`:  
+`family` determines the likelihood, and `pfamily` determines the prior and the sampling method.
+The combination `(family, pfamily)` uniquely determines which simfunction is used.
+
+To utilize pfamilies when calling the higher level `glmb()` and `lmb()` or the lower level
+`rglmb()` and `rlmb()` functions, users must provide the hyperparameters needed to populate the
+`pfamily$prior_list`. These hyperparameters vary across pfamilies largely based on whether the
+prior specified sets a prior for regression coefficients, dispersion parameters, or both jointly.
+
+The pfamilies currently implemented in glmbayes differ primarily in whether they place priors on
+regression coefficients, dispersion parameters, or both. The table below summarizes the
+hyperparameters associated with each pfamily.
+
+---------------------------------------------------------------------------
+pfamily name                 Prior components in prior_list
+---------------------------------------------------------------------------
+
+dNormal                     mu: prior mean vector for coefficients
+                            Sigma: prior covariance matrix
+                            dispersion: fixed dispersion (if applicable)
+
+dGamma                      shape: shape parameter for Gamma prior on precision
+                            rate: rate parameter for Gamma prior on precision
+                            beta: regression coefficients (used when updating
+                                  dispersion separately)
+                            max_disp_perc: percentile used to truncate the
+                                  posterior dispersion distribution
+                            disp_lower, disp_upper: optional user-specified
+                                  truncation bounds
+
+dNormal_Gamma               mu: prior mean vector for coefficients
+                            Sigma: prior covariance matrix
+                            shape: shape parameter for Gamma prior on precision
+                            rate: rate parameter for Gamma prior on precision
+
+dIndependent_Normal_Gamma   mu: prior mean vector for coefficients
+                            Sigma: prior covariance matrix
+                            shape: shape parameter for Gamma prior on precision
+                            rate: rate parameter for Gamma prior on precision
+                            max_disp_perc: percentile used to truncate the
+                                  posterior dispersion distribution
+                            disp_lower, disp_upper: optional user-specified
+                                  truncation bounds
+
+---------------------------------------------------------------------------
+
+These pfamilies determine which simfunction is used. For example:
+
+- dNormal selects rNormal_reg
+- dGamma selects rGamma_reg
+- dNormal_Gamma selects rNormal_Gamma_reg
+- dIndependent_Normal_Gamma selects rindependent_norm_gamma_reg
+
+Because each pfamily embeds its own simulation function, `rglmb()` and `rlmb()` do not need to
+contain any special-case logic. Once the user supplies a pfamily object, the correct simfunction
+is already encoded inside it. This design mirrors the classical GLM architecture, where the
+family object determines the likelihood and link, but extends it to the Bayesian setting by
+allowing the prior to determine the sampling algorithm.
+
+As setting the prior parameters required for each pfamily can be a bit involved, the package provides the `Prior_Setup()` function which be used to extract default prior settings for these parameters while also allowing tailoring of the prior specification. Some of our earlier vignettes already covered this in details so it won't be discussed further here.
+
+
+### 1.3 The uniform simfunction interface
+
+All simfunctions in `simfunctions.R` share the same signature:
+
+simfun(n, y, x, prior_list,
+       offset = NULL, weights = 1,
+       family = gaussian(),
+       Gridtype = 2, n_envopt = NULL,
+       use_parallel = TRUE, use_opencl = FALSE,
+       verbose = FALSE)
+
+This uniform interface allows `rglmb()` and `rlmb()` to dispatch to any simfunction without special-case logic.
+It also allows users to change priors or likelihoods without altering their workflow, and it makes
+the simfunctions suitable for use inside Gibbs samplers or other custom algorithms.
+
+
+### 1.4 How rglmb and rlmb select the simfunction
+
+The internal logic of `rglmb()` is:
+
+1. The user supplies a likelihood `family` and a prior `pfamily`.
+2. `Prior_Setup()` constructs a `prior_list` containing the hyperparameters.
+3. `rglmb()` extracts from the `pfamily` object:
+   - the allowed likelihood families (`okfamilies`)
+   - the allowed links (`plinks`)
+   - the prior hyperparameters (`prior_list`)
+   - the simulation function (`simfun`)
+4. It checks that the requested likelihood family and link are compatible with the pfamily.
+5. It constructs a list of arguments to pass to the simfunction.
+6. It calls the simfunction, which performs the actual sampling.
+7. It attaches metadata (the pfamily, the simfunction call, and the arguments) and returns the result.
+
+The simfunction performs the actual sampling, either by conjugate formulas or by envelope-based
+accept-reject methods.
+
+
+### 1.5 The four core simfunctions
+
+The pfamily system dispatches to one of four simfunctions:
+
+- `rNormal_reg`
+- `rNormal_Gamma_reg`
+- `rindependent_norm_gamma_reg`
+- `rGamma_reg`
+
+These functions implement the sampling algorithms described in Appendices A2, A5, A6, and A7. The next
+section provides tables showing how likelihood families and pfamilies map to these simfunctions.
+
+### 1.6 Inspecting the Simulation Function Used: the `simfunction()` Generic
+
+The glmbayes package provides an S3 interface for inspecting which low-level simulation
+function (“simfunction”) was used during a call to `rglmb()` or `rlmb()`. This interface is
+accessed through the exported generic:
+
+```
+simfunction(object, ...)
+```
+
+When applied to an `rglmb` or `rlmb` result, this function returns an object of class
+`"simfunction"` containing:
+
+- the name of the simfunction used (e.g., `rNormal_reg`)
+- the call used to invoke the simfunction
+- the arguments passed to it, including the `prior_list` and `family` objects
+
+This provides a transparent view of the internal mechanics of the simulation step, which is
+useful for debugging, reproducibility, and understanding how pfamilies dispatch to specific
+simfunctions.
+
+For example:
+
+```
+fit <- rglmb(n = 10, y = y, x = X,
+             family = gaussian(),
+             pfamily = dNormal(mu, Sigma))
+
+simfunction(fit)
+```
+
+prints the simfunction name, the call, and all arguments used during sampling.
+
+The `print.simfunction()` method formats this information in a readable way, including a
+recursive display of the prior hyperparameters stored in `prior_list`. This interface is
+intentionally lightweight: it does not re-run the simfunction or modify the model object. It
+simply reports the simulation metadata recorded during the original call.
+
+
+
+### 1.7 Summary
+
+The combination of `glmb()`/`lmb()`, `rglmb()`/`rlmb()`, the pfamily system, and the simfunctions forms a flexible
+and extensible framework for Bayesian GLM simulation. The high-level modeling functions handle
+formula parsing and model construction, while the low-level simfunctions implement efficient
+posterior sampling using either conjugate formulas or envelope-based methods.
+
+The next section provides detailed mapping tables showing how families and pfamilies determine the
+appropriate simfunction and sampling method.
 
 
 ## 2. Mapping Families and Pfamilies to Simulation Functions
 
+### 2.1 Mappings to Simulation Functions
+
 The table below summarizes how likelihood families, link functions, and pfamilies map to the
-simulation functions in `simfunctions.R`. It also indicates whether the sampling is conjugate or
-envelope-based, and lists the C or C++ routines used when applicable.
+simulation functions in `simfunctions.R`. The tables also indicates whether the sampling is conjugate or
+envelope-based. 
 
-+----------------------+----------------------+------------------------------+------------------------------+---------------------------+-------------------------------------------+
-| Likelihood Family    | Link                 | Pfamily                      | Simfunction                  | Method                    | Backend R / C++ Routines                  |
-+----------------------+----------------------+------------------------------+------------------------------+---------------------------+-------------------------------------------+
-| Gaussian             | identity             | dNormal                      | rNormal_reg                  | Conjugate MVN             | .rnorm_reg_cpp                            |
-| Gaussian             | identity             | dNormal_Gamma                | rNormal_Gamma_reg            | Conjugate Normal-Gamma    | Pure R                                    |
-| Gaussian             | identity             | dIndependent_Normal_Gamma    | rindependent_norm_gamma_reg  | Envelope-based joint       | .rindep_norm_gamma_reg_std_cpp            |
-|                      |                      |                              |                              | sampler for (beta,phi)    | EnvelopeDispersionBuild_cpp               |
-+----------------------+----------------------+------------------------------+------------------------------+---------------------------+-------------------------------------------+
-| Poisson              | log                  | dNormal                      | rNormal_reg                  | Envelope-based             | .rnnorm_reg_cpp, EnvelopeBuild            |
-| Quasi-Poisson        | log                  | dNormal                      | rNormal_reg                  | Envelope-based             | .rnnorm_reg_cpp, EnvelopeBuild            |
-+----------------------+----------------------+------------------------------+------------------------------+---------------------------+-------------------------------------------+
-| Binomial             | logit, probit,       | dNormal                      | rNormal_reg                  | Envelope-based             | .rnnorm_reg_cpp, EnvelopeBuild            |
-|                      | cloglog              |                              |                              |                           |                                           |
-+----------------------+----------------------+------------------------------+------------------------------+---------------------------+-------------------------------------------+
-| Gamma                | log                  | dNormal                      | rNormal_reg                  | Envelope-based             | .rnnorm_reg_cpp, EnvelopeBuild            |
-| Gamma                | log                  | dGamma                       | rGamma_reg                   | Conjugate or A6 envelope  | ctrgamma, A6 routines                     |
-+----------------------+----------------------+------------------------------+------------------------------+---------------------------+-------------------------------------------+
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| **Likelihood Family**| **Link**             | **Pfamily**                  | **Simfunction**              | **Method**                |
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| Gaussian             | identity             | dNormal                      | rNormal_reg                  | Conjugate MVN [C++]            |
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| Gaussian             | identity             | dGamma                       | rGamma_reg                   | Conjugate Gamma [R]       |
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| Gaussian             | identity             | dNormal_Gamma                | rNormal_Gamma_reg            | Conjugate Normal-Gamma [R]|
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| Gaussian             | identity             | dIndependent                 | rindependent                 | Envelope-based joint      |
+|                      |                      | _Normal_Gamma                | _norm_gamma_reg              | sampler [C++]             |
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| Poisson              | log                  | dNormal                      | rNormal_reg                  | Envelope-based [C++]      |
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| Quasi-Poisson        | log                  | dNormal                      | rNormal_reg                  | Envelope-based [C++]      |
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| Binomial             | logit, probit,       | dNormal                      | rNormal_reg                  | Envelope-based [C++]      |
+|                      | cloglog              |                              |                              |                           |
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| Quasi-Binomial       | logit, probit,       | dNormal                      | rNormal_reg                  | Envelope-based [C++]      |
+|                      | cloglog              |                              |                              |                           |
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| Gamma                | log                  | dNormal                      | rNormal_reg                  | Envelope-based [C++]      |
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
+| Gamma                | log                  | dGamma                       | rGamma_reg                   | Envelope-based [C++]      |
++----------------------+----------------------+------------------------------+------------------------------+---------------------------+
 
-This table provides the "at a glance" map for determining which simulation function is used for a
-given model. Conjugate cases use direct sampling from known posterior distributions. All other
-cases rely on the likelihood-subgradient envelope methods described in Nygren and Nygren (2006)
-and in Appendices A5, A6, and A7.
+
+
+### 2.2 Mapping Simulation Functions to Primary C++ Routines
+
+The table below lists the simulation functions that call C++ code, the likelihood families for which
+the C++ path is used, and the specific C++ source files and function names invoked. Only the primary
+simulation routines are shown here; envelope construction routines are documented separately in
+Appendices A5, A6, and A7.
+
++----------------------+----------------------+----------------------+-------------------------------------------+
+| **Simfunction**      | **Family**           | **C++ File**         | **C++ Function(s) Called**                |
++----------------------+----------------------+----------------------+-------------------------------------------+
+| rNormal_reg          | Gaussian             | rnorm_reg_cpp.cpp    | rnorm_reg_cpp                             |
++----------------------+----------------------+----------------------+-------------------------------------------+
+| rNormal_reg          | All non-Gaussian     | rnnorm_reg_cpp.cpp   | rnnorm_reg_cpp                            |
++----------------------+----------------------+----------------------+-------------------------------------------+
+| rindependent         | Gaussian             | rindep_norm_gamma    | rindep_norm_gamma_reg_std_cpp             |
+| _norm_gamma_reg      |                      | _reg_cpp.cpp         | rindep_norm_gamma_reg_std_parallel_cpp    |
++----------------------+----------------------+----------------------+-------------------------------------------+
+| rGamma_reg           | Gaussian             | (none)               | (uses R-level rgamma or ctrgamma)         |
++----------------------+----------------------+----------------------+-------------------------------------------+
+| rGamma_reg           | Gamma                | (none)               | (uses R-level ctrgamma)                   |
++----------------------+----------------------+----------------------+-------------------------------------------+
+
+Notes:
+- `rNormal_reg` uses different C++ backends depending on whether the likelihood is Gaussian or non-Gaussian.
+- `rindependent_norm_gamma_reg` always uses C++ for the joint sampler.
+- `rGamma_reg` does not call a dedicated C++ simulation routine, but it does use the R-level `ctrgamma`
+  function for truncated Gamma proposals.
+- Envelope construction routines (`EnvelopeBuild`, `EnvelopeDispersionBuild_cpp`, etc.) are documented
+  separately and are not included in this table.
+
 
 ## 3. Conjugate vs. Envelope-Based Sampling
 
@@ -158,10 +380,45 @@ These references provide the mathematical justification for the envelope-based m
 
 ## 5. Overview of Each Simulation Function
 
+As noted above, the function signatures for the simulation functions are the same. However, the functions differ in terms of the specific familes/links supported and in terms of the set of prior parameters required as part of the prior_list argument. Here we provide a summary view of the families/links supported by each function and then a more detailed overview of each function.
+
+---------------------------------------------------------------------------
+Simfunction                  Supported Families and Links
+---------------------------------------------------------------------------
+
+rNormal_reg                 gaussian(identity)
+                            poisson(log)
+                            quasipoisson(log)
+                            binomial(logit, probit, cloglog)
+                            quasibinomial(logit, probit, cloglog)
+                            Gamma(log)
+
+rNormal_Gamma_reg           gaussian(identity)
+
+rindependent_norm_gamma_reg gaussian(identity)
+
+rGamma_reg                  gaussian(identity)
+                            Gamma(log)
+
+---------------------------------------------------------------------------
+
 ### 5.1 rNormal_reg
 
 **Purpose:**  
 Generates iid samples of regression coefficients beta for GLMs with Normal priors.
+
+Function signature:
+rNormal_reg(n, y, x, prior_list,
+            offset = NULL, weights = 1,
+            family = gaussian(),
+            Gridtype = 2, n_envopt = NULL,
+            use_parallel = TRUE, use_opencl = FALSE,
+            verbose = FALSE)
+
+Required prior_list components (from dNormal):
+- mu: prior mean vector for coefficients
+- Sigma: prior covariance matrix
+- dispersion: fixed dispersion (if applicable)
 
 **Conjugate case:**  
 Gaussian likelihood with Normal prior.  
@@ -186,6 +443,20 @@ JASA 2006, Appendix A5.
 **Purpose:**  
 Conjugate Normal-Gamma regression for Gaussian likelihoods.
 
+Function signature:
+rNormal_Gamma_reg(n, y, x, prior_list,
+                  offset = NULL, weights = 1,
+                  family = gaussian(),
+                  Gridtype = 2, n_envopt = NULL,
+                  use_parallel = TRUE, use_opencl = FALSE,
+                  verbose = FALSE)
+
+Required prior_list components (from dNormal_Gamma):
+- mu: prior mean vector for coefficients
+- Sigma: prior covariance matrix
+- shape: shape parameter for Gamma prior on precision
+- rate: rate parameter for Gamma prior on precision
+
 **Method:**  
 Closed-form posterior for (beta, tau).  
 Draw tau from Gamma, then draw beta from conditional Normal.
@@ -203,6 +474,22 @@ Classical Normal-Gamma theory.
 
 **Purpose:**  
 Joint sampling of (beta, phi) for Gaussian regression with independent Normal-Gamma priors.
+
+Function signature:
+rindependent_norm_gamma_reg(n, y, x, prior_list,
+                            offset = NULL, weights = 1,
+                            family = gaussian(),
+                            Gridtype = 2, n_envopt = NULL,
+                            use_parallel = TRUE, use_opencl = FALSE,
+                            verbose = FALSE)
+
+Required prior_list components (from dIndependent_Normal_Gamma):
+- mu: prior mean vector for coefficients
+- Sigma: prior covariance matrix
+- shape: shape parameter for Gamma prior on precision
+- rate: rate parameter for Gamma prior on precision
+- max_disp_perc: percentile used to truncate dispersion support
+- disp_lower, disp_upper: optional user-specified truncation bounds
 
 **Method:**  
 Envelope-based joint sampler using a shared envelope over beta and dispersion bounds.
@@ -228,6 +515,21 @@ Appendix A7.
 
 **Purpose:**  
 Simulates dispersion parameters for Gaussian and Gamma families.
+
+Function signature:
+rGamma_reg(n, y, x, prior_list,
+           offset = NULL, weights = 1,
+           family = gaussian(),
+           Gridtype = 2, n_envopt = NULL,
+           use_parallel = TRUE, use_opencl = FALSE,
+           verbose = FALSE)
+
+Required prior_list components (from dGamma):
+- shape: shape parameter for Gamma prior on precision
+- rate: rate parameter for Gamma prior on precision
+- beta: regression coefficients (used when updating dispersion separately)
+- max_disp_perc: percentile used to truncate dispersion support
+- disp_lower, disp_upper: optional user-specified truncation bounds
 
 **Gaussian case:**  
 Conjugate Gamma posterior for precision tau.  
@@ -276,24 +578,54 @@ coefficients, dispersion draws, posterior modes, envelopes, and iteration counts
 
 ## 7. Source Code and File Structure
 
-The simfunctions are implemented in:
+The core simulation routines are implemented in:
 
 - `simfunctions.R`
 
-They call supporting routines in:
+This file contains the four primary simfunctions (`rNormal_reg`, `rNormal_Gamma_reg`,
+`rindependent_norm_gamma_reg`, `rGamma_reg`) and the R-level logic that interfaces with the
+C/C++ backends.
 
-- `rnnorm_reg_cpp.cpp`
-- `rnorm_reg_cpp.cpp`
-- `rindep_norm_gamma_reg_std_cpp.cpp`
-- `EnvelopeBuild_c.cpp`
-- `EnvelopeDispersionBuild_cpp.cpp`
-- `glmb_Standardize_Model.R`
+### 7.1 C and C++ Backends Used by the Simfunctions
 
-Utility functions include:
+Several simfunctions rely on optimized C/C++ routines for envelope construction, posterior mode
+evaluation, and sampling. These routines are located in the following source files:
 
-- `ctrgamma` (truncated Gamma sampler)
-- `logdiffexp` (stable log difference)
-- `p_inv_gamma`, `q_inv_gamma`, `r_invgamma` (inverse-Gamma utilities)
+**Coefficient samplers (Normal priors):**
+- `rnorm_reg_cpp.cpp`  
+  Backend for Gaussian–Normal conjugate sampling.
+- `rnnorm_reg_cpp.cpp`  
+  Backend for non-Gaussian Normal-prior envelope sampling.
+
+**Joint Normal–Gamma samplers:**
+- `rindep_norm_gamma_reg_std_cpp.cpp`  
+  Standard joint sampler for independent Normal–Gamma priors.
+- `rindep_norm_gamma_reg_std_parallel_cpp.cpp`  
+  Parallelized version of the joint sampler.
+
+**Envelope construction routines:**
+- `EnvelopeBuild_c.cpp`  
+  Coefficient envelopes (Appendix A5).
+- `EnvelopeDispersionBuild_cpp.cpp`  
+  Dispersion envelopes for Gamma-family models (Appendix A7).
+
+**Model standardization:**
+- `glmb_Standardize_Model.R`  
+  R-level preprocessing used by all envelope-based samplers.
+
+### 7.2 Utility Functions
+
+The simfunctions also rely on several numerically robust utility routines:
+
+- `ctrgamma`  
+  Truncated Gamma sampler used in `rGamma_reg`.
+- `logdiffexp`  
+  Stable computation of log(exp(a) - exp(b)).
+- `p_inv_gamma`, `q_inv_gamma`, `r_invgamma`  
+  Inverse-Gamma CDF, quantile, and random-generation utilities.
+
+These utilities support the envelope-based samplers, truncated distributions, and dispersion
+updates used throughout the package.
 
 
 ## 8. Summary
@@ -307,311 +639,3 @@ For further details, see the JASA paper and Appendices A5, A6, and A7.
 
 
 
-
-
-## General Discussion
-
-The estimation procedures implemented in this package can divided into the following four distinct categories:
-
-* Finding posterior modes
-* Simulating from models with with conjugate priors
-* Generating iid samples for log-concave models with non-conjugate Normal, Gamma, or Independent_Normal_Gamma priors 
-* Bounding Distances to posterior densities for two-block Gibbs samplers
-
-In this vingette, we provide a brief overview of how these procedures are implemented. It is worth noting that the 
-combination of these four approaches likely can be applied to wider range of models and future plans for this package include the implementation of additional models.
-
-## Finding Posterior Modes
-
-Finding posterior modes is an important first component for most of the implemented sampling procedures in this package.   The posterior modes are returned as part of the output itself from many of the core functions and are also used to center many of the sampling procedures implemented so they also help determine the accuracy and speed of underlying sampling procedures.  The process for fiding posterior modes work a bit differently depending on the *family* and *pfamily* in question. Our subsections here describe the currently implemented approaches
-
-### Posterior Modes for the *gaussian()* family combined with either the *dNormal()* or *dNormal_Gamma()* pfamilies
-
-In this case, the posterior modes have closed form solutions that also correspond to the posterior means for the posterior distributions. Moreover, using proper priors ensure that the modes always exists (unlike the classical case where unique maximum likelihood estimates might not exist).  The concern in this case is mainly with ensuring numerical accuracy, especially in cases where the model might have many variables or where the resulting model coefficients (despite the prior) might be poorly identified. 
-
-Our implemented process for finding posterior modes essentially involves the following steps
-
-* Perform a Cholesky decomposition for the prior precision (inverse variance-covariance) 
-* Use the Cholesky decomposition to add additional "prior" observations to the dataset
-* Use the *lm.fit* or *lm.wfit* functions for the modified dataset in order to return resulting posterior mode estimates
-
-The source codes *rnorm_reg_cpp.cpp* (for the *dNormal()* prior)  and *rNormal_reg.wfit.R* (for the *dNormal_Gamma()* Prior) shows the current version of these implementations. Note that the *rNormal_reg.wfit* function is called from within the *rNormal_Gamma_reg* function in order to find the posterior mode.
-
-In addition to having the benefit of the robust estimation procedures built into the *lm.fit* and *lm.wfit* functions, calling these functions also have the added benefit of returning the components needed to have access to the various influence related methods available for classes *lm* and *glm*.
-
-### Posterior Modes for *non-gaussian* families combined with the *dNormal()* pfamily.
-
-In this case, there is no closed form solution for the posterior mode. Our current implementation (see the source code *rnnorm_reg_cpp.cpp*) leverages a call to the *optim* function with the *method="BFGS"* and *hessian=TRUE* options in order to attempt to find the posterior mode. The *"BFGS"* method [Add reference] is a quasi-Newton method (also known as a variable metric algorithm) that uses function values and gradients to build up a picture of the surface optimized. The *hessian=TRUE* option returns an approximation for the hessian associated with  the negative of the log-posterior density which is leveraged during standardization of the model prior to the simuation phase (see the section "Generating iid Samples for Non-Conjugate Families" below for details) for these models.
-
-While the posterior mode is derived using the above method (and used as the estimate for the posterior mode), our *rNormal_reg* function also uses a call to the *glmb.wfit* function in order to get the output needed for the influence measures. This implements a similar procedure to that in the *glm.fit* function before doing a single call to the *lm.fit* function. Similar to the procedure in the *gaussian()* family case above, the data provided to the *lm.fit* function has additional added observations (based on a Cholesky decomposition). We refer the reader to the source codes for the *glm.fit* and *glmb.wfit* for the details on the similarities and differences between the two functions. Essentially, the latter assumes that the posterior mode has alredy been reached (using the calls to the optim function) so no iterations are therefore required.
-
-### Conditional Posterior Modes for the *gaussian* family combined with the *dIndependent_Normal_Gamma()* pfamily.
-
-The rIndependent_Normal_Gamma_reg procedure currently uses an initial iterative process where the coefficients and dispersion are conditionally optimized in order to arrive at a good centering of candidate densities for the simulation. The conditional optimization of the coefficients in this process relies on the same process as in the other *gaussian()* family case above. The shape and rate parameters for the candidate gamma distribution are in turn set based on the expected *RSS* based on simulation from the conditional densitiy associated with the conditionally optimized coefficients (see the current source code *rIndependent_Normal_Gamma_Reg.R* for details). 
-
-Plese note that the methods implemented for this prior should be regarded as still being in the developemental/experimental phase. The current implementation appears to yield valid *iid* samples at reasonable speeds for some of our smaller models, but it is unclear how well this will perform for larger models and methods may be adjusted in the future to improve performance.
-
-## Simulating from Models With Conjugate priors
-
-Three of the currently implemented combinations of *families* and *pfamilies* involves what is known in the literature as conjugate prior distributions where the posterior distributions take on the same well known probability distribution as the prior distributions [ADD REFERENCES]. These models are
-
-* The *gaussian()* family with a *dNormal()* pfamily prior for the regression coefficients
-* The *gaussian()* family with a *dGamma()* pfamily prior for the inverse dispersion (precision) parameter
-* The *gaussian()* family with a *dNormal_Gamma()* pfamily prior the regression coefficienst and inverse dispersion parameter.
-
-Simulation in these cases reduces to simulation from *multivariate normal* and/or *gamma* distributions and the main concern is ensuring numerical accuracy and speed for the resulting simulation. We refer the reader to the source codes 
-*rnorm_reg_cpp.cpp*, *rgamma_reg.R*, and *rNormal_Gamma_reg* for details on the current implementation of these simulation procedures in the current package.
-
-## Generating iid Samples for Non-Conjugate Families
-
-The most innovative components of the current package likely involves the procedures implemented in order to generate *iid* samples from models with various  non-gaussian families combined with *dNormal()* pfamily priors as well as for models combining the *gaussian()* family with *dIndependent_Normal_Gamma()* pfamily prior distributions. In addititon the package contains an *iid* sampling procedure for the *Gamma()* family with a *dGamma()* pfamily prior for the dispersion parameter. We discuss each of these at a high level here and provide references to additional details for those interested.
-
-### Non-gaussian families with Normal Priors
-
- When the specified *family* is any log-concave non-gaussian family, then the estimation uses the Likelihood
- subgradient density approach of Nygren and Nygren (2006).  This approaches uses tangencies to the 
- log-likelihood function in order to construct an enveloping function from which candidate draws are 
- generated and then either accepted/rejected using accept/reject methods. The core C function performing
- this simulation essentially goes through the following steps: 
-  
- 
- 1) The model is standardized to have prior mean vector equal to 0 (i.e., offsets and any prior mean are combined
- into a constant term).
- 
- 
- 2) The posterior mode for this transformed model is found. Currently this uses the *optim* function. 
- Later implementations may replace this with iteratively reweighted least squares (IWLS) to increase 
- consistency with the *glm* function and to enhance numerical accuracy.
- 
- 
- 3) The model is further standardized so that (a) the precision matrix at the posterior mode is diagonal and (b)
- the prior variance-covariance matrix is the identity matrix (see the documentation *glmb_Standardize_Model* and the discussion below for details).
- 
- 
- 4) An enveloping function is built for the the standardized model, containing constants needed during simulation (see
- the documentation *EnvelopeBuild* and the discussion below for details).
- 
- 
- 5) Samples for the standardized model are generated using accept-reject methods (see the documentation for *rnnorm_reg_std* and the discussion below for details).
- 
- 
- 6) The output from the standardized model are transformed back to the original scale by reversing the two 
- eigenvalue decompositions and by adding back the prior mean.  
-
-
-The below code chunks provide a more detailed illustration of the estimation process
-
-**Setup of Data and Prior** 
-```{r Setup data and prior}
-data(menarche,package="MASS")
-
-Age2=menarche$Age-13
-x<-matrix(as.numeric(1.0),nrow=length(Age2),ncol=2)
-x[,2]=Age2
-
-y=menarche$Menarche/menarche$Total
-wt=menarche$Total
-
-mu<-matrix(as.numeric(0.0),nrow=2,ncol=1)
-mu[2,1]=(log(0.9/0.1)-log(0.5/0.5))/3
-V1<-1*diag(as.numeric(2.0))
-
-# 2 standard deviations for prior estimate at age 13 between 0.1 and 0.9
-## Specifies uncertainty around the point estimates
-
-V1[1,1]<-((log(0.9/0.1)-log(0.5/0.5))/2)^2 
-V1[2,2]=(3*mu[2,1]/2)^2  # Allows slope to be up to 1 times as large as point estimate 
-
-dispersion2<-as.numeric(1.0)
-offset2=rep(as.numeric(0.0),length(y))
-P=solve(V1)
-n=1000
-
-
-```
-
-**Gathering of family functions Used in process** 
-
-```{r Setup_Family_Functions}
-
-famfunc<-glmbfamfunc(binomial(logit))
-
-f1<-famfunc$f1
-f2<-famfunc$f2  # Used in optim and glmbsim_cpp
-f3<-famfunc$f3  # Used in optim
-f5<-famfunc$f5
-f6<-famfunc$f6
-
-```
-
-**Finding the posterior mode** 
-
-```{r Find Posterior Mode}
-start <- mu
-
-###### Adjust weight for dispersion
-
-wt2=wt/dispersion2
-
-
-######################### Shift mean vector to offset so that adjusted model has 0 mean
-
-alpha=x%*%as.vector(mu)+offset2
-mu2=0*as.vector(mu)
-P2=P
-x2=x
-
-
-#####  Optimization step to find posterior mode and associated Precision
-
-parin=start-mu
-
-opt_out=optim(parin,f2,f3,y=as.vector(y),x=as.matrix(x),mu=as.vector(mu2),
-              P=as.matrix(P),alpha=as.vector(alpha),wt=as.vector(wt2),
-              method="BFGS",hessian=TRUE
-)
-
-bstar=opt_out$par  ## Posterior mode for adjusted model
-bstar # Mode from Optimization
-bstar+as.vector(mu)  # Mode for actual model
-A1=opt_out$hessian # Approximate Precision at mode
-A1
-
-```
-**Standardizing the Model** 
-
- This functions starts with basic information about the model in the argument list and then
-uses the following steps to further standardize the model (the model is already assumed to have a 0 prior mean vector
- when this step is applied).
- 
- 1) An eigenvalue composition is applied to the posterior precision matrix, and the model is (as an interim step)
- standardized to have a posterior precision matrix equal to the identity matrix. Please note that this means
- that the prior precision matrix after this step is *"smaller"* than the identity matrix.
- 
- 
- 2) A diagonal matrix epsilon is pulled out from the standardized prior precision matrix so that the remaining
- part of the prior precision matrix still is positive definite. That part is then treated as part of the posterior
- for the rest of the standardization and simulation and only the part connected to epsilon is treated as part of the prior. 
- Note that the exact epsilon chosen seems not to matter. Hence there are many possible ways of doing this 
- standardization and future versions of this package may tweak the current approach 
- if it helps improve numerical accuracy or acceptance rates.
- 
- 
- 3) The model is next standardized (using a second eigenvalue decomposition) so that the prior (i.e., the portion connected to epsilon) is the identity  matrix. The standardized model then simutaneously has the feature that the prior precision matrix is the  identity matrix and that the data precision A (at the posterior mode) is a diagonal matrix. Hence the variables in the standardized model are approximately independent at the posterior mode.
-
-
-```{r Standardize Model}
-## Standardize Model
-
-Standard_Mod=glmb_Standardize_Model(y=as.vector(y), x=as.matrix(x),P=as.matrix(P),
-                                    bstar=as.matrix(bstar,ncol=1), A1=as.matrix(A1))
-
-bstar2=Standard_Mod$bstar2  
-A=Standard_Mod$A
-x2=Standard_Mod$x2
-mu2=Standard_Mod$mu2
-P2=Standard_Mod$P2
-L2Inv=Standard_Mod$L2Inv
-L3Inv=Standard_Mod$L3Inv
-
-```
-
-**Building the Envelope** 
-
- To construct an enveloping function, we follow the approach in Nygren and Nygren (2006)
- which involves the following steps when a maximally sized grid is constructed 
- (if the prior for some dimensions is relatively strong, this may not be needed)
- 
-
- 1) For each dimension, a constant *omega_i* is found that depends on the 
- corresponding diagonal element in the precision matrix.
- 
-  
- 2) Corresponding intervals *(thetastar_i-0.5 omega,thetastar_i-0.5 omega)*
-  are constructed around the posterior mode thetastar for each dimension
-  
-  
- 3) The mode as well as the points *thetastar_i-omega_i* and *thetastar_i+omega_i*
- are selected as the components of the points at which tangencies will be found for each of 
- the dimensions.  
- 
- 
- 4) A Grid is constructed with all possible combinations of points and 
- negative log-likelihood and gradient for the negative log-likelihood are evaluated (see the
- EnvelopeBuild_c.cpp function source code for details)
- 
- 
- 5) The *Set_Grid* function is called in order to evaluate the log of the density associated
- with each of the resulting restricted multivariate normals by evaluating the differences between the cummulative 
- density for each dimension between its lower and upper bound.
- 
- 
- 6)  The Set_LogP function is called in order to help set the probabilities with which each of the components
- of the grid should be sampled (see remark 6 in Nygren and Nygren (2006)).
- 
- 
- Any constants needed by the sampling are added to a list and returned by the function. 
-
-
-```{r Build Envelope}
-
-Env2=EnvelopeBuild(as.vector(bstar2), as.matrix(A),y, as.matrix(x2),
-                   as.matrix(mu2,ncol=1),as.matrix(P2),as.vector(alpha),as.vector(wt2),
-                   family="binomial",link="logit",Gridtype=as.integer(3), 
-                   n=as.integer(n),sortgrid=TRUE)
-
-
-Env2
-
-```
-
-**Simulating From the Standard Model** 
-
-   This function uses the information contained in the constructed envelope list in order to sample 
- from a model in standard form. The simulation proceeds as follows in order to generate each draw in the required
- number of samples.
- 
- 1)  A random number between 0 and 1 is generated and is used together with the information in the PLSD vector 
- (from the envelope) in order to identify the part of the grid from which a candidate is to be generated.
-
- 2) For the part of the grid selected, the dimensions are looped through and a candidate component for each dimension
- is generated from a restricted normal using information from the Envelope (in particular, the values for logrt, loglt,  and cbars corresponding to that the part of the grid selected and the dimension sampled)
- 
- 3) The log-likelihood for the standardized model is evaluated for the generated candidate (note that the 
- log-likelihood here includes the portion of the prior that was shifted to the log-likelihood as part of the standardization procedure)
- 
- 4) An additional random number is generated and the log of this random number is compared to a log-acceptance rate that is calculated based on the candidate and the LLconst component from the Envelope component selected in order to determine if the candidate should be accepted or rejected 
- 
- 5) If the candidate was not accepted, the process above is repeated from step 1 until a candidate is accepted
-
-
-```{r Standard_Simulation}
-
-sim=rnnorm_reg_std(n=as.integer(n),y=as.vector(y),x=as.matrix(x2),mu=as.matrix(mu2,ncol=1),
-                   P=as.matrix(P2),alpha=as.vector(alpha),wt=as.vector(wt2),
-                   f2=f2,Envelope=Env2,family="binomial",link="logit",as.integer(0))
-
-```
-
-**Undoing the standardization** 
-
-
-```{r Undo_Standardization}
-
-out=L2Inv%*%L3Inv%*%t(sim$out)
-
-for(i in 1:n){
-  out[,i]=out[,i]+mu
-}
-
-summary(t(out))
-mean(sim$draws)
-
-```
-
-### gaussian families with Independent_Normal_Gamma Prior
-
-
-
-
-## Bounding Distances to Target Densities for Two-Block Gibbs Samplers
