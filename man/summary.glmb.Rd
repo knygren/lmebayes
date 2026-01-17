@@ -94,3 +94,4 @@ summary(lmb.D9)
 \seealso{
 \code{\link{lmb}}, \code{\link{glmb}}, \code{\link{summary}}, \code{[stats]\link{summary.lm}},\code{[stats]\link{summary.glm}}.
 }
+\keyword{internal}

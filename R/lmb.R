@@ -381,7 +381,8 @@ simfun_args=sim$simfun_args
 
 #' @rdname lmb
 #' @method print lmb
-#' @export 
+#' @export
+#' @keywords internal
 
 print.lmb<-function (x, digits = max(3, getOption("digits") - 3), ...) 
 {

@@ -256,3 +256,4 @@ of some of the method functions developed for the \code{glmb} function. For deta
 on the author(s) for the \code{lm} function see the documentation for \code{\link[stats]{lm}}.
 }
 \concept{modelfuns}
+\keyword{internal}

@@ -458,7 +458,8 @@ glmb<-function (formula, family = binomial,pfamily=dNormal(mu,Sigma,dispersion=1
 
 #' @rdname glmb
 #' @method print glmb
-#' @export 
+#' @export
+#' @keywords internal
 
 print.glmb<-function (x, digits = max(3, getOption("digits") - 3), ...) 
 {

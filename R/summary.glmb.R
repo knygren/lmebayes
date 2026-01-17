@@ -238,6 +238,7 @@ summary.glmb<-function(object,...){
 
 #' @rdname summary.glmb
 #' @export
+#' @keywords internal
 #' @method print summary.glmb
 
 print.summary.glmb<-function(x,digits = max(3, getOption("digits") - 3),...){

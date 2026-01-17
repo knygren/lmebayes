@@ -235,3 +235,4 @@ glmbayes Modeling Functions
 \code{\link{rglmb}()}
 }
 \concept{modelfuns}
+\keyword{internal}
