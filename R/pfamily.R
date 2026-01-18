@@ -139,7 +139,6 @@ pfamily.default <- function(object, ...){
 
 
 #' @export
-#' @keywords internal
 #' @method print pfamily
 #' @rdname pfamily
 #' @order 6

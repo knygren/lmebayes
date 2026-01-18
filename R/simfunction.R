@@ -207,7 +207,6 @@ simfunction.default <- function(object, ...) {
 }
 
 #' @export
-#' @keywords internal
 #' @method print simfunction
 #' @rdname simfuncs
 #' @order 9
@@ -864,7 +863,6 @@ rGamma_reg <- function(
 
 
 #' @export
-#' @keywords internal
 #' @rdname simfuncs
 #' @order 6
 #' @method print rGamma_reg

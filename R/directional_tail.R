@@ -104,6 +104,7 @@ directional_tail <- function(fit, mu0 = NULL) {
   return(out)
 }
 
+#' @method print directional_tail
 #' @export
 
 print.directional_tail <- function(x, ...) {

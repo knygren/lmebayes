@@ -227,7 +227,6 @@ rlmb<-function(n=1,y,x,pfamily,offset=rep(0,nobs),weights=NULL)
 
 #' @rdname rlmb
 #' @order 2
-#' @keywords internal
 #' @export
 #' @method print rlmb
 

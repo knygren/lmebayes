@@ -62,7 +62,6 @@
 #' \item{famfunc}{family functions used during estimation and post processing}
 #' \item{iters}{an \code{n} by \code{1} matrix giving the number of candidates generated before acceptance for each sample.}
 #' \item{contrasts}{(where relevant) the contrasts used.}
-
 #' \item{xlevels}{(where relevant) a record of the levels of the factors used in fitting}
 #' \item{pfamily}{the prior family specified}
 #' \item{digits}{the number of significant digits to use when printing.}
@@ -382,7 +381,7 @@ simfun_args=sim$simfun_args
 #' @rdname lmb
 #' @method print lmb
 #' @export
-#' @keywords internal
+
 
 print.lmb<-function (x, digits = max(3, getOption("digits") - 3), ...) 
 {
