@@ -29,12 +29,8 @@ rglmb(
 
 \item{x}{for \code{rglmb} a design matrix of dimension \code{m * p} and for \code{print.rglmb} the object to be printed.}
 
-\item{family}{a description of the error distribution and link
-    function to be used in the model.  For \code{glm} this can be a
-    character string naming a family function, a family function or the
-    result of a call to a family function.  For \code{glm.fit} only the
-    third option is supported.  (See \code{\link[stats]{family}} for details of
-    family functions.)}
+\item{family}{a description of the error distribution and link function to be used in the model.
+Should be a family function. (see \code{\link{family}} for details of family functions.)}
 
 \item{pfamily}{a description of the prior distribution and associated constants to be used in the model. This
 should be a pfamily function (see \code{\link{pfamily}} for details of pfamily functions).}
@@ -45,8 +41,8 @@ cases.  One or more \code{\link[stats]{offset}} terms can be included in the for
 if more than one is specified their sum is used.  See documentation for \code{model.offset} at
 \code{\link[stats]{model.extract}}.}
 
-\item{weights}{an optional vector of \sQuote{prior weights} to be used
-    in the fitting process.  Should be \code{NULL} or a numeric vector.}
+\item{weights}{an optional vector of \emph{prior weights} to be used in the fitting process.
+Should be \code{NULL} or a numeric vector.}
 
 \item{Gridtype}{an optional argument specifying the method used to determine the number of tangent points used to construct the enveloping function.}
 

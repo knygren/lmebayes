@@ -32,12 +32,8 @@ Prior_Check(
     model to be fitted.  The details of model specification are given
     under \sQuote{Details}.}
 
-\item{family}{a description of the error distribution and link
-    function to be used in the model.  For \code{glm} this can be a
-    character string naming a family function, a family function or the
-    result of a call to a family function.  For \code{glm.fit} only the
-    third option is supported.  (See \code{\link[stats]{family}} for details of
-    family functions.)}
+\item{family}{a description of the error distribution and link function to be used in the model.
+Should be a family function. (see \code{\link{family}} for details of family functions.)}
 
 \item{pfamily}{a description of the prior distribution and associated constants to be used in the model. This
 should be a pfamily function (see \code{\link{pfamily}} for details of pfamily functions).}
@@ -50,8 +46,8 @@ should be a pfamily function (see \code{\link{pfamily}} for details of pfamily f
     variables are taken from \code{environment(formula)},
     typically the environment from which \code{glm} is called.}
 
-\item{weights}{an optional vector of \sQuote{prior weights} to be used
-    in the fitting process.  Should be \code{NULL} or a numeric vector.}
+\item{weights}{an optional vector of \emph{prior weights} to be used in the fitting process.
+Should be \code{NULL} or a numeric vector.}
 
 \item{subset}{an optional vector specifying a subset of observations to be used in the fitting process.}
 
