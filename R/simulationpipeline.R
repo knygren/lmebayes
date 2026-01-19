@@ -1972,6 +1972,102 @@ run_opencl_pilot <- function(G4, y, x, mu, P, alpha, wt,
                    family, link, use_opencl, verbose, threshold_sec)
 }
 
+
+#' Sorts Envelope function for simulation
+#'
+#' Sorts Enveloping function for simulation.
+#' how frequently each component of the resulting grid should be sampled
+#' during simulation.
+#' @param l1 dimension for model (number of independent variables in X matrix)
+#' @param l2 dimension for Envelope (number of components)
+#' @param GIndex matrix containing information on how each dimension should be sampled (1 means left tail of a restricted normal, 2 center, 3 right tail, and 4 the entire line)
+#' @param G3 A matrix containing the points of tangencies associated with each component of the grid
+#' @param cbars A matrix containing the gradients for the negative log-likelihood at each tangency
+#' @param logU A matrix containing the log of the cummulative probability associated with each dimension
+#' @param logrt A matrix containing the log of the probability associated with the right tail (i.e. that to the right of the lower bound)
+#' @param loglt A matrix containing the log of the probability associated with the left tail (i.e., that to the left of the upper bound)
+#' @param logP A matrix containing log-probabilities related to the components of the grid
+#' @param LLconst A vector containing constant for each component of the grid used during the accept-reject procedure
+#' @param PLSD A vector containing the probability of each component in the Grid
+#' @param a1 A vector containing the diagonal of the standardized precision matrix
+#' @param E_draws Bound on Expected number of candidates per accepted draw
+#' @param lg_prob_factor vector of lg_prob_factors used for the Envelope connected to the independent normal gamma prior
+#' @param UB2min Vector containing min for UB2 for each component (relevant for EnvelopeDispersionBuild)
+#' @return The function returns a list consisting of the following components (the first six of which are matrics with number of rows equal to the number of components in the Grid and columns equal to the number of parameters):
+#' \item{GridIndex}{A matrix containing information on how each dimension should be sampled (1 means left tail of a restricted normal, 2 center, 3 right tail, and 4 the entire line)}
+#' \item{thetabars}{A matrix containing the points of tangencies associated with each component of the grid}
+#' \item{cbars}{A matrix containing the gradients for the negative log-likelihood at each tangency}
+#' \item{logU}{A matrix containing the log of the cummulative probability associated with each dimension}
+#' \item{logrt}{A matrix containing the log of the probability associated with the right tail (i.e. that to the right of the lower bound)}
+#' \item{loglt}{A matrix containing the log of the probability associated with the left tail (i.e., that to the left of the upper bound)}
+#' \item{LLconst}{A vector containing constant for each component of the grid used during the accept-reject procedure}
+#' \item{logP}{A matrix containing log-probabilities related to the components of the grid}
+#' \item{PLSD}{A vector containing the probability of each component in the Grid}
+#' \item{E_draws}{A containing a computed theoretical bound on the expected number of draws}
+#' @details This function sorts the envelope in descending order based on the 
+#' probability associated with each component in the Grid. Sorting helps 
+#' speed up simulation once the envelope is constructed.
+#' @example inst/examples/Ex_EnvelopeSort.R
+#' @export
+
+EnvelopeSort <- function(l1, l2,
+                         GIndex, G3, cbars, logU, logrt, loglt,
+                         logP, LLconst, PLSD, a1, E_draws,
+                         lg_prob_factor = NULL,
+                         UB2min=NULL) {   # <-- new optional arg
+  # Order indices by decreasing PLSD
+  ord <- order(PLSD, decreasing = TRUE)
+  sel <- ord[seq_len(l2)]  # top l2 rows
+  
+  
+  # Reorder inputs once
+  GIndex <- GIndex[sel, , drop = FALSE]
+  G3     <- G3[sel, , drop = FALSE]
+  cbars  <- cbars[sel, , drop = FALSE]
+  logU   <- logU[sel]
+  logrt  <- logrt[sel, , drop = FALSE]
+  loglt  <- loglt[sel, , drop = FALSE]
+  logP   <- logP[sel, 1, drop = TRUE]
+  LLconst<- LLconst[sel]
+  PLSD   <- PLSD[sel]
+  
+  if (!is.null(lg_prob_factor)) {
+    stopifnot(length(lg_prob_factor) == l2)
+    lg_prob_factor <- lg_prob_factor[sel]
+  }
+  
+  if (!is.null(UB2min)) {
+    stopifnot(length(UB2min) == l2)
+    UB2min <- UB2min[sel]
+  }
+  
+  
+  # Build output list
+  outlist <- list(
+    GridIndex = GIndex,
+    thetabars = G3,
+    cbars     = if (l1 == 1) matrix(cbars, nrow = l2, ncol = l1) else cbars,
+    logU      = logU,
+    logrt     = if (l1 == 1) matrix(logrt, nrow = l2, ncol = l1) else logrt,
+    loglt     = if (l1 == 1) matrix(loglt, nrow = l2, ncol = l1) else loglt,
+    LLconst   = LLconst,
+    logP      = logP,
+    PLSD      = PLSD,
+    a1        = a1,
+    E_draws   = E_draws
+  )
+  if (!is.null(lg_prob_factor)) {
+    outlist$lg_prob_factor <- lg_prob_factor
+  }
+  if (!is.null(UB2min)) {
+    outlist$UB2min <- UB2min
+  }
+  
+  outlist
+}
+
+
+
 # Helpers --------------------------------------------------------------------
 
 
