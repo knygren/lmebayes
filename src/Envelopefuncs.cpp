@@ -1988,10 +1988,10 @@ List EnvelopeDispersionBuild_cpp(
   }
   
   
-
-  // Assume UB2 has been exported as shown earlier
-  Rcpp::Function ub2_fn("UB2");
-
+  /// Switch to using namesspace
+  
+  Rcpp::Environment ns = Rcpp::Environment::namespace_env("glmbayes");
+  Rcpp::Function ub2_fn = ns["UB2"];
   
   // Preallocate to gs faces
   Rcpp::NumericVector disp_min_ub2(gs);
@@ -2001,7 +2001,6 @@ List EnvelopeDispersionBuild_cpp(
     
   
   // --- NEW: Call UB2 parallel helper and time it ---
-//  Rcpp::Function ub2_parallel_fn("EnvelopeUB2_parallel");
   Rcpp::Environment ns2 = Rcpp::Environment::namespace_env("glmbayes");
     
   Rcpp::Function ub2_parallel_fn = ns2["EnvelopeUB2_parallel"];

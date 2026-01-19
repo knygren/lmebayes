@@ -3,9 +3,6 @@
 \name{dispenvelopes}
 \alias{dispenvelopes}
 \alias{EnvelopeDispersionBuild}
-\alias{UB2}
-\alias{rss_face_at_disp}
-\alias{drss_ddisp}
 \title{Builds Dispersion-Aware Envelope for Simulation}
 \usage{
 EnvelopeDispersionBuild(
@@ -14,12 +11,6 @@ EnvelopeDispersionBuild(
   disp_lower = NULL, disp_upper = NULL,
   verbose = FALSE, use_parallel = TRUE
 )
-
-UB2(dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global)
-
-rss_face_at_disp(dispersion, cache, cbars_j, y, x, alpha, wt)
-
-drss_ddisp(dispersion, cache, cbars_j, y, x, alpha, wt)
 }
 \arguments{
 \item{Env}{Envelope object from \code{\link{EnvelopeBuild}}, containing tangency points and gradients}
@@ -55,14 +46,6 @@ drss_ddisp(dispersion, cache, cbars_j, y, x, alpha, wt)
 \item{verbose}{Option to have verbose output}
 
 \item{use_parallel}{Logical. Whether to use parallel processing.}
-
-\item{dispersion}{Dispersion parameter}
-
-\item{cache}{Precomputed set of outputs passed downstream}
-
-\item{cbars_j}{gradient vector for standarized negative log-likelihood function}
-
-\item{rss_min_global}{Minimum RSS across the face tangencies over the range defined by disp_lower and disp_upper}
 }
 \value{
 \describe{

@@ -14,7 +14,6 @@
 #' @name SimulationPipeline
 NULL
 
-# Functions to add
 
 
 #' Return family functions used during simulation and post processing
@@ -2064,11 +2063,7 @@ run_opencl_pilot <- function(G4, y, x, mu, P, alpha, wt,
 #' @param disp_lower lower bound truncation for dispersion 
 #' @param disp_upper upper bound truncation for dispersion
 #' @param verbose Option to have verbose output
-#' @param cache       Precomputed set of outputs passed downstream
-#' @param cbars_j     gradient vector for standarized negative log-likelihood function
 #' @param wt          weight vector
-#' @param rss_min_global Minimum RSS across the face tangencies over the range defined by disp_lower and disp_upper
-#' @param dispersion  Dispersion parameter
 #' @param use_parallel Logical. Whether to use parallel processing.
 #'
 #' @return
@@ -2181,255 +2176,6 @@ EnvelopeDispersionBuild <- function(Env, Shape, Rate, P, y, x, alpha, n_obs, RSS
         max_disp_perc, disp_lower, disp_upper,
         verbose, use_parallel)
 }
-
-
-
-
-
-
-#' @noRd
-
-EnvBuildLinBound<-function(thetabars,cbars,y,x2,P2,alpha,dispstar){
-  
-  # gs=nrow(cbars)
-  # n_vars=ncol(cbars)
-  # 
-  # New_LL_Slope_test2=c(1:gs)
-  # New_LL_Slope_test3=c(1:gs)
-  
-  XtX   <- crossprod(x2)
-  rhs   <- crossprod(x2, y - alpha)
-  M     <- XtX + dispstar * P2
-  # Replace solve(M) with Cholesky inversion
-  R    <- chol(M)
-  Minv <- chol2inv(R)
-  Minv <- 0.5 * (Minv + t(Minv))   # enforce symmetry
-  H1    <- -Minv %*% P2 %*% Minv
-  
-  V <- -(thetabars %*% P2) + cbars          # gs x p
-  Minv_cbars <- t(Minv %*% t(cbars))        # gs x p
-  term1 <- rowSums(V * Minv_cbars)
-  
-  # replicate rhs across gs columns
-  rhs_mat <- matrix(rhs, nrow = length(rhs), ncol = nrow(cbars))
-  H1_rhs  <- t(H1 %*% (rhs_mat + dispstar * t(cbars)))  # gs * p
-  
-  term2 <- rowSums(V * H1_rhs)
-  
-  New_LL_Slope <- term1 + term2
-  
-  return(New_LL_Slope)
-  
-}
-
-#' @noRd
-
-thetabar_const<-function(P,cbars,thetabar){
-  
-  gs=nrow(cbars)
-  thetaconst=c(1:gs)
-  n_var=nrow(P)
-  
-  for(j in 1:gs){
-    theta_temp=as.matrix(thetabar[j,1:n_var],ncol=1)
-    cbars_temp=as.matrix(cbars[j,1:n_var],ncol=1)
-    thetaconst[j]=-0.5*t(theta_temp)%*%P%*%theta_temp+t(cbars_temp)%*% theta_temp
-    
-  }
-  
-  return(thetaconst)
-}
-
-
-#' @noRd
-
-Inv_f3_with_disp <- function(cache, dispersion, cbars_small) {
-  .Call(`_glmbayes_Inv_f3_with_disp`, cache, dispersion, cbars_small)
-}
-
-#' @usage UB2(dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global)
-#' @export
-#' @rdname dispenvelopes
-#' @order 5
-
-
-
-UB2 <- function(dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global) {
-  .Call(`_glmbayes_UB2`, dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global)
-}
-
-
-
-#' @usage rss_face_at_disp(dispersion, cache, cbars_j, y, x, alpha, wt)
-#' @export
-#' @rdname dispenvelopes
-#' @order 6
-
-rss_face_at_disp<- function(dispersion, cache, cbars_j, y, x, alpha, wt) {
-  .Call(`_glmbayes_rss_face_at_disp`, dispersion, cache, cbars_j, y, x, alpha, wt)
-}
-
-
-
-#' @usage drss_ddisp(dispersion, cache, cbars_j, y, x, alpha, wt)
-#' @export
-#' @rdname dispenvelopes
-#' @order 7
-
-drss_ddisp <- function(dispersion, cache, cbars_j, y, x, alpha, wt) {
-  .Call(`_glmbayes_drss_ddisp`, dispersion, cache, cbars_j, y, x, alpha, wt)
-}
-
-#' @noRd
-#' @order 11
-
-EnvelopeDispersionBuild_parallel_internal <- function(par0, low, upp,
-                                                      cache, cbars, y, x, alpha, wt,
-                                                      cores = parallel::detectCores(logical = FALSE),
-                                                      use_parallel = TRUE) {
-  gs <- nrow(cbars)
-  avail_cores <- parallel::detectCores(logical = FALSE)
-  
-  # Respect CRAN check limit
-  if (Sys.getenv("_R_CHECK_LIMIT_CORES_", "") == "TRUE") {
-    cores <- min(cores, 2L)
-  } else {
-    cores <- min(cores, avail_cores, gs)
-  }
-  
-  message("[EnvelopeDispersionBuild_parallel_internal] Available cores: ", avail_cores,
-          " | Using cores: ", if (use_parallel) cores else 1L)
-  
-  worker_fun <- function(j) {
-    cbars_j <- cbars[j, ]
-    optim(par0,
-          fn     = rss_face_at_disp,
-          method = "L-BFGS-B",
-          lower  = low,
-          upper  = upp,
-          cache  = cache,
-          cbars_j = cbars_j,
-          y      = y,
-          x      = x,
-          alpha  = alpha,
-          wt     = wt)
-  }
-  
-  if (use_parallel) {
-    if (.Platform$OS.type == "windows") {
-      cl <- parallel::makeCluster(cores)
-      on.exit(parallel::stopCluster(cl))
-      results <- parallel::parLapply(cl, seq_len(gs), worker_fun)
-    } else {
-      results <- parallel::mclapply(seq_len(gs), worker_fun, mc.cores = cores)
-    }
-  } else {
-    # Serial fallback: just loop over indices
-    results <- lapply(seq_len(gs), worker_fun)
-  }
-  
-  disp_min <- vapply(results, function(res) res$par, numeric(1))
-  rss_min  <- vapply(results, function(res) res$value, numeric(1))
-  
-  list(disp_min = disp_min, rss_min = rss_min)
-}
-
-#' @noRd
-#' @order 8
-
-EnvelopeDispersionBuild_parallel <- function(par0, low, upp,
-                                             cache, cbars, y, x, alpha, wt,
-                                             cores = parallel::detectCores(logical = FALSE),
-                                             use_parallel = TRUE) {
-  tryCatch(
-    EnvelopeDispersionBuild_parallel_internal(par0, low, upp, cache, cbars, y, x, alpha, wt, cores,use_parallel),
-    error = function(e) {
-      message("[EnvelopeDispersionBuild_parallel] Failed gracefully: ", e$message)
-      list(disp_min = NULL, rss_min = NULL, error = TRUE)
-    }
-  )
-}
-
-
-
-#' @noRd
-#' @order 12
-
-
-EnvelopeUB2_parallel_internal <- function(par0, low, upp,
-                                          cache, cbars, y, x, alpha, wt,
-                                          rss_min_global,
-                                          cores = parallel::detectCores(logical = FALSE),
-                                          use_parallel = TRUE) {
-  gs <- nrow(cbars)
-  avail_cores <- parallel::detectCores(logical = FALSE)
-  
-  # Respect CRAN check limit
-  if (Sys.getenv("_R_CHECK_LIMIT_CORES_", "") == "TRUE") {
-    cores <- min(cores, 2L)
-  } else {
-    cores <- min(cores, avail_cores, gs)
-  }
-  
-  message("[EnvelopeUB2_parallel_internal] Available cores: ", avail_cores,
-          " | Using cores: ", if (use_parallel) cores else 1L)
-  
-  worker_fun <- function(j) {
-    cbars_j <- cbars[j, ]
-    optim(par0,
-          fn     = UB2,                 # UB2 objective function
-          method = "L-BFGS-B",
-          lower  = low,
-          upper  = upp,
-          cache  = cache,
-          cbars_j = cbars_j,
-          y      = y,
-          x      = x,
-          alpha  = alpha,
-          wt     = wt,
-          rss_min_global = rss_min_global)
-  }
-  
-  if (use_parallel) {
-    if (.Platform$OS.type == "windows") {
-      cl <- parallel::makeCluster(cores)
-      on.exit(parallel::stopCluster(cl))
-      results <- parallel::parLapply(cl, seq_len(gs), worker_fun)
-    } else {
-      results <- parallel::mclapply(seq_len(gs), worker_fun, mc.cores = cores)
-    }
-  } else {
-    # Serial fallback: run optim sequentially
-    results <- lapply(seq_len(gs), worker_fun)
-  }
-  
-  disp_min_ub2 <- vapply(results, function(res) res$par, numeric(1))
-  ub2_min      <- vapply(results, function(res) res$value, numeric(1))
-  
-  list(disp_min = disp_min_ub2, ub2_min = ub2_min)
-}
-
-#' @noRd
-#' @order 9
-
-EnvelopeUB2_parallel <- function(par0, low, upp,
-                                 cache, cbars, y, x, alpha, wt,
-                                 rss_min_global,
-                                 cores = parallel::detectCores(logical = FALSE),
-                                 use_parallel = TRUE) {
-  tryCatch(
-    EnvelopeUB2_parallel_internal(par0, low, upp, cache, cbars, y, x, alpha, wt,
-                                  rss_min_global, cores),
-    error = function(e) {
-      message("[EnvelopeUB2_parallel] Graceful failure: ", e$message)
-      list(disp_min = NULL, ub2_min = NULL, error = TRUE)
-    }
-  )
-}
-
-
-
-
 
 
 #' Sorts Envelope function for simulation
@@ -2608,5 +2354,227 @@ dpois2<-function(x,lambda,log=TRUE){
   return(dpois(x,lambda,log=TRUE))
 }
 
+#' @noRd
 
+EnvBuildLinBound<-function(thetabars,cbars,y,x2,P2,alpha,dispstar){
+  
+  # gs=nrow(cbars)
+  # n_vars=ncol(cbars)
+  # 
+  # New_LL_Slope_test2=c(1:gs)
+  # New_LL_Slope_test3=c(1:gs)
+  
+  XtX   <- crossprod(x2)
+  rhs   <- crossprod(x2, y - alpha)
+  M     <- XtX + dispstar * P2
+  # Replace solve(M) with Cholesky inversion
+  R    <- chol(M)
+  Minv <- chol2inv(R)
+  Minv <- 0.5 * (Minv + t(Minv))   # enforce symmetry
+  H1    <- -Minv %*% P2 %*% Minv
+  
+  V <- -(thetabars %*% P2) + cbars          # gs x p
+  Minv_cbars <- t(Minv %*% t(cbars))        # gs x p
+  term1 <- rowSums(V * Minv_cbars)
+  
+  # replicate rhs across gs columns
+  rhs_mat <- matrix(rhs, nrow = length(rhs), ncol = nrow(cbars))
+  H1_rhs  <- t(H1 %*% (rhs_mat + dispstar * t(cbars)))  # gs * p
+  
+  term2 <- rowSums(V * H1_rhs)
+  
+  New_LL_Slope <- term1 + term2
+  
+  return(New_LL_Slope)
+  
+}
+
+#' @noRd
+
+thetabar_const<-function(P,cbars,thetabar){
+  
+  gs=nrow(cbars)
+  thetaconst=c(1:gs)
+  n_var=nrow(P)
+  
+  for(j in 1:gs){
+    theta_temp=as.matrix(thetabar[j,1:n_var],ncol=1)
+    cbars_temp=as.matrix(cbars[j,1:n_var],ncol=1)
+    thetaconst[j]=-0.5*t(theta_temp)%*%P%*%theta_temp+t(cbars_temp)%*% theta_temp
+    
+  }
+  
+  return(thetaconst)
+}
+
+
+#' @noRd
+
+Inv_f3_with_disp <- function(cache, dispersion, cbars_small) {
+  .Call(`_glmbayes_Inv_f3_with_disp`, cache, dispersion, cbars_small)
+}
+
+
+#' @noRd
+
+UB2 <- function(dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global) {
+  .Call(`_glmbayes_UB2`, dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global)
+}
+
+
+#' @noRd
+
+rss_face_at_disp<- function(dispersion, cache, cbars_j, y, x, alpha, wt) {
+  .Call(`_glmbayes_rss_face_at_disp`, dispersion, cache, cbars_j, y, x, alpha, wt)
+}
+
+
+
+#' @noRd
+
+drss_ddisp <- function(dispersion, cache, cbars_j, y, x, alpha, wt) {
+  .Call(`_glmbayes_drss_ddisp`, dispersion, cache, cbars_j, y, x, alpha, wt)
+}
+
+#' @noRd
+
+EnvelopeDispersionBuild_parallel_internal <- function(par0, low, upp,
+                                                      cache, cbars, y, x, alpha, wt,
+                                                      cores = parallel::detectCores(logical = FALSE),
+                                                      use_parallel = TRUE) {
+  gs <- nrow(cbars)
+  avail_cores <- parallel::detectCores(logical = FALSE)
+  
+  # Respect CRAN check limit
+  if (Sys.getenv("_R_CHECK_LIMIT_CORES_", "") == "TRUE") {
+    cores <- min(cores, 2L)
+  } else {
+    cores <- min(cores, avail_cores, gs)
+  }
+  
+  message("[EnvelopeDispersionBuild_parallel_internal] Available cores: ", avail_cores,
+          " | Using cores: ", if (use_parallel) cores else 1L)
+  
+  worker_fun <- function(j) {
+    cbars_j <- cbars[j, ]
+    optim(par0,
+          fn     = rss_face_at_disp,
+          method = "L-BFGS-B",
+          lower  = low,
+          upper  = upp,
+          cache  = cache,
+          cbars_j = cbars_j,
+          y      = y,
+          x      = x,
+          alpha  = alpha,
+          wt     = wt)
+  }
+  
+  if (use_parallel) {
+    if (.Platform$OS.type == "windows") {
+      cl <- parallel::makeCluster(cores)
+      on.exit(parallel::stopCluster(cl))
+      results <- parallel::parLapply(cl, seq_len(gs), worker_fun)
+    } else {
+      results <- parallel::mclapply(seq_len(gs), worker_fun, mc.cores = cores)
+    }
+  } else {
+    # Serial fallback: just loop over indices
+    results <- lapply(seq_len(gs), worker_fun)
+  }
+  
+  disp_min <- vapply(results, function(res) res$par, numeric(1))
+  rss_min  <- vapply(results, function(res) res$value, numeric(1))
+  
+  list(disp_min = disp_min, rss_min = rss_min)
+}
+
+#' @noRd
+
+EnvelopeDispersionBuild_parallel <- function(par0, low, upp,
+                                             cache, cbars, y, x, alpha, wt,
+                                             cores = parallel::detectCores(logical = FALSE),
+                                             use_parallel = TRUE) {
+  tryCatch(
+    EnvelopeDispersionBuild_parallel_internal(par0, low, upp, cache, cbars, y, x, alpha, wt, cores,use_parallel),
+    error = function(e) {
+      message("[EnvelopeDispersionBuild_parallel] Failed gracefully: ", e$message)
+      list(disp_min = NULL, rss_min = NULL, error = TRUE)
+    }
+  )
+}
+
+
+
+#' @noRd
+
+EnvelopeUB2_parallel_internal <- function(par0, low, upp,
+                                          cache, cbars, y, x, alpha, wt,
+                                          rss_min_global,
+                                          cores = parallel::detectCores(logical = FALSE),
+                                          use_parallel = TRUE) {
+  gs <- nrow(cbars)
+  avail_cores <- parallel::detectCores(logical = FALSE)
+  
+  # Respect CRAN check limit
+  if (Sys.getenv("_R_CHECK_LIMIT_CORES_", "") == "TRUE") {
+    cores <- min(cores, 2L)
+  } else {
+    cores <- min(cores, avail_cores, gs)
+  }
+  
+  message("[EnvelopeUB2_parallel_internal] Available cores: ", avail_cores,
+          " | Using cores: ", if (use_parallel) cores else 1L)
+  
+  worker_fun <- function(j) {
+    cbars_j <- cbars[j, ]
+    optim(par0,
+          fn     = UB2,                 # UB2 objective function
+          method = "L-BFGS-B",
+          lower  = low,
+          upper  = upp,
+          cache  = cache,
+          cbars_j = cbars_j,
+          y      = y,
+          x      = x,
+          alpha  = alpha,
+          wt     = wt,
+          rss_min_global = rss_min_global)
+  }
+  
+  if (use_parallel) {
+    if (.Platform$OS.type == "windows") {
+      cl <- parallel::makeCluster(cores)
+      on.exit(parallel::stopCluster(cl))
+      results <- parallel::parLapply(cl, seq_len(gs), worker_fun)
+    } else {
+      results <- parallel::mclapply(seq_len(gs), worker_fun, mc.cores = cores)
+    }
+  } else {
+    # Serial fallback: run optim sequentially
+    results <- lapply(seq_len(gs), worker_fun)
+  }
+  
+  disp_min_ub2 <- vapply(results, function(res) res$par, numeric(1))
+  ub2_min      <- vapply(results, function(res) res$value, numeric(1))
+  
+  list(disp_min = disp_min_ub2, ub2_min = ub2_min)
+}
+
+#' @noRd
+
+EnvelopeUB2_parallel <- function(par0, low, upp,
+                                 cache, cbars, y, x, alpha, wt,
+                                 rss_min_global,
+                                 cores = parallel::detectCores(logical = FALSE),
+                                 use_parallel = TRUE) {
+  tryCatch(
+    EnvelopeUB2_parallel_internal(par0, low, upp, cache, cbars, y, x, alpha, wt,
+                                  rss_min_global, cores),
+    error = function(e) {
+      message("[EnvelopeUB2_parallel] Graceful failure: ", e$message)
+      list(disp_min = NULL, ub2_min = NULL, error = TRUE)
+    }
+  )
+}
 

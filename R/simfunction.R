@@ -261,14 +261,6 @@ print.simfunction <- function(x, ...) {
 
 
 
-# Helper: log(exp(b) - exp(a)) for a < b, in a numerically stable way
-logdiffexp <- function(a, b) {
-  # assumes a < b (strict), returns log(exp(b) - exp(a))
-  # exp(b) - exp(a) = exp(b) * (1 - exp(a - b))
-  # so log(...) = b + log(1 - exp(a - b))
-  b + log(-expm1(a - b))
-}
-
 # Constrained truncated gamma sampler on precision scale (numerically robust)
 ctrgamma <- function(nn, shape, rate, lower_prec = NULL, upper_prec = NULL) {
   # ---- Case 0: no truncation ----
@@ -369,40 +361,6 @@ ctrgamma <- function(nn, shape, rate, lower_prec = NULL, upper_prec = NULL) {
   out
 }
 
-
-## Constrained truncated gamma sampler on precision scale
-# ctrgamma <- function(nn, shape, rate, lower_prec = NULL, upper_prec = NULL) {
-#   
-#   # Case: no truncation at all
-#   if (is.null(lower_prec) && is.null(upper_prec)) {
-#     return(stats::rgamma(nn, shape = shape, rate = rate))
-#   }
-#   
-#   # Compute CDF bounds
-#   a <- if (!is.null(lower_prec)) stats::pgamma(lower_prec, shape = shape, rate = rate) else 0
-#   b <- if (!is.null(upper_prec)) stats::pgamma(upper_prec, shape = shape, rate = rate) else 1
-#   
-#   # Extract numeric bounds (for uniform fallback)
-#   L <- if (!is.null(lower_prec)) lower_prec else -Inf
-#   U <- if (!is.null(upper_prec)) upper_prec else  Inf
-#   
-#   # ---- Case 3: exact numeric degeneracy ----
-#   if (!is.null(lower_prec) && !is.null(upper_prec) && lower_prec == upper_prec) {
-#     return(rep(lower_prec, nn))
-#   }
-#   
-#   # ---- Case 2: CDF interval collapsed but numeric interval valid ----
-#   # (i.e., proposal has zero mass between L and U in floating point)
-#   if (abs(b - a) < 1e-15) {
-#     # Draw uniformly on [L, U]
-#     u <- stats::runif(nn)
-#     return(L + u * (U - L))
-#   }
-#   
-#   # ---- Case 1: normal truncated Gamma ----
-#   u <- stats::runif(nn, min = a, max = b)
-#   stats::qgamma(u, shape = shape, rate = rate)
-# }
 
 
 
@@ -1837,127 +1795,12 @@ r_invgamma<-function(n,shape,rate,disp_upper,disp_lower){
 
 
 
+# Helper: log(exp(b) - exp(a)) for a < b, in a numerically stable way
+logdiffexp <- function(a, b) {
+  # assumes a < b (strict), returns log(exp(b) - exp(a))
+  # exp(b) - exp(a) = exp(b) * (1 - exp(a - b))
+  # so log(...) = b + log(1 - exp(a - b))
+  b + log(-expm1(a - b))
+}
 
 
-
-#' ## This function is used by the above (not sure why Neg_logLik is not working)
-#' ## Could be because it is not exported - replace with Neg_logLik
-#' #' @rdname Neg_logLik
-#' #' @export 
-#' 
-#' Neg_logLik2<-function(b, y, x, alpha, wt,family){
-#'   
-#'   ## Add required checks on other inputs at the top
-#'   
-#'   if (is.character(family)) 
-#'     family <- get(family, mode = "function", envir = parent.frame())
-#'   if (is.function(family)) 
-#'     family <- family()
-#'   if (is.null(family$family)) {
-#'     print(family)
-#'     stop("'family' not recognized")
-#'   }
-#'   
-#'   okfamilies <- c("gaussian","poisson","binomial","quasipoisson","quasibinomial","Gamma")
-#'   if(family$family %in% okfamilies){
-#'     if(family$family=="gaussian") oklinks<-c("identity")
-#'     if(family$family=="poisson"||family$family=="quasipoisson") oklinks<-c("log")		
-#'     if(family$family=="binomial"||family$family=="quasibinomial") oklinks<-c("logit","probit","cloglog")		
-#'     if(family$family=="Gamma") oklinks<-c("log")		
-#'     if(family$link %in% oklinks){
-#'       
-#'       ## This may be the R version of these files so may not be using the efficiency of C++
-#'       ## This may be safer
-#'       
-#'       famfunc<-glmbfamfunc(family)
-#'       f1<-famfunc$f1
-#'       f2<-famfunc$f2
-#'       f3<-famfunc$f3
-#'       #      f5<-famfunc$f5
-#'       #      f6<-famfunc$f6
-#'     }
-#'     else{
-#'       stop(gettextf("link \"%s\" not available for selected family; available links are %s", 
-#'                     family$link , paste(sQuote(oklinks), collapse = ", ")), 
-#'            domain = NA)
-#'       
-#'     }	
-#'     
-#'   }		
-#'   else {
-#'     stop(gettextf("family \"%s\" not available in glmb; available families are %s", 
-#'                   family$family , paste(sQuote(okfamilies), collapse = ", ")), 
-#'          domain = NA)
-#'   }
-#'   
-#'   return(f1(b, y, x, alpha, wt)) 
-#'   
-#' }
-
-
-#' #' Negative Log-Likelihood for a Generalized Linear Model
-#' #'
-#' #' @param b a matrix where each row represents a point at which Negative Log-Likelihood is to be calculated
-#' #' @param y A vector
-#' #' @param x A matrix
-#' #' @param alpha A vector
-#' #' @param wt A vector
-#' #' @param family A family
-#' #' @return The sum of \code{x} and \code{y}
-#' #' @examples
-#' #' 1+1
-#' #' 10+1
-#' 
-#' 
-#' Neg_logLik<-function(b, y, x, alpha, wt,family){
-#'   
-#'   ## Add required checks on other inputs at the top
-#'   
-#'   if (is.character(family)) 
-#'     family <- get(family, mode = "function", envir = parent.frame())
-#'   if (is.function(family)) 
-#'     family <- family()
-#'   if (is.null(family$family)) {
-#'     print(family)
-#'     stop("'family' not recognized")
-#'   }
-#'   
-#'   okfamilies <- c("gaussian","poisson","binomial","quasipoisson","quasibinomial","Gamma")
-#'   if(family$family %in% okfamilies){
-#'     if(family$family=="gaussian") oklinks<-c("identity")
-#'     if(family$family=="poisson"||family$family=="quasipoisson") oklinks<-c("log")		
-#'     if(family$family=="binomial"||family$family=="quasibinomial") oklinks<-c("logit","probit","cloglog")		
-#'     if(family$family=="Gamma") oklinks<-c("log")		
-#'     if(family$link %in% oklinks){
-#'       
-#'       ## This may be the R version of these files so may not be using the efficiency of C++
-#'       ## This may be safer
-#'       
-#'       famfunc<-glmbfamfunc(family)
-#'       f1<-famfunc$f1
-#'       f2<-famfunc$f2
-#'       f3<-famfunc$f3
-#'       #      f5<-famfunc$f5
-#'       #      f6<-famfunc$f6
-#'     }
-#'     else{
-#'       stop(gettextf("link \"%s\" not available for selected family; available links are %s", 
-#'                     family$link , paste(sQuote(oklinks), collapse = ", ")), 
-#'            domain = NA)
-#'       
-#'     }	
-#'     
-#'   }		
-#'   else {
-#'     stop(gettextf("family \"%s\" not available in glmb; available families are %s", 
-#'                   family$family , paste(sQuote(okfamilies), collapse = ", ")), 
-#'          domain = NA)
-#'   }
-#'   
-#'   return(f1(b, y, x, alpha, wt)) 
-#'   
-#' }
-#' 
-#' 
-#' 
-#' 
