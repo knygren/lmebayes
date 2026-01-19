@@ -50,6 +50,7 @@ if(length(a)!=length(b)){stop("a and b must be equal length vectors")}
 if(length(mu)>1||length(sigma)>1){stop("mu and sigma must have length 1")}
 if(sigma<=0){stop("sigma must be positive")}
 
+  
 # Verify arguments are numeric vectors
 
 l1<-length(a)

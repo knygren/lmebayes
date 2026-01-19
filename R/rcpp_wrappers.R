@@ -98,3 +98,27 @@
     use_parallel
   )
 }
+
+
+#' @noRd
+#' @keywords internal
+.EnvelopeSize <- function(
+    a,
+    G1,
+    Gridtype,
+    n,
+    n_envopt,
+    use_opencl,
+    verbose
+) {
+  .Call(
+    "_glmbayes_EnvelopeSize",
+    a,
+    G1,
+    Gridtype,
+    n,
+    n_envopt,
+    use_opencl,
+    verbose
+  )
+}

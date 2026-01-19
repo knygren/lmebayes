@@ -12,7 +12,6 @@
 #' construction for rejection sampling. They make use of the theory described
 #' in \insertCite{Nygren2006}{glmbayes} and the general implementation outlined
 #' in \insertCite{glmbayesSimmethods}{glmbayes}.
-
 #'
 #' @param G4 Numeric matrix of parameter values (parameters * grid points).
 #' @param y Numeric response vector.
@@ -32,7 +31,6 @@
 #' triggered allowing users to interrupt the run.
 #' @details
 #' The evaluation workflow has several layers:
-
 #' **1. High-level dispatch (`EnvelopeEval`)**
 #'
 #' * `EnvelopeEval()` is the user-facing entry point. It accepts a grid of
@@ -135,8 +133,6 @@
 #'
 #' @references
 #' \insertAllCited{}
-
-
 #' @return
 #' \describe{
 #'   \item{EnvelopeEval}{List with components \code{NegLL} (numeric vector of
@@ -167,6 +163,7 @@ EnvelopeEval <- function(G4, y, x, mu, P, alpha, wt,
   if (!is.numeric(wt)) stop("wt must be numeric")
   if (!is.character(family) || length(family) != 1L) stop("family must be a string")
   if (!is.character(link) || length(link) != 1L) stop("link must be a string")
+  
   
   EnvelopeEval(G4, y, x, mu, P, alpha, wt,
                family, link,

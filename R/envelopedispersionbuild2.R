@@ -282,6 +282,8 @@ UB2 <- function(dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global) {
   .Call(`_glmbayes_UB2`, dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global)
 }
 
+
+
 #' @usage rss_face_at_disp(dispersion, cache, cbars_j, y, x, alpha, wt)
 #' @export
 #' @rdname dispenvelopes

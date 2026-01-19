@@ -158,6 +158,8 @@ Prior_Setup <- function(
   intercept_source <- match.arg(intercept_source)
   effects_source <- match.arg(effects_source)
   
+  
+  
   #mf<-model.frame(formula,data,subset=subset,na.action=na.action,
   #                drop.unused.levels=drop.unused.levels,xlev=xlev)
   

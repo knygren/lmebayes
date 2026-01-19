@@ -1063,6 +1063,7 @@ EnvelopeBuild <- function(
 
 
 
+
 #' @usage Set_Grid(GridIndex, cbars, Lint)
 #' @rdname EnvelopeBuild
 #' @export

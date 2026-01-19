@@ -44,6 +44,7 @@ EnvelopeSort <- function(l1, l2,
   ord <- order(PLSD, decreasing = TRUE)
   sel <- ord[seq_len(l2)]  # top l2 rows
   
+  
   # Reorder inputs once
   GIndex <- GIndex[sel, , drop = FALSE]
   G3     <- G3[sel, , drop = FALSE]
