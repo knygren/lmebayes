@@ -590,7 +590,7 @@ Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4,   // grid (parameters × 
 
 // [[Rcpp::export(".EnvelopeBuild_cpp")]]
 
-List EnvelopeBuild_c(NumericVector bStar,
+List EnvelopeBuild_cpp(NumericVector bStar,
                      NumericMatrix A, /// Diagonal Precision Matrix for Adjusted Likelihood Function
                      NumericVector y, 
                      NumericMatrix x,

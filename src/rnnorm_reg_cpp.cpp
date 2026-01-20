@@ -1011,7 +1011,7 @@ Rcpp::List rnnorm_reg_cpp(int n,NumericVector y,NumericMatrix x,
   
   
   if(n==1){
-    Envelope=EnvelopeBuild_c(bstar2_temp, A_temp,y, x2_temp,mu2_temp,
+    Envelope=EnvelopeBuild_cpp(bstar2_temp, A_temp,y, x2_temp,mu2_temp,
                              P2_temp,alpha,wt2,family,link,Gridtype, n,n_envopt,false,use_opencl,verbose);
 
 
@@ -1019,7 +1019,7 @@ Rcpp::List rnnorm_reg_cpp(int n,NumericVector y,NumericMatrix x,
       }
   
   if(n>1){
-    Envelope=EnvelopeBuild_c(bstar2_temp, A_temp,y, x2_temp,mu2_temp,
+    Envelope=EnvelopeBuild_cpp(bstar2_temp, A_temp,y, x2_temp,mu2_temp,
                              P2_temp,alpha,wt2,family,link,Gridtype, n,n_envopt,true,use_opencl,verbose);
   }
   

@@ -18,7 +18,7 @@ EnvelopeEval <- function(G4, y, x, mu, P, alpha, wt, family, link, use_opencl = 
 }
 
 .EnvelopeBuild_cpp <- function(bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose) {
-    .Call(`_glmbayes_EnvelopeBuild_c`, bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose)
+    .Call(`_glmbayes_EnvelopeBuild_cpp`, bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose)
 }
 
 .EnvelopeBuild_Ind_Normal_Gamma <- function(bStar, A, y, x, mu, P, alpha, wt, family = "binomial", link = "logit", Gridtype = 2L, n = 1L, n_envopt = -1L, sortgrid = FALSE, use_opencl = FALSE, verbose = FALSE) {

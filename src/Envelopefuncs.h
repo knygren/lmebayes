@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 
 
-List EnvelopeBuild_c(NumericVector bStar,
+List EnvelopeBuild_cpp(NumericVector bStar,
                      NumericMatrix A,
                      NumericVector y,
                      NumericMatrix x,
