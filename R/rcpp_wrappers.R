@@ -222,3 +222,108 @@
         dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global)
 }
 
+
+#' @noRd
+#' @keywords internal
+.EnvelopeSize <- function(
+    a,
+    G1,
+    Gridtype,
+    n,
+    n_envopt,
+    use_opencl,
+    verbose
+) {
+  .Call(
+    "_glmbayes_EnvelopeSize",
+    a,
+    G1,
+    Gridtype,
+    n,
+    n_envopt,
+    use_opencl,
+    verbose
+  )
+}
+
+#' @noRd
+#' @keywords internal
+.EnvelopeEval <- function(
+    G4,
+    y,
+    x,
+    mu,
+    P,
+    alpha,
+    wt,
+    family,
+    link,
+    use_opencl = FALSE,
+    verbose = FALSE
+) {
+  .Call(
+    "_glmbayes_EnvelopeEval",
+    G4, y, x, mu, P, alpha, wt,
+    family, link,
+    use_opencl, verbose
+  )
+}
+
+
+#' @noRd
+#' @keywords internal
+.EnvelopeDispersionBuild_cpp <- function(
+    Env,
+    Shape,
+    Rate,
+    P,
+    y,
+    x,
+    alpha,
+    n_obs,
+    RSS_post,
+    RSS_ML,
+    mu,
+    wt,
+    max_disp_perc,
+    disp_lower = NULL,
+    disp_upper = NULL,
+    verbose = FALSE,
+    use_parallel = TRUE
+) {
+  .Call(
+    "_glmbayes_EnvelopeDispersionBuild_cpp",
+    Env,
+    Shape,
+    Rate,
+    P,
+    y,
+    x,
+    alpha,
+    n_obs,
+    RSS_post,
+    RSS_ML,
+    mu,
+    wt,
+    max_disp_perc,
+    disp_lower,
+    disp_upper,
+    verbose,
+    use_parallel
+  )
+}
+
+#' @noRd
+#' @keywords internal
+.has_opencl <- function() {
+  .Call("_glmbayes_has_opencl")
+}
+
+#' @noRd
+#' @keywords internal
+.gpu_names <- function() {
+  .Call("_glmbayes_gpu_names")
+}
+
+
+

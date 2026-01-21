@@ -2170,7 +2170,7 @@ run_opencl_pilot <- function(G4, y, x, mu, P, alpha, wt,
 EnvelopeDispersionBuild <- function(Env, Shape, Rate, P, y, x, alpha, n_obs, RSS_post, RSS_ML,
                                     mu, wt, max_disp_perc = 0.99, disp_lower = NULL, disp_upper = NULL,
                                     verbose = FALSE, use_parallel = TRUE) {
-  .Call(`_glmbayes_EnvelopeDispersionBuild_cpp`,
+  .EnvelopeDispersionBuild_cpp(
         Env, Shape, Rate, P, y, x, alpha, n_obs,
         RSS_post, RSS_ML, mu, wt,
         max_disp_perc, disp_lower, disp_upper,
