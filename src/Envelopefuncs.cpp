@@ -1286,49 +1286,49 @@ double rss_face_at_disp(double dispersion,
 }
 
 
-// [[Rcpp::export("drss_ddisp")]]
-
-double drss_ddisp(double dispersion,
-                  Rcpp::List cache,
-                  Rcpp::NumericVector cbars_j,
-                  Rcpp::NumericVector y,
-                  Rcpp::NumericMatrix x,
-                  Rcpp::NumericVector alpha,
-                  Rcpp::NumericVector wt) {
-  // Build cbars_small
-  int l1 = cbars_j.size();
-  Rcpp::NumericMatrix cbars_small(1, l1);
-  for (int k = 0; k < l1; ++k) cbars_small(0, k) = cbars_j[k];
-  
-  // Get beta via Inv_f3_with_disp
-  arma::mat theta_row = Inv_f3_with_disp(cache, dispersion, Rcpp::transpose(cbars_small));
-  arma::vec beta = theta_row.t();
-  
-  // Armadillo views
-  arma::vec y2(y.begin(), y.size(), false);
-  arma::vec a2(alpha.begin(), alpha.size(), false);
-  arma::mat X(x.begin(), x.nrow(), x.ncol(), false);
-  arma::vec w(wt.begin(), wt.size(), false);
-  
-  arma::vec resid = (y2 - a2 - X * beta);
-  
-  // Cache pieces
-  arma::mat Pmat    = cache["Pmat"];
-  arma::vec base_B0 = cache["base_B0"];
-  arma::mat base_A  = cache["base_A"];
-  
-  arma::mat A = Pmat + base_A / dispersion;
-  A = 0.5 * (A + A.t());
-  
-  // Compute A^{-1}(base_A*beta - base_B0)
-  arma::vec rhs = base_A * beta - base_B0;
-  arma::vec solve_rhs = arma::solve(A, rhs); // A^{-1} * rhs
-  
-  arma::vec WXsolve = (X * solve_rhs) % w; // W is diag(w)
-  
-  double grad = (2.0 / (dispersion * dispersion)) * arma::dot(resid, WXsolve);
-  return grad;
-}
+// // [[Rcpp::export("drss_ddisp")]]
+// 
+// double drss_ddisp(double dispersion,
+//                   Rcpp::List cache,
+//                   Rcpp::NumericVector cbars_j,
+//                   Rcpp::NumericVector y,
+//                   Rcpp::NumericMatrix x,
+//                   Rcpp::NumericVector alpha,
+//                   Rcpp::NumericVector wt) {
+//   // Build cbars_small
+//   int l1 = cbars_j.size();
+//   Rcpp::NumericMatrix cbars_small(1, l1);
+//   for (int k = 0; k < l1; ++k) cbars_small(0, k) = cbars_j[k];
+//   
+//   // Get beta via Inv_f3_with_disp
+//   arma::mat theta_row = Inv_f3_with_disp(cache, dispersion, Rcpp::transpose(cbars_small));
+//   arma::vec beta = theta_row.t();
+//   
+//   // Armadillo views
+//   arma::vec y2(y.begin(), y.size(), false);
+//   arma::vec a2(alpha.begin(), alpha.size(), false);
+//   arma::mat X(x.begin(), x.nrow(), x.ncol(), false);
+//   arma::vec w(wt.begin(), wt.size(), false);
+//   
+//   arma::vec resid = (y2 - a2 - X * beta);
+//   
+//   // Cache pieces
+//   arma::mat Pmat    = cache["Pmat"];
+//   arma::vec base_B0 = cache["base_B0"];
+//   arma::mat base_A  = cache["base_A"];
+//   
+//   arma::mat A = Pmat + base_A / dispersion;
+//   A = 0.5 * (A + A.t());
+//   
+//   // Compute A^{-1}(base_A*beta - base_B0)
+//   arma::vec rhs = base_A * beta - base_B0;
+//   arma::vec solve_rhs = arma::solve(A, rhs); // A^{-1} * rhs
+//   
+//   arma::vec WXsolve = (X * solve_rhs) % w; // W is diag(w)
+//   
+//   double grad = (2.0 / (dispersion * dispersion)) * arma::dot(resid, WXsolve);
+//   return grad;
+// }
 
 // [[Rcpp::export]]
 double UB2(double dispersion,
@@ -1754,8 +1754,8 @@ List EnvelopeDispersionBuild_cpp(
   Rcpp::Function optim("optim");
   
   // --- NEW: Call parallel helper and time it ---
-  Rcpp::Environment ns3 = Rcpp::Environment::namespace_env("glmbayes");
-  Rcpp::Function rss_fn = ns3["rss_face_at_disp"];
+//  Rcpp::Environment ns3 = Rcpp::Environment::namespace_env("glmbayes");
+//  Rcpp::Function rss_fn = ns3["rss_face_at_disp"];
   
 //  Rcpp::Function grad_fn("drss_ddisp");   // exported gradient
   
@@ -1971,8 +1971,8 @@ List EnvelopeDispersionBuild_cpp(
   
   /// Switch to using namesspace
   
-  Rcpp::Environment ns = Rcpp::Environment::namespace_env("glmbayes");
-  Rcpp::Function ub2_fn = ns["UB2"];
+//  Rcpp::Environment ns = Rcpp::Environment::namespace_env("glmbayes");
+//  Rcpp::Function ub2_fn = ns["UB2"];
   
   // Preallocate to gs faces
   Rcpp::NumericVector disp_min_ub2(gs);
@@ -2013,9 +2013,6 @@ List EnvelopeDispersionBuild_cpp(
                   << "(faces=" << gs << " < threshold=" << pilot_threshold_ub2 << ").\n";
     }
   }
-  
-  
-
   
     if (est_total_ub2 > 300.0) {
     std::string prompt = "Estimated UB2 minimization exceeds 5 minutes. Continue? [y/N]: ";

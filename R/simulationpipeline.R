@@ -2415,22 +2415,8 @@ Inv_f3_with_disp <- function(cache, dispersion, cbars_small) {
 }
 
 
-#' @noRd
 
-UB2 <- function(dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global) {
-  .Call(`_glmbayes_UB2`, dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global)
-}
-
-
-#' @noRd
-
-rss_face_at_disp<- function(dispersion, cache, cbars_j, y, x, alpha, wt) {
-  .Call(`_glmbayes_rss_face_at_disp`, dispersion, cache, cbars_j, y, x, alpha, wt)
-}
-
-
-
-#' @noRd
+#' #' @noRd
 
 # drss_ddisp <- function(dispersion, cache, cbars_j, y, x, alpha, wt) {
 #   .Call(`_glmbayes_drss_ddisp`, dispersion, cache, cbars_j, y, x, alpha, wt)
@@ -2458,7 +2444,7 @@ EnvelopeDispersionBuild_parallel_internal <- function(par0, low, upp,
   worker_fun <- function(j) {
     cbars_j <- cbars[j, ]
     optim(par0,
-          fn     = rss_face_at_disp,
+          fn     = .rss_face_at_disp,
           method = "L-BFGS-B",
           lower  = low,
           upper  = upp,
@@ -2529,7 +2515,7 @@ EnvelopeUB2_parallel_internal <- function(par0, low, upp,
   worker_fun <- function(j) {
     cbars_j <- cbars[j, ]
     optim(par0,
-          fn     = UB2,                 # UB2 objective function
+          fn     = .UB2,                 # UB2 objective function
           method = "L-BFGS-B",
           lower  = low,
           upper  = upp,

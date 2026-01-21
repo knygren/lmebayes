@@ -202,3 +202,23 @@
 
 
 
+#' Internal wrapper for RSS face evaluation
+#'
+#' @keywords internal
+#' @noRd
+.rss_face_at_disp <- function(dispersion, cache, cbars_j, y, x, alpha, wt) {
+  .Call(`_glmbayes_rss_face_at_disp`,
+        dispersion, cache, cbars_j, y, x, alpha, wt)
+}
+
+
+
+#' Internal wrapper for UB2 face evaluation
+#'
+#' @keywords internal
+#' @noRd
+.UB2 <- function(dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global) {
+  .Call(`_glmbayes_UB2`,
+        dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global)
+}
+
