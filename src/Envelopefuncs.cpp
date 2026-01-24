@@ -9,7 +9,6 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 #include "famfuncs.h"
-#include "Set_Grid.h"
 #include "Envelopefuncs.h"
 #include "kernel_wrappers.h"
 #include <RcppParallel.h>
@@ -17,6 +16,7 @@
 
 
 using namespace Rcpp;
+using namespace openclPort;
 
 
 

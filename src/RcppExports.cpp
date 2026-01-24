@@ -210,6 +210,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// get_opencl_core_count
+int get_opencl_core_count();
+RcppExport SEXP _glmbayes_get_opencl_core_count() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_opencl_core_count());
+    return rcpp_result_gen;
+END_RCPP
+}
 // load_kernel_source_wrapper
 std::string load_kernel_source_wrapper(std::string relative_path, std::string package);
 RcppExport SEXP _glmbayes_load_kernel_source_wrapper(SEXP relative_pathSEXP, SEXP packageSEXP) {
@@ -232,16 +242,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type package(packageSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     rcpp_result_gen = Rcpp::wrap(load_kernel_library_wrapper(subdir, package, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
-// get_opencl_core_count
-int get_opencl_core_count();
-RcppExport SEXP _glmbayes_get_opencl_core_count() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_opencl_core_count());
     return rcpp_result_gen;
 END_RCPP
 }
@@ -398,9 +398,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmbayes_Set_Grid", (DL_FUNC) &_glmbayes_Set_Grid, 3},
     {"_glmbayes_setlogP", (DL_FUNC) &_glmbayes_setlogP, 4},
     {"_glmbayes_gpu_names", (DL_FUNC) &_glmbayes_gpu_names, 0},
+    {"_glmbayes_get_opencl_core_count", (DL_FUNC) &_glmbayes_get_opencl_core_count, 0},
     {"_glmbayes_load_kernel_source_wrapper", (DL_FUNC) &_glmbayes_load_kernel_source_wrapper, 2},
     {"_glmbayes_load_kernel_library_wrapper", (DL_FUNC) &_glmbayes_load_kernel_library_wrapper, 3},
-    {"_glmbayes_get_opencl_core_count", (DL_FUNC) &_glmbayes_get_opencl_core_count, 0},
     {"_glmbayes_rindep_norm_gamma_reg_std_cpp", (DL_FUNC) &_glmbayes_rindep_norm_gamma_reg_std_cpp, 15},
     {"_glmbayes_rindep_norm_gamma_reg_std_parallel_cpp", (DL_FUNC) &_glmbayes_rindep_norm_gamma_reg_std_parallel_cpp, 15},
     {"_glmbayes_glmb_Standardize_Model", (DL_FUNC) &_glmbayes_glmb_Standardize_Model, 5},

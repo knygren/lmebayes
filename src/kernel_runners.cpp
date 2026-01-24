@@ -17,9 +17,12 @@
 
 
 //#include <Rcpp.h>
-# include <RcppArmadillo.h>
+#include <RcppArmadillo.h>
+#include "openclPort.h"
 #include <vector>
 #include <string>
+
+using namespace openclPort;
 
 #ifdef USE_OPENCL
 
@@ -221,6 +224,7 @@ void f2_f3_kernel_runner(
 
 #ifdef USE_OPENCL
 
+namespace openclPort{
 int detect_num_gpus_internal() {
   cl_uint num_platforms = 0;
   cl_int status = clGetPlatformIDs(0, nullptr, &num_platforms);
@@ -247,4 +251,5 @@ int detect_num_gpus_internal() {
   return total_compute_units;
 }
 
+}
 #endif

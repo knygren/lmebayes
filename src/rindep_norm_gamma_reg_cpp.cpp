@@ -10,13 +10,26 @@
 
 #include "famfuncs.h"
 #include "Envelopefuncs.h"
-#include "Set_Grid.h"
+#include "glmbsim.h"
+
+#include <cmath>         // for std::log or std::exp if used
 #include <math.h>
 #include "rng_utils.h"  // for safe_runif()
 
 #include "nmath_local.h"
 #include "dpq_local.h"
-#include "rnnorm_reg_worker.h"
+
+// Required headers
+#include <RcppArmadillo.h>
+#include <RcppParallel.h>
+#if !defined(__EMSCRIPTEN__) && !defined(__wasm__)
+#include <tbb/mutex.h>
+static tbb::mutex f2_mutex;
+#endif
+#include <string>
+#include <atomic>
+#include <memory>
+
 
 
 using namespace Rcpp;
@@ -76,6 +89,253 @@ double r_invgamma(double shape,double rate,double disp_upper,double disp_lower){
 
 
 
+namespace {
+
+
+//-----------------------------------------------------------------------------
+// rindep_norm_gamma_worker: parallel Normal–Gamma simulation with envelope
+//-----------------------------------------------------------------------------
+struct rindep_norm_gamma_worker : public RcppParallel::Worker {
+  // --- Inputs ---
+  int n;
+  
+  // Likelihood inputs (thread-safe views)
+  RcppParallel::RVector<double>       y_r;
+  RcppParallel::RMatrix<double>       x_r;
+  RcppParallel::RMatrix<double>       mu_r;
+  RcppParallel::RMatrix<double>       P_r;
+  RcppParallel::RVector<double>       alpha_r;
+  RcppParallel::RVector<double>       wt_r;
+  
+  // Envelope components
+  RcppParallel::RMatrix<double>       cbars_r;
+  RcppParallel::RVector<double>       PLSD_r;
+  RcppParallel::RMatrix<double>       loglt_r;
+  RcppParallel::RMatrix<double>       logrt_r;
+  
+  // UB vectors
+  RcppParallel::RVector<double>       lg_prob_factor_r;
+  RcppParallel::RVector<double>       UB2min_r;
+  
+  // Scalars
+  double shape3, rate2, disp_upper, disp_lower, RSS_Min;
+  double max_New_LL_UB, max_LL_log_disp, lm_log1, lm_log2, lmc1, lmc2;
+  
+  // Cache (precomputed upstream)
+  RcppParallel::RMatrix<double>       Pmat_r;
+  RcppParallel::RMatrix<double>       Pmu_r;
+  RcppParallel::RVector<double>       base_B0_r;
+  RcppParallel::RMatrix<double>       base_A_r;
+  
+  // --- Outputs ---
+  RcppParallel::RMatrix<double>       beta_out_r;   // n × l1
+  RcppParallel::RVector<double>       disp_out_r;   // length n
+  RcppParallel::RVector<double>       iters_out_r;  // length n
+  RcppParallel::RVector<double>       weight_out_r; // length n
+  
+  // --- Constructor ---
+  rindep_norm_gamma_worker(
+    int n_,
+    const RcppParallel::RVector<double>& y_r_,
+    const RcppParallel::RMatrix<double>& x_r_,
+    const RcppParallel::RMatrix<double>& mu_r_,
+    const RcppParallel::RMatrix<double>& P_r_,
+    const RcppParallel::RVector<double>& alpha_r_,
+    const RcppParallel::RVector<double>& wt_r_,
+    const RcppParallel::RMatrix<double>& cbars_r_,
+    const RcppParallel::RVector<double>& PLSD_r_,
+    const RcppParallel::RMatrix<double>& loglt_r_,
+    const RcppParallel::RMatrix<double>& logrt_r_,
+    const RcppParallel::RVector<double>& lg_prob_factor_r_,
+    const RcppParallel::RVector<double>& UB2min_r_,
+    double shape3_, double rate2_,
+    double disp_upper_, double disp_lower_,
+    double RSS_Min_,
+    double max_New_LL_UB_, double max_LL_log_disp_,
+    double lm_log1_, double lm_log2_,
+    double lmc1_, double lmc2_,
+    const RcppParallel::RMatrix<double>& Pmat_r_,
+    const RcppParallel::RMatrix<double>& Pmu_r_,
+    const RcppParallel::RVector<double>& base_B0_r_,
+    const RcppParallel::RMatrix<double>& base_A_r_,
+    RcppParallel::RMatrix<double>& beta_out_r_,
+    RcppParallel::RVector<double>& disp_out_r_,
+    RcppParallel::RVector<double>& iters_out_r_,
+    RcppParallel::RVector<double>& weight_out_r_)
+    : n(n_),
+      y_r(y_r_), x_r(x_r_), mu_r(mu_r_), P_r(P_r_), alpha_r(alpha_r_), wt_r(wt_r_),
+      cbars_r(cbars_r_), PLSD_r(PLSD_r_), loglt_r(loglt_r_), logrt_r(logrt_r_),
+      lg_prob_factor_r(lg_prob_factor_r_), UB2min_r(UB2min_r_),
+      shape3(shape3_), rate2(rate2_), disp_upper(disp_upper_), disp_lower(disp_lower_),
+      RSS_Min(RSS_Min_), max_New_LL_UB(max_New_LL_UB_), max_LL_log_disp(max_LL_log_disp_),
+      lm_log1(lm_log1_), lm_log2(lm_log2_), lmc1(lmc1_), lmc2(lmc2_),
+      Pmat_r(Pmat_r_), Pmu_r(Pmu_r_), base_B0_r(base_B0_r_), base_A_r(base_A_r_),
+      beta_out_r(beta_out_r_), disp_out_r(disp_out_r_), iters_out_r(iters_out_r_), weight_out_r(weight_out_r_) {}
+  
+  // --- Parallel Loop ---
+  void operator()(std::size_t begin, std::size_t end);
+};
+  
+  
+// --- rindep_norm_gamma_worker implementation ---
+void rindep_norm_gamma_worker::operator()(std::size_t begin, std::size_t end) {
+  const int l2 = x_r.nrow();
+  const int l1 = x_r.ncol();
+
+  for (std::size_t i = begin; i < end; ++i) {
+    // Thread-local buffers and views (no shared state)
+    std::vector<double> out_buf(static_cast<std::size_t>(l1), 0.0);
+    RcppParallel::RMatrix<double> out_row(out_buf.data(), 1,  l1);  // 1×l1
+    RcppParallel::RMatrix<double> out_col(out_buf.data(), l1, 1);   // l1×1
+
+    std::vector<double> theta_buf(static_cast<std::size_t>(l1), 0.0);
+    RcppParallel::RMatrix<double> theta_row(theta_buf.data(), 1,  l1); // 1×l1
+    RcppParallel::RMatrix<double> theta_col(theta_buf.data(), l1, 1);  // l1×1
+
+    std::vector<double> cbars_col_buf(static_cast<std::size_t>(l1), 0.0);
+    RcppParallel::RMatrix<double> cbars_small_col(cbars_col_buf.data(), l1, 1); // l1×1
+
+
+    // Scaled weights: classical logic requires wt2 = wt / dispersion before likelihood
+    //   Rcpp::NumericVector wt2_nv(l2);                  // thread-local
+    //  RcppParallel::RVector<double> wt2_r_old(wt2_nv);     // matches f2_gaussian_rmat signature
+
+
+    std::vector<double> wt2_buf(static_cast<std::size_t>(l2), 0.0);
+    // Wrap as a 1‑column matrix (l1 × 1)
+    RcppParallel::RMatrix<double> wt2_r(wt2_buf.data(), l2, 1);
+
+
+    iters_out_r[i]  = 1.0;
+    weight_out_r[i] = 1.0;
+
+    int accept = 0;
+
+
+
+    while (accept == 0) {
+      // 1) Slice/component selection via PLSD
+      double U = safe_runif();
+      int J_idx = 0;
+      double U_left = U;
+      while (true) {
+        if (U_left <= PLSD_r[J_idx]) break;
+        U_left -= PLSD_r[J_idx];
+        ++J_idx;
+      }
+
+      // 2) Draw truncated-normal beta row
+      for (int j = 0; j < l1; ++j) {
+        out_row(0, j) = ctrnorm_cpp(
+          logrt_r(J_idx, j),
+          loglt_r(J_idx, j),
+          -cbars_r(J_idx, j),
+          1.0
+        );
+      }
+
+      // 3) Draw dispersion
+      double dispersion = r_invgamma_safe(shape3, rate2, disp_upper, disp_lower);
+
+      // 4) Solve theta (strict row-only)
+      for (int j = 0; j < l1; ++j) cbars_small_col(j, 0) = cbars_r(J_idx, j);
+
+      // RcppParallel::RMatrix<double> theta_sol_r =
+      //   Inv_f3_with_disp_rmat(Pmat_r, Pmu_r, base_B0_r, base_A_r,
+      //                         dispersion, cbars_small_col);
+
+      arma::mat theta_sol = Inv_f3_with_disp_rmat_v2(Pmat_r, Pmu_r, base_B0_r, base_A_r,
+                                                     dispersion, cbars_small_col);
+
+
+      //for (int j = 0; j < l1; ++j) theta_row(0, j) = theta_sol_r(0, j);
+
+      for (int j = 0; j < l1; ++j) {
+        theta_row(0, j) = theta_sol(0, j);
+      }
+
+      // 5) Scale weights before likelihood
+      for (int r = 0; r < l2; ++r) {
+        wt2_r(r, 0) = wt_r[r] / dispersion;
+      }
+
+
+
+
+#if !defined(__EMSCRIPTEN__) && !defined(__wasm__)
+      tbb::mutex::scoped_lock lock(f2_mutex);
+#endif
+
+      // Rcout << "Entering f2_gaussian_rmat_mat 1"  << std::endl;
+
+      // 6) Likelihood calls (column views, pre-scaled weights)
+      double LL_New2_scalar =
+        -f2_gaussian_rmat_mat(theta_col, y_r, x_r, mu_r, P_r, alpha_r, wt2_r, 0)[0];
+
+        // Rcout << "Entering f2_gaussian_rmat_mat 2"  << std::endl;
+
+        double LL_Test_scalar =
+        -f2_gaussian_rmat_mat(out_col,   y_r, x_r, mu_r, P_r, alpha_r, wt2_r, 0)[0];
+
+
+
+        // 7) Upper bounds
+        double U2     = safe_runif();
+        double log_U2 = std::log(U2);
+
+        double UB1 = LL_New2_scalar;
+        for (int j = 0; j < l1; ++j)
+          UB1 -= cbars_r(J_idx, j) * (out_row(0, j) - theta_row(0, j));
+
+        double quad_sum = 0.0;
+        for (int r = 0; r < l2; ++r) {
+          double x_theta = 0.0;
+          for (int c = 0; c < l1; ++c) x_theta += x_r(r, c) * theta_row(0, c);
+          double resid  = (y_r[r] - alpha_r[r] - x_theta);
+          double scaled = resid * std::sqrt(wt_r[r]);
+          quad_sum += scaled * scaled;
+        }
+        double UB2 = 0.5 * (1.0 / dispersion) * (quad_sum - RSS_Min);
+        UB2 -= UB2min_r[J_idx];
+
+        double theta_P_theta = 0.0;
+        for (int r = 0; r < l1; ++r) {
+          double acc = 0.0;
+          for (int c = 0; c < l1; ++c) acc += P_r(r, c) * theta_row(0, c);
+          theta_P_theta += theta_row(0, r) * acc;
+        }
+        double c_theta = 0.0;
+        for (int j = 0; j < l1; ++j) c_theta += cbars_r(J_idx, j) * theta_row(0, j);
+        double New_LL_J = -0.5 * theta_P_theta + c_theta;
+
+        double UB3A = lg_prob_factor_r[J_idx] + lmc1 + lmc2 * dispersion - New_LL_J;
+        double New_LL_log_disp = lm_log1 + lm_log2 * std::log(dispersion);
+        double UB3B = (max_New_LL_UB - max_LL_log_disp + New_LL_log_disp)
+          - (lmc1 + lmc2 * dispersion);
+
+        double test1 = (LL_Test_scalar - UB1);
+        double test  = test1 - (UB2 + UB3A + UB3B);
+        test = test - log_U2;
+
+
+        // Rcout << "Entering Output assignment"  << std::endl;
+
+        // 8) Record outputs and accept/reject
+        disp_out_r[i] = dispersion;
+        for (int j = 0; j < l1; ++j) beta_out_r(i, j) = out_row(0, j);
+
+        if (test >= 0.0) {
+          accept = 1;
+        } else {
+          iters_out_r[i] = iters_out_r[i] + 1;
+        }
+    } // while (accept == 0)
+  }   // for i
+}
+
+
+}
+
 
 // [[Rcpp::export(".rindep_norm_gamma_reg_std_cpp")]]
 
@@ -87,8 +347,8 @@ Rcpp::List  rindep_norm_gamma_reg_std_cpp(int n,NumericVector y,NumericMatrix x,
                                              Rcpp::List  gamma_list,
                                              Rcpp::List  UB_list,
                                              Rcpp::CharacterVector   family,Rcpp::CharacterVector   link,
-                                             bool progbar=true,
-                                            bool verbose=false
+                                             bool progbar,
+                                            bool verbose
 )
 {
   
@@ -444,8 +704,8 @@ Rcpp::List rindep_norm_gamma_reg_std_parallel_cpp(
     Rcpp::List UB_list,
     Rcpp::CharacterVector family,
     Rcpp::CharacterVector link,
-    bool progbar = true,
-    bool verbose = false
+    bool progbar ,
+    bool verbose 
 ) {
 
 

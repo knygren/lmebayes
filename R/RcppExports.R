@@ -45,6 +45,10 @@ gpu_names <- function() {
     .Call(`_glmbayes_gpu_names`)
 }
 
+get_opencl_core_count <- function() {
+    .Call(`_glmbayes_get_opencl_core_count`)
+}
+
 load_kernel_source_wrapper <- function(relative_path, package) {
     .Call(`_glmbayes_load_kernel_source_wrapper`, relative_path, package)
 }
@@ -53,15 +57,11 @@ load_kernel_library_wrapper <- function(subdir, package, verbose) {
     .Call(`_glmbayes_load_kernel_library_wrapper`, subdir, package, verbose)
 }
 
-get_opencl_core_count <- function() {
-    .Call(`_glmbayes_get_opencl_core_count`)
-}
-
-.rindep_norm_gamma_reg_std_cpp <- function(n, y, x, mu, P, alpha, wt, f2, Envelope, gamma_list, UB_list, family, link, progbar = TRUE, verbose = FALSE) {
+.rindep_norm_gamma_reg_std_cpp <- function(n, y, x, mu, P, alpha, wt, f2, Envelope, gamma_list, UB_list, family, link, progbar, verbose) {
     .Call(`_glmbayes_rindep_norm_gamma_reg_std_cpp`, n, y, x, mu, P, alpha, wt, f2, Envelope, gamma_list, UB_list, family, link, progbar, verbose)
 }
 
-.rindep_norm_gamma_reg_std_parallel_cpp <- function(n, y, x, mu, P, alpha, wt, f2, Envelope, gamma_list, UB_list, family, link, progbar = TRUE, verbose = FALSE) {
+.rindep_norm_gamma_reg_std_parallel_cpp <- function(n, y, x, mu, P, alpha, wt, f2, Envelope, gamma_list, UB_list, family, link, progbar, verbose) {
     .Call(`_glmbayes_rindep_norm_gamma_reg_std_parallel_cpp`, n, y, x, mu, P, alpha, wt, f2, Envelope, gamma_list, UB_list, family, link, progbar, verbose)
 }
 

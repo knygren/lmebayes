@@ -1,9 +1,10 @@
-#include "OpenCL_helper.h"
+#include "openclPort.h"
 #include <Rcpp.h>
 
 using namespace Rcpp;
+using namespace openclPort;
 
-namespace OpenCLHelper {
+namespace openclPort {
 
 std::vector<double> flattenMatrix(const Rcpp::NumericMatrix& mat) {
   int nrow = mat.nrow();
@@ -25,7 +26,10 @@ std::vector<double> copyVector(const Rcpp::NumericVector& vec) {
   return std::vector<double>(vec.begin(), vec.end());
 }
 
+
+
 }
+
 
 
 // [[Rcpp::export]]

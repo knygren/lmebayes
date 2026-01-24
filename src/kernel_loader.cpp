@@ -2,6 +2,7 @@
 
 //#include <Rcpp.h>
 #include <RcppArmadillo.h>
+#include "openclPort.h"
 
 #include <fstream>
 #include <sstream>
@@ -18,11 +19,14 @@
 
 namespace fs = std::filesystem;
 
+using namespace openclPort;
+
 // Load a single file like "nmath/bd0.cl"
+namespace openclPort {
 
 #ifdef USE_OPENCL
 std::string load_kernel_source(const std::string& relative_path,
-                               const std::string& package = "glmbayes") {
+                               const std::string& package ) {
   // Retrieve full path via system.file()
   std::string path = Rcpp::as<std::string>(
     Rcpp::Function("system.file")("cl", relative_path,
@@ -50,7 +54,7 @@ std::string load_kernel_source(const std::string& relative_path,
 /////////////////////////////
 
 #ifdef USE_OPENCL
-std::string load_kernel_library(const std::string& subdir, const std::string& package = "glmbayes", bool verbose = false) {
+std::string load_kernel_library(const std::string& subdir, const std::string& package , bool verbose ) {
   std::string dir_path = Rcpp::as<std::string>(
     Rcpp::Function("system.file")("cl", subdir, Rcpp::Named("package") = package)
   );
@@ -185,3 +189,39 @@ std::string load_kernel_library(const std::string& subdir, const std::string& pa
 #endif
 
 #endif
+
+}
+
+
+// [[Rcpp::export]]
+int get_opencl_core_count() {
+#ifdef USE_OPENCL
+  return std::max(1, detect_num_gpus_internal());  // ensure at least 1
+#else
+  return 1;  // fallback when OpenCL is not available
+#endif
+}
+
+
+// [[Rcpp::export]]
+std::string load_kernel_source_wrapper(std::string relative_path,
+                                       std::string package ) {
+#ifdef USE_OPENCL
+  return load_kernel_source(relative_path, package);
+#else
+  Rcpp::stop("OpenCL support is not available in this build of glmbayes.");
+#endif
+}
+
+
+
+// [[Rcpp::export]]
+std::string load_kernel_library_wrapper(std::string subdir,
+                                        std::string package ,
+                                        bool verbose ) {
+#ifdef USE_OPENCL
+  return load_kernel_library(subdir, package, verbose);
+#else
+  Rcpp::stop("OpenCL support is not available in this build of glmbayes.");
+#endif
+}

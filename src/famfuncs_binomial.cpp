@@ -7,12 +7,11 @@
 #define MATHLIB_STANDALONE
 #include "nmath_local.h"
 #include "dpq_local.h"
+#include "openclPort.h"
 
 using namespace Rcpp;
 using namespace RcppParallel;
-
-#include "OpenCL_helper.h"
- using namespace OpenCLHelper;
+using namespace openclPort;
 
 
 void progress_bar2(double x, double N);
