@@ -13,11 +13,13 @@
 #include "kernel_wrappers.h"
 #include <RcppParallel.h>
 #include "openclPort.h"
-
+#include "utils_timing.h"
 
 using namespace Rcpp;
 using namespace openclPort;
 using namespace famfuncs;
+
+
 
 // Internal helper: run OpenCL pilot timing, print diagnostics, and prompt user.
 // Not exported to R.
@@ -34,7 +36,7 @@ double f2_f3_opencl_pilot(const Rcpp::NumericMatrix& G4,
                         const std::string& link,
                         bool use_opencl,
                         bool verbose,
-                        double threshold_sec) {
+                        double threshold_sec=300) {
   if (!use_opencl) return NA_REAL;
   
   int m1_total = G4.ncol();
@@ -292,3 +294,70 @@ Rcpp::List f2_f3_non_opencl(
 }
 
 
+
+// [[Rcpp::export]]
+Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4,   // grid (parameters × grid points)
+                        const Rcpp::NumericVector& y,
+                        const Rcpp::NumericMatrix& x,
+                        const Rcpp::NumericMatrix& mu,
+                        const Rcpp::NumericMatrix& P,
+                        const Rcpp::NumericVector& alpha,
+                        const Rcpp::NumericVector& wt,
+                        const std::string& family,
+                        const std::string& link,
+                        bool use_opencl ,
+                        bool verbose ) {
+  int progbar = 0;
+  
+  // Optional pilot timing for large parameter dimension
+  // (originally: if (l1 >= 14) ...; here we use number of columns in G4)
+  // --- Pilot timing ---
+  if (G4.ncol() >= 14) {
+    Timer t_pilot; if (verbose) t_pilot.begin();
+    
+    if (verbose) {
+      
+      Rcpp::Rcout << "Entering Run_opencl_pilot: "
+                  << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")())) 
+                  << "\n";
+    }
+    
+    
+    double est_time = f2_f3_opencl_pilot(G4, y, x, mu, P, alpha, wt,family, link, use_opencl, verbose);
+    if (verbose) {
+      print_completed("[EnvelopeBuild::EnvelopeEval] Pilot", t_pilot);
+      Rcpp::Rcout << "[EnvelopeBuild::EnvelopeEval] Pilot estimated time = "
+                  << est_time << " seconds\n";
+    }
+  }
+  
+  
+  // --- Dispatch timing ---
+  Timer t_dispatch; if (verbose) t_dispatch.begin();
+  Rcpp::List prepGrad;
+  if (use_opencl) {
+    if (verbose) {
+      Rcpp::Rcout << "[EnvelopeBuild::EnvelopeEval] Initiating f2_f3_opencl at "
+                  << now_hms() << "\n";
+    }
+    prepGrad = f2_f3_opencl(family, link, G4, y, x, mu, P, alpha, wt, progbar);
+  } else {
+    if (verbose) {
+      Rcpp::Rcout << "[EnvelopeEval] Initiating f2_f3_non_opencl at "
+                  << now_hms() << "\n";
+    }
+    prepGrad = f2_f3_non_opencl(family, link, G4, y, x, mu, P, alpha, wt, progbar);
+  }
+  if (verbose) {
+    print_completed("[EnvelopeBuild::EnvelopeEval] Dispatch", t_dispatch);
+  }
+  
+  // Unpack results
+  Rcpp::NumericVector NegLL = prepGrad["qf"];          // negative log likelihood values
+  arma::mat cbars = Rcpp::as<arma::mat>(prepGrad["grad"]); // gradient matrix
+  
+  return Rcpp::List::create(
+    Rcpp::Named("NegLL") = NegLL,
+    Rcpp::Named("cbars") = cbars
+  );
+}
