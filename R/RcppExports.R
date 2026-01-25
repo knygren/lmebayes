@@ -5,16 +5,16 @@
     .Call(`_glmbayes_EnvelopeBuild_cpp`, bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose)
 }
 
+.EnvelopeBuild_Ind_Normal_Gamma <- function(bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose) {
+    .Call(`_glmbayes_EnvelopeBuild_Ind_Normal_Gamma`, bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose)
+}
+
 EnvelopeEval <- function(G4, y, x, mu, P, alpha, wt, family, link, use_opencl, verbose) {
     .Call(`_glmbayes_EnvelopeEval`, G4, y, x, mu, P, alpha, wt, family, link, use_opencl, verbose)
 }
 
 EnvelopeSize <- function(a, G1, Gridtype, n, n_envopt, use_opencl, verbose) {
     .Call(`_glmbayes_EnvelopeSize`, a, G1, Gridtype, n, n_envopt, use_opencl, verbose)
-}
-
-.EnvelopeBuild_Ind_Normal_Gamma <- function(bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose) {
-    .Call(`_glmbayes_EnvelopeBuild_Ind_Normal_Gamma`, bStar, A, y, x, mu, P, alpha, wt, family, link, Gridtype, n, n_envopt, sortgrid, use_opencl, verbose)
 }
 
 rss_face_at_disp <- function(dispersion, cache, cbars_j, y, x, alpha, wt) {

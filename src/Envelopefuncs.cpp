@@ -25,307 +25,6 @@ using namespace famfuncs;
 
 
 
-// [[Rcpp::export(".EnvelopeBuild_Ind_Normal_Gamma")]]
-
-List EnvelopeBuild_Ind_Normal_Gamma(NumericVector bStar,NumericMatrix A,
-                                    NumericVector y, 
-                                    NumericMatrix x,
-                                    NumericMatrix mu,
-                                    NumericMatrix P,
-                                    NumericVector alpha,
-                                    NumericVector wt,
-                                    std::string family,
-                                    std::string link,
-                                    int Gridtype, 
-                                    int n,
-                                    int n_envopt,
-                                    bool sortgrid,
-                                    bool use_opencl    ,
-                                    bool verbose       
-){
-  
-  
-  //  int progbar=0;
-  
-  int l1 = A.nrow(), k = A.ncol();
-  arma::mat A2(A.begin(), l1, k, false);
-  arma::colvec bStar_2(bStar.begin(), bStar.size(), false);
-  
-  
-  NumericVector a_1(l1);
-  arma::vec a_2(a_1.begin(), a_1.size(), false);
-  
-  NumericVector xx_1(3, 1.0);
-  NumericVector xx_2=NumericVector::create(-1.0,0.0,1.0);
-  NumericVector yy_1(2, 1.0);
-  NumericVector yy_2=NumericVector::create(-0.5,0.5);
-  NumericMatrix G1(3,l1);
-  NumericMatrix Lint1(2,l1);
-  arma::mat G1b(G1.begin(), 3, l1, false);
-  arma::mat Lint(Lint1.begin(), 2, l1, false);
-  
-  arma::colvec xx_1b(xx_1.begin(), xx_1.size(), false);
-  arma::colvec xx_2b(xx_2.begin(), xx_2.size(), false);
-  arma::colvec yy_1b(yy_1.begin(), yy_1.size(), false);
-  arma::colvec yy_2b(yy_2.begin(), yy_2.size(), false);
-  List G2(a_1.size());
-  List GIndex1(a_1.size());
-  Rcpp::Function EnvelopeOpt("EnvelopeOpt");
-  Rcpp::Function expGrid("expand.grid");
-  Rcpp::Function asMat("as.matrix");
-  Rcpp::Function EnvSort("EnvelopeSort");
-  
-  int i;  
-  
-  a_2=arma::diagvec(A2);
-  arma::vec omega=(sqrt(2)-arma::exp(-1.20491-0.7321*sqrt(0.5+a_2)))/arma::sqrt(1+a_2);
-  G1b=xx_1b*arma::trans(bStar_2)+xx_2b*arma::trans(omega);
-  Lint=yy_1b*arma::trans(bStar_2)+yy_2b*arma::trans(omega);
-  
-  // Second row in G1b here is the posterior mode
-  
-  NumericVector gridindex(l1);
-  
-  if(Gridtype==2){
-    gridindex=EnvelopeOpt(a_2,n);
-  }
-  
-  NumericVector Temp1=G1( _, 0);
-  double Temp2;
-  
-  // Should write a small note with logic behind types 1 and 2
-  
-  for(i=0;i<l1;i++){
-    
-    if(Gridtype==1){
-      
-      // For Gridtype==1, small 1+a[i]<=(2/sqrt(M_PI) yields grid over full line
-      // Can check speed for simulation when Gridtype=1 vs. Gridtyp=2 or 3     
-      
-      if((1+a_2[i])<=(2/sqrt(M_PI))){ 
-        Temp2=G1(1,i);
-        G2[i]=NumericVector::create(Temp2);
-        GIndex1[i]=NumericVector::create(4.0);
-      }
-      if((1+a_2[i])>(2/sqrt(M_PI))){
-        Temp1=G1(_,i);
-        G2[i]=NumericVector::create(Temp1(0),Temp1(1),Temp1(2));
-        GIndex1[i]=NumericVector::create(1.0,2.0,3.0);
-      }    
-    }  
-    if(Gridtype==2){
-      if(gridindex[i]==1){
-        Temp2=G1(1,i);
-        G2[i]=NumericVector::create(Temp2);
-        GIndex1[i]=NumericVector::create(4.0);
-      }
-      if(gridindex[i]==3){
-        Temp1=G1(_,i);
-        G2[i]=NumericVector::create(Temp1(0),Temp1(1),Temp1(2));
-        GIndex1[i]=NumericVector::create(1.0,2.0,3.0);
-      }
-    }
-    
-    if(Gridtype==3){
-      Temp1=G1(_,i);
-      G2[i]=NumericVector::create(Temp1(0),Temp1(1),Temp1(2));
-      GIndex1[i]=NumericVector::create(1.0,2.0,3.0);
-    }
-    
-    if(Gridtype==4){
-      Temp2=G1(1,i);
-      G2[i]=NumericVector::create(Temp2);
-      GIndex1[i]=NumericVector::create(4.0);
-    }
-    
-    
-    
-  }
-  
-  NumericMatrix G3=asMat(expGrid(G2));
-  NumericMatrix GIndex=asMat(expGrid(GIndex1));
-  NumericMatrix G4(G3.ncol(),G3.nrow());
-  int l2=GIndex.nrow();
-  
-  arma::mat G3b(G3.begin(), G3.nrow(), G3.ncol(), false);
-  arma::mat G4b(G4.begin(), G4.nrow(), G4.ncol(), false);
-  
-  G4b=trans(G3b);
-  
-  NumericMatrix cbars(l2,l1);
-  NumericMatrix cbars_slope(l2,l1);
-  NumericMatrix Up(l2,l1);
-  NumericMatrix Down(l2,l1);
-  NumericMatrix logP(l2,2);
-  NumericMatrix logU(l2,l1);
-  NumericMatrix loglt(l2,l1);
-  NumericMatrix logrt(l2,l1);
-  NumericMatrix logct(l2,l1);
-  
-  NumericMatrix LLconst(l2,1);
-  NumericVector NegLL(l2);    
-  NumericVector NegLL_slope(l2);    
-  NumericVector RSS_Out(l2);
-  arma::mat cbars2(cbars.begin(), l2, l1, false); 
-  arma::mat cbars3(cbars.begin(), l2, l1, false); 
-  
-  arma::mat cbars_slope2(cbars_slope.begin(), l2, l1, false); 
-  arma::mat cbars_slope3(cbars_slope.begin(), l2, l1, false); 
-  
-  
-  // Note: NegLL_2 only added to allow for QC printing of results 
-  
-  arma::colvec NegLL_2(NegLL.begin(), NegLL.size(), false);
-  
-  //    G4b.print("tangent points");
-  
-  //  Rcpp::Rcout << "Gridtype is :"  << Gridtype << std::endl;
-  //  Rcpp::Rcout << "Number of Variables in model are :"  << l1 << std::endl;
-  //  Rcpp::Rcout << "Number of points in Grid are :"  << l2 << std::endl;
-  
-  
-  
-  
-  if(family=="gaussian" ){
-    //Rcpp::Rcout << "Finding Values of Log-posteriors:" << std::endl;
-    
-    // Adjust the slope calculations to split into several terms:
-    // (i) Terms from shifted "prior" that does not depend on the dispersion
-    // (ii) Constant terms from the actual LL that do not depend on dispersion or beta
-    // (iii) Term from the LL that depends on the dispersion but not beta
-    // (iv) Term from the LL that depends on beta and the dispersion (scaled RSS)
-    
-    if (verbose) {
-      Rcpp::Rcout << "[EnvelopeBuild] >>> Starting EnvelopeEval (NegLL, cbars) at " << now_hms() << " <<<\n";
-    }
-    Timer t_eval1; if (verbose) t_eval1.begin();
-    
-    Rcpp::List eval_info = EnvelopeEval(G4, y, x, mu, P, alpha, wt, family, link, use_opencl, verbose);
-    NegLL = eval_info["NegLL"];
-    cbars2 = Rcpp::as<arma::mat>(eval_info["cbars"]);
-    
-    if (verbose) {
-      Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting EnvelopeEval (NegLL, cbars) at " << now_hms() << " <<<\n";
-      print_completed("[EnvelopeBuild] EnvelopeEval (NegLL, cbars)", t_eval1);
-    }
-    
-    
-//    Rcpp::List eval_info = EnvelopeEval(G4, y, x, mu, P, alpha, wt,
-//                                        family, link, use_opencl, verbose);
-    
-    
-    if (verbose) {
-      Rcpp::Rcout << "[EnvelopeBuild] >>> Starting EnvelopeEval (slope variants) at " << now_hms() << " <<<\n";
-    }
-    Timer t_eval2; if (verbose) t_eval2.begin();
-    
-    Rcpp::List eval_info2 = EnvelopeEval(G4, y, x, mu, 0*P, alpha, wt, family, link, use_opencl, verbose);
-    NegLL_slope  = eval_info2["NegLL"];
-    cbars_slope2 = Rcpp::as<arma::mat>(eval_info2["cbars"]);
-    
-    if (verbose) {
-      Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting EnvelopeEval (slope variants) at " << now_hms() << " <<<\n";
-      print_completed("[EnvelopeBuild] EnvelopeEval (slope variants)", t_eval2);
-      Rcpp::Rcout << "[EnvelopeBuild] Finished assigning NegLL_slope and cbars_slope2\n";
-    }
-    
-    
-    if (verbose) {
-      Rcpp::Rcout << "[EnvelopeBuild] >>> Starting RSS evaluation at " << now_hms() << " <<<\n";
-    }
-    Timer t_rss; if (verbose) t_rss.begin();
-    
-    RSS_Out = RSS(y, x, G4, alpha, wt); // includes dispersion in weight
-    
-    if (verbose) {
-      Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting RSS evaluation at " << now_hms() << " <<<\n";
-      print_completed("[EnvelopeBuild] RSS evaluation", t_rss);
-    } 
-  }
-  
-  
-  //  Rcpp::Rcout << "Finished Log-posterior evaluations:" << std::endl;
-  
-  // Do a temporary correction here cbars3 should point to correct memory
-  // See if this sets cbars
-  
-  cbars3=cbars2;
-  cbars_slope3=cbars_slope2;
-
-  if (verbose) {
-    Rcpp::Rcout << "[EnvelopeBuild] >>> Entering Set_Grid_C2 at " << now_hms() << " <<<\n";
-  }
-  Timer t_setgrid; if (verbose) t_setgrid.begin();
-  
-  Set_Grid_C2(GIndex, cbars, Lint1, Down, Up, loglt, logrt, logct, logU, logP);
-  
-  if (verbose) {
-    Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting Set_Grid_C2 at " << now_hms() << " <<<\n";
-    print_completed("[EnvelopeBuild] Set_Grid_C2", t_setgrid);
-  }
-  
-  if (verbose) {
-    Rcpp::Rcout << "[EnvelopeBuild] >>> Entering Set_logP_C2 at " << now_hms() << " <<<\n";
-  }
-  Timer t_setlogp; if (verbose) t_setlogp.begin();
-  
-  setlogP_C2(logP, NegLL, cbars, G3, LLconst);
-  
-  if (verbose) {
-    Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting Set_logP_C2 at " << now_hms() << " <<<\n";
-    print_completed("[EnvelopeBuild] Set_logP_C2", t_setlogp);
-  }  
-  
-  
-  if (verbose) {
-    Rcpp::Rcout << "[EnvelopeBuild] >>> Starting PLSD computation at " << now_hms() << " <<<\n";
-  }
-  Timer t_plsd; if (verbose) t_plsd.begin();
-  
-  NumericMatrix::Column logP2 = logP(_, 1);
-  double maxlogP = max(logP2);
-  NumericVector PLSD = exp(logP2 - maxlogP);
-  double sumP = sum(PLSD);
-  PLSD = PLSD / sumP;
-  
-  if (verbose) {
-    Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting PLSD computation at " << now_hms() << " <<<\n";
-    print_completed("[EnvelopeBuild] PLSD computation", t_plsd);
-  }
-  
-  
-  
-  // Add sorting step back later after modifying EnvSort function
-  // Should accomodate ready List
-  
-  //  if(sortgrid==true){
-  //    Rcpp::List outlist=EnvSort(l1,l2,GIndex,G3,cbars,logU,logrt,loglt,logP,LLconst,PLSD,a_1);
-  //    return(outlist);
-  //  }
-  
-  
-  
-  return Rcpp::List::create(Rcpp::Named("GridIndex")=GIndex,
-                            Rcpp::Named("thetabars")=G3,
-                            Rcpp::Named("cbars")=cbars,
-                            Rcpp::Named("cbars_slope")=cbars_slope,
-                            Rcpp::Named("NegLL")=NegLL,
-                            Rcpp::Named("NegLL_slope")=NegLL_slope,
-                            Rcpp::Named("Lint1")=Lint1,
-                            Rcpp::Named("RSS_Out")=RSS_Out,
-                            Rcpp::Named("logU")=logU,
-                            Rcpp::Named("logrt")=logrt,
-                            Rcpp::Named("loglt")=loglt,
-                            Rcpp::Named("LLconst")=LLconst,
-                            Rcpp::Named("logP")=logP(_,0),
-                            Rcpp::Named("PLSD")=PLSD,
-                            Rcpp::Named("a1")=a_1
-  );
-  
-  
-}
-
-
 
 NumericVector RSS(NumericVector y, NumericMatrix x,NumericMatrix b,NumericVector alpha,NumericVector wt)
 {
@@ -381,11 +80,6 @@ NumericVector RSS(NumericVector y, NumericMatrix x,NumericMatrix b,NumericVector
   return res;      
   
 }
-
-
-
-
-
 
 
 
@@ -755,6 +449,210 @@ Rcpp::List run_ub2_pilot_block(const Rcpp::Function& ub2_parallel_fn,
 
 
 
+// ---------------------------------------------------------------------
+// Internal helper: minimize RSS over dispersion for all faces
+// Not exported. Only visible inside this .cpp file.
+// ---------------------------------------------------------------------
+Rcpp::List minimize_rss_over_dispersion(
+    int gs,
+    int l1,
+    double low,
+    double upp,
+    const Rcpp::List& cache,
+    const Rcpp::NumericMatrix& cbars,
+    const Rcpp::NumericVector& y,
+    const Rcpp::NumericMatrix& x,
+    const Rcpp::NumericVector& alpha,
+    const Rcpp::NumericVector& wt,
+    double RSS_ML,
+    int RSS_Min_Type,
+    bool use_parallel,
+    bool verbose
+) {
+  using namespace Rcpp;
+  
+  // Output containers
+  NumericVector disp_min_parallel(gs);
+  NumericVector rss_min_parallel(gs);
+  
+  double rss_min_global = R_PosInf;
+  double disp_min_global = NA_REAL;
+  int j_best = -1;
+  
+  // -------------------------------------------------------------------
+  // Case 1: Skip minimization entirely (RSS_Min_Type == 2)
+  // -------------------------------------------------------------------
+  if (RSS_Min_Type == 2) {
+    rss_min_global = RSS_ML;
+    disp_min_global = 0.5 * (low + upp);
+    
+    if (verbose) {
+      Rcout << "[EnvelopeDispersionBuild] RSS source = ML (skip minimization)\n";
+      Rcout << "[EnvelopeDispersionBuild] RSS_ML = " << RSS_ML << "\n";
+    }
+    
+    return List::create(
+      Named("rss_min_global")  = rss_min_global,
+      Named("disp_min_global") = disp_min_global,
+      Named("j_best")          = j_best,
+      Named("rss_min_parallel")  = rss_min_parallel,
+      Named("disp_min_parallel") = disp_min_parallel
+    );
+  }
+  
+  // -------------------------------------------------------------------
+  // Case 2: Perform full minimization
+  // -------------------------------------------------------------------
+  if (verbose) {
+    Function fmt("format");
+    Function systime("Sys.time");
+    CharacterVector now = fmt(systime(), Named("format") = "%H:%M:%S");
+    
+    Rcout << "[EnvelopeDispersionBuild] Total faces to process: " << gs << "\n";
+    Rcout << "[EnvelopeDispersionBuild] >>> Starting RSS minimization loop at "
+          << as<std::string>(now[0]) << " <<<\n";
+  }
+  
+  // Load parallel helper from namespace
+  Environment ns = Environment::namespace_env("glmbayes");
+  Function parallel_fn = ns["EnvelopeDispersionBuild_parallel"];
+  
+  // Pilot threshold
+  const int pilot_threshold = static_cast<int>(std::pow(3, 14)); // 59,049 faces
+  double est_total = 0.0;
+  
+  // -------------------------------------------------------------------
+  // Optional pilot block
+  // -------------------------------------------------------------------
+  if (gs >= pilot_threshold) {
+    if (verbose) {
+      Rcout << "[EnvelopeDispersionBuild] Running RSS pilot block (faces="
+            << gs << " >= threshold=" << pilot_threshold << ").\n";
+    }
+    
+    List pilot_res = run_rss_pilot_block(
+      parallel_fn, gs, l1, low, upp, cache, cbars,
+      y, x, alpha, wt, use_parallel, verbose
+    );
+    
+    est_total = pilot_res["est_total"];
+    
+    if (verbose) {
+      Rcout << "[EnvelopeDispersionBuild] run_rss_pilot_block completed; "
+            << "est_total=" << est_total << " seconds.\n";
+    }
+  } else {
+    if (verbose) {
+      Rcout << "[EnvelopeDispersionBuild] Skipping RSS pilot block "
+            << "(faces=" << gs << " < threshold=" << pilot_threshold << ").\n";
+    }
+  }
+  
+  // -------------------------------------------------------------------
+  // If estimated time > 5 minutes, ask user (interactive only)
+  // -------------------------------------------------------------------
+  if (est_total > 300.0) {
+    std::string prompt = "Estimated minimization exceeds 5 minutes. Continue? [y/N]: ";
+    
+    Function r_interactive("interactive");
+    bool is_interactive = as<bool>(r_interactive());
+    
+    if (is_interactive) {
+      Function readline("readline");
+      
+      while (true) {
+        std::string ans = as<std::string>(readline(wrap(prompt)));
+        
+        // trim whitespace
+        ans.erase(ans.begin(), std::find_if(ans.begin(), ans.end(),
+                            [](unsigned char ch){ return !std::isspace(ch); }));
+        ans.erase(std::find_if(ans.rbegin(), ans.rend(),
+                               [](unsigned char ch){ return !std::isspace(ch); }).base(), ans.end());
+        
+        if (ans == "y" || ans == "yes" || ans == "1" || ans == "continue") {
+          Rcout << "[INFO] User chose to continue full run.\n";
+          break;
+        } else if (ans == "n" || ans == "no" || ans == "2" || ans.empty()) {
+          Rcout << "[INFO] User declined. Stopping Minimization.\n";
+          stop("Minimization stopped by user after time estimate.");
+        } else {
+          Rcout << "Invalid input. Please enter y (continue) or N (stop).\n";
+        }
+      }
+    } else {
+      Rcout << "[NOTE] Non-interactive session: proceeding automatically.\n";
+      Rcout << "[INFO] Proceeding with full run.\n";
+    }
+  }
+  
+  // -------------------------------------------------------------------
+  // Full parallel minimization
+  // -------------------------------------------------------------------
+  double start_time_parallel = as<double>(
+    Function("as.numeric")(Function("Sys.time")())
+  );
+  
+  List parallel_res = parallel_fn(
+    Named("par0")   = 0.5 * (low + upp),
+    Named("low")    = low,
+    Named("upp")    = upp,
+    Named("cache")  = cache,
+    Named("cbars")  = cbars,
+    Named("y")      = y,
+    Named("x")      = x,
+    Named("alpha")  = alpha,
+    Named("wt")     = wt
+  );
+  
+  double end_time_parallel = as<double>(
+    Function("as.numeric")(Function("Sys.time")())
+  );
+  
+  double elapsed_parallel = end_time_parallel - start_time_parallel;
+  
+  // Extract results
+  disp_min_parallel = parallel_res["disp_min"];
+  rss_min_parallel  = parallel_res["rss_min"];
+  
+  // Find global minimum
+  for (int j = 0; j < gs; ++j) {
+    if (rss_min_parallel[j] < rss_min_global) {
+      rss_min_global = rss_min_parallel[j];
+      disp_min_global = disp_min_parallel[j];
+      j_best = j;
+    }
+  }
+  
+  // Verbose timing output
+  if (verbose) {
+    Function fmt("format");
+    Function systime("Sys.time");
+    CharacterVector now = fmt(systime(), Named("format") = "%H:%M:%S");
+    
+    int h = static_cast<int>(elapsed_parallel / 3600);
+    int m = static_cast<int>((elapsed_parallel - h*3600) / 60);
+    int s = static_cast<int>(elapsed_parallel - h*3600 - m*60);
+    
+    Rcout << "[EnvelopeDispersionBuild] >>> Exiting RSS minimization loop at "
+          << as<std::string>(now[0]) << " <<<\n";
+    Rcout << "[EnvelopeDispersionBuild] RSS Parallel helper completed in "
+          << h << "h " << m << "m " << s << "s.\n";
+  }
+  
+  // -------------------------------------------------------------------
+  // Return results
+  // -------------------------------------------------------------------
+  return List::create(
+    Named("rss_min_global")  = rss_min_global,
+    Named("disp_min_global") = disp_min_global,
+    Named("j_best")          = j_best,
+    Named("rss_min_parallel")  = rss_min_parallel,
+    Named("disp_min_parallel") = disp_min_parallel
+  );
+}
+
+
+
 // [[Rcpp::export]]
 List EnvelopeDispersionBuild_cpp(
     List Env,
@@ -835,6 +733,30 @@ List EnvelopeDispersionBuild_cpp(
   // Strategy B (R-side): call optim("Brent") on [low, upp] — easier to prototype
   
   // Step 3C: Minimize RSS over dispersion for each face
+  
+  
+  Rcpp::List rss_res = minimize_rss_over_dispersion(
+    gs,                // number of faces
+    l1,                // dimension of cbars rows
+    low, upp,          // dispersion bounds
+    cache,             // precomputed inverse f3 cache
+    cbars,             // face slopes
+    y, x, alpha, wt,   // model data
+    RSS_ML,            // ML RSS (used if skipping minimization)
+    RSS_Min_Type,      // 1 = minimize, 2 = skip
+    use_parallel,      // whether to use parallel helper
+    verbose            // verbosity flag
+  );
+  
+  
+  double rss_min_global       = rss_res["rss_min_global"];
+  double disp_min_global      = rss_res["disp_min_global"];
+  int    j_best               = rss_res["j_best"];
+  
+  NumericVector rss_min_parallel  = rss_res["rss_min_parallel"];
+  NumericVector disp_min_parallel = rss_res["disp_min_parallel"];
+  
+  
   Rcpp::Function optim("optim");
   
   // --- NEW: Call parallel helper and time it ---
@@ -845,195 +767,195 @@ List EnvelopeDispersionBuild_cpp(
   
   
   
-  // Optionally: keep the best across faces
-   double rss_min_global = R_PosInf;
-   [[maybe_unused]] double disp_min_global = NA_REAL;
-   [[maybe_unused]] int j_best = -1;
-  // Extract parallel results
-  Rcpp::NumericVector disp_min_parallel(gs);
-  Rcpp::NumericVector rss_min_parallel(gs); 
-  
-    
-  if(RSS_Min_Type==1){
-  
-  if (verbose) {
-    // Print total number of faces before entering the loop
-    Rcpp::Rcout << "[EnvelopeDispersionBuild] Total faces to process: "
-                << gs << "\n";
-    
-    Rcpp::Function fmt("format");
-    Rcpp::Function systime("Sys.time");
-    Rcpp::CharacterVector now = fmt(systime(), Rcpp::Named("format") = "%H:%M:%S");
-    Rcpp::Rcout << "[EnvelopeDispersionBuild] >>> Starting RSS minimization loop at "
-                << Rcpp::as<std::string>(now[0]) << " <<<\n";
-    
-    
-  }
-
-  
-  
-  
-    
-  // --- NEW: Call parallel helper and time it ---
-//  Rcpp::Function parallel_fn("EnvelopeDispersionBuild_parallel");
-
-  // --- NEW: Call parallel helper and time it ---
-  Rcpp::Environment ns = Rcpp::Environment::namespace_env("glmbayes");
-  Rcpp::Function parallel_fn = ns["EnvelopeDispersionBuild_parallel"];
-  
-  double est_total = 0.0;  // declare before pilot block
-  
-    
-
-  // --- Threshold for pilot runs ---
-  const int pilot_threshold = static_cast<int>(std::pow(3, 14)); // 59,049 faces
-
-
-  // --- Conditional run of pilot block ---
-  if (gs >= pilot_threshold) {
-    Rcpp::Rcout << "[EnvelopeDispersionBuild] Running RSS pilot block (faces="
-                << gs << " >= threshold=" << pilot_threshold << ").\n";
-
-    Rcpp::List pilot_res = run_rss_pilot_block(parallel_fn, gs, l1,
-                                               low, upp, cache, cbars,
-                                               y, x, alpha, wt,
-                                               use_parallel, verbose);
-    est_total = pilot_res["est_total"];
-
-    if (verbose) {
-      Rcpp::Rcout << "[EnvelopeDispersionBuild] run_rss_pilot_block completed; "
-                  << "est_total=" << est_total << " seconds.\n";
-    }
-  }
-   else {
-    if (verbose) {
-      Rcpp::Rcout << "[EnvelopeDispersionBuild] Skipping RSS pilot block "
-                  << "(faces=" << gs << " < threshold=" << pilot_threshold << ").\n";
-    }
-         
-
-   }  
-  
-    // --- After computing est_total ---
-     double est_total_sec = est_total;  // from pilot estimate
-  
-  // --- yes/no option if estimate exceeds 5 minutes ---
-  if (est_total_sec > 300.0) {
-    std::string prompt = "Estimated minimization exceeds 5 minutes. Continue? [y/N]: ";
-    
-    Rcpp::Function r_interactive("interactive");
-    bool is_interactive = Rcpp::as<bool>(r_interactive());
-    
-    if (is_interactive) {
-      Rcpp::Function readline("readline");
-      while (true) {
-        std::string ans = Rcpp::as<std::string>(readline(Rcpp::wrap(prompt)));
-        // trim whitespace
-        auto ltrim = [](std::string &s) {
-          s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-                          [](unsigned char ch){ return !std::isspace(ch); }));
-        };
-        auto rtrim = [](std::string &s) {
-          s.erase(std::find_if(s.rbegin(), s.rend(),
-                               [](unsigned char ch){ return !std::isspace(ch); }).base(), s.end());
-        };
-        ltrim(ans); rtrim(ans);
-        
-        if (ans == "y" || ans == "yes" || ans == "1" || ans == "continue") {
-          Rcpp::Rcout << "[INFO] User chose to continue full run.\n";
-          Rcpp::Rcout << ">>> Running Full parallel Minimization: "
-                      << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
-                      << "\n";
-          break; // proceed to parallel Minimization
-        } else if (ans == "n" || ans == "no" || ans == "2" || ans.empty()) {
-          Rcpp::Rcout << "[INFO] User declined. Stopping Minimization.\n";
-          Rcpp::stop("Minimization stopped by user after time estimate.");
-        } else {
-          Rcpp::Rcout << "Invalid input. Please enter y (continue) or N (stop).\n";
-        }
-      }
-    } else {
-      // Non-interactive session (e.g. CI/CRAN): auto-approve
-      Rcpp::Rcout << "[NOTE] Non-interactive session: proceeding automatically.\n";
-      Rcpp::Rcout << "[INFO] Proceeding with full run.\n";
-      Rcpp::Rcout << ">>> Running Full parallel Minimization: "
-                  << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
-                  << "\n";
-    }
-  }  
-    
-    
-    
-  double start_time_parallel = Rcpp::as<double>(
-    Rcpp::Function("as.numeric")(Rcpp::Function("Sys.time")())
-  );
-  
-  
-  Rcpp::List parallel_res = parallel_fn(
-    Rcpp::Named("par0")   = 0.5 * (low + upp),
-    Rcpp::Named("low")    = low,
-    Rcpp::Named("upp")    = upp,
-    Rcpp::Named("cache")  = cache,
-    Rcpp::Named("cbars")  = cbars,
-    Rcpp::Named("y")      = y,
-    Rcpp::Named("x")      = x,
-    Rcpp::Named("alpha")  = alpha,
-    Rcpp::Named("wt")     = wt
-  );
-  
-  double end_time_parallel = Rcpp::as<double>(
-    Rcpp::Function("as.numeric")(Rcpp::Function("Sys.time")())
-  );
-  
-  double elapsed_parallel = end_time_parallel - start_time_parallel;
-  
-  // Break elapsed into h/m/s
-  int h_elapsed = static_cast<int>(elapsed_parallel / 3600);
-  int m_elapsed = static_cast<int>((elapsed_parallel - h_elapsed*3600) / 60);
-  int s_elapsed = static_cast<int>(elapsed_parallel - h_elapsed*3600 - m_elapsed*60);
-  
-  
-  
-    // Extract parallel results
-     disp_min_parallel = parallel_res["disp_min"];
-     rss_min_parallel  = parallel_res["rss_min"];
-  
-
-  if (verbose) {
-    Rcpp::Function fmt("format");
-    Rcpp::Function systime("Sys.time");
-    Rcpp::CharacterVector now = fmt(systime(), Rcpp::Named("format") = "%H:%M:%S");
-    Rcpp::Rcout << "[EnvelopeDispersionBuild] >>> Exiting RSS minimization loop at "
-                << Rcpp::as<std::string>(now[0]) << " <<<\n";
-    Rcpp::Rcout << "[EnvelopeDispersionBuild] RSS Parallel helper completed in "
-                << h_elapsed << "h " << m_elapsed << "m " << s_elapsed << "s.\n";  
-    
-    
-      }
-
-  for (int j = 0; j < gs; ++j) {
-    if (rss_min_parallel[j] < rss_min_global) {
-      rss_min_global = rss_min_parallel[j];
-      disp_min_global = disp_min_parallel[j];
-      j_best = j;
-    }
-  }  
-  if (verbose) {
-    Rcpp::Rcout << "[EnvelopeDispersionBuild] RSS source = MIN (optimized)\n";
-  }
-  
-  
-  }
-  else { // RSS_Min_Type == 2
-    rss_min_global = RSS_ML;
-    disp_min_global = 0.5*(low+upp);
-    j_best = -1;
-    if (verbose) {
-      Rcpp::Rcout << "[EnvelopeDispersionBuild] RSS source = ML (skip minimization)\n";
-      Rcpp::Rcout << "[EnvelopeDispersionBuild] RSS_ML = " << RSS_ML << "\n";
-    }
-  }
-  
+//   // Optionally: keep the best across faces
+//    double rss_min_global = R_PosInf;
+//    [[maybe_unused]] double disp_min_global = NA_REAL;
+//    [[maybe_unused]] int j_best = -1;
+//   // Extract parallel results
+//   Rcpp::NumericVector disp_min_parallel(gs);
+//   Rcpp::NumericVector rss_min_parallel(gs); 
+//   
+//     
+//   if(RSS_Min_Type==1){
+//   
+//   if (verbose) {
+//     // Print total number of faces before entering the loop
+//     Rcpp::Rcout << "[EnvelopeDispersionBuild] Total faces to process: "
+//                 << gs << "\n";
+//     
+//     Rcpp::Function fmt("format");
+//     Rcpp::Function systime("Sys.time");
+//     Rcpp::CharacterVector now = fmt(systime(), Rcpp::Named("format") = "%H:%M:%S");
+//     Rcpp::Rcout << "[EnvelopeDispersionBuild] >>> Starting RSS minimization loop at "
+//                 << Rcpp::as<std::string>(now[0]) << " <<<\n";
+//     
+//     
+//   }
+// 
+//   
+//   
+//   
+//     
+//   // --- NEW: Call parallel helper and time it ---
+// //  Rcpp::Function parallel_fn("EnvelopeDispersionBuild_parallel");
+// 
+//   // --- NEW: Call parallel helper and time it ---
+//   Rcpp::Environment ns = Rcpp::Environment::namespace_env("glmbayes");
+//   Rcpp::Function parallel_fn = ns["EnvelopeDispersionBuild_parallel"];
+//   
+//   double est_total = 0.0;  // declare before pilot block
+//   
+//     
+// 
+//   // --- Threshold for pilot runs ---
+//   const int pilot_threshold = static_cast<int>(std::pow(3, 14)); // 59,049 faces
+// 
+// 
+//   // --- Conditional run of pilot block ---
+//   if (gs >= pilot_threshold) {
+//     Rcpp::Rcout << "[EnvelopeDispersionBuild] Running RSS pilot block (faces="
+//                 << gs << " >= threshold=" << pilot_threshold << ").\n";
+// 
+//     Rcpp::List pilot_res = run_rss_pilot_block(parallel_fn, gs, l1,
+//                                                low, upp, cache, cbars,
+//                                                y, x, alpha, wt,
+//                                                use_parallel, verbose);
+//     est_total = pilot_res["est_total"];
+// 
+//     if (verbose) {
+//       Rcpp::Rcout << "[EnvelopeDispersionBuild] run_rss_pilot_block completed; "
+//                   << "est_total=" << est_total << " seconds.\n";
+//     }
+//   }
+//    else {
+//     if (verbose) {
+//       Rcpp::Rcout << "[EnvelopeDispersionBuild] Skipping RSS pilot block "
+//                   << "(faces=" << gs << " < threshold=" << pilot_threshold << ").\n";
+//     }
+//          
+// 
+//    }  
+//   
+//     // --- After computing est_total ---
+//      double est_total_sec = est_total;  // from pilot estimate
+//   
+//   // --- yes/no option if estimate exceeds 5 minutes ---
+//   if (est_total_sec > 300.0) {
+//     std::string prompt = "Estimated minimization exceeds 5 minutes. Continue? [y/N]: ";
+//     
+//     Rcpp::Function r_interactive("interactive");
+//     bool is_interactive = Rcpp::as<bool>(r_interactive());
+//     
+//     if (is_interactive) {
+//       Rcpp::Function readline("readline");
+//       while (true) {
+//         std::string ans = Rcpp::as<std::string>(readline(Rcpp::wrap(prompt)));
+//         // trim whitespace
+//         auto ltrim = [](std::string &s) {
+//           s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+//                           [](unsigned char ch){ return !std::isspace(ch); }));
+//         };
+//         auto rtrim = [](std::string &s) {
+//           s.erase(std::find_if(s.rbegin(), s.rend(),
+//                                [](unsigned char ch){ return !std::isspace(ch); }).base(), s.end());
+//         };
+//         ltrim(ans); rtrim(ans);
+//         
+//         if (ans == "y" || ans == "yes" || ans == "1" || ans == "continue") {
+//           Rcpp::Rcout << "[INFO] User chose to continue full run.\n";
+//           Rcpp::Rcout << ">>> Running Full parallel Minimization: "
+//                       << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
+//                       << "\n";
+//           break; // proceed to parallel Minimization
+//         } else if (ans == "n" || ans == "no" || ans == "2" || ans.empty()) {
+//           Rcpp::Rcout << "[INFO] User declined. Stopping Minimization.\n";
+//           Rcpp::stop("Minimization stopped by user after time estimate.");
+//         } else {
+//           Rcpp::Rcout << "Invalid input. Please enter y (continue) or N (stop).\n";
+//         }
+//       }
+//     } else {
+//       // Non-interactive session (e.g. CI/CRAN): auto-approve
+//       Rcpp::Rcout << "[NOTE] Non-interactive session: proceeding automatically.\n";
+//       Rcpp::Rcout << "[INFO] Proceeding with full run.\n";
+//       Rcpp::Rcout << ">>> Running Full parallel Minimization: "
+//                   << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")()))
+//                   << "\n";
+//     }
+//   }  
+//     
+//     
+//     
+//   double start_time_parallel = Rcpp::as<double>(
+//     Rcpp::Function("as.numeric")(Rcpp::Function("Sys.time")())
+//   );
+//   
+//   
+//   Rcpp::List parallel_res = parallel_fn(
+//     Rcpp::Named("par0")   = 0.5 * (low + upp),
+//     Rcpp::Named("low")    = low,
+//     Rcpp::Named("upp")    = upp,
+//     Rcpp::Named("cache")  = cache,
+//     Rcpp::Named("cbars")  = cbars,
+//     Rcpp::Named("y")      = y,
+//     Rcpp::Named("x")      = x,
+//     Rcpp::Named("alpha")  = alpha,
+//     Rcpp::Named("wt")     = wt
+//   );
+//   
+//   double end_time_parallel = Rcpp::as<double>(
+//     Rcpp::Function("as.numeric")(Rcpp::Function("Sys.time")())
+//   );
+//   
+//   double elapsed_parallel = end_time_parallel - start_time_parallel;
+//   
+//   // Break elapsed into h/m/s
+//   int h_elapsed = static_cast<int>(elapsed_parallel / 3600);
+//   int m_elapsed = static_cast<int>((elapsed_parallel - h_elapsed*3600) / 60);
+//   int s_elapsed = static_cast<int>(elapsed_parallel - h_elapsed*3600 - m_elapsed*60);
+//   
+//   
+//   
+//     // Extract parallel results
+//      disp_min_parallel = parallel_res["disp_min"];
+//      rss_min_parallel  = parallel_res["rss_min"];
+//   
+// 
+//   if (verbose) {
+//     Rcpp::Function fmt("format");
+//     Rcpp::Function systime("Sys.time");
+//     Rcpp::CharacterVector now = fmt(systime(), Rcpp::Named("format") = "%H:%M:%S");
+//     Rcpp::Rcout << "[EnvelopeDispersionBuild] >>> Exiting RSS minimization loop at "
+//                 << Rcpp::as<std::string>(now[0]) << " <<<\n";
+//     Rcpp::Rcout << "[EnvelopeDispersionBuild] RSS Parallel helper completed in "
+//                 << h_elapsed << "h " << m_elapsed << "m " << s_elapsed << "s.\n";  
+//     
+//     
+//       }
+// 
+//   for (int j = 0; j < gs; ++j) {
+//     if (rss_min_parallel[j] < rss_min_global) {
+//       rss_min_global = rss_min_parallel[j];
+//       disp_min_global = disp_min_parallel[j];
+//       j_best = j;
+//     }
+//   }  
+//   if (verbose) {
+//     Rcpp::Rcout << "[EnvelopeDispersionBuild] RSS source = MIN (optimized)\n";
+//   }
+//   
+//   
+//   }
+//   else { // RSS_Min_Type == 2
+//     rss_min_global = RSS_ML;
+//     disp_min_global = 0.5*(low+upp);
+//     j_best = -1;
+//     if (verbose) {
+//       Rcpp::Rcout << "[EnvelopeDispersionBuild] RSS source = ML (skip minimization)\n";
+//       Rcpp::Rcout << "[EnvelopeDispersionBuild] RSS_ML = " << RSS_ML << "\n";
+//     }
+//   }
+//   
   
   
   
