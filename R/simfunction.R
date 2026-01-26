@@ -816,309 +816,351 @@ rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,fam
   }
   
 
-  ## Step 2: Fit Classical Model and Extract Estimates and RSS
-
-  lm_out=lm(y ~ x-1,weights=wt,offset=offset2) # run classical regression to get maximum likelhood estimate
   
-  ### 2) Initi1alize Residuals and dispersion
-
-  RSS=sum(residuals(lm_out)^2)
+  # Reconstruct P from Sigma (needed by the temporary core)
+  R <- chol(Sigma)
+  P <- chol2inv(R)
+  P <- 0.5 * (P + t(P))
   
-  RSS_ML=sum(residuals(lm_out)^2)
-  n_obs=length(y)
-
-  dispersion2=dispersion
-  RSS_temp<-matrix(0,nrow=1000)
   
   ##########################  BEGIN *.CPP  MIGRATION   #########################################################
   
-  ## Step 3: Iterative Dispersion Anchoring (Finds good value for the dispersion)
-  
-  if (verbose) {
-    start_anchor <- as.numeric(Sys.time())
-    cat("[DispersionAnchoring] >>> Entering iterative dispersion anchoring at",
-        format(Sys.time(), "%H:%M:%S"), "<<<\n")
-  }
-  
-  
-  for(j in 1:10){
-    
-    glmb_out1=glmb(y~x-1,family=gaussian(),
-                   dNormal(mu=mu,Sigma=Sigma,dispersion=dispersion2),weights=wt,offset=offset2)
-    
-    res_temp=residuals(glmb_out1)
-    
-    for(k in 1:1000){
-      RSS_temp[k]=sum(res_temp[k,1:length(y)]*res_temp[k,1:length(y)])
-    }
-    
-    RSS_Post2=mean(RSS_temp)
-    b_old=glmb_out1$coef.mode
-    xbetastar=x%*%b_old
-    RSS2_post=t(y-xbetastar)%*%(y-xbetastar)  
-    shape2= shape + n_obs/2
-    #  rate2 =rate + RSS2_post/2  # 38 candidates per acceptance
-    rate2=rate + RSS_Post2/2    # 35.7 candidates per acceptance [though some with positive acceptance]
-    
-    dispersion2=rate2/(shape2-1)
-    
-  }
-  
-  
-  if (verbose) {
-    end_anchor <- as.numeric(Sys.time())
-    elapsed <- end_anchor - start_anchor
-    h <- as.integer(elapsed / 3600)
-    m <- as.integer((elapsed - h*3600) / 60)
-    s <- as.integer(elapsed - h*3600 - m*60)
-    
-    cat("[DispersionAnchoring] >>> Exiting iterative dispersion anchoring at",
-        format(Sys.time(), "%H:%M:%S"), "<<<\n")
-    cat("[DispersionAnchoring] Dispersion anchoring completed in:",
-        h, "h ", m, "m ", s, "s.\n")
-  }
-  
-  
-  ## Step 4: Standardized Model 
-  ## 4) Steps to standardized the model (i.e. to reorient dimensions)
-  
-  betastar=glmb_out1$coef.mode
-  dispstar=rate2/(shape2-1)
-  
-  
-##  dispstar <- rate3 / (shape2 - 1)
-  
-  
-  ## Get family functions for gaussian()  
-  
-  famfunc<-glmbfamfunc(gaussian())
-  
-  f1<-famfunc$f1
-  f2<-famfunc$f2
-  f3<-famfunc$f3
-  f5<-famfunc$f5
-  f6<-famfunc$f6
-  
-  start <- mu
-  
-  if(is.null(offset2))  offset2=rep(as.numeric(0.0),length(y))
-
-  R <- chol(Sigma)
-  P <- chol2inv(R)
-  P <- 0.5 * (P + t(P))   # enforce symmetry
-  
-  ###### Adjust weight for dispersion
-  
-  dispersion2=dispstar
-  
-  if(is.null(wt))  wt=rep(1,length(y))
-  if(length(wt)==1)  wt=rep(wt,length(y))
-  
-  wt2=wt/rep(dispersion2,length(y))
-  
-  ######################### Shift mean vector to offset so that adjusted model has 0 mean
-  
-  alpha=x%*%as.vector(mu)+offset2
-  mu2=0*as.vector(mu)
-  P2=P
-  x2=x
-  
-  parin=start-mu
-  #parin=start
-  
-  #parin=glmb_out1$glm$coefficients
-  
-  # This step only used to get posterior precision it seems
-  # Since normal case, can likely be computed instead
-  
-  if (verbose) {
-    start_optim <- as.numeric(Sys.time())
-    cat("[PosteriorMode] >>> Entering optim() call at",
-        format(Sys.time(), "%H:%M:%S"), "<<<\n")
-  }
-  
-  
-  opt_out=optim(parin,f2,f3,y=as.vector(y),x=as.matrix(x2),mu=as.vector(mu2),
-                P=as.matrix(P),alpha=as.vector(alpha),wt=as.vector(wt2),
-                method="BFGS",hessian=TRUE
-  )
-  
-  bstar=opt_out$par  ## Posterior mode for adjusted model
-  
-  ## Temporarily use bstar as posterior mode
-  
-  
-  #  bstar
-  #  bstar+as.vector(mu)  # mode for actual model
-  A1=opt_out$hessian # Approximate Precision at mode
-  
-  
-  if (verbose) {
-    end_optim <- as.numeric(Sys.time())
-    elapsed <- end_optim - start_optim
-    h <- as.integer(elapsed / 3600)
-    m <- as.integer((elapsed - h*3600) / 60)
-    s <- as.integer(elapsed - h*3600 - m*60)
-    
-    cat("[PosteriorMode] >>> Exiting optim() call at",
-        format(Sys.time(), "%H:%M:%S"), "<<<\n")
-    cat("[PosteriorMode] optim() completed in:",
-        h, "h ", m, "m ", s, "s.\n")
-  }
-  
-  
-  
-  Standard_Mod=glmb_Standardize_Model(y=as.vector(y), x=as.matrix(x2),
-                                      P=as.matrix(P2),bstar=as.matrix(bstar,ncol=1), A1=as.matrix(A1))
-  
-  bstar2=Standard_Mod$bstar2  
-  A=Standard_Mod$A
-  x2=Standard_Mod$x2
-  mu2=Standard_Mod$mu2  ## Typically 0 vector 
-  P2=Standard_Mod$P2    ## Part of Prior that is moved to the log-likelihood
-  L2Inv=Standard_Mod$L2Inv
-  L3Inv=Standard_Mod$L3Inv
-  
-  
-  
-  ## Step 5: Build Model
-  
-  ## Build initial Envelope based on the optimized values
-  
-  ## Note, use Gridtype =4 here temporarily (Single Likelihood subgradient)
-  
-  #Gridtype=as.integer(Gridtype)
-  
-  ## Pull the initial Envelope based on optimized values above
-  
-  
-  env_out <- EnvelopeOrchestrator(
-    bstar2       = as.vector(bstar2),
-    A            = as.matrix(A),
-    y            = y,
-    x2           = x2,
-    mu2          = mu2,
-    P2           = P2,
-    alpha        = as.vector(alpha),
-    wt           = as.vector(wt),
+  core <- rindep_norm_gamma_reg_Rcore(
     n            = n,
-    Gridtype     = Gridtype,
-    n_envopt     = n_envopt,
+    y            = y,
+    x            = x,
+    mu           = mu,
+    P            = P,
+    offset2      = offset2,
+    wt           = wt,
     shape        = shape,
     rate         = rate,
-    RSS_Post2    = RSS_Post2,
-    RSS_ML       = RSS_ML,
     max_disp_perc = max_disp_perc,
-    disp_lower    = disp_lower,
-    disp_upper    = disp_upper,
-    use_parallel  = use_parallel,
-    use_opencl    = use_opencl,
-    verbose       = verbose
+    disp_lower   = disp_lower,
+    disp_upper   = disp_upper,
+    Gridtype     = Gridtype,
+    n_envopt     = n_envopt,
+    use_parallel = use_parallel,
+    use_opencl   = use_opencl,
+    verbose      = verbose,
+    progbar      = progbar
   )
   
-  Env3          <- env_out$Env
-  gamma_list_new <- env_out$gamma_list
-  UB_list_new    <- env_out$UB_list
-  low            <- env_out$low
-  upp            <- env_out$upp
-  diagnostics    <- env_out$diagnostics
-
-  if (!use_parallel || n == 1) {
-    if (verbose) {
-      start_sim <- as.numeric(Sys.time())
-      
-      cat("[Simulation] >>> Calling .rindep_norm_gamma_reg_std_cpp at",
-          format(Sys.time(), "%H:%M:%S"), "<<<\n")
-    }
-    
-    sim_temp <- .rindep_norm_gamma_reg_std_cpp(
-      n = n, y = y, x = x2,
-      mu = mu2,  # Should be zero vector
-      P = P2,    # Part of prior shifted to the Likelihood
-      alpha = alpha, wt = wt,
-      f2 = f2, Envelope = Env3,
-      gamma_list = gamma_list_new,
-      UB_list = UB_list_new,
-      family = "gaussian", link = "identity",
-      progbar = progbar,
-      verbose=verbose
-    )
-    
-    if (verbose) {
-      end_sim <- as.numeric(Sys.time())
-      elapsed <- end_sim - start_sim
-      h <- as.integer(elapsed / 3600)
-      m <- as.integer((elapsed - h*3600) / 60)
-      s <- as.integer(elapsed - h*3600 - m*60)
-      
-
-      cat("[Simulation] >>> Exiting .rindep_norm_gamma_reg_std_cpp at",
-          format(Sys.time(), "%H:%M:%S"), "<<<\n")
-      cat("[Simulation] Simulation completed in: ",
-          h, "h ", m, "m ", s, "s.\n")
-      
-            
-    }
-    
-  } else {
-    
-    if (verbose) {
-      start_sim <- as.numeric(Sys.time())
-      
-      cat("[Simulation] >>> Calling .rindep_norm_gamma_reg_std_parallel_cpp at",
-          format(Sys.time(), "%H:%M:%S"), "<<<\n")
-    }
-    
-    sim_temp <- .rindep_norm_gamma_reg_std_parallel_cpp(
-      n = n, y = y, x = x2,
-      mu = mu2,  # Should be zero vector
-      P = P2,    # Part of prior shifted to the Likelihood
-      alpha = alpha, wt = wt,
-      f2 = f2, Envelope = Env3,
-      gamma_list = gamma_list_new,
-      UB_list = UB_list_new,
-      family = "gaussian", link = "identity",
-      progbar = progbar,
-      verbose=verbose
-    )
-    
-    if (verbose) {
-      end_sim <- as.numeric(Sys.time())
-      elapsed <- end_sim - start_sim
-      h <- as.integer(elapsed / 3600)
-      m <- as.integer((elapsed - h*3600) / 60)
-      s <- as.integer(elapsed - h*3600 - m*60)
-      
-    
-
-      cat("[Simulation] >>> Exiting .rindep_norm_gamma_reg_std_parallel_cpp at",
-          format(Sys.time(), "%H:%M:%S"), "<<<\n")
-      cat("[Simulation] Simulation completed in: ",
-          h, "h ", m, "m ", s, "s.\n")
-      
-        
-    }
-  }
+  out        <- core$out
+  betastar   <- core$betastar
+  disp_out   <- core$disp_out
+  iters_out  <- core$iters_out
+  weight_out <- core$weight_out
+  low        <- core$low
+  upp        <- core$upp
   
   
-##  print(paste("Interactive status:", interactive()))
-  
-
-
-  #proc.time()-ptm
+  ##########################  END *.CPP  MIGRATION   #########################################################
   
   
-  beta_out=sim_temp$beta_out
-  disp_out=sim_temp$disp_out
-  iters_out=sim_temp$iters_out
-  weight_out=sim_temp$weight_out
+  ##########################  BEGIN *.CPP  MIGRATION   #########################################################
   
-  out=L2Inv%*%L3Inv%*%t(beta_out)
-  
-  for(i in 1:n){
-    out[,i]=out[,i]+mu
-  }
-  
+#   ## Step 2: Fit Classical Model and Extract Estimates and RSS
+#   
+#   lm_out=lm(y ~ x-1,weights=wt,offset=offset2) # run classical regression to get maximum likelhood estimate
+#   
+#   ### 2) Initi1alize Residuals and dispersion
+#   
+#   RSS=sum(residuals(lm_out)^2)
+#   
+#   RSS_ML=sum(residuals(lm_out)^2)
+#   n_obs=length(y)
+#   
+#   dispersion2=dispersion
+#   RSS_temp<-matrix(0,nrow=1000)
+#   
+#     ## Step 3: Iterative Dispersion Anchoring (Finds good value for the dispersion)
+#   
+#   if (verbose) {
+#     start_anchor <- as.numeric(Sys.time())
+#     cat("[DispersionAnchoring] >>> Entering iterative dispersion anchoring at",
+#         format(Sys.time(), "%H:%M:%S"), "<<<\n")
+#   }
+#   
+#   
+#   for(j in 1:10){
+#     
+#     glmb_out1=glmb(y~x-1,family=gaussian(),
+#                    dNormal(mu=mu,Sigma=Sigma,dispersion=dispersion2),weights=wt,offset=offset2)
+#     
+#     res_temp=residuals(glmb_out1)
+#     
+#     for(k in 1:1000){
+#       RSS_temp[k]=sum(res_temp[k,1:length(y)]*res_temp[k,1:length(y)])
+#     }
+#     
+#     RSS_Post2=mean(RSS_temp)
+#     b_old=glmb_out1$coef.mode
+#     xbetastar=x%*%b_old
+#     RSS2_post=t(y-xbetastar)%*%(y-xbetastar)  
+#     shape2= shape + n_obs/2
+#     #  rate2 =rate + RSS2_post/2  # 38 candidates per acceptance
+#     rate2=rate + RSS_Post2/2    # 35.7 candidates per acceptance [though some with positive acceptance]
+#     
+#     dispersion2=rate2/(shape2-1)
+#     
+#   }
+#   
+#   
+#   if (verbose) {
+#     end_anchor <- as.numeric(Sys.time())
+#     elapsed <- end_anchor - start_anchor
+#     h <- as.integer(elapsed / 3600)
+#     m <- as.integer((elapsed - h*3600) / 60)
+#     s <- as.integer(elapsed - h*3600 - m*60)
+#     
+#     cat("[DispersionAnchoring] >>> Exiting iterative dispersion anchoring at",
+#         format(Sys.time(), "%H:%M:%S"), "<<<\n")
+#     cat("[DispersionAnchoring] Dispersion anchoring completed in:",
+#         h, "h ", m, "m ", s, "s.\n")
+#   }
+#   
+#   
+#   ## Step 4: Standardized Model 
+#   ## 4) Steps to standardized the model (i.e. to reorient dimensions)
+#   
+#   betastar=glmb_out1$coef.mode
+#   dispstar=rate2/(shape2-1)
+#   
+#   
+# ##  dispstar <- rate3 / (shape2 - 1)
+#   
+#   
+#   ## Get family functions for gaussian()  
+#   
+#   famfunc<-glmbfamfunc(gaussian())
+#   
+#   f1<-famfunc$f1
+#   f2<-famfunc$f2
+#   f3<-famfunc$f3
+#   f5<-famfunc$f5
+#   f6<-famfunc$f6
+#   
+#   start <- mu
+#   
+#   if(is.null(offset2))  offset2=rep(as.numeric(0.0),length(y))
+# 
+#   R <- chol(Sigma)
+#   P <- chol2inv(R)
+#   P <- 0.5 * (P + t(P))   # enforce symmetry
+#   
+#   ###### Adjust weight for dispersion
+#   
+#   dispersion2=dispstar
+#   
+#   if(is.null(wt))  wt=rep(1,length(y))
+#   if(length(wt)==1)  wt=rep(wt,length(y))
+#   
+#   wt2=wt/rep(dispersion2,length(y))
+#   
+#   ######################### Shift mean vector to offset so that adjusted model has 0 mean
+#   
+#   alpha=x%*%as.vector(mu)+offset2
+#   mu2=0*as.vector(mu)
+#   P2=P
+#   x2=x
+#   
+#   parin=start-mu
+#   #parin=start
+#   
+#   #parin=glmb_out1$glm$coefficients
+#   
+#   # This step only used to get posterior precision it seems
+#   # Since normal case, can likely be computed instead
+#   
+#   if (verbose) {
+#     start_optim <- as.numeric(Sys.time())
+#     cat("[PosteriorMode] >>> Entering optim() call at",
+#         format(Sys.time(), "%H:%M:%S"), "<<<\n")
+#   }
+#   
+#   
+#   opt_out=optim(parin,f2,f3,y=as.vector(y),x=as.matrix(x2),mu=as.vector(mu2),
+#                 P=as.matrix(P),alpha=as.vector(alpha),wt=as.vector(wt2),
+#                 method="BFGS",hessian=TRUE
+#   )
+#   
+#   bstar=opt_out$par  ## Posterior mode for adjusted model
+#   
+#   ## Temporarily use bstar as posterior mode
+#   
+#   
+#   #  bstar
+#   #  bstar+as.vector(mu)  # mode for actual model
+#   A1=opt_out$hessian # Approximate Precision at mode
+#   
+#   
+#   if (verbose) {
+#     end_optim <- as.numeric(Sys.time())
+#     elapsed <- end_optim - start_optim
+#     h <- as.integer(elapsed / 3600)
+#     m <- as.integer((elapsed - h*3600) / 60)
+#     s <- as.integer(elapsed - h*3600 - m*60)
+#     
+#     cat("[PosteriorMode] >>> Exiting optim() call at",
+#         format(Sys.time(), "%H:%M:%S"), "<<<\n")
+#     cat("[PosteriorMode] optim() completed in:",
+#         h, "h ", m, "m ", s, "s.\n")
+#   }
+#   
+#   
+#   
+#   Standard_Mod=glmb_Standardize_Model(y=as.vector(y), x=as.matrix(x2),
+#                                       P=as.matrix(P2),bstar=as.matrix(bstar,ncol=1), A1=as.matrix(A1))
+#   
+#   bstar2=Standard_Mod$bstar2  
+#   A=Standard_Mod$A
+#   x2=Standard_Mod$x2
+#   mu2=Standard_Mod$mu2  ## Typically 0 vector 
+#   P2=Standard_Mod$P2    ## Part of Prior that is moved to the log-likelihood
+#   L2Inv=Standard_Mod$L2Inv
+#   L3Inv=Standard_Mod$L3Inv
+#   
+#   
+#   
+#   ## Step 5: Build Model
+#   
+#   ## Build initial Envelope based on the optimized values
+#   
+#   ## Note, use Gridtype =4 here temporarily (Single Likelihood subgradient)
+#   
+#   #Gridtype=as.integer(Gridtype)
+#   
+#   ## Pull the initial Envelope based on optimized values above
+#   
+#   
+#   env_out <- EnvelopeOrchestrator(
+#     bstar2       = as.vector(bstar2),
+#     A            = as.matrix(A),
+#     y            = y,
+#     x2           = x2,
+#     mu2          = mu2,
+#     P2           = P2,
+#     alpha        = as.vector(alpha),
+#     wt           = as.vector(wt),
+#     n            = n,
+#     Gridtype     = Gridtype,
+#     n_envopt     = n_envopt,
+#     shape        = shape,
+#     rate         = rate,
+#     RSS_Post2    = RSS_Post2,
+#     RSS_ML       = RSS_ML,
+#     max_disp_perc = max_disp_perc,
+#     disp_lower    = disp_lower,
+#     disp_upper    = disp_upper,
+#     use_parallel  = use_parallel,
+#     use_opencl    = use_opencl,
+#     verbose       = verbose
+#   )
+#   
+#   Env3          <- env_out$Env
+#   gamma_list_new <- env_out$gamma_list
+#   UB_list_new    <- env_out$UB_list
+#   low            <- env_out$low
+#   upp            <- env_out$upp
+#   diagnostics    <- env_out$diagnostics
+# 
+#   if (!use_parallel || n == 1) {
+#     if (verbose) {
+#       start_sim <- as.numeric(Sys.time())
+#       
+#       cat("[Simulation] >>> Calling .rindep_norm_gamma_reg_std_cpp at",
+#           format(Sys.time(), "%H:%M:%S"), "<<<\n")
+#     }
+#     
+#     sim_temp <- .rindep_norm_gamma_reg_std_cpp(
+#       n = n, y = y, x = x2,
+#       mu = mu2,  # Should be zero vector
+#       P = P2,    # Part of prior shifted to the Likelihood
+#       alpha = alpha, wt = wt,
+#       f2 = f2, Envelope = Env3,
+#       gamma_list = gamma_list_new,
+#       UB_list = UB_list_new,
+#       family = "gaussian", link = "identity",
+#       progbar = progbar,
+#       verbose=verbose
+#     )
+#     
+#     if (verbose) {
+#       end_sim <- as.numeric(Sys.time())
+#       elapsed <- end_sim - start_sim
+#       h <- as.integer(elapsed / 3600)
+#       m <- as.integer((elapsed - h*3600) / 60)
+#       s <- as.integer(elapsed - h*3600 - m*60)
+#       
+# 
+#       cat("[Simulation] >>> Exiting .rindep_norm_gamma_reg_std_cpp at",
+#           format(Sys.time(), "%H:%M:%S"), "<<<\n")
+#       cat("[Simulation] Simulation completed in: ",
+#           h, "h ", m, "m ", s, "s.\n")
+#       
+#             
+#     }
+#     
+#   } else {
+#     
+#     if (verbose) {
+#       start_sim <- as.numeric(Sys.time())
+#       
+#       cat("[Simulation] >>> Calling .rindep_norm_gamma_reg_std_parallel_cpp at",
+#           format(Sys.time(), "%H:%M:%S"), "<<<\n")
+#     }
+#     
+#     sim_temp <- .rindep_norm_gamma_reg_std_parallel_cpp(
+#       n = n, y = y, x = x2,
+#       mu = mu2,  # Should be zero vector
+#       P = P2,    # Part of prior shifted to the Likelihood
+#       alpha = alpha, wt = wt,
+#       f2 = f2, Envelope = Env3,
+#       gamma_list = gamma_list_new,
+#       UB_list = UB_list_new,
+#       family = "gaussian", link = "identity",
+#       progbar = progbar,
+#       verbose=verbose
+#     )
+#     
+#     if (verbose) {
+#       end_sim <- as.numeric(Sys.time())
+#       elapsed <- end_sim - start_sim
+#       h <- as.integer(elapsed / 3600)
+#       m <- as.integer((elapsed - h*3600) / 60)
+#       s <- as.integer(elapsed - h*3600 - m*60)
+#       
+#     
+# 
+#       cat("[Simulation] >>> Exiting .rindep_norm_gamma_reg_std_parallel_cpp at",
+#           format(Sys.time(), "%H:%M:%S"), "<<<\n")
+#       cat("[Simulation] Simulation completed in: ",
+#           h, "h ", m, "m ", s, "s.\n")
+#       
+#         
+#     }
+#   }
+#   
+#   
+# ##  print(paste("Interactive status:", interactive()))
+#   
+# 
+# 
+#   #proc.time()-ptm
+#   
+#   
+#   beta_out=sim_temp$beta_out
+#   disp_out=sim_temp$disp_out
+#   iters_out=sim_temp$iters_out
+#   weight_out=sim_temp$weight_out
+#   
+#   out=L2Inv%*%L3Inv%*%t(beta_out)
+#   
+#   for(i in 1:n){
+#     out[,i]=out[,i]+mu
+#   }
+#   
   
   ##############################  END *.CPP Migration ###########################################
   
@@ -1612,17 +1654,27 @@ rindep_norm_gamma_reg_Rcore <- function(
   
   ##########################  BEGIN *.CPP MIGRATION   ##########################
   
+  n_obs <- length(y)
+  RSS_temp <- numeric(1000)
+  
+  lm_out <- lm(y ~ x - 1, weights = wt, offset = offset2)
+  res <- residuals(lm_out)
+  RSS <- sum(res^2)
+  p <- lm_out$rank
+  n_obs <- length(y)
+  
+  dispersion2 <- RSS / (n_obs - p)
+  
   ## ---- Step 3: Iterative Dispersion Anchoring ----
   
-  n_obs <- length(y)
-  dispersion2 <- rate / (shape - 1)   # initial guess
-  RSS_temp <- numeric(1000)
   
   
   # Reconstruct Sigma from P
+
   R <- chol(P)
   Sigma <- chol2inv(R)
   Sigma <- 0.5 * (Sigma + t(Sigma))
+  
   
   if (verbose) {
     start_anchor <- as.numeric(Sys.time())
@@ -1630,6 +1682,7 @@ rindep_norm_gamma_reg_Rcore <- function(
         format(Sys.time(), "%H:%M:%S"), "<<<\n")
   }
   
+
   for (j in 1:10) {
     
     glmb_out1 <- glmb(
@@ -1639,6 +1692,7 @@ rindep_norm_gamma_reg_Rcore <- function(
       weights = wt,
       offset = offset2
     )
+    
     
     res_temp <- residuals(glmb_out1)
     
@@ -1819,17 +1873,13 @@ rindep_norm_gamma_reg_Rcore <- function(
   ##########################  END *.CPP MIGRATION   ############################
   
   return(list(
-    out = out,
-    beta_out = beta_out,
-    disp_out = disp_out,
-    iters_out = iters_out,
+    out        = out,
+    betastar   = bstar,
+    disp_out   = disp_out,
+    iters_out  = iters_out,
     weight_out = weight_out,
-    L2Inv = L2Inv,
-    L3Inv = L3Inv,
-    low = low,
-    upp = upp,
-    diagnostics = diagnostics,
-    bstar = bstar
+    low        = low,
+    upp        = upp
   ))
-}
+  }
 
