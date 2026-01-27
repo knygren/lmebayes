@@ -73,6 +73,10 @@ load_kernel_library_wrapper <- function(subdir, package, verbose) {
     .Call(`_glmbayes_rindep_norm_gamma_reg_std_parallel_cpp`, n, y, x, mu, P, alpha, wt, f2, Envelope, gamma_list, UB_list, family, link, progbar, verbose)
 }
 
+rindep_norm_gamma_reg_cpp <- function(n, y, x, mu, P, offset, wt, shape, rate, max_disp_perc, disp_lower, disp_upper, Gridtype, n_envopt, use_parallel, use_opencl, verbose, progbar) {
+    .Call(`_glmbayes_rindep_norm_gamma_reg_cpp`, n, y, x, mu, P, offset, wt, shape, rate, max_disp_perc, disp_lower, disp_upper, Gridtype, n_envopt, use_parallel, use_opencl, verbose, progbar)
+}
+
 .glmb_Standardize_Model_cpp <- function(y, x, P, bstar, A1) {
     .Call(`_glmbayes_glmb_Standardize_Model`, y, x, P, bstar, A1)
 }

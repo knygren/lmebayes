@@ -941,3 +941,51 @@ Rcpp::List rindep_norm_gamma_reg_std_parallel_cpp(
 
 
 
+// [[Rcpp::export]]
+
+Rcpp::List rindep_norm_gamma_reg_cpp(
+    int n,
+    Rcpp::NumericVector y,
+    Rcpp::NumericMatrix x,
+    Rcpp::NumericVector mu,
+    Rcpp::NumericMatrix P,
+    Rcpp::NumericVector offset,
+    Rcpp::NumericVector wt,
+    double shape,
+    double rate,
+    double max_disp_perc,
+    Rcpp::Nullable<Rcpp::NumericVector> disp_lower,
+    Rcpp::Nullable<Rcpp::NumericVector> disp_upper,
+    int Gridtype,
+    int n_envopt,
+    bool use_parallel,
+    bool use_opencl,
+    bool verbose,
+    bool progbar
+){
+  
+  
+  // Temporary placeholder outputs
+  Rcpp::NumericMatrix beta_out(1, 1);
+  beta_out(0, 0) = NA_REAL;
+  
+  Rcpp::NumericVector disp_out(1);
+  disp_out[0] = NA_REAL;
+  
+  Rcpp::NumericVector iters_out(1);
+  iters_out[0] = NA_REAL;
+  
+  Rcpp::NumericVector weight_out(1);
+  weight_out[0] = NA_REAL;
+  
+  // Return trivial list (compiles and matches expected structure)
+  return Rcpp::List::create(
+    Rcpp::Named("beta_out")   = beta_out,
+    Rcpp::Named("disp_out")   = disp_out,
+    Rcpp::Named("iters_out")  = iters_out,
+    Rcpp::Named("weight_out") = weight_out
+  );
+  
+  
+}
+

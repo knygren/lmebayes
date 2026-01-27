@@ -54,8 +54,6 @@ for (i in 1:1000) {
 colMeans(beta_out)
 mean(disp_out)
 
-\donttest{
-
 lmb.D9_v4 <- lmb(
   n       = 10000,
   weight  ~ group,
@@ -66,14 +64,7 @@ lmb.D9_v4 <- lmb(
     rate  = ps$rate)
 )
 summary(lmb.D9_v4)
-
-
-
 lmb.D9_v4$pfamily$prior_list
-
-
-
-
 ## Independent_Normal_Gamma_Prior
 lmb.D9_v3 <- glmb(
   n       = 10000,
@@ -90,10 +81,7 @@ lmb.D9_v3 <- glmb(
   # verbose    = TRUE
 )
 summary(lmb.D9_v3)
-
 lmb.D9_v3$pfamily$prior_list
-
-
 lmb.D9_v4 <- glmb(
   n       = 10000,
   weight  ~ group,
@@ -105,4 +93,3 @@ lmb.D9_v4 <- glmb(
 )
 summary(lmb.D9_v4)
 
-}

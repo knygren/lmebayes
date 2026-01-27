@@ -111,6 +111,8 @@ rglmb<-function(n=1,y,x,family=gaussian(),pfamily,offset=NULL,
                 use_opencl = FALSE, 
                 verbose = FALSE){
   
+
+  
   ## normalize n_envopt
   if (is.null(n_envopt)) n_envopt <- n
   n_envopt <- as.integer(n_envopt)
@@ -167,7 +169,8 @@ rglmb<-function(n=1,y,x,family=gaussian(),pfamily,offset=NULL,
   )
   
   ## Call relevant simulation function (for now without control2 list)
-  
+
+
 #  outlist=simfun(n=n,y=y,x=x,prior_list=prior_list,offset=offset,weights=weights,family=family)
 
   ##outlist = simfun(n = n, y = y, x = x, prior_list = prior_list,offset = offset, weights = weights, family = family, use_parallel = use_parallel, use_opencl = use_opencl, verbose = verbose)

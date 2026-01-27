@@ -354,6 +354,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rindep_norm_gamma_reg_cpp
+Rcpp::List rindep_norm_gamma_reg_cpp(int n, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericVector mu, Rcpp::NumericMatrix P, Rcpp::NumericVector offset, Rcpp::NumericVector wt, double shape, double rate, double max_disp_perc, Rcpp::Nullable<Rcpp::NumericVector> disp_lower, Rcpp::Nullable<Rcpp::NumericVector> disp_upper, int Gridtype, int n_envopt, bool use_parallel, bool use_opencl, bool verbose, bool progbar);
+RcppExport SEXP _glmbayes_rindep_norm_gamma_reg_cpp(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP GridtypeSEXP, SEXP n_envoptSEXP, SEXP use_parallelSEXP, SEXP use_openclSEXP, SEXP verboseSEXP, SEXP progbarSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type P(PSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type offset(offsetSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type wt(wtSEXP);
+    Rcpp::traits::input_parameter< double >::type shape(shapeSEXP);
+    Rcpp::traits::input_parameter< double >::type rate(rateSEXP);
+    Rcpp::traits::input_parameter< double >::type max_disp_perc(max_disp_percSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type disp_lower(disp_lowerSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type disp_upper(disp_upperSEXP);
+    Rcpp::traits::input_parameter< int >::type Gridtype(GridtypeSEXP);
+    Rcpp::traits::input_parameter< int >::type n_envopt(n_envoptSEXP);
+    Rcpp::traits::input_parameter< bool >::type use_parallel(use_parallelSEXP);
+    Rcpp::traits::input_parameter< bool >::type use_opencl(use_openclSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< bool >::type progbar(progbarSEXP);
+    rcpp_result_gen = Rcpp::wrap(rindep_norm_gamma_reg_cpp(n, y, x, mu, P, offset, wt, shape, rate, max_disp_perc, disp_lower, disp_upper, Gridtype, n_envopt, use_parallel, use_opencl, verbose, progbar));
+    return rcpp_result_gen;
+END_RCPP
+}
 // glmb_Standardize_Model
 Rcpp::List glmb_Standardize_Model(NumericVector y, NumericMatrix x, NumericMatrix P, NumericMatrix bstar, NumericMatrix A1);
 RcppExport SEXP _glmbayes_glmb_Standardize_Model(SEXP ySEXP, SEXP xSEXP, SEXP PSEXP, SEXP bstarSEXP, SEXP A1SEXP) {
@@ -464,6 +492,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmbayes_load_kernel_library_wrapper", (DL_FUNC) &_glmbayes_load_kernel_library_wrapper, 3},
     {"_glmbayes_rindep_norm_gamma_reg_std_cpp", (DL_FUNC) &_glmbayes_rindep_norm_gamma_reg_std_cpp, 15},
     {"_glmbayes_rindep_norm_gamma_reg_std_parallel_cpp", (DL_FUNC) &_glmbayes_rindep_norm_gamma_reg_std_parallel_cpp, 15},
+    {"_glmbayes_rindep_norm_gamma_reg_cpp", (DL_FUNC) &_glmbayes_rindep_norm_gamma_reg_cpp, 18},
     {"_glmbayes_glmb_Standardize_Model", (DL_FUNC) &_glmbayes_glmb_Standardize_Model, 5},
     {"_glmbayes_rnnorm_reg_std_cpp", (DL_FUNC) &_glmbayes_rnnorm_reg_std_cpp, 13},
     {"_glmbayes_rnnorm_reg_cpp", (DL_FUNC) &_glmbayes_rnnorm_reg_cpp, 18},

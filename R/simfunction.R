@@ -760,7 +760,8 @@ rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,fam
                                       Gridtype=2,n_envopt = NULL,
                                       use_parallel = TRUE, use_opencl = FALSE, verbose = FALSE,
                                       progbar=TRUE){
-  
+
+
   call<-match.call()
   
   offset2=offset
@@ -824,6 +825,46 @@ rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,fam
   
   
   ##########################  BEGIN *.CPP  MIGRATION   #########################################################
+
+  ## --- NEW: Normalize and validate inputs before calling Rcore ---
+  
+  # Coerce basic types
+  y  <- as.numeric(y)
+  x  <- as.matrix(x)
+  mu <- as.numeric(mu)
+  wt <- as.numeric(wt)
+  
+  # Normalize offset
+  if (is.null(offset2)) offset2 <- rep(0, length(y))
+  offset2 <- as.numeric(offset2)
+  
+  # Normalize weights
+  if (length(wt) == 1L) wt <- rep(wt, length(y))
+  stopifnot(length(wt) == length(y))
+  
+  # Dimension checks
+  stopifnot(nrow(x) == length(y))
+  stopifnot(length(mu) == ncol(x))
+  
+  # Reconstruct P from Sigma and enforce SPD
+  R    <- chol(Sigma)
+  Pinv <- chol2inv(R)
+  P    <- 0.5 * (Pinv + t(Pinv))
+  
+  stopifnot(isSymmetric(P))
+  
+  tol <- 1e-6
+  ev  <- eigen(P, symmetric = TRUE)$values
+  stopifnot(all(ev >= -tol * abs(ev[1L])))
+  
+  # dispersion must be numeric scalar or NULL
+  if (!is.null(dispersion)) {
+    dispersion <- as.numeric(dispersion)
+    stopifnot(length(dispersion) == 1L, is.finite(dispersion))
+  }
+  
+  if (is.null(n_envopt)) n_envopt <- n
+  n_envopt <- as.integer(n_envopt)
   
   core <- rindep_norm_gamma_reg_Rcore(
     n            = n,
@@ -1221,7 +1262,8 @@ rNormal_Gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussi
                             Gridtype=2,n_envopt = NULL,
                             use_parallel = TRUE, use_opencl = FALSE, verbose = FALSE
 ){
-  
+
+
   ## Added for consistency with earlier verion of function
   
   offset2=offset
@@ -1652,6 +1694,33 @@ rindep_norm_gamma_reg_Rcore <- function(
     verbose, progbar = TRUE
 ) {
   
+  
+  
+  cat(">>> TEMP CALL: .rindep_norm_gamma_reg_cpp <<<\n")
+  
+  tmp_cpp <- .rindep_norm_gamma_reg_cpp(
+    n,
+    y,
+    x,
+    mu,
+    P,
+    offset2,
+    wt,
+    shape,
+    rate,
+    max_disp_perc,
+    disp_lower,
+    disp_upper,
+    Gridtype,
+    n_envopt,
+    use_parallel,
+    use_opencl,
+    verbose,
+    progbar
+  )
+  
+  cat(">>> TEMP CALL COMPLETE <<<\n")
+  print(tmp_cpp)
   ##########################  BEGIN *.CPP MIGRATION   ##########################
   
   n_obs <- length(y)
@@ -1683,26 +1752,137 @@ rindep_norm_gamma_reg_Rcore <- function(
   }
   
 
+  
+  # Build f2 and f3 once (outside the loop)
+  famfunc <- glmbfamfunc(gaussian())
+  f2 <- famfunc$f2
+  f3 <- famfunc$f3
+  
+  
+  # Normalize offset
+  if (is.null(offset2)) offset2 <- rep(0, length(y))
+  offset2 <- as.numeric(offset2)
+  
+  # Normalize weights
+  wt <- as.numeric(wt)
+  if (length(wt) == 1) wt <- rep(wt, length(y))
+  stopifnot(length(wt) == length(y))
+  
+  # Normalize mu
+  mu <- as.numeric(mu)
+  
+  # Normalize P
+  P <- as.matrix(P)
+  stopifnot(isSymmetric(P))
+  
+  # Check SPD
+  tol <- 1e-06
+  eS <- eigen(P, symmetric = TRUE)
+  ev <- eS$values
+  stopifnot(all(ev >= -tol * abs(ev[1L])))
+  
+  # Normalize x
+  x <- as.matrix(x)
+  
+  # Normalize dispersion
+  dispersion2 <- as.numeric(dispersion2)
+  stopifnot(length(dispersion2) == 1, is.finite(dispersion2))
+  
+  
   for (j in 1:10) {
     
-    glmb_out1 <- glmb(
-      y ~ x - 1,
-      family = gaussian(),
-      dNormal(mu = mu, Sigma = Sigma, dispersion = dispersion2),
-      weights = wt,
-      offset = offset2
+    # glmb_out1 <- glmb(
+    #   y ~ x - 1,
+    #   family = gaussian(),
+    #   dNormal(mu = mu, Sigma = Sigma, dispersion = dispersion2),
+    #   weights = wt,
+    #   offset = offset2)
+    
+    rglmb_out1 <- rglmb(
+      n          = 10000,
+      y          = y,
+      x          = x,
+      family     = gaussian(),
+      pfamily    = dNormal(mu = mu, Sigma = Sigma, dispersion = dispersion2),
+      offset     = offset2,
+      weights    = wt,
+      Gridtype   = Gridtype,
+      n_envopt   = n_envopt,
+      use_parallel = use_parallel,
+      use_opencl   = use_opencl,
+      verbose      = verbose
+    )
+
+
+    cpp_out <- .rnorm_reg_cpp(
+      n = 10000,
+      y = y,
+      x = x,
+      mu = mu,
+      P = P,
+      offset = offset2,
+      wt = wt,
+      dispersion = dispersion2,
+      f2 = f2,
+      f3 = f3,
+      start = mu
     )
     
+
+
+    # res_temp <- residuals(rglmb_out1)
+#    res_temp <- residuals(glmb_out1)
     
-    res_temp <- residuals(glmb_out1)
+    ###############################3
     
-    for (k in 1:1000) {
-      RSS_temp[k] <- sum(res_temp[k, ] * res_temp[k, ])
+    
+    # Posterior draws: matrix (n_draws × p)
+    beta_draws <- cpp_out$coefficients
+    
+    # Number of posterior draws
+    n_draws <- nrow(beta_draws)
+    
+    # Compute linear predictors for all draws
+    # lp_mat: n_draws × n_obs
+    lp_mat <- beta_draws %*% t(x)
+    
+    # Add offset (broadcasted)
+    if (is.null(offset2)) {
+      offset_mat <- 0
+    } else {
+      offset_mat <- matrix(offset2, nrow = n_draws, ncol = length(y), byrow = TRUE)
     }
     
+    eta_mat <- lp_mat + offset_mat
+    
+    # For Gaussian identity link, mu = eta
+    mu_mat <- eta_mat
+    
+    # Compute weighted squared residuals
+    # wt is length n_obs
+    wt_mat <- matrix(wt, nrow = n_draws, ncol = length(y), byrow = TRUE)
+    
+    # Weighted squared residuals for each draw
+    # RSS_k = sum_i w_i (y_i - mu_ik)^2
+    res_sq_weighted <- wt_mat * (mu_mat - matrix(y, nrow = n_draws, ncol = length(y), byrow = TRUE))^2
+    
+    RSS_temp <- rowSums(res_sq_weighted)
     RSS_Post2 <- mean(RSS_temp)
     
-    b_old <- glmb_out1$coef.mode
+
+    ################################
+    
+    
+    # for (k in 1:10000) {
+    #   RSS_temp[k] <- sum(res_temp[k, ] * res_temp[k, ])
+    # }
+    
+    # RSS_Post2 <- mean(RSS_temp)
+    # 
+    # cat("Iter", j, "RSS_Post2_rglmb =", RSS_Post2, "\n")
+    
+#    b_old <- rglmb_out1$coef.mode
+    b_old <- cpp_out$coef.mode
     xbetastar <- x %*% b_old
     RSS2_post <- t(y - xbetastar) %*% (y - xbetastar)
     
@@ -1711,6 +1891,8 @@ rindep_norm_gamma_reg_Rcore <- function(
     
     dispersion2 <- rate2 / (shape2 - 1)
   }
+  
+  
   
   if (verbose) {
     end_anchor <- as.numeric(Sys.time())
@@ -1727,7 +1909,8 @@ rindep_norm_gamma_reg_Rcore <- function(
   
   ## ---- Step 4: Standardized Model ----
   
-  betastar <- glmb_out1$coef.mode
+##  betastar <- rglmb_out1$coef.mode
+  betastar <- cpp_out$coef.mode
   dispstar <- dispersion2
   
   famfunc <- glmbfamfunc(gaussian())
