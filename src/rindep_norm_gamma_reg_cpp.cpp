@@ -246,7 +246,7 @@ void rindep_norm_gamma_worker::operator()(std::size_t begin, std::size_t end) {
       //   Inv_f3_with_disp_rmat(Pmat_r, Pmu_r, base_B0_r, base_A_r,
       //                         dispersion, cbars_small_col);
 
-      arma::mat theta_sol = Inv_f3_with_disp_rmat_v2(Pmat_r, Pmu_r, base_B0_r, base_A_r,
+      arma::mat theta_sol = Inv_f3_with_disp_rmat(Pmat_r, Pmu_r, base_B0_r, base_A_r,
                                                      dispersion, cbars_small_col);
 
 

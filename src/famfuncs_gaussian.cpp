@@ -437,7 +437,7 @@ arma::mat Inv_f3_with_disp(Rcpp::List cache,
 
 
 
-arma::mat Inv_f3_with_disp_rmat_v2(
+arma::mat Inv_f3_with_disp_rmat(
     const RcppParallel::RMatrix<double>& Pmat_r,
     const RcppParallel::RMatrix<double>& Pmu_r,
     const RcppParallel::RVector<double>& base_B0_r,

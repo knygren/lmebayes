@@ -13,12 +13,7 @@ namespace famfuncs {
 NumericVector dbinom_glmb( NumericVector x, NumericVector N, NumericVector means, int lg);
 NumericVector  f1_binomial_logit(NumericMatrix b,NumericVector y,NumericMatrix x,NumericVector alpha,NumericVector wt);
 NumericVector  f2_binomial_logit(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,int progbar);
-// arma::vec  f2_binomial_logit_arma(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,int progbar);
 arma::vec f2_binomial_logit_rmat(
-    // NumericMatrix b, NumericVector y,
-    //                              NumericMatrix x, NumericMatrix mu,
-    //                              NumericMatrix P, NumericVector alpha,
-    //                              NumericVector wt, int progbar = 0
     const RMatrix<double>& b,
     const RVector<double>& y,
     const RMatrix<double>& x,
@@ -30,44 +25,8 @@ arma::vec f2_binomial_logit_rmat(
 
 arma::mat  f3_binomial_logit(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,int progbar);
 
-
-
-List f2_binomial_logit_prep_v2(
-    NumericMatrix b,       // l2 × m1
-    NumericVector y,       // length l1
-    NumericMatrix x,       // l1 × l2
-    NumericMatrix mu,      // l2 × 1
-    NumericMatrix P,       // l2 × l2
-    NumericVector alpha,   // length l1
-    NumericVector wt,      // length l1
-    int progbar = 0
-);
-
-
-NumericVector f2_binomial_logit_accum(
-    NumericMatrix xb,        // n × m matrix of π = P(y=1)
-    NumericVector qf,        // length m: 0.5*(b-μ)'P(b-μ)
-    NumericVector y,         // length n observed {0,1}
-    NumericVector wt,        // length n weights
-    int progbar          // 0 = no bar, 1 = show bar
-);
-
-
-
-NumericVector f2_accum(
-    std::string family,
-    std::string link,
-    NumericMatrix xb,        // n × m matrix of π = P(y=1)
-    NumericVector qf,        // length m: 0.5*(b-μ)'P(b-μ)
-    NumericVector y,         // length n observed {0,1}
-    NumericVector wt,        // length n weights
-    int progbar          // 0 = no bar, 1 = show bar
-);
-
-
 NumericVector  f1_binomial_probit(NumericMatrix b,NumericVector y,NumericMatrix x,NumericVector alpha,NumericVector wt);
 NumericVector  f2_binomial_probit(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,int progbar);
-// arma::vec  f2_binomial_probit_arma(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,int progbar);
 arma::vec f2_binomial_probit_rmat(
     // NumericMatrix b, NumericVector y,
     //                              NumericMatrix x, NumericMatrix mu,
@@ -86,12 +45,7 @@ arma::mat  f3_binomial_probit(NumericMatrix b,NumericVector y, NumericMatrix x,N
 
 NumericVector  f1_binomial_cloglog(NumericMatrix b,NumericVector y,NumericMatrix x,NumericVector alpha,NumericVector wt);
 NumericVector  f2_binomial_cloglog(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt, int progbar);
-// arma::vec  f2_binomial_cloglog_arma(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt, int progbar);
 arma::vec f2_binomial_cloglog_rmat(
-    // NumericMatrix b, NumericVector y,
-    //                              NumericMatrix x, NumericMatrix mu,
-    //                              NumericMatrix P, NumericVector alpha,
-    //                              NumericVector wt, int progbar = 0
     const RMatrix<double>& b,
     const RVector<double>& y,
     const RMatrix<double>& x,
@@ -112,16 +66,6 @@ void neg_dpois_glmb_rmat(const RVector<double>& x,     // observed counts
 NumericVector dpois_glmb( NumericVector x, NumericVector means, int lg);
 NumericVector  f1_poisson(NumericMatrix b,NumericVector y,NumericMatrix x,NumericVector alpha,NumericVector wt);
 NumericVector  f2_poisson(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt, int progbar);
-// arma::vec   f2_poisson_arma(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt, int progbar);
-// arma::vec f2_poisson_rmat_old(const NumericMatrix& b,
-//                           const NumericVector& y,
-//                           const NumericMatrix& x,
-//                           const NumericMatrix& mu,
-//                           const NumericMatrix& P,
-//                           const NumericVector& alpha,
-//                           const NumericVector& wt,
-//                           int progbar);
-
 arma::vec f2_poisson_rmat(const RMatrix<double>& b,       // candidate coefficients
                              const RVector<double>& y,       // observed counts
                              const RMatrix<double>& x,       // design matrix
@@ -137,7 +81,6 @@ arma::mat  f3_poisson(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMa
 NumericVector dgamma_glmb( NumericVector x, NumericVector shape, NumericVector scale, int lg);
 NumericVector  f1_gamma(NumericMatrix b,NumericVector y,NumericMatrix x,NumericVector alpha,NumericVector wt);
 NumericVector  f2_gamma(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt, int progbar);
-// arma::vec  f2_gamma_arma(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt, int progbar);
 arma::vec f2_gamma_rmat(const RMatrix<double>& b,       // candidate coefficients
                           const RVector<double>& y,       // observed counts
                           const RMatrix<double>& x,       // design matrix
@@ -152,8 +95,6 @@ arma::mat  f3_gamma(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatr
 NumericVector dnorm_glmb( NumericVector x, NumericVector means, NumericVector sds,int lg);
 NumericVector  f1_gaussian(NumericMatrix b,NumericVector y,NumericMatrix x,NumericVector alpha,NumericVector wt);
 NumericVector  f2_gaussian(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt);
-// arma::vec  f2_gaussian_arma(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt);
-// Original version (unchanged)
 arma::vec f2_gaussian_rmat(const RcppParallel::RMatrix<double>& b,       // candidate coefficients
                            const RcppParallel::RVector<double>& y,       // observed counts
                            const RcppParallel::RMatrix<double>& x,       // design matrix
@@ -189,7 +130,7 @@ arma::mat Inv_f3_with_disp(Rcpp::List cache,
                            Rcpp::NumericMatrix cbars_small);
 
 
-arma::mat Inv_f3_with_disp_rmat_v2(
+arma::mat Inv_f3_with_disp_rmat(
     const RcppParallel::RMatrix<double>& Pmat_r,
     const RcppParallel::RMatrix<double>& Pmu_r,
     const RcppParallel::RVector<double>& base_B0_r,
