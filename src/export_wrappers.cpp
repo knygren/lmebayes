@@ -3,8 +3,50 @@
 #include "openclPort.h"
 #include "glmbsim.h"
 
-using namespace glmbayes::envelopefuncs;
+using namespace openclPort;
+using namespace glmbayes::env;
 
+
+
+////////////// openclPort namespace ///////////////////
+
+
+// [[Rcpp::export]]
+std::string load_kernel_source_wrapper_export(
+    const std::string& relative_path,
+    const std::string& package = "glmbayes"
+) {
+  return load_kernel_source_wrapper(relative_path, package);
+}
+
+
+// [[Rcpp::export]]
+std::string load_kernel_library_wrapper_export(
+    const std::string& subdir,
+    const std::string& package = "glmbayes",
+    bool verbose = false
+) {
+  return load_kernel_library_wrapper(subdir, package, verbose);
+}
+
+
+// [[Rcpp::export]]
+bool has_opencl_export() {
+  return has_opencl();
+}
+
+// [[Rcpp::export]]
+int get_opencl_core_count_export() {
+  return get_opencl_core_count();
+}
+
+
+// [[Rcpp::export]]
+Rcpp::CharacterVector gpu_names_export() {
+  return gpu_names();
+}
+
+////////////// glmbayes::env namespace ////////////////
 
 // [[Rcpp::export]]
 Rcpp::List EnvelopeSize_export(
@@ -16,7 +58,7 @@ Rcpp::List EnvelopeSize_export(
     bool use_opencl,
     bool verbose
 ) {
-  return glmbayes::envelopefuncs::EnvelopeSize(
+  return glmbayes::env::EnvelopeSize(
     a, G1, Gridtype, n, n_envopt, use_opencl, verbose
   );
 }
@@ -41,7 +83,7 @@ Rcpp::List EnvelopeBuild_cpp_export(
     bool use_opencl,
     bool verbose
 ) {
-  return glmbayes::envelopefuncs::EnvelopeBuild_cpp(
+  return glmbayes::env::EnvelopeBuild_cpp(
     bStar, A, y, x, mu, P, alpha, wt,
     family, link, Gridtype, n, n_envopt,
     sortgrid, use_opencl, verbose
@@ -275,42 +317,6 @@ double UB2_export(
 
 
 ////////////openclPort
-
-// [[Rcpp::export]]
-std::string load_kernel_source_wrapper_export(
-    const std::string& relative_path,
-    const std::string& package = "glmbayes"
-) {
-  return load_kernel_source_wrapper(relative_path, package);
-}
-
-
-// [[Rcpp::export]]
-std::string load_kernel_library_wrapper_export(
-    const std::string& subdir,
-    const std::string& package = "glmbayes",
-    bool verbose = false
-) {
-  return load_kernel_library_wrapper(subdir, package, verbose);
-}
-
-
-// [[Rcpp::export]]
-bool has_opencl_export() {
-  return has_opencl();
-}
-
-// [[Rcpp::export]]
-int get_opencl_core_count_export() {
-  return get_opencl_core_count();
-}
-
-
-// [[Rcpp::export]]
-Rcpp::CharacterVector gpu_names_export() {
-  return gpu_names();
-}
-
 
 // =====================================================================
 //  rnnorm_reg_std_cpp_export

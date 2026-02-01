@@ -11,6 +11,61 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// load_kernel_source_wrapper_export
+std::string load_kernel_source_wrapper_export(const std::string& relative_path, const std::string& package);
+RcppExport SEXP _glmbayes_load_kernel_source_wrapper_export(SEXP relative_pathSEXP, SEXP packageSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::string& >::type relative_path(relative_pathSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type package(packageSEXP);
+    rcpp_result_gen = Rcpp::wrap(load_kernel_source_wrapper_export(relative_path, package));
+    return rcpp_result_gen;
+END_RCPP
+}
+// load_kernel_library_wrapper_export
+std::string load_kernel_library_wrapper_export(const std::string& subdir, const std::string& package, bool verbose);
+RcppExport SEXP _glmbayes_load_kernel_library_wrapper_export(SEXP subdirSEXP, SEXP packageSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::string& >::type subdir(subdirSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type package(packageSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(load_kernel_library_wrapper_export(subdir, package, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// has_opencl_export
+bool has_opencl_export();
+RcppExport SEXP _glmbayes_has_opencl_export() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(has_opencl_export());
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_opencl_core_count_export
+int get_opencl_core_count_export();
+RcppExport SEXP _glmbayes_get_opencl_core_count_export() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_opencl_core_count_export());
+    return rcpp_result_gen;
+END_RCPP
+}
+// gpu_names_export
+Rcpp::CharacterVector gpu_names_export();
+RcppExport SEXP _glmbayes_gpu_names_export() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(gpu_names_export());
+    return rcpp_result_gen;
+END_RCPP
+}
 // EnvelopeSize_export
 Rcpp::List EnvelopeSize_export(const arma::vec& a, const Rcpp::NumericMatrix& G1, int Gridtype, int n, int n_envopt, bool use_opencl, bool verbose);
 RcppExport SEXP _glmbayes_EnvelopeSize_export(SEXP aSEXP, SEXP G1SEXP, SEXP GridtypeSEXP, SEXP nSEXP, SEXP n_envoptSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
@@ -221,61 +276,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// load_kernel_source_wrapper_export
-std::string load_kernel_source_wrapper_export(const std::string& relative_path, const std::string& package);
-RcppExport SEXP _glmbayes_load_kernel_source_wrapper_export(SEXP relative_pathSEXP, SEXP packageSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::string& >::type relative_path(relative_pathSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type package(packageSEXP);
-    rcpp_result_gen = Rcpp::wrap(load_kernel_source_wrapper_export(relative_path, package));
-    return rcpp_result_gen;
-END_RCPP
-}
-// load_kernel_library_wrapper_export
-std::string load_kernel_library_wrapper_export(const std::string& subdir, const std::string& package, bool verbose);
-RcppExport SEXP _glmbayes_load_kernel_library_wrapper_export(SEXP subdirSEXP, SEXP packageSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::string& >::type subdir(subdirSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type package(packageSEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(load_kernel_library_wrapper_export(subdir, package, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
-// has_opencl_export
-bool has_opencl_export();
-RcppExport SEXP _glmbayes_has_opencl_export() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(has_opencl_export());
-    return rcpp_result_gen;
-END_RCPP
-}
-// get_opencl_core_count_export
-int get_opencl_core_count_export();
-RcppExport SEXP _glmbayes_get_opencl_core_count_export() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_opencl_core_count_export());
-    return rcpp_result_gen;
-END_RCPP
-}
-// gpu_names_export
-Rcpp::CharacterVector gpu_names_export();
-RcppExport SEXP _glmbayes_gpu_names_export() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(gpu_names_export());
-    return rcpp_result_gen;
-END_RCPP
-}
 // rnnorm_reg_std_cpp_export
 Rcpp::List rnnorm_reg_std_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericMatrix& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& alpha, const Rcpp::NumericVector& wt, const Rcpp::Function& f2, const Rcpp::List& Envelope, const Rcpp::CharacterVector& family, const Rcpp::CharacterVector& link, int progbar, bool verbose);
 RcppExport SEXP _glmbayes_rnnorm_reg_std_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP f2SEXP, SEXP EnvelopeSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP progbarSEXP, SEXP verboseSEXP) {
@@ -446,6 +446,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_glmbayes_load_kernel_source_wrapper_export", (DL_FUNC) &_glmbayes_load_kernel_source_wrapper_export, 2},
+    {"_glmbayes_load_kernel_library_wrapper_export", (DL_FUNC) &_glmbayes_load_kernel_library_wrapper_export, 3},
+    {"_glmbayes_has_opencl_export", (DL_FUNC) &_glmbayes_has_opencl_export, 0},
+    {"_glmbayes_get_opencl_core_count_export", (DL_FUNC) &_glmbayes_get_opencl_core_count_export, 0},
+    {"_glmbayes_gpu_names_export", (DL_FUNC) &_glmbayes_gpu_names_export, 0},
     {"_glmbayes_EnvelopeSize_export", (DL_FUNC) &_glmbayes_EnvelopeSize_export, 7},
     {"_glmbayes_EnvelopeBuild_cpp_export", (DL_FUNC) &_glmbayes_EnvelopeBuild_cpp_export, 16},
     {"_glmbayes_EnvelopeEval_export", (DL_FUNC) &_glmbayes_EnvelopeEval_export, 11},
@@ -456,11 +461,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmbayes_Set_Grid_export", (DL_FUNC) &_glmbayes_Set_Grid_export, 3},
     {"_glmbayes_rss_face_at_disp_export", (DL_FUNC) &_glmbayes_rss_face_at_disp_export, 7},
     {"_glmbayes_UB2_export", (DL_FUNC) &_glmbayes_UB2_export, 8},
-    {"_glmbayes_load_kernel_source_wrapper_export", (DL_FUNC) &_glmbayes_load_kernel_source_wrapper_export, 2},
-    {"_glmbayes_load_kernel_library_wrapper_export", (DL_FUNC) &_glmbayes_load_kernel_library_wrapper_export, 3},
-    {"_glmbayes_has_opencl_export", (DL_FUNC) &_glmbayes_has_opencl_export, 0},
-    {"_glmbayes_get_opencl_core_count_export", (DL_FUNC) &_glmbayes_get_opencl_core_count_export, 0},
-    {"_glmbayes_gpu_names_export", (DL_FUNC) &_glmbayes_gpu_names_export, 0},
     {"_glmbayes_rnnorm_reg_std_cpp_export", (DL_FUNC) &_glmbayes_rnnorm_reg_std_cpp_export, 13},
     {"_glmbayes_rnnorm_reg_cpp_export", (DL_FUNC) &_glmbayes_rnnorm_reg_cpp_export, 18},
     {"_glmbayes_rnorm_reg_cpp_export", (DL_FUNC) &_glmbayes_rnorm_reg_cpp_export, 14},

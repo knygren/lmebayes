@@ -40,7 +40,9 @@ void setlogP_C2(NumericMatrix logP,NumericVector NegLL,NumericMatrix cbars,Numer
 }
 
 
+namespace glmbayes{
 
+namespace env {
 
 Rcpp::List   setlogP(NumericMatrix logP,NumericVector NegLL,NumericMatrix cbars,NumericMatrix G3) {
   
@@ -72,4 +74,5 @@ Rcpp::List   setlogP(NumericMatrix logP,NumericVector NegLL,NumericMatrix cbars,
   
 }
 
-
+}
+}

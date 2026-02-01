@@ -5,9 +5,18 @@
 
 using namespace Rcpp;
 
+// Dependencies:
+
+
+// 1) EnvelopeSize.cpp
+// 2) EnvelopeBuild.cpp
+// 3) EnvelopeEval.cpp
+// 4) EnvelopeBuild_Ind_Normal_Gamma.cpp
+// 5) EnvelopeDispersionBuild.cpp
+
 namespace glmbayes{
 
-namespace envelopefuncs{
+namespace env{
 Rcpp::List EnvelopeSize(const arma::vec& a,
                         const Rcpp::NumericMatrix& G1,
                         int Gridtype   = 2,
@@ -35,16 +44,6 @@ List EnvelopeBuild_cpp(NumericVector bStar,
                        bool use_opencl    = false, // Enables OpenCL acceleration during envelope construction
                        bool verbose       = false  // Enables diagnostic output
 );
-
-
-} //envelopefuncs
-
-}  //glmbayes
-
-
-
-
-
 
 
 Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4,   // grid (parameters × grid points)
@@ -77,9 +76,6 @@ List EnvelopeBuild_Ind_Normal_Gamma(NumericVector bStar,
                                     bool verbose       = false);
 
 
-NumericVector RSS(NumericVector y, NumericMatrix x,NumericMatrix b,NumericVector alpha,NumericVector wt);
-
-
 List EnvelopeDispersionBuild_cpp(
     List Env,
     double Shape,
@@ -93,12 +89,14 @@ List EnvelopeDispersionBuild_cpp(
     double RSS_ML,
     NumericMatrix mu,         // ← new
     NumericVector wt,         // ← new
-    double max_disp_perc = 0.99,
-    Nullable<double> disp_lower = R_NilValue,
-    Nullable<double> disp_upper = R_NilValue,
-    bool verbose = false,
-    bool use_parallel = true   // ← add flag here
-  );
+    double max_disp_perc ,
+    Nullable<double> disp_lower ,
+    Nullable<double> disp_upper ,
+    bool verbose ,
+    bool use_parallel    // ← add flag here
+    
+);
+
 
 Rcpp::List EnvelopeOrchestrator_cpp(
     NumericVector bstar2,
@@ -128,14 +126,29 @@ Rcpp::List EnvelopeOrchestrator_cpp(
     bool verbose
 );
 
-
 List Set_Grid(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint);
-Rcpp::List Set_Grid_C(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint,Rcpp::NumericMatrix Down,Rcpp::NumericMatrix Up,Rcpp::NumericMatrix lglt,Rcpp::NumericMatrix lgrt,Rcpp::NumericMatrix lgct,Rcpp::NumericMatrix logU,Rcpp::NumericMatrix logP);
 void Set_Grid_C2(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint,Rcpp::NumericMatrix Down,Rcpp::NumericMatrix Up,Rcpp::NumericMatrix lglt,Rcpp::NumericMatrix lgrt,Rcpp::NumericMatrix lgct,Rcpp::NumericMatrix logU,Rcpp::NumericMatrix logP);
 void Set_Grid_C2_pointwise(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint,Rcpp::NumericMatrix Down,Rcpp::NumericMatrix Up,Rcpp::NumericMatrix lglt,Rcpp::NumericMatrix lgrt,Rcpp::NumericMatrix lgct,Rcpp::NumericMatrix logU,Rcpp::NumericMatrix logP);
 
 
 List   setlogP(NumericMatrix logP,NumericVector NegLL,NumericMatrix cbars,NumericMatrix G3);
+
+
+} //env
+
+}  //glmbayes
+
+
+
+
+NumericVector RSS(NumericVector y, NumericMatrix x,NumericMatrix b,NumericVector alpha,NumericVector wt);
+
+
+
+
+// Rcpp::List Set_Grid_C(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint,Rcpp::NumericMatrix Down,Rcpp::NumericMatrix Up,Rcpp::NumericMatrix lglt,Rcpp::NumericMatrix lgrt,Rcpp::NumericMatrix lgct,Rcpp::NumericMatrix logU,Rcpp::NumericMatrix logP);
+
+
 // Rcpp::List   setlogP_C(NumericMatrix logP,NumericVector NegLL,NumericMatrix cbars,NumericMatrix G3,NumericMatrix LLconst);
 void setlogP_C2(NumericMatrix logP,NumericVector NegLL,NumericMatrix cbars,NumericMatrix G3,NumericMatrix LLconst);
 
@@ -158,3 +171,6 @@ double UB2(double dispersion,
            Rcpp::NumericVector alpha,
            Rcpp::NumericVector wt,
            double rss_min_global);
+
+
+

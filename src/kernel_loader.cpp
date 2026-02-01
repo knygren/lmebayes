@@ -1,4 +1,4 @@
-#ifdef USE_OPENCL
+
 
 //#include <Rcpp.h>
 #include <RcppArmadillo.h>
@@ -18,7 +18,6 @@
 #include <R.h>                  // added: for Rprintf
 
 namespace fs = std::filesystem;
-
 using namespace openclPort;
 
 // Load a single file like "nmath/bd0.cl"
@@ -188,11 +187,11 @@ std::string load_kernel_library(const std::string& subdir, const std::string& pa
 }
 #endif
 
-#endif
-
 }
 
 
+
+namespace openclPort {
 
 int get_opencl_core_count() {
 #ifdef USE_OPENCL
@@ -224,4 +223,6 @@ std::string load_kernel_library_wrapper(std::string subdir,
 #else
   Rcpp::stop("OpenCL support is not available in this build of glmbayes.");
 #endif
+}
+
 }

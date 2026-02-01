@@ -2,7 +2,7 @@
 #include <Rcpp.h>
 
 using namespace Rcpp;
-using namespace openclPort;
+
 
 namespace openclPort {
 
@@ -28,15 +28,12 @@ std::vector<double> copyVector(const Rcpp::NumericVector& vec) {
 
 
 
-}
-
-
-
-
 bool has_opencl() {
 #ifdef USE_OPENCL
   return true;
 #else
   return false;
 #endif
+}
+
 }

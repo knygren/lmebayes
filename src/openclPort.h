@@ -12,6 +12,11 @@
 
 using namespace Rcpp;
 
+// Dependencies:
+
+// 1) OpenCL_helper.cpp
+// 2) 
+
 
 
 //
@@ -39,31 +44,6 @@ int detect_num_gpus_internal();
 
 
 // -------------------------------------------------------------------------
-// Conditional declarations: only available when USE_OPENCL is defined
-// -------------------------------------------------------------------------
-#ifdef USE_OPENCL
-
-// Load a single .cl kernel file from inst/cl/<relative_path>
-std::string load_kernel_source(
-    const std::string& relative_path,
-    const std::string& package = "glmbayes"
-);
-
-// Load and concatenate all .cl files in a subdirectory (inst/cl/<subdir>/)
-std::string load_kernel_library(
-    const std::string& subdir,
-    const std::string& package = "glmbayes",
-    bool verbose = false
-);
-
-#endif // USE_OPENCL
-
-} // namespace openclPort
-
-#endif // OPENCLPORT_H
-
-
-// -------------------------------------------------------------------------
 // R-facing wrappers for kernel source loading
 // -------------------------------------------------------------------------
 std::string load_kernel_source_wrapper(
@@ -84,4 +64,32 @@ std::string load_kernel_library_wrapper(
 bool has_opencl();
 int get_opencl_core_count();
 
-CharacterVector gpu_names();
+
+// -------------------------------------------------------------------------
+// Conditional declarations: only available when USE_OPENCL is defined
+// -------------------------------------------------------------------------
+#ifdef USE_OPENCL
+
+// Load a single .cl kernel file from inst/cl/<relative_path>
+std::string load_kernel_source(
+    const std::string& relative_path,
+    const std::string& package = "glmbayes"
+);
+
+// Load and concatenate all .cl files in a subdirectory (inst/cl/<subdir>/)
+std::string load_kernel_library(
+    const std::string& subdir,
+    const std::string& package = "glmbayes",
+    bool verbose = false
+);
+
+#endif // USE_OPENCL
+
+
+
+
+} // namespace openclPort
+
+#endif // OPENCLPORT_H
+
+

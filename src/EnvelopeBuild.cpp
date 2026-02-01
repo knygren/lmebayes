@@ -19,7 +19,7 @@
 using namespace Rcpp;
 using namespace openclPort;
 using namespace glmbayes::fam;
-using namespace glmbayes::envelopefuncs;
+using namespace glmbayes::env;
 
 
 
@@ -119,7 +119,7 @@ using namespace glmbayes::envelopefuncs;
 
 namespace glmbayes {
 
-namespace envelopefuncs {
+namespace env {
 List EnvelopeBuild_cpp(NumericVector bStar,
                        NumericMatrix A, /// Diagonal Precision Matrix for Adjusted Likelihood Function
                        NumericVector y, 

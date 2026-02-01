@@ -1,4 +1,5 @@
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
+#include "openclPort.h"
 using namespace Rcpp;
 
 #ifdef __linux__
@@ -7,11 +8,13 @@ using namespace Rcpp;
 #endif
 
 
-CharacterVector gpu_names() {
+
+namespace openclPort {
+Rcpp::CharacterVector gpu_names() {
 #ifdef __linux__
   FILE *fp;
   char buffer[256];
-  CharacterVector gpus;
+  Rcpp::CharacterVector gpus;
   
   // Run nvidia-smi with query options
   fp = popen("nvidia-smi --query-gpu=name --format=csv,noheader", "r");
@@ -29,6 +32,8 @@ CharacterVector gpu_names() {
   pclose(fp);
   return gpus;
 #else
-  return CharacterVector::create("CUDA probe not supported on this platform.");
+  return Rcpp::CharacterVector::create("CUDA probe not supported on this platform.");
 #endif
+}
+
 }

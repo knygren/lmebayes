@@ -33,7 +33,7 @@ static tbb::mutex f2_mutex;
 using namespace Rcpp;
 using namespace RcppParallel;
 using namespace glmbayes::fam;
-using namespace glmbayes::envelopefuncs;
+using namespace glmbayes::env;
 
 void progress_bar2(double x, double N)
 {

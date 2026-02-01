@@ -9,11 +9,16 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 #include "famfuncs.h"
+#include "envelopefuncs.h"
 
 using namespace Rcpp;
+using namespace glmbayes::env;
 
 /// New Pointwise implementation (suggested by COPILOT)
 
+namespace glmbayes {
+
+namespace env {
 void Set_Grid_C2_pointwise(
     NumericMatrix GIndex,
     NumericMatrix cbars,
@@ -284,6 +289,7 @@ void Set_Grid_C2(Rcpp::NumericMatrix GIndex,
 //   This could be bad when function is called many times                 //////////////  
 
 
+
 Rcpp::List Set_Grid(Rcpp::NumericMatrix GIndex,
                     Rcpp::NumericMatrix cbars,
                     Rcpp::NumericMatrix Lint) {
@@ -312,6 +318,10 @@ Rcpp::List Set_Grid(Rcpp::NumericMatrix GIndex,
     Rcpp::Named("logP") = logP
   );
 }
+
+} // env
+ 
+} // glmbayes
 
 /////////////////////////////////////////////////////////////////////////////
 

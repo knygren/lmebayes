@@ -22,7 +22,9 @@ using namespace openclPort;
 
 
 
+namespace glmbayes {
 
+namespace env {
 
 List EnvelopeBuild_Ind_Normal_Gamma(NumericVector bStar,NumericMatrix A,
                                     NumericVector y, 
@@ -321,3 +323,7 @@ List EnvelopeBuild_Ind_Normal_Gamma(NumericVector bStar,NumericMatrix A,
   
   
 }
+
+
+} // env
+} // glmbayes

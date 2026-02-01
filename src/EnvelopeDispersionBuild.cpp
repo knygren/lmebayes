@@ -18,6 +18,7 @@
 using namespace Rcpp;
 using namespace openclPort;
 using namespace glmbayes::fam;
+using namespace glmbayes::env;
 
 
 
@@ -1077,6 +1078,10 @@ Rcpp::List compute_mixture_and_outputs_cpp(
 }
 
 
+
+namespace glmbayes {
+
+namespace env {
 List EnvelopeDispersionBuild_cpp(
     List Env,
     double Shape,
@@ -1264,6 +1269,8 @@ List EnvelopeDispersionBuild_cpp(
 }
 
 
+}
 
+}
 
 

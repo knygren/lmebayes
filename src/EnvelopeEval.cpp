@@ -18,6 +18,7 @@
 using namespace Rcpp;
 using namespace openclPort;
 using namespace glmbayes::fam;
+using namespace glmbayes::env;
 
 
 
@@ -294,7 +295,9 @@ Rcpp::List f2_f3_non_opencl(
 }
 
 
+namespace glmbayes {
 
+namespace env {
 
 Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4,   // grid (parameters × grid points)
                         const Rcpp::NumericVector& y,
@@ -360,4 +363,7 @@ Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4,   // grid (parameters × 
     Rcpp::Named("NegLL") = NegLL,
     Rcpp::Named("cbars") = cbars
   );
+}
+
+}
 }

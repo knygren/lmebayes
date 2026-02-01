@@ -10,9 +10,12 @@
 
 #include "Envelopefuncs.h"
 
-using namespace glmbayes::envelopefuncs;
+using namespace glmbayes::env;
 
 
+namespace glmbayes {
+
+namespace env {
 Rcpp::List EnvelopeOrchestrator_cpp(
     NumericVector bstar2,
     NumericMatrix A,
@@ -145,4 +148,7 @@ return Rcpp::List::create(
 
 // TEMPORARY: return dummy until final assembly
 //return 12345;
+}
+
+}
 }
