@@ -20,7 +20,7 @@ namespace glmbayes {
 
 namespace sim {
 
-Rcpp::List rnorm_reg_cpp(int n,NumericVector y,NumericMatrix x, 
+Rcpp::List rnorm_reg(int n,NumericVector y,NumericMatrix x, 
                          NumericVector mu,NumericMatrix P,
                          NumericVector offset,NumericVector wt,
                          double dispersion,

@@ -1081,7 +1081,7 @@ Rcpp::List compute_mixture_and_outputs_cpp(
 namespace glmbayes {
 
 namespace env {
-List EnvelopeDispersionBuild_cpp(
+List EnvelopeDispersionBuild(
     List Env,
     double Shape,
     double Rate,

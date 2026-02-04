@@ -84,7 +84,7 @@ Rcpp::List EnvelopeBuild_cpp_export(
     bool use_opencl,
     bool verbose
 ) {
-  return glmbayes::env::EnvelopeBuild_cpp(
+  return glmbayes::env::EnvelopeBuild(
     bStar, A, y, x, mu, P, alpha, wt,
     family, link, Gridtype, n, n_envopt,
     sortgrid, use_opencl, verbose
@@ -162,7 +162,7 @@ Rcpp::List EnvelopeDispersionBuild_cpp_export(
     bool verbose = false,
     bool use_parallel = true
 ) {
-  return EnvelopeDispersionBuild_cpp(
+  return EnvelopeDispersionBuild(
     Env,
     Shape,
     Rate,
@@ -212,7 +212,7 @@ Rcpp::List EnvelopeOrchestrator_cpp_export(
     bool use_opencl,
     bool verbose
 ) {
-  return EnvelopeOrchestrator_cpp(
+  return EnvelopeOrchestrator(
     bstar2,
     A,
     y,
@@ -249,7 +249,7 @@ Rcpp::List setlogP_export(
     const Rcpp::NumericMatrix& cbars,
     const Rcpp::NumericMatrix& G3
 ) {
-  return setlogP(
+  return EnvelopeSet_LogP(
     logP,
     NegLL,
     cbars,
@@ -263,7 +263,7 @@ Rcpp::List Set_Grid_export(
     const Rcpp::NumericMatrix& cbars,
     const Rcpp::NumericMatrix& Lint
 ) {
-  return Set_Grid(
+  return EnvelopeSet_Grid(
     GIndex,
     cbars,
     Lint
@@ -339,7 +339,7 @@ Rcpp::List rnnorm_reg_std_cpp_export(
     int progbar = 1,
     bool verbose = false
 ) {
-  return rnnorm_reg_std_cpp(
+  return rnnorm_reg_std(
     n, y, x, mu, P, alpha, wt,
     f2, Envelope, family, link,
     progbar, verbose
@@ -372,7 +372,7 @@ Rcpp::List rnnorm_reg_cpp_export(
     bool use_opencl = false,
     bool verbose = false
 ) {
-  return rnnorm_reg_cpp(
+  return rnnorm_reg(
     n, y, x, mu, P, offset, wt,
     dispersion,
     f2, f3, start,
@@ -402,7 +402,7 @@ Rcpp::List rnorm_reg_cpp_export(
     const std::string& link   = "identity",
     int Gridtype = 2
 ) {
-  return rnorm_reg_cpp(
+  return rnorm_reg(
     n, y, x, mu, P, offset, wt,
     dispersion, f2, f3, start,
     family, link, Gridtype
@@ -432,7 +432,7 @@ Rcpp::List rindep_norm_gamma_reg_std_cpp_export(
     bool progbar = true,
     bool verbose = false
 ) {
-  return rindep_norm_gamma_reg_std_cpp(
+  return rindep_norm_gamma_reg_std(
     n, y, x, mu, P, alpha, wt,
     f2, Envelope, gamma_list, UB_list,
     family, link, progbar, verbose
@@ -462,7 +462,7 @@ Rcpp::List rindep_norm_gamma_reg_std_parallel_cpp_export(
     bool progbar = true,
     bool verbose = false
 ) {
-  return rindep_norm_gamma_reg_std_parallel_cpp(
+  return rindep_norm_gamma_reg_std_parallel(
     n, y, x, mu, P, alpha, wt,
     f2, Envelope, gamma_list, UB_list,
     family, link, progbar, verbose
@@ -491,7 +491,7 @@ Rcpp::List rindep_norm_gamma_reg_cpp_export(
     bool verbose,
     bool progbar
 ) {
-  return rindep_norm_gamma_reg_cpp(
+  return rindep_norm_gamma_reg(
     n,
     y,
     x,

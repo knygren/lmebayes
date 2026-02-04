@@ -10,7 +10,7 @@ namespace glmbayes {
 
 namespace sim {
 
-Rcpp::List  rnnorm_reg_std_cpp(int n,
+Rcpp::List  rnnorm_reg_std(int n,
                                NumericVector y,
                                NumericMatrix x,
                                NumericMatrix mu,
@@ -25,7 +25,7 @@ Rcpp::List  rnnorm_reg_std_cpp(int n,
                                bool verbose = false                                 
                                  );
 
-Rcpp::List rnnorm_reg_cpp(
+Rcpp::List rnnorm_reg(
     int n,
     NumericVector y,
     NumericMatrix x,
@@ -46,7 +46,7 @@ Rcpp::List rnnorm_reg_cpp(
     bool verbose = false
 );
 
-Rcpp::List rnorm_reg_cpp(int n,NumericVector y,NumericMatrix x, 
+Rcpp::List rnorm_reg(int n,NumericVector y,NumericMatrix x, 
                          NumericVector mu,NumericMatrix P,
                          NumericVector offset,NumericVector wt,
                          double dispersion,
@@ -59,7 +59,7 @@ Rcpp::List rnorm_reg_cpp(int n,NumericVector y,NumericMatrix x,
 
 
 
-Rcpp::List  rindep_norm_gamma_reg_std_cpp(int n,NumericVector y,NumericMatrix x,
+Rcpp::List  rindep_norm_gamma_reg_std(int n,NumericVector y,NumericMatrix x,
                                           NumericMatrix mu, /// This is typically standardized to be a zero vector
                                           NumericMatrix P, /// Part of prior precision shifted to the likelihood
                                           NumericVector alpha,NumericVector wt,
@@ -70,7 +70,7 @@ Rcpp::List  rindep_norm_gamma_reg_std_cpp(int n,NumericVector y,NumericMatrix x,
                                           bool progbar=true,
                                           bool verbose=false);
 
-Rcpp::List rindep_norm_gamma_reg_std_parallel_cpp(
+Rcpp::List rindep_norm_gamma_reg_std_parallel(
     int n,
     Rcpp::NumericVector y,
     Rcpp::NumericMatrix x,
@@ -89,7 +89,7 @@ Rcpp::List rindep_norm_gamma_reg_std_parallel_cpp(
 );
 
 
-Rcpp::List rindep_norm_gamma_reg_cpp(
+Rcpp::List rindep_norm_gamma_reg(
     int n,
     Rcpp::NumericVector y,
     Rcpp::NumericMatrix x,

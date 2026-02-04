@@ -16,7 +16,7 @@ using namespace glmbayes::env;
 namespace glmbayes {
 
 namespace env {
-Rcpp::List EnvelopeOrchestrator_cpp(
+Rcpp::List EnvelopeOrchestrator(
     NumericVector bstar2,
     NumericMatrix A,
     NumericVector y,
@@ -44,8 +44,8 @@ Rcpp::List EnvelopeOrchestrator_cpp(
     bool verbose
 ) {
   
-// --- Step 1: EnvelopeBuild_cpp (direct C++ call) ---
-Rcpp::List Env2 = EnvelopeBuild_cpp(
+// --- Step 1: EnvelopeBuild (direct C++ call) ---
+Rcpp::List Env2 = EnvelopeBuild(
     bstar2,                      // NumericVector
     A,                           // NumericMatrix
     y,                           // NumericVector
@@ -64,8 +64,8 @@ Rcpp::List Env2 = EnvelopeBuild_cpp(
     verbose                      // bool
 );
 
-// --- Step 2: EnvelopeDispersionBuild_cpp (direct C++ call) ---
-Rcpp::List disp_env_out = EnvelopeDispersionBuild_cpp(
+// --- Step 2: EnvelopeDispersionBuild (direct C++ call) ---
+Rcpp::List disp_env_out = EnvelopeDispersionBuild(
     Env2,                        // List Env
     shape,                       // double Shape
     rate,                        // double Rate
@@ -96,7 +96,7 @@ Rcpp::NumericMatrix cbars = Env3_raw["cbars"];
 int l1 = cbars.ncol();
 int l2 = cbars.nrow();
 
-// logP is ALWAYS a NumericVector because EnvelopeBuild_cpp returns logP(_,0)
+// logP is ALWAYS a NumericVector because EnvelopeBuild returns logP(_,0)
 // Wrap it as an l2 x 1 matrix for EnvelopeSort (values unchanged)
 Rcpp::NumericVector logP_vec = Env3_raw["logP"];
 Rcpp::NumericMatrix logP_mat(logP_vec.size(), 1, logP_vec.begin());

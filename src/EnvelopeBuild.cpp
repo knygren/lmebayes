@@ -29,7 +29,7 @@ using namespace glmbayes::env;
  
  Purpose
  Construct an axis-aligned envelope grid and the auxiliary objects required
- by Set_Grid and the envelope sampler. This routine assumes a multivariate
+ by EnvelopeSet_Grid and the envelope sampler. This routine assumes a multivariate
  normal prior (precision-like matrix A) and a log-concave likelihood so that
  the (transformed) posterior is unimodal and well-behaved near the mode.
  The routine is family-agnostic otherwise: envelope placement uses only the
@@ -76,7 +76,7 @@ using namespace glmbayes::env;
  of grid locations (G3) and corresponding region codes (GIndex).
  - G4 = transpose(G3); cbars[j,i] = G4[j,i] − bStar[i] is the j-th component's
  offset from the mode for dimension i.
- - In Set_Grid these cbars shift Lint per-row to produce Down[j,i] and Up[j,i],
+ - In EnvelopeSet_Grid these cbars shift Lint per-row to produce Down[j,i] and Up[j,i],
  the final bounds for truncated-normal evaluations.
  
  Numerical and modelling notes
@@ -101,8 +101,8 @@ using namespace glmbayes::env;
  - G3/G4: full grid and transpose
  - GIndex: integer region codes per grid component and dimension
  - Lint: two unshifted cutpoints per dimension (lower, upper)
- - cbars: per-component offsets from bStar used to shift Lint in Set_Grid
- - These objects enable Set_Grid to compute per-dimension truncated-normal
+ - cbars: per-component offsets from bStar used to shift Lint in EnvelopeSet_Grid
+ - These objects enable EnvelopeSet_Grid to compute per-dimension truncated-normal
  probabilities U_{j,i} and their log-sums logP[j], suitable for envelope
  weighting and acceptance tests under the Gaussian-prior + log-concave
  likelihood assumption.
@@ -119,7 +119,7 @@ using namespace glmbayes::env;
 namespace glmbayes {
 
 namespace env {
-List EnvelopeBuild_cpp(NumericVector bStar,
+List EnvelopeBuild(NumericVector bStar,
                        NumericMatrix A, /// Diagonal Precision Matrix for Adjusted Likelihood Function
                        NumericVector y, 
                        NumericMatrix x,
@@ -321,7 +321,7 @@ List EnvelopeBuild_cpp(NumericVector bStar,
   
   // July 2025 - Parallelization Implementation in steps
   
-  // 1) Set_Grid_C2_pointwise changes loop to enable parallel processing (suggested by Copilot)
+  // 1) EnvelopeSet_Grid_C2_pointwise changes loop to enable parallel processing (suggested by Copilot)
   
   
   //  Rcpp::Rcout << "Entering Set grid C2 pointwise: "
@@ -337,8 +337,8 @@ List EnvelopeBuild_cpp(NumericVector bStar,
   
   // Set Grid
   
-  //  Set_Grid_C2(GIndex, cbars, Lint1,Down,Up,loglt,logrt,logct,logU,logP);
-  Set_Grid_C2_pointwise(GIndex, cbars, Lint1,Down,Up,loglt,logrt,logct,logU,logP);
+  //  EnvelopeSet_Grid_C2(GIndex, cbars, Lint1,Down,Up,loglt,logrt,logct,logU,logP);
+  EnvelopeSet_Grid_C2_pointwise(GIndex, cbars, Lint1,Down,Up,loglt,logrt,logct,logU,logP);
   
   
   

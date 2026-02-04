@@ -837,7 +837,7 @@ Rcpp::List run_rcppparallel_pilot(
 }
 
 
-List rnnorm_reg_std_cpp_parallel(
+List rnnorm_reg_std_parallel(
     int                   n,
     NumericVector         y,
     NumericMatrix         x,
@@ -1002,7 +1002,7 @@ namespace sim {
 
 
 
-Rcpp::List  rnnorm_reg_std_cpp(int n,NumericVector y,NumericMatrix x,
+Rcpp::List  rnnorm_reg_std(int n,NumericVector y,NumericMatrix x,
                                NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,
                                Function f2,Rcpp::List  Envelope,Rcpp::CharacterVector   family,Rcpp::CharacterVector   link, 
                                int progbar,
@@ -1165,7 +1165,7 @@ Rcpp::List  rnnorm_reg_std_cpp(int n,NumericVector y,NumericMatrix x,
 
 
 
-Rcpp::List rnnorm_reg_cpp(int n,NumericVector y,NumericMatrix x, 
+Rcpp::List rnnorm_reg(int n,NumericVector y,NumericMatrix x, 
                           NumericVector mu,NumericMatrix P,NumericVector offset,NumericVector wt,
                           double dispersion,
                             Function f2,
@@ -1284,7 +1284,7 @@ Rcpp::List rnnorm_reg_cpp(int n,NumericVector y,NumericMatrix x,
    
    // Check for try-error using R API
    if (Rf_inherits(optSEXP, "try-error")) {
-     Rcpp::stop("Optimization failed in rnnorm_reg_cpp");
+     Rcpp::stop("Optimization failed in rnnorm_reg");
    }
    
    // Safe to convert to List
@@ -1365,7 +1365,7 @@ Rcpp::List rnnorm_reg_cpp(int n,NumericVector y,NumericMatrix x,
   
   
   if(n==1){
-    Envelope=EnvelopeBuild_cpp(bstar2_temp, A_temp,y, x2_temp,mu2_temp,
+    Envelope=EnvelopeBuild(bstar2_temp, A_temp,y, x2_temp,mu2_temp,
                              P2_temp,alpha,wt2,family,link,Gridtype, n,n_envopt,false,use_opencl,verbose);
 
 
@@ -1373,7 +1373,7 @@ Rcpp::List rnnorm_reg_cpp(int n,NumericVector y,NumericMatrix x,
       }
   
   if(n>1){
-    Envelope=EnvelopeBuild_cpp(bstar2_temp, A_temp,y, x2_temp,mu2_temp,
+    Envelope=EnvelopeBuild(bstar2_temp, A_temp,y, x2_temp,mu2_temp,
                              P2_temp,alpha,wt2,family,link,Gridtype, n,n_envopt,true,use_opencl,verbose);
   }
   
@@ -1396,18 +1396,18 @@ Rcpp::List rnnorm_reg_cpp(int n,NumericVector y,NumericMatrix x,
   
   int progbar=0;
   
-//  Rcpp::List sim=rnnorm_reg_std_cpp(n,y,x2_temp,mu2_temp,P2_temp,alpha,wt2,
+//  Rcpp::List sim=rnnorm_reg_std(n,y,x2_temp,mu2_temp,P2_temp,alpha,wt2,
 //                                    f2,Envelope,family,link,progbar);
   
   Rcpp::List sim;
   
 //  if (n == 1) {
-//    sim = rnnorm_reg_std_cpp(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,
+//    sim = rnnorm_reg_std(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,
 //                             f2, Envelope, family, link, progbar);
 //  } else {
 
     
-//    sim = rnnorm_reg_std_cpp_parallel(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2, f2, Envelope, family, link, progbar);
+//    sim = rnnorm_reg_std_parallel(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2, f2, Envelope, family, link, progbar);
 //      }
   
 // Step 5: Run the simulation  
@@ -1419,14 +1419,14 @@ Rcpp::List rnnorm_reg_cpp(int n,NumericVector y,NumericMatrix x,
                              << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")())) 
       << "\n";    
     
-    sim = rnnorm_reg_std_cpp( n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,  f2, Envelope, family, link, progbar,verbose);  
+    sim = rnnorm_reg_std( n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,  f2, Envelope, family, link, progbar,verbose);  
   }
   else {  
     if (verbose) Rcpp::Rcout << ">>> Running parallel sampler (use_parallel=TRUE and n>1):"
                              << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")())) 
                              << "\n";          
       
-    sim = rnnorm_reg_std_cpp_parallel(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,  f2, Envelope, family, link, progbar,verbose);  
+    sim = rnnorm_reg_std_parallel(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,  f2, Envelope, family, link, progbar,verbose);  
   }  
   
 

@@ -19,7 +19,7 @@ using namespace glmbayes::env;
 namespace glmbayes {
 
 namespace env {
-void Set_Grid_C2_pointwise(
+void EnvelopeSet_Grid_C2_pointwise(
     NumericMatrix GIndex,
     NumericMatrix cbars,
     NumericMatrix Lint,
@@ -142,7 +142,7 @@ void Set_Grid_C2_pointwise(
 // Set_Grid_C2 take existing allocated objects and populates them
 // In cases where the function is called repeatedly the last approach is preferred
 
-void Set_Grid_C2(Rcpp::NumericMatrix GIndex,  
+void EnvelopeSet_Grid_C2(Rcpp::NumericMatrix GIndex,  
                  Rcpp::NumericMatrix cbars, 
                  Rcpp::NumericMatrix Lint,
                  Rcpp::NumericMatrix Down,
@@ -290,7 +290,7 @@ void Set_Grid_C2(Rcpp::NumericMatrix GIndex,
 
 
 
-Rcpp::List Set_Grid(Rcpp::NumericMatrix GIndex,
+Rcpp::List EnvelopeSet_Grid(Rcpp::NumericMatrix GIndex,
                     Rcpp::NumericMatrix cbars,
                     Rcpp::NumericMatrix Lint) {
   
@@ -306,7 +306,7 @@ Rcpp::List Set_Grid(Rcpp::NumericMatrix GIndex,
   Rcpp::NumericMatrix logP(l2, 2);
   
   // Populate in-place using the numerically-stable implementation
-  Set_Grid_C2(GIndex, cbars, Lint, Down, Up, lglt, lgrt, lgct, logU, logP);
+  EnvelopeSet_Grid_C2(GIndex, cbars, Lint, Down, Up, lglt, lgrt, lgct, logU, logP);
   
   return Rcpp::List::create(
     Rcpp::Named("Down") = Down,

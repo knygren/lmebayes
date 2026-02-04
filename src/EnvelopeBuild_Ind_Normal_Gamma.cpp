@@ -251,15 +251,15 @@ List EnvelopeBuild_Ind_Normal_Gamma(NumericVector bStar,NumericMatrix A,
   cbars_slope3=cbars_slope2;
   
   if (verbose) {
-    Rcpp::Rcout << "[EnvelopeBuild] >>> Entering Set_Grid_C2 at " << now_hms() << " <<<\n";
+    Rcpp::Rcout << "[EnvelopeBuild] >>> Entering EnvelopeSet_Grid_C2 at " << now_hms() << " <<<\n";
   }
   Timer t_setgrid; if (verbose) t_setgrid.begin();
   
-  Set_Grid_C2(GIndex, cbars, Lint1, Down, Up, loglt, logrt, logct, logU, logP);
+  EnvelopeSet_Grid_C2(GIndex, cbars, Lint1, Down, Up, loglt, logrt, logct, logU, logP);
   
   if (verbose) {
-    Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting Set_Grid_C2 at " << now_hms() << " <<<\n";
-    print_completed("[EnvelopeBuild] Set_Grid_C2", t_setgrid);
+    Rcpp::Rcout << "[EnvelopeBuild] >>> Exiting EnvelopeSet_Grid_C2 at " << now_hms() << " <<<\n";
+    print_completed("[EnvelopeBuild] EnvelopeSet_Grid_C2", t_setgrid);
   }
   
   if (verbose) {

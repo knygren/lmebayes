@@ -44,7 +44,7 @@ namespace glmbayes{
 
 namespace env {
 
-Rcpp::List   setlogP(NumericMatrix logP,NumericVector NegLL,NumericMatrix cbars,NumericMatrix G3) {
+Rcpp::List   EnvelopeSet_LogP(NumericMatrix logP,NumericVector NegLL,NumericMatrix cbars,NumericMatrix G3) {
   
   int n = logP.nrow(), k = logP.ncol();
   int l1 =cbars.ncol();

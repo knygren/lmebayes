@@ -325,7 +325,7 @@ namespace glmbayes {
 namespace sim {
 
 
-Rcpp::List  rindep_norm_gamma_reg_std_cpp(int n,NumericVector y,NumericMatrix x,
+Rcpp::List  rindep_norm_gamma_reg_std(int n,NumericVector y,NumericMatrix x,
                                              NumericMatrix mu, /// This is typically standardized to be a zero vector
                                              NumericMatrix P, /// Part of prior precision shifted to the likelihood
                                              NumericVector alpha,NumericVector wt,
@@ -677,7 +677,7 @@ Rcpp::List  rindep_norm_gamma_reg_std_cpp(int n,NumericVector y,NumericMatrix x,
 
 
 
-Rcpp::List rindep_norm_gamma_reg_std_parallel_cpp(
+Rcpp::List rindep_norm_gamma_reg_std_parallel(
     int n,
     Rcpp::NumericVector y,
     Rcpp::NumericMatrix x,
@@ -927,7 +927,7 @@ Rcpp::List rindep_norm_gamma_reg_std_parallel_cpp(
 
 
 
-Rcpp::List rindep_norm_gamma_reg_cpp(
+Rcpp::List rindep_norm_gamma_reg(
     int n,
     Rcpp::NumericVector y,
     Rcpp::NumericMatrix x,
@@ -1009,8 +1009,8 @@ Rcpp::List rindep_norm_gamma_reg_cpp(
   
   for (int j = 0; j < 10; ++j) {
     
-    // --- Call rnorm_reg_cpp (C++ version of .rnorm_reg_cpp) ---
-    cpp_out = rnorm_reg_cpp(
+    // --- Call rnorm_reg (C++ version of .rnorm_reg) ---
+    cpp_out = rnorm_reg(
       10000,          // n
       y,              // y
       x,              // x
@@ -1166,7 +1166,7 @@ Rcpp::List rindep_norm_gamma_reg_cpp(
   Rcpp::NumericMatrix L3Inv  = Standard_Mod["L3Inv"];
   
   // -------------------------------
-  // Step 5: Envelope (EnvelopeOrchestrator_cpp)
+  // Step 5: Envelope (EnvelopeOrchestrator)
   // -------------------------------
   
   // RSS_Post2 from your last dispersion loop iteration
@@ -1177,7 +1177,7 @@ Rcpp::List rindep_norm_gamma_reg_cpp(
   
   
   // Call C++ envelope orchestrator
-  Rcpp::List env_out = EnvelopeOrchestrator_cpp(
+  Rcpp::List env_out = EnvelopeOrchestrator(
     bstar2,
     A,
     Rcpp::as<Rcpp::NumericVector>(y),
@@ -1234,7 +1234,7 @@ Rcpp::List rindep_norm_gamma_reg_cpp(
   Rcpp::List sim_temp;
   if (!use_parallel || n == 1) {
     // serial version (assumes same signature)
-    sim_temp = rindep_norm_gamma_reg_std_cpp(
+    sim_temp = rindep_norm_gamma_reg_std(
       n,
       Rcpp::as<Rcpp::NumericVector>(y),
       x2_std,
@@ -1253,7 +1253,7 @@ Rcpp::List rindep_norm_gamma_reg_cpp(
     );
   } else {
     // parallel version (the one you pasted)
-    sim_temp = rindep_norm_gamma_reg_std_parallel_cpp(
+    sim_temp = rindep_norm_gamma_reg_std_parallel(
       n,
       Rcpp::as<Rcpp::NumericVector>(y),
       x2_std,

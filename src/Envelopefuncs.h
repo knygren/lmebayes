@@ -27,7 +27,7 @@ Rcpp::List EnvelopeSize(const arma::vec& a,
 
 
 
-List EnvelopeBuild_cpp(NumericVector bStar,
+List EnvelopeBuild(NumericVector bStar,
                        NumericMatrix A,
                        NumericVector y,
                        NumericMatrix x,
@@ -76,7 +76,7 @@ List EnvelopeBuild_Ind_Normal_Gamma(NumericVector bStar,
                                     bool verbose       = false);
 
 
-List EnvelopeDispersionBuild_cpp(
+List EnvelopeDispersionBuild(
     List Env,
     double Shape,
     double Rate,
@@ -98,7 +98,7 @@ List EnvelopeDispersionBuild_cpp(
 );
 
 
-Rcpp::List EnvelopeOrchestrator_cpp(
+Rcpp::List EnvelopeOrchestrator(
     NumericVector bstar2,
     NumericMatrix A,
     NumericVector y,
@@ -126,12 +126,12 @@ Rcpp::List EnvelopeOrchestrator_cpp(
     bool verbose
 );
 
-List Set_Grid(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint);
-void Set_Grid_C2(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint,Rcpp::NumericMatrix Down,Rcpp::NumericMatrix Up,Rcpp::NumericMatrix lglt,Rcpp::NumericMatrix lgrt,Rcpp::NumericMatrix lgct,Rcpp::NumericMatrix logU,Rcpp::NumericMatrix logP);
-void Set_Grid_C2_pointwise(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint,Rcpp::NumericMatrix Down,Rcpp::NumericMatrix Up,Rcpp::NumericMatrix lglt,Rcpp::NumericMatrix lgrt,Rcpp::NumericMatrix lgct,Rcpp::NumericMatrix logU,Rcpp::NumericMatrix logP);
+List EnvelopeSet_Grid(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint);
+void EnvelopeSet_Grid_C2(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint,Rcpp::NumericMatrix Down,Rcpp::NumericMatrix Up,Rcpp::NumericMatrix lglt,Rcpp::NumericMatrix lgrt,Rcpp::NumericMatrix lgct,Rcpp::NumericMatrix logU,Rcpp::NumericMatrix logP);
+void EnvelopeSet_Grid_C2_pointwise(Rcpp::NumericMatrix GIndex,  Rcpp::NumericMatrix cbars, Rcpp::NumericMatrix Lint,Rcpp::NumericMatrix Down,Rcpp::NumericMatrix Up,Rcpp::NumericMatrix lglt,Rcpp::NumericMatrix lgrt,Rcpp::NumericMatrix lgct,Rcpp::NumericMatrix logU,Rcpp::NumericMatrix logP);
 
 
-List   setlogP(NumericMatrix logP,NumericVector NegLL,NumericMatrix cbars,NumericMatrix G3);
+List   EnvelopeSet_LogP(NumericMatrix logP,NumericVector NegLL,NumericMatrix cbars,NumericMatrix G3);
 
 
 } //env
