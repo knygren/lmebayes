@@ -13,7 +13,7 @@
 #' * UB‑list alignment (reordered `lg_prob_factor` and `UB2min`).
 #'
 #' It is typically used inside higher‑level simulation routines such as
-#' [`rindependent_norm_gamma_reg()`], but may also be called directly for
+#' [`rindepNormalGamma_reg()`], but may also be called directly for
 #' diagnostics, envelope visualization, or custom simulation workflows.
 #'
 #' @param bstar2 Numeric vector. Posterior mode of the standardized regression
@@ -82,7 +82,7 @@
 #' * [`EnvelopeBuild()`] – fixed‑dispersion envelope construction  
 #' * [`EnvelopeDispersionBuild()`] – dispersion‑aware envelope refinement  
 #' * [`EnvelopeSort()`] – envelope sorting and reindexing  
-#' * [`rindependent_norm_gamma_reg()`] – full Normal–Gamma simulation routine  
+#' * [`rindepNormalGamma_reg()`] – full Normal–Gamma simulation routine  
 #'
 #' @examples
 #' \dontrun{

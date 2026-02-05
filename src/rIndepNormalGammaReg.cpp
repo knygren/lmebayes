@@ -78,9 +78,9 @@ using namespace glmbayes::progress;
 
 
 //-----------------------------------------------------------------------------
-// rindep_norm_gamma_worker: parallel Normal–Gamma simulation with envelope
+// rIndepNormalGammaReg_worker: parallel Normal–Gamma simulation with envelope
 //-----------------------------------------------------------------------------
-struct rindep_norm_gamma_worker : public RcppParallel::Worker {
+struct rIndepNormalGammaReg_worker : public RcppParallel::Worker {
   // --- Inputs ---
   int n;
   
@@ -119,7 +119,7 @@ struct rindep_norm_gamma_worker : public RcppParallel::Worker {
   RcppParallel::RVector<double>       weight_out_r; // length n
   
   // --- Constructor ---
-  rindep_norm_gamma_worker(
+  rIndepNormalGammaReg_worker(
     int n_,
     const RcppParallel::RVector<double>& y_r_,
     const RcppParallel::RMatrix<double>& x_r_,
@@ -162,8 +162,8 @@ struct rindep_norm_gamma_worker : public RcppParallel::Worker {
 };
   
   
-// --- rindep_norm_gamma_worker implementation ---
-void rindep_norm_gamma_worker::operator()(std::size_t begin, std::size_t end) {
+// --- rIndepNormalGammaReg_worker implementation ---
+void rIndepNormalGammaReg_worker::operator()(std::size_t begin, std::size_t end) {
   const int l2 = x_r.nrow();
   const int l1 = x_r.ncol();
 
@@ -325,7 +325,7 @@ namespace glmbayes {
 namespace sim {
 
 
-Rcpp::List  rindep_norm_gamma_reg_std(int n,NumericVector y,NumericMatrix x,
+Rcpp::List  rIndepNormalGammaReg_std(int n,NumericVector y,NumericMatrix x,
                                              NumericMatrix mu, /// This is typically standardized to be a zero vector
                                              NumericMatrix P, /// Part of prior precision shifted to the likelihood
                                              NumericVector alpha,NumericVector wt,
@@ -677,7 +677,7 @@ Rcpp::List  rindep_norm_gamma_reg_std(int n,NumericVector y,NumericMatrix x,
 
 
 
-Rcpp::List rindep_norm_gamma_reg_std_parallel(
+Rcpp::List rIndepNormalGammaReg_std_parallel(
     int n,
     Rcpp::NumericVector y,
     Rcpp::NumericMatrix x,
@@ -771,7 +771,7 @@ Rcpp::List rindep_norm_gamma_reg_std_parallel(
 
 
   // Construct worker
-  rindep_norm_gamma_worker worker(
+  rIndepNormalGammaReg_worker worker(
       n,
       y_r, x_r, mu_r, P_r, alpha_r, wt_r,
       cbars_r, PLSD_r, loglt_r, logrt_r,
@@ -927,7 +927,7 @@ Rcpp::List rindep_norm_gamma_reg_std_parallel(
 
 
 
-Rcpp::List rindep_norm_gamma_reg(
+Rcpp::List rIndepNormalGammaReg(
     int n,
     Rcpp::NumericVector y,
     Rcpp::NumericMatrix x,
@@ -1009,8 +1009,8 @@ Rcpp::List rindep_norm_gamma_reg(
   
   for (int j = 0; j < 10; ++j) {
     
-    // --- Call rnorm_reg (C++ version of .rnorm_reg) ---
-    cpp_out = rnorm_reg(
+    // --- Call rNormalReg (C++ version of .rnorm_reg) ---
+    cpp_out = rNormalReg(
       10000,          // n
       y,              // y
       x,              // x
@@ -1234,7 +1234,7 @@ Rcpp::List rindep_norm_gamma_reg(
   Rcpp::List sim_temp;
   if (!use_parallel || n == 1) {
     // serial version (assumes same signature)
-    sim_temp = rindep_norm_gamma_reg_std(
+    sim_temp = rIndepNormalGammaReg_std(
       n,
       Rcpp::as<Rcpp::NumericVector>(y),
       x2_std,
@@ -1253,7 +1253,7 @@ Rcpp::List rindep_norm_gamma_reg(
     );
   } else {
     // parallel version (the one you pasted)
-    sim_temp = rindep_norm_gamma_reg_std_parallel(
+    sim_temp = rIndepNormalGammaReg_std_parallel(
       n,
       Rcpp::as<Rcpp::NumericVector>(y),
       x2_std,

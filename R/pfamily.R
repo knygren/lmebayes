@@ -109,7 +109,7 @@
 #' @seealso
 #' \code{\link{glmb}}, \code{\link{rlmb}}, \code{\link{lmb}}, \code{\link{rglmb}} for modeling functions that consume \code{pfamily} objects.
 #'
-#' \code{\link{rNormal_reg}}, \code{\link{rNormal_Gamma_reg}}, \code{\link{rGamma_reg}} for lower-level sampling functions used by \code{pfamily} constructors.
+#' \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}}, \code{\link{rGamma_reg}} for lower-level sampling functions used by \code{pfamily} constructors.
 #'
 #' \code{\link{Prior_Setup}}, \code{\link{Prior_Check}} for initializing and validating prior specifications.
 #'
@@ -306,7 +306,7 @@ dNormal_Gamma<-function(mu, Sigma,shape, rate){
   prior_list=list(mu=mu,Sigma=Sigma,shape=shape,rate=rate)
   attr(prior_list,"Prior Type")="dNormal_Gamma"  
   outlist=list(pfamily="dNormal_Gamma",call=call,prior_list=prior_list,
-    okfamilies=okfamilies,plinks=plinks,simfun=rNormal_Gamma_reg)
+    okfamilies=okfamilies,plinks=plinks,simfun=rNormalGamma_reg)
   
   attr(outlist,"Prior Type")="dNormal_Gamma"             
   class(outlist)="pfamily"
@@ -373,7 +373,7 @@ dIndependent_Normal_Gamma <- function(mu, Sigma, shape, rate, max_disp_perc = 0.
                      disp_lower=disp_lower,disp_upper=disp_upper)
   attr(prior_list,"Prior Type")="dIndependent_Normal_Gamma"  
   outlist=list(pfamily="dIndependent_Normal_Gamma",prior_list=prior_list,
-               okfamilies=okfamilies,plinks=plinks,simfun=rindependent_norm_gamma_reg)
+               okfamilies=okfamilies,plinks=plinks,simfun=rindepNormalGamma_reg)
   
   attr(outlist,"Prior Type")="dIndependent_Normal_Gamma"             
   class(outlist)="pfamily"

@@ -10,7 +10,7 @@ namespace glmbayes {
 
 namespace sim {
 
-Rcpp::List  rnnorm_reg_std(int n,
+Rcpp::List  rNormalGLM_std(int n,
                                NumericVector y,
                                NumericMatrix x,
                                NumericMatrix mu,
@@ -25,7 +25,7 @@ Rcpp::List  rnnorm_reg_std(int n,
                                bool verbose = false                                 
                                  );
 
-Rcpp::List rnnorm_reg(
+Rcpp::List rNormalGLM(
     int n,
     NumericVector y,
     NumericMatrix x,
@@ -46,7 +46,7 @@ Rcpp::List rnnorm_reg(
     bool verbose = false
 );
 
-Rcpp::List rnorm_reg(int n,NumericVector y,NumericMatrix x, 
+Rcpp::List rNormalReg(int n,NumericVector y,NumericMatrix x, 
                          NumericVector mu,NumericMatrix P,
                          NumericVector offset,NumericVector wt,
                          double dispersion,
@@ -59,7 +59,7 @@ Rcpp::List rnorm_reg(int n,NumericVector y,NumericMatrix x,
 
 
 
-Rcpp::List  rindep_norm_gamma_reg_std(int n,NumericVector y,NumericMatrix x,
+Rcpp::List  rIndepNormalGammaReg_std(int n,NumericVector y,NumericMatrix x,
                                           NumericMatrix mu, /// This is typically standardized to be a zero vector
                                           NumericMatrix P, /// Part of prior precision shifted to the likelihood
                                           NumericVector alpha,NumericVector wt,
@@ -70,7 +70,7 @@ Rcpp::List  rindep_norm_gamma_reg_std(int n,NumericVector y,NumericMatrix x,
                                           bool progbar=true,
                                           bool verbose=false);
 
-Rcpp::List rindep_norm_gamma_reg_std_parallel(
+Rcpp::List rIndepNormalGammaReg_std_parallel(
     int n,
     Rcpp::NumericVector y,
     Rcpp::NumericMatrix x,
@@ -89,7 +89,7 @@ Rcpp::List rindep_norm_gamma_reg_std_parallel(
 );
 
 
-Rcpp::List rindep_norm_gamma_reg(
+Rcpp::List rIndepNormalGammaReg(
     int n,
     Rcpp::NumericVector y,
     Rcpp::NumericMatrix x,

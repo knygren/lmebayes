@@ -113,7 +113,7 @@ This function coordinates:
 }
 
 It is typically used inside higher‑level simulation routines such as
-\code{\link[=rindependent_norm_gamma_reg]{rindependent_norm_gamma_reg()}}, but may also be called directly for
+\code{\link[=rindepNormalGamma_reg]{rindepNormalGamma_reg()}}, but may also be called directly for
 diagnostics, envelope visualization, or custom simulation workflows.
 }
 \details{
@@ -163,6 +163,6 @@ Env3 <- env_out$Env
 \item \code{\link[=EnvelopeBuild]{EnvelopeBuild()}} – fixed‑dispersion envelope construction
 \item \code{\link[=EnvelopeDispersionBuild]{EnvelopeDispersionBuild()}} – dispersion‑aware envelope refinement
 \item \code{\link[=EnvelopeSort]{EnvelopeSort()}} – envelope sorting and reindexing
-\item \code{\link[=rindependent_norm_gamma_reg]{rindependent_norm_gamma_reg()}} – full Normal–Gamma simulation routine
+\item \code{\link[=rindepNormalGamma_reg]{rindepNormalGamma_reg()}} – full Normal–Gamma simulation routine
 }
 }

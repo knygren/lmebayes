@@ -192,9 +192,9 @@ Rcpp::List glmb_Standardize_Model(
 
 
 //-----------------------------------------------------------------------------
-// rnnorm_reg_worker: parallel sampler with envelope logic
+// rNormalGLM_worker: parallel sampler with envelope logic
 //-----------------------------------------------------------------------------
-struct rnnorm_reg_worker : public RcppParallel::Worker {
+struct rNormalGLM_worker : public RcppParallel::Worker {
   // --- Inputs ---
   int n;
   
@@ -234,7 +234,7 @@ struct rnnorm_reg_worker : public RcppParallel::Worker {
   int                   max_draws;                   // -1 => no per-index cap
   
   // --- Constructor ---
-  rnnorm_reg_worker(
+  rNormalGLM_worker(
     int n_,
     const RVector<double>& y_r_,
     const RMatrix<double>& x_r_,
@@ -284,7 +284,7 @@ struct rnnorm_reg_worker : public RcppParallel::Worker {
 
 
 // operator() implements the parallel loop
-void rnnorm_reg_worker::operator()(std::size_t begin, std::size_t end) {
+void rNormalGLM_worker::operator()(std::size_t begin, std::size_t end) {
   // Per-call lightweight views; no allocations of K×p
   arma::vec  PLSD   (PLSD_r.begin(),    PLSD_r.length(),               false, true);
   arma::vec  LLconst(LLconst_r.begin(), LLconst_r.length(),            false, true);
@@ -599,12 +599,12 @@ void rnnorm_reg_worker::operator()(std::size_t begin, std::size_t end) {
 
 
 // Keep this helper internal (no // [[Rcpp::export]])
-// It uses your existing rnnorm_reg_worker objects and the original Rcpp
+// It uses your existing rNormalGLM_worker objects and the original Rcpp
 // out/draws containers directly, avoiding any copying or conversions.
 Rcpp::List run_rcppparallel_pilot(
     int n,
-    rnnorm_reg_worker& test_worker,                  // single-threaded pilot worker
-    rnnorm_reg_worker& worker,                       // parallel worker
+    rNormalGLM_worker& test_worker,                  // single-threaded pilot worker
+    rNormalGLM_worker& worker,                       // parallel worker
     Rcpp::NumericVector& draws,                      // original Rcpp draws (shared with views)
     Rcpp::NumericMatrix& out,                        // original Rcpp out (shared with views)
     std::shared_ptr<std::atomic<int>> any_flag,      // shared atomic flag set by workers
@@ -837,7 +837,7 @@ Rcpp::List run_rcppparallel_pilot(
 }
 
 
-List rnnorm_reg_std_parallel(
+List rNormalGLM_std_parallel(
     int                   n,
     NumericVector         y,
     NumericMatrix         x,
@@ -926,7 +926,7 @@ List rnnorm_reg_std_parallel(
   
 
 
-  rnnorm_reg_worker test_worker(
+  rNormalGLM_worker test_worker(
       n, y_r, x_r, mu_r, P_r, alpha_r, wt_r,
       PLSD_r, LLconst_r, loglt_r, logrt_r, cbars_r,
       family, link, progbar, out_r, draws_r,
@@ -935,7 +935,7 @@ List rnnorm_reg_std_parallel(
   
   
 
-  rnnorm_reg_worker worker(
+  rNormalGLM_worker worker(
       n,
       y_r, x_r, mu_r, P_r,
       alpha_r, wt_r,
@@ -1002,7 +1002,7 @@ namespace sim {
 
 
 
-Rcpp::List  rnnorm_reg_std(int n,NumericVector y,NumericMatrix x,
+Rcpp::List  rNormalGLM_std(int n,NumericVector y,NumericMatrix x,
                                NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,
                                Function f2,Rcpp::List  Envelope,Rcpp::CharacterVector   family,Rcpp::CharacterVector   link, 
                                int progbar,
@@ -1165,7 +1165,7 @@ Rcpp::List  rnnorm_reg_std(int n,NumericVector y,NumericMatrix x,
 
 
 
-Rcpp::List rnnorm_reg(int n,NumericVector y,NumericMatrix x, 
+Rcpp::List rNormalGLM(int n,NumericVector y,NumericMatrix x, 
                           NumericVector mu,NumericMatrix P,NumericVector offset,NumericVector wt,
                           double dispersion,
                             Function f2,
@@ -1284,7 +1284,7 @@ Rcpp::List rnnorm_reg(int n,NumericVector y,NumericMatrix x,
    
    // Check for try-error using R API
    if (Rf_inherits(optSEXP, "try-error")) {
-     Rcpp::stop("Optimization failed in rnnorm_reg");
+     Rcpp::stop("Optimization failed in rNormalGLM");
    }
    
    // Safe to convert to List
@@ -1396,18 +1396,18 @@ Rcpp::List rnnorm_reg(int n,NumericVector y,NumericMatrix x,
   
   int progbar=0;
   
-//  Rcpp::List sim=rnnorm_reg_std(n,y,x2_temp,mu2_temp,P2_temp,alpha,wt2,
+//  Rcpp::List sim=rNormalGLM_std(n,y,x2_temp,mu2_temp,P2_temp,alpha,wt2,
 //                                    f2,Envelope,family,link,progbar);
   
   Rcpp::List sim;
   
 //  if (n == 1) {
-//    sim = rnnorm_reg_std(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,
+//    sim = rNormalGLM_std(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,
 //                             f2, Envelope, family, link, progbar);
 //  } else {
 
     
-//    sim = rnnorm_reg_std_parallel(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2, f2, Envelope, family, link, progbar);
+//    sim = rNormalGLM_std_parallel(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2, f2, Envelope, family, link, progbar);
 //      }
   
 // Step 5: Run the simulation  
@@ -1419,14 +1419,14 @@ Rcpp::List rnnorm_reg(int n,NumericVector y,NumericMatrix x,
                              << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")())) 
       << "\n";    
     
-    sim = rnnorm_reg_std( n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,  f2, Envelope, family, link, progbar,verbose);  
+    sim = rNormalGLM_std( n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,  f2, Envelope, family, link, progbar,verbose);  
   }
   else {  
     if (verbose) Rcpp::Rcout << ">>> Running parallel sampler (use_parallel=TRUE and n>1):"
                              << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")())) 
                              << "\n";          
       
-    sim = rnnorm_reg_std_parallel(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,  f2, Envelope, family, link, progbar,verbose);  
+    sim = rNormalGLM_std_parallel(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,  f2, Envelope, family, link, progbar,verbose);  
   }  
   
 

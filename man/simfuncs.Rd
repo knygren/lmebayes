@@ -4,8 +4,8 @@
 \alias{simfuncs}
 \alias{simfunction}
 \alias{rNormal_reg}
-\alias{rNormal_Gamma_reg}
-\alias{rindependent_norm_gamma_reg}
+\alias{rNormalGamma_reg}
+\alias{rindepNormalGamma_reg}
 \alias{rGamma_reg}
 \alias{print.rGamma_reg}
 \alias{print.simfunction}
@@ -17,11 +17,11 @@ rNormal_reg(n, y, x, prior_list, offset = NULL, weights = 1,
             family = gaussian(), Gridtype = 2, n_envopt = NULL,
             use_parallel = TRUE, use_opencl = FALSE, verbose = FALSE)
 
-rNormal_Gamma_reg(n, y, x, prior_list, offset = NULL, weights = 1, family = gaussian(),
+rNormalGamma_reg(n, y, x, prior_list, offset = NULL, weights = 1, family = gaussian(),
                   Gridtype = 2,n_envopt = NULL, 
                   use_parallel = TRUE, use_opencl = FALSE, verbose = FALSE)
 
-rindependent_norm_gamma_reg(n, y, x, prior_list, offset = NULL, weights = 1,
+rindepNormalGamma_reg(n, y, x, prior_list, offset = NULL, weights = 1,
                              family = gaussian(), Gridtype = 2,n_envopt = NULL,
                               use_parallel = TRUE, use_opencl = FALSE, verbose = FALSE, 
                              progbar = TRUE)
@@ -104,7 +104,7 @@ Elements include:
 }
 }
 
-\item{\code{rNormal_Gamma_reg()}}{A list with class \code{"rglmb"} containing:
+\item{\code{rNormalGamma_reg()}}{A list with class \code{"rglmb"} containing:
 \describe{
 \item{\code{coefficients}}{Matrix (\code{n * p}) of simulated regression coefficients; row \code{i} equals \code{Btilde + IR \%*\% rnorm(p) * sqrt(dispersion[i])}. Column names are set to \code{colnames(x)}.}
 \item{\code{coef.mode}}{Posterior mean/mode vector \code{Btilde} from \code{rNormal_reg.wfit()}.}
@@ -118,11 +118,11 @@ Elements include:
 \item{\code{famfunc}}{Processed family functions for Gaussian models (from \code{glmbfamfunc(gaussian())}).}
 \item{\code{iters}}{Numeric vector (length \code{n}) of ones indicating per-draw iteration counts.}
 \item{\code{Envelope}}{\code{NULL}; no envelope is constructed in this conjugate setup.}
-\item{\code{call}}{Matched call to \code{rNormal_Gamma_reg()}.}
+\item{\code{call}}{Matched call to \code{rNormalGamma_reg()}.}
 }
 }
 
-\item{\code{rindependent_norm_gamma_reg()}}{A list with class \code{"rglmb"} containing:
+\item{\code{rindepNormalGamma_reg()}}{A list with class \code{"rglmb"} containing:
 \describe{
 \item{\code{coefficients}}{Matrix (\code{n * p}) of simulated regression coefficients, back-transformed to the original scale; column names set to \code{colnames(x)}.}
 \item{\code{coef.mode}}{Vector with the conditional posterior mode used for envelope anchoring (from the Gaussian fit).}
@@ -132,7 +132,7 @@ Elements include:
 \item{\code{prior.weights}}{Vector of prior weights used in the simulation.}
 \item{\code{y}}{Response vector.}
 \item{\code{x}}{Design matrix.}
-\item{\code{call}}{Matched call to \code{rindependent_norm_gamma_reg()}.}
+\item{\code{call}}{Matched call to \code{rindepNormalGamma_reg()}.}
 \item{\code{famfunc}}{Processed family functions for Gaussian models (from \code{glmbfamfunc}).}
 \item{\code{iters}}{Vector with per-draw iteration counts returned by the joint sampler.}
 \item{\code{Envelope}}{\code{NULL}; envelope diagnostics are not returned by this function.}
@@ -161,8 +161,8 @@ These functions are typically used within model fitting routines such as \code{\
 are also suitable for use in Block Gibbs sampling and other simulation-based inference techniques.
 }
 \details{
-The low-level simulation functions \strong{\code{rNormal_reg()}}, \strong{\code{rNormal_Gamma_reg()}},
-\strong{\code{rindependent_norm_gamma_reg()}}, and \strong{\code{rGamma_reg()}} generate iid samples from posterior
+The low-level simulation functions \strong{\code{rNormal_reg()}}, \strong{\code{rNormalGamma_reg()}},
+\strong{\code{rindepNormalGamma_reg()}}, and \strong{\code{rGamma_reg()}} generate iid samples from posterior
 distributions for specific model components. These model functions are used internally by the functions
 \strong{\code{rglmb()}} and \strong{\code{rlmb()}} to generate samples.
 
@@ -178,12 +178,12 @@ these are conjugate priors and standard simulation procedures for multivariate n
 distributions are utilized \insertCite{LindleySmith1972,DiaconisYlvisaker1979}{glmbayes}.
 For all other families/link functions, the likelihood subgradient approach of
 \insertCite{Nygren2006}{glmbayes} is used to generate iid samples.
-\item \strong{\code{rNormal_Gamma_reg()}}: Produces iid draws for regression coefficients and the
+\item \strong{\code{rNormalGamma_reg()}}: Produces iid draws for regression coefficients and the
 dispersion parameter in models with Normal-Gamma priors and Gaussian likelihoods, where
 this is a conjugate prior distribution. Standard simulation procedures for gamma and
 multivariate normal distributions are utilized
 \insertCite{Raiffa1961,LindleySmith1972}{glmbayes}.
-\item \strong{\code{rindependent_norm_gamma_reg()}}: Produces iid draws for regression coefficients
+\item \strong{\code{rindepNormalGamma_reg()}}: Produces iid draws for regression coefficients
 and the dispersion parameter in models with independent Normal and truncated Gamma priors.
 This is a non-conjugate specification but can still be sampled using accept-reject procedures
 based on an enveloping approach (see vignette
@@ -224,7 +224,7 @@ n<-10000
 y<-lmb.D9$y
 x<-as.matrix(lmb.D9$x)
 prior_list=list(mu=mu,Sigma=V/disp_ML,shape=shape,rate=rate)
-ngamma.D9=rNormal_Gamma_reg(n=1000,y=y,x=x,
+ngamma.D9=rNormalGamma_reg(n=1000,y=y,x=x,
   prior_list=prior_list)
 summary(ngamma.D9$coefficients)
 
@@ -257,7 +257,7 @@ n<-10000
 y<-lmb.D9$y
 x<-as.matrix(lmb.D9$x)
 prior_list=list(mu=mu,Sigma=V/disp_ML,shape=shape,rate=rate)
-ngamma.D9=rNormal_Gamma_reg(n=1000,y=y,x=x,
+ngamma.D9=rNormalGamma_reg(n=1000,y=y,x=x,
   prior_list=prior_list)
 summary(ngamma.D9$coefficients)
 
@@ -350,7 +350,7 @@ prior_list=list(mu=mu,Sigma=Sigma_prior,dispersion=dispersion,
 set.seed(360)
 
  ptm <- proc.time()
- sim2=rindependent_norm_gamma_reg(n=1000,y,x,prior_list=prior_list,
+ sim2=rindepNormalGamma_reg(n=1000,y,x,prior_list=prior_list,
 offset=NULL,weights=1)
  proc.time()-ptm
 
@@ -472,7 +472,7 @@ A reference
 \seealso{
 \code{\link{pfamily}}, \code{\link{glmb}}, \code{\link{lmb}}, \code{\link{rglmb}} for modeling functions that consume simulation functions.
 
-\code{\link{rNormal_reg}}, \code{\link{rNormal_Gamma_reg}}, \code{\link{rGamma_reg}} for individual simulation functions.
+\code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}}, \code{\link{rGamma_reg}} for individual simulation functions.
 
 \code{\link{EnvelopeBuild}} for envelope construction methods used in likelihood subgradient sampling.
 }

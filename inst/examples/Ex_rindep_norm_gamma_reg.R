@@ -87,7 +87,7 @@ prior_list=list(mu=mu,Sigma=Sigma_prior,dispersion=dispersion,
 set.seed(360)
 
  ptm <- proc.time()
- sim2=rindependent_norm_gamma_reg(n=1000,y,x,prior_list=prior_list,
+ sim2=rindepNormalGamma_reg(n=1000,y,x,prior_list=prior_list,
 offset=NULL,weights=1)
  proc.time()-ptm
 

@@ -61,7 +61,7 @@
 #'     }
 #'   }
 #'
-#'   \item{\code{rNormal_Gamma_reg()}}{A list with class \code{"rglmb"} containing:
+#'   \item{\code{rNormalGamma_reg()}}{A list with class \code{"rglmb"} containing:
 #'     \describe{
 #'       \item{\code{coefficients}}{Matrix (\code{n * p}) of simulated regression coefficients; row \code{i} equals \code{Btilde + IR \%*\% rnorm(p) * sqrt(dispersion[i])}. Column names are set to \code{colnames(x)}.}
 #'       \item{\code{coef.mode}}{Posterior mean/mode vector \code{Btilde} from \code{rNormal_reg.wfit()}.}
@@ -75,11 +75,11 @@
 #'       \item{\code{famfunc}}{Processed family functions for Gaussian models (from \code{glmbfamfunc(gaussian())}).}
 #'       \item{\code{iters}}{Numeric vector (length \code{n}) of ones indicating per-draw iteration counts.}
 #'       \item{\code{Envelope}}{\code{NULL}; no envelope is constructed in this conjugate setup.}
-#'       \item{\code{call}}{Matched call to \code{rNormal_Gamma_reg()}.}
+#'       \item{\code{call}}{Matched call to \code{rNormalGamma_reg()}.}
 #'     }
 #'   }
 #'
-#'   \item{\code{rindependent_norm_gamma_reg()}}{A list with class \code{"rglmb"} containing:
+#'   \item{\code{rindepNormalGamma_reg()}}{A list with class \code{"rglmb"} containing:
 #'     \describe{
 #'       \item{\code{coefficients}}{Matrix (\code{n * p}) of simulated regression coefficients, back-transformed to the original scale; column names set to \code{colnames(x)}.}
 #'       \item{\code{coef.mode}}{Vector with the conditional posterior mode used for envelope anchoring (from the Gaussian fit).}
@@ -89,7 +89,7 @@
 #'       \item{\code{prior.weights}}{Vector of prior weights used in the simulation.}
 #'       \item{\code{y}}{Response vector.}
 #'       \item{\code{x}}{Design matrix.}
-#'       \item{\code{call}}{Matched call to \code{rindependent_norm_gamma_reg()}.}
+#'       \item{\code{call}}{Matched call to \code{rindepNormalGamma_reg()}.}
 #'       \item{\code{famfunc}}{Processed family functions for Gaussian models (from \code{glmbfamfunc}).}
 #'       \item{\code{iters}}{Vector with per-draw iteration counts returned by the joint sampler.}
 #'       \item{\code{Envelope}}{\code{NULL}; envelope diagnostics are not returned by this function.}
@@ -113,8 +113,8 @@
 #'            }
 #'      
 #'         
-#' @details The low-level simulation functions **\code{rNormal_reg()}**, **\code{rNormal_Gamma_reg()}**, 
-#' **\code{rindependent_norm_gamma_reg()}**, and **\code{rGamma_reg()}** generate iid samples from posterior 
+#' @details The low-level simulation functions **\code{rNormal_reg()}**, **\code{rNormalGamma_reg()}**, 
+#' **\code{rindepNormalGamma_reg()}**, and **\code{rGamma_reg()}** generate iid samples from posterior 
 #' distributions for specific model components. These model functions are used internally by the functions
 #' **\code{rglmb()}** and **\code{rlmb()}** to generate samples.  
 #'  
@@ -132,13 +132,13 @@
 #'   For all other families/link functions, the likelihood subgradient approach of
 #'   \insertCite{Nygren2006}{glmbayes} is used to generate iid samples.
 #'
-#' - **\code{rNormal_Gamma_reg()}**: Produces iid draws for regression coefficients and the
+#' - **\code{rNormalGamma_reg()}**: Produces iid draws for regression coefficients and the
 #'   dispersion parameter in models with Normal-Gamma priors and Gaussian likelihoods, where
 #'   this is a conjugate prior distribution. Standard simulation procedures for gamma and
 #'   multivariate normal distributions are utilized
 #'   \insertCite{Raiffa1961,LindleySmith1972}{glmbayes}.
 #'
-#' - **\code{rindependent_norm_gamma_reg()}**: Produces iid draws for regression coefficients
+#' - **\code{rindepNormalGamma_reg()}**: Produces iid draws for regression coefficients
 #'   and the dispersion parameter in models with independent Normal and truncated Gamma priors.
 #'   This is a non-conjugate specification but can still be sampled using accept-reject procedures
 #'   based on an enveloping approach (see vignette
@@ -157,7 +157,7 @@
 #' @seealso
 #' \code{\link{pfamily}}, \code{\link{glmb}}, \code{\link{lmb}}, \code{\link{rglmb}} for modeling functions that consume simulation functions.
 #'
-#' \code{\link{rNormal_reg}}, \code{\link{rNormal_Gamma_reg}}, \code{\link{rGamma_reg}} for individual simulation functions.
+#' \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}}, \code{\link{rGamma_reg}} for individual simulation functions.
 #'
 #' \code{\link{EnvelopeBuild}} for envelope construction methods used in likelihood subgradient sampling.
 #'
@@ -746,7 +746,7 @@ print.rGamma_reg<-function (x, digits = max(3, getOption("digits") - 3), ...)
 
 #' @family simfuncs 
 #' @example inst/examples/Ex_rindep_norm_gamma_reg.R
-#' @usage rindependent_norm_gamma_reg(n, y, x, prior_list, offset = NULL, weights = 1,
+#' @usage rindepNormalGamma_reg(n, y, x, prior_list, offset = NULL, weights = 1,
 #'                              family = gaussian(), Gridtype = 2,n_envopt = NULL,
 #'                               use_parallel = TRUE, use_opencl = FALSE, verbose = FALSE, 
 #'                              progbar = TRUE)
@@ -756,7 +756,7 @@ print.rGamma_reg<-function (x, digits = max(3, getOption("digits") - 3), ...)
 
 
 
-rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussian(),
+rindepNormalGamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussian(),
                                       Gridtype=2,n_envopt = NULL,
                                       use_parallel = TRUE, use_opencl = FALSE, verbose = FALSE,
                                       progbar=TRUE){
@@ -937,7 +937,7 @@ rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,fam
 
 #' @family simfuncs 
 #' @example inst/examples/Ex_rnorm_gamma_reg.R
-#' @usage rNormal_Gamma_reg(n, y, x, prior_list, offset = NULL, weights = 1, family = gaussian(),
+#' @usage rNormalGamma_reg(n, y, x, prior_list, offset = NULL, weights = 1, family = gaussian(),
 #'                   Gridtype = 2,n_envopt = NULL, 
 #'                   use_parallel = TRUE, use_opencl = FALSE, verbose = FALSE)
 #' @export 
@@ -945,7 +945,7 @@ rindependent_norm_gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,fam
 #' @order 3
 
 
-rNormal_Gamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussian(),
+rNormalGamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussian(),
                             Gridtype=2,n_envopt = NULL,
                             use_parallel = TRUE, use_opencl = FALSE, verbose = FALSE
 ){
@@ -1339,3 +1339,207 @@ logdiffexp <- function(a, b) {
 }
 
 
+
+
+rGammaGaussian <- function(
+    n,
+    y,
+    x,
+    beta,
+    wt,
+    alpha,
+    shape,
+    rate,
+    disp_lower,
+    disp_upper
+) {
+  n1 <- length(y)
+  y1 <- as.numeric(y) - alpha
+  
+  xb  <- drop(x %*% beta)
+  res <- y1 - xb
+  SS  <- res * res
+  
+  sum_wt <- sum(wt)
+  a1     <- shape + sum_wt / 2
+  b1     <- rate  + sum(wt * SS) / 2
+  
+  draws <- integer(n) + 1
+  
+  if (is.null(disp_lower) && is.null(disp_upper)) {
+    out <- 1 / rgamma(n, shape = a1, rate = b1)
+  } else {
+    prec <- rgamma_ct(
+      n,
+      shape = a1,
+      rate  = b1,
+      lower_prec = if (!is.null(disp_upper)) 1 / disp_upper else NULL,
+      upper_prec = if (!is.null(disp_lower)) 1 / disp_lower else NULL
+    )
+    out <- 1 / prec
+  }
+  
+  list(
+    dispersion = out,
+    draws      = draws
+  )
+}
+
+
+
+rGammaGamma <- function(
+    n,
+    y,
+    x,
+    beta,
+    wt,
+    alpha,
+    shape,
+    rate,
+    disp_lower,
+    disp_upper,
+    max_disp_perc
+) {
+  mu1   <- t(exp(alpha + x %*% beta))
+  mu_vec <- as.numeric(mu1)
+  W_sum  <- sum(wt)
+  
+  loglik <- function(v) {
+    sum(
+      wt * (
+        v * log(v) -
+          v * log(mu_vec) +
+          (v - 1) * log(y) -
+          lgamma(v) -
+          v * y / mu_vec
+      )
+    )
+  }
+  
+  loglik_star <- function(v) {
+    loglik(v) - 0.5 * W_sum * log(v)
+  }
+  
+  rate1 <- rate + sum(wt * ((y / mu1) - log(y / mu1) - 1))
+  
+  shape2_mode <- shape
+  vstar1      <- shape2_mode / rate1
+  
+  vout_mode <- function(v) {
+    vstar1 - (v / rate1) *
+      sum(wt * digamma(wt * v) - wt * log(wt * v))
+  }
+  
+  vstar <- vstar1
+  for (j in 1:20) {
+    vstar <- vout_mode(vstar)
+  }
+  v_mode <- vstar
+  
+  f2_exact <- function(v) {
+    term1 <- W_sum * (1 / v)
+    term2 <- -W_sum * trigamma(v)
+    term3 <- -(shape - 1) / (v^2)
+    term1 + term2 + term3
+  }
+  
+  f2_vstar <- f2_exact(vstar)
+  
+  alpha_bar <- 1 - f2_vstar * vstar^2
+  beta_bar  <- -f2_vstar * vstar
+  
+  v_mean <- alpha_bar / beta_bar
+  
+  v_min <- qgamma(1 - max_disp_perc, shape = alpha_bar, rate = beta_bar)
+  v_max <- qgamma(max_disp_perc,     shape = alpha_bar, rate = beta_bar)
+  
+  if (is.null(disp_lower)) disp_lower <- 1 / v_max
+  if (is.null(disp_upper)) disp_upper <- 1 / v_min
+  
+  if (disp_lower >= disp_upper) {
+    stop("Final dispersion bounds invalid: disp_lower must be < disp_upper.")
+  }
+  
+  v_min <- 1 / disp_upper
+  v_max <- 1 / disp_lower
+  
+  v_tangent  <- v_mean
+  ll_star_v0 <- loglik_star(v_tangent)
+  ll_v0      <- loglik(v_tangent)
+  
+  ell_prime_at <- function(v) {
+    sum(
+      wt * (
+        log(v) + 1 -
+          log(mu_vec) +
+          log(y) -
+          digamma(v) -
+          y / mu_vec
+      )
+    )
+  }
+  
+  ell_star_prime_at <- function(v) {
+    ell_prime_at(v)
+  }
+  
+  cbar <- -ell_star_prime_at(v_tangent)
+  
+  shape_prop <- shape + 0.5 * W_sum
+  rate_prop  <- rate - cbar
+  
+  if (rate_prop <= 0) {
+    stop("Gamma proposal rate_prop <= 0; check v_tangent and curvature diagnostics.")
+  }
+  
+  lg_h <- function(v) {
+    loglik_star(v) -
+      (ll_star_v0 - cbar * (v - v_tangent)) -
+      0.5 * W_sum * log(v / v_min)
+  }
+  
+  out   <- numeric(n)
+  test  <- numeric(n)
+  a     <- numeric(n)
+  draws <- integer(n)
+  
+  for (i in 1:n) {
+    draws[i] <- 1
+    while (a[i] == 0) {
+      
+      if (is.null(disp_lower) && is.null(disp_upper)) {
+        cand_prec <- rgamma_ct(
+          1,
+          shape = shape_prop,
+          rate  = rate_prop,
+          lower_prec = v_min,
+          upper_prec = v_max
+        )
+      } else {
+        cand_prec <- rgamma_ct(
+          1,
+          shape = shape_prop,
+          rate  = rate_prop,
+          lower_prec = if (!is.null(disp_upper)) 1 / disp_upper else NULL,
+          upper_prec = if (!is.null(disp_lower)) 1 / disp_lower else NULL
+        )
+      }
+      out[i] <- cand_prec
+      
+      test[i] <- lg_h(out[i]) - log(runif(1, 0, 1))
+      
+      if (test[i] > 0) {
+        a[i] <- 1
+      } else {
+        draws[i] <- draws[i] + 1
+      }
+    }
+  }
+  
+  out <- 1 / out
+  
+  list(
+    dispersion = out,
+    draws      = draws
+  )
+}
