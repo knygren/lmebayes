@@ -406,29 +406,11 @@ rGamma_reg <- function(
     
     # Validate output
     if (!is.list(sim) || is.null(sim$dispersion) || is.null(sim$draws)) {
-      stop("C++ rGammaGamma_cpp_export returned an invalid structure.")
+      stop("C++ rGammaGaussian_cpp_export returned an invalid structure.")
     }
     
     out  <- sim$dispersion
     draws <- sim$draws
-    
-    
-    # sim <- rGammaGaussian(
-    #   n       = n,
-    #   y       = y,
-    #   x       = x,
-    #   beta    = b,
-    #   wt      = wt,
-    #   alpha   = alpha,
-    #   shape   = shape,
-    #   rate    = rate,
-    #   disp_lower = disp_lower,
-    #   disp_upper = disp_upper
-    # )
-    # 
-    # out   <- sim$dispersion
-    # draws <- sim$draws
-    
     
   }
   
@@ -1089,56 +1071,6 @@ logdiffexp <- function(a, b) {
   # exp(b) - exp(a) = exp(b) * (1 - exp(a - b))
   # so log(...) = b + log(1 - exp(a - b))
   b + log(-expm1(a - b))
-}
-
-
-
-
-rGammaGaussian <- function(
-    n,
-    y,
-    x,
-    beta,
-    wt,
-    alpha,
-    shape,
-    rate,
-    disp_lower,
-    disp_upper
-) {
-  
-  # Temporary: call C++ version but ignore output
-  
-  n1 <- length(y)
-  y1 <- as.numeric(y) - alpha
-  
-  xb  <- drop(x %*% beta)
-  res <- y1 - xb
-  SS  <- res * res
-  
-  sum_wt <- sum(wt)
-  a1     <- shape + sum_wt / 2
-  b1     <- rate  + sum(wt * SS) / 2
-  
-  draws <- integer(n) + 1
-  
-  if (is.null(disp_lower) && is.null(disp_upper)) {
-    out <- 1 / rgamma(n, shape = a1, rate = b1)
-  } else {
-    prec <- rgamma_ct(
-      n,
-      shape = a1,
-      rate  = b1,
-      lower_prec = if (!is.null(disp_upper)) 1 / disp_upper else NULL,
-      upper_prec = if (!is.null(disp_lower)) 1 / disp_lower else NULL
-    )
-    out <- 1 / prec
-  }
-  
-  list(
-    dispersion = out,
-    draws      = draws
-  )
 }
 
 
