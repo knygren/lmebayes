@@ -451,7 +451,7 @@ allowing pure i.i.d. Monte Carlo sampling.
 
 ---
 
-The defining property of conjugacy is that the **posterior has the same posterio functional form**. In glmbayes, this model can be estimated as below.
+The defining property of conjugacy is that the **posterior has the same posterior functional form**. In glmbayes, this model can be estimated as below.
 
 
 ```{r Conjugate_prior}
@@ -466,6 +466,7 @@ lmb.D9_v2 <- lmb(
     rate  = ps$rate
   )
 )
+
 summary(lmb.D9_v2)$dispersion
 
 ```
