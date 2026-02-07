@@ -73,6 +73,10 @@ rnorm_reg_cpp_export <- function(n, y, x, mu, P, offset, wt, dispersion, f2, f3,
     .Call(`_glmbayes_rnorm_reg_cpp_export`, n, y, x, mu, P, offset, wt, dispersion, f2, f3, start, family, link, Gridtype)
 }
 
+rNormalGammaReg_cpp_export <- function(n, y, x, mu, P, offset, wt, shape, rate, max_disp_perc, disp_lower, disp_upper, verbose = FALSE) {
+    .Call(`_glmbayes_rNormalGammaReg_cpp_export`, n, y, x, mu, P, offset, wt, shape, rate, max_disp_perc, disp_lower, disp_upper, verbose)
+}
+
 rindep_norm_gamma_reg_std_cpp_export <- function(n, y, x, mu, P, alpha, wt, f2, Envelope, gamma_list, UB_list, family, link, progbar = TRUE, verbose = FALSE) {
     .Call(`_glmbayes_rindep_norm_gamma_reg_std_cpp_export`, n, y, x, mu, P, alpha, wt, f2, Envelope, gamma_list, UB_list, family, link, progbar, verbose)
 }

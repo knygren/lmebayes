@@ -757,8 +757,24 @@ rNormalGamma_reg<-function(n,y,x,prior_list,offset=NULL,weights=1,family=gaussia
   if (!all(ev >= -tol * abs(ev[1L]))) 
     stop("'P' is not positive definite")
   
-  ## Should add dimension checks here  
-  ## Should move core part of rmultireg inside this code to avoid call
+
+  ## Add Call to new function here or after famfunc / f1 is set (not sure if f1 is actually used)
+  
+  sim <- rNormalGammaReg_cpp_export(
+    n          = n,
+    y          = y,
+    x          = x,
+    mu         = mu,
+    P          = P,
+    offset     = offset2,
+    wt         = wt,
+    shape      = shape,
+    rate       = rate,
+    max_disp_perc = NULL,      # Future implementation only
+    disp_lower = NULL,         # Future implementation only
+    disp_upper = NULL,         # Future implementation only
+    verbose    = verbose
+  )
   
   famfunc=glmbfamfunc(gaussian())  
   f1=famfunc$f1

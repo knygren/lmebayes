@@ -89,6 +89,23 @@ Rcpp::List rIndepNormalGammaReg_std_parallel(
 );
 
 
+Rcpp::List rNormalGammaReg(
+    int n,
+    Rcpp::NumericVector y,
+    Rcpp::NumericMatrix x,
+    Rcpp::NumericVector mu,
+    Rcpp::NumericMatrix P,
+    Rcpp::NumericVector offset,
+    Rcpp::NumericVector wt,
+    double shape,
+    double rate,
+    Rcpp::Nullable<double> max_disp_perc,
+    Rcpp::Nullable<double> disp_lower,
+    Rcpp::Nullable<double> disp_upper,
+    bool verbose
+);
+
+
 Rcpp::List rIndepNormalGammaReg(
     int n,
     Rcpp::NumericVector y,

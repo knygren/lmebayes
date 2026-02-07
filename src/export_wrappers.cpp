@@ -411,6 +411,43 @@ Rcpp::List rnorm_reg_cpp_export(
 
 
 // =====================================================================
+//  rNormalGammaReg_cpp_export
+// =====================================================================
+
+// [[Rcpp::export]]
+Rcpp::List rNormalGammaReg_cpp_export(
+    int n,
+    const Rcpp::NumericVector& y,
+    const Rcpp::NumericMatrix& x,
+    const Rcpp::NumericVector& mu,
+    const Rcpp::NumericMatrix& P,
+    const Rcpp::NumericVector& offset,
+    const Rcpp::NumericVector& wt,
+    double shape,
+    double rate,
+    Rcpp::Nullable<double> max_disp_perc,
+    Rcpp::Nullable<double> disp_lower,
+    Rcpp::Nullable<double> disp_upper,
+    bool verbose = false
+) {
+  return glmbayes::sim::rNormalGammaReg(
+    n,
+    y,
+    x,
+    mu,
+    P,
+    offset,
+    wt,
+    shape,
+    rate,
+    max_disp_perc,
+    disp_lower,
+    disp_upper,
+    verbose
+  );
+}
+
+// =====================================================================
 //  rindep_norm_gamma_reg_std_cpp_export
 // =====================================================================
 
