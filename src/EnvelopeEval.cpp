@@ -149,39 +149,13 @@ double f2_f3_opencl_pilot(const Rcpp::NumericMatrix& G4,
     auto t1p = std::chrono::high_resolution_clock::now();
     double time_p = std::chrono::duration<double>(t1p - t0p).count();
     
-    // double per_grid_sec_parallel = time_p / (double)m_stage_grid;
-    // refined_est_total_sec = per_grid_sec_parallel * m1_total;
-    // 
-    // auto fmt_hms = [](double seconds) {
-    //   int s = (int)std::round(seconds);
-    //   int h = s / 3600; s %= 3600;
-    //   int m = s / 60;   s %= 60;
-    //   std::ostringstream oss;
-    //   oss << h << "h " << m << "m " << s << "s";
-    //   return oss.str();
-    // };
-    // 
-    // if (verbose) {
-    //   
-    //   Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Calibration elapsed = " << time_p
-    //               << " s for " << m_stage_grid
-    //               << " grid points (" << per_grid_sec_parallel << " s/grid).\n";
-    //   
-    //   Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Refined grid build time estimate = "
-    //               << refined_est_total_sec << " seconds (" << fmt_hms(refined_est_total_sec) << ")\n";
-    //   
-    // }
-    
+
     double per_grid_sec_parallel = time_p / static_cast<double>(m_stage_grid);
     refined_est_total_sec = per_grid_sec_parallel * m1_total;
     
     if (verbose) {
       
-      // // Calibration summary (still OK to show raw seconds here because it's a diagnostic)
-      // Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Calibration elapsed = "
-      //             << time_p << " s for " << m_stage_grid
-      //             << " grid points (" << per_grid_sec_parallel << " s/grid).\n";
-      
+
       
       // Calibration summary (diagnostic: raw seconds OK)
       Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Calibration elapsed = "
@@ -201,23 +175,7 @@ double f2_f3_opencl_pilot(const Rcpp::NumericMatrix& G4,
                   << glmbayes::progress::format_hms(total) << "\n";
     }
     
-    // long total = (long)std::round(refined_est_total_sec);
-    // long h = total / 3600;
-    // long m = (total % 3600) / 60;
-    // long s = total % 60;
-    // 
-    // if (verbose) {
-    //   
-    //   Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Estimated full f2_f3 evaluation time = "
-    //               << refined_est_total_sec << " seconds (" << h << "h " << m << "m " << s << "s)\n";
-    //   
-    //   Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Components: fixed=" << fixed_cost
-    //               << ", per-grid=" << per_grid_cost << "\n";
-    //   
-    //   Rcpp::Rcout << "[EnvelopeBuild:EnvelopeEval:Pilot] Note: estimate is approximate and may vary with system load.\n"; 
-    //   
-    // }
-    
+
     long total = static_cast<long>(std::round(refined_est_total_sec));
     
     if (verbose) {
@@ -236,32 +194,7 @@ double f2_f3_opencl_pilot(const Rcpp::NumericMatrix& G4,
     
   }
   
-  // if (refined_est_total_sec > threshold_sec) {
-  //   Rcpp::Rcout << "\nEstimated run time exceeds 5 minutes ("
-  //               << refined_est_total_sec << " seconds).\n";
-  //   
-  //   Rcpp::Function r_interactive("interactive");
-  //   bool is_interactive = Rcpp::as<bool>(r_interactive());
-  //   
-  //   if (is_interactive) {
-  //     Rcpp::Function readline("readline");
-  //     std::string response = Rcpp::as<std::string>(
-  //       readline("Do you want to continue? [y/N]: ")
-  //     );
-  //     
-  //     if (response != "y" && response != "Y") {
-  //       Rcpp::Rcout << "Aborting full run per user choice.\n";
-  //       Rcpp::stop("User aborted run due to estimated time exceeding threshold.");
-  //     } else {
-  //       Rcpp::Rcout << "Proceeding with full run...\n";
-  //     }
-  //   } else {
-  //     // Non-interactive (e.g. CI/CRAN): auto-approve
-  //     Rcpp::Rcout << "[NOTE] Non-interactive session: proceeding automatically.\n";
-  //     Rcpp::Rcout << "Proceeding with full run...\n";
-  //   }
-  // }
-  
+
   // ---------------------------------------------
   // PRINT PILOT COMPLETION BEFORE USER PROMPT
   // ---------------------------------------------
@@ -329,19 +262,64 @@ Rcpp::List f2_f3_non_opencl(
   Rcpp::NumericMatrix cbars(l2, l1);
   arma::mat cbars2(cbars.begin(), l2, l1, false);
   
+  
+  Rcpp::List f2_f3_list;  
+  
+  Rcpp::NumericVector NegLL_temp(l2);
+  Rcpp::NumericMatrix cbars_temp(l2, l1);
+  arma::mat cbars2_temp(cbars.begin(), l2, l1, false);
+  
   // --- binomial family ---
   if (family == "binomial" && link == "logit") {
-    NegLL  = f2_binomial_logit(b, y, x, mu, P, alpha, wt, progbar);
-    cbars2 = f3_binomial_logit(b, y, x, mu, P, alpha, wt, progbar);
-  }
+    // NegLL  = f2_binomial_logit(b, y, x, mu, P, alpha, wt, progbar);
+    // cbars2 = f3_binomial_logit(b, y, x, mu, P, alpha, wt, progbar);
+
+    f2_f3_list = f2_f3_binomial_logit(b, y, x, mu, P, alpha, wt, progbar);
+    
+    NegLL  = Rcpp::as<Rcpp::NumericVector>(f2_f3_list["qf"]);
+    cbars2 = Rcpp::as<arma::mat>(f2_f3_list["grad"]);
+    
+    // Rcpp::Rcout << "Legacy NegLL: " << NegLL << "\n";
+    // Rcpp::Rcout << "New NegLL:    " << NegLL_temp << "\n";
+    // 
+    // Rcpp::Rcout << "Legacy cbars2:\n" << cbars2 << "\n";
+    // Rcpp::Rcout << "New cbars2:\n" << cbars2_temp << "\n";
+    
+    
+      }
   else if (family == "binomial" && link == "probit") {
-    NegLL  = f2_binomial_probit(b, y, x, mu, P, alpha, wt, progbar);
-    cbars2 = f3_binomial_probit(b, y, x, mu, P, alpha, wt, progbar);
+    // NegLL  = f2_binomial_probit(b, y, x, mu, P, alpha, wt, progbar);
+    // cbars2 = f3_binomial_probit(b, y, x, mu, P, alpha, wt, progbar);
+  
+  f2_f3_list = f2_f3_binomial_probit(b, y, x, mu, P, alpha, wt, progbar);
+  
+  NegLL  = Rcpp::as<Rcpp::NumericVector>(f2_f3_list["qf"]);
+  cbars2 = Rcpp::as<arma::mat>(f2_f3_list["grad"]);
+  
+  // Rcpp::Rcout << "Legacy NegLL: " << NegLL << "\n";
+  // Rcpp::Rcout << "New NegLL:    " << NegLL_temp << "\n";
+  // 
+  // Rcpp::Rcout << "Legacy cbars2:\n" << cbars2 << "\n";
+  // Rcpp::Rcout << "New cbars2:\n" << cbars2_temp << "\n";
+  
+  
   }
   else if (family == "binomial" && link == "cloglog") {
-    NegLL  = f2_binomial_cloglog(b, y, x, mu, P, alpha, wt, progbar);
-    cbars2 = f3_binomial_cloglog(b, y, x, mu, P, alpha, wt, progbar);
-  }
+    // NegLL  = f2_binomial_cloglog(b, y, x, mu, P, alpha, wt, progbar);
+    // cbars2 = f3_binomial_cloglog(b, y, x, mu, P, alpha, wt, progbar);
+
+    f2_f3_list = f2_f3_binomial_cloglog(b, y, x, mu, P, alpha, wt, progbar);
+    
+    NegLL  = Rcpp::as<Rcpp::NumericVector>(f2_f3_list["qf"]);
+    cbars2 = Rcpp::as<arma::mat>(f2_f3_list["grad"]);
+    
+    // Rcpp::Rcout << "Legacy NegLL: " << NegLL << "\n";
+    // Rcpp::Rcout << "New NegLL:    " << NegLL_temp << "\n";
+    // 
+    // Rcpp::Rcout << "Legacy cbars2:\n" << cbars2 << "\n";
+    // Rcpp::Rcout << "New cbars2:\n" << cbars2_temp << "\n";
+    
+      }
   
   // --- quasibinomial family (reuse binomial kernels) ---
   else if (family == "quasibinomial" && link == "logit") {

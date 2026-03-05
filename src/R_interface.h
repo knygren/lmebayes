@@ -1,4 +1,57 @@
-#pragma once
+/**
+ * @file R_interface.h
+ * @brief Centralized, static‑cached access to R functions used throughout the
+ *        C++ backend of glmbayes, providing a clean and explicit C++ → R
+ *        boundary.
+ *
+ * @namespace glmbayes_R
+ * @brief Cached R‑function accessors for non‑family‑specific utilities such as
+ *        coercion, grid construction, optimization, system queries, and
+ *        distribution helpers.
+ *
+ * @section Context
+ *   This header defines a stable interface for calling R functions from C++.
+ *   Each accessor returns a *static‑cached* `Rcpp::Function`, ensuring:
+ *     - no repeated dynamic lookups,
+ *     - no hidden R‑level dependencies scattered across source files,
+ *     - a single, explicit boundary between C++ and R.
+ *
+ *   Only global, non‑family‑specific R functions belong here.
+ *   Family‑dependent functions (e.g., f2, f3, glmbfamfunc) must remain runtime
+ *   arguments and must NOT be wrapped here, as they vary by model and are part
+ *   of the statistical interface rather than the infrastructure layer.
+ *
+ * @section ImplementedIn
+ *   These declarations are implemented inline within this header.
+ *
+ * @section UsedBy
+ *   These accessors are consumed by:
+ *     - envelope construction routines (EnvelopeBuild, EnvelopeSort, EnvelopeOpt),
+ *     - simulation and sampling routines (Normal, Normal–Gamma, GLM samplers),
+ *     - optimization and model‑fitting components,
+ *     - R‑facing wrappers that require consistent access to R utilities.
+ *
+ * @section Responsibilities
+ *   Provides:
+ *     - time and formatting helpers (`format`, `Sys.time`),
+ *     - coercion utilities (`as.matrix`, `as.vector`, `as.numeric`),
+ *     - grid and envelope helpers (`expand.grid`, `EnvelopeOpt`, `EnvelopeSort`),
+ *     - interactive utilities (`interactive`, `readline`),
+ *     - distribution helpers (`qgamma`, `rgamma_ct`, `runif`),
+ *     - optimization and model‑fitting helpers (`optim`, `try`, `lm.fit`,
+ *       `lm.wfit`, `gaussian`, `rNormal_reg.wfit`),
+ *     - system utilities (`system.file`).
+ *
+ *   This module:
+ *     - ensures consistent, centralized access to R functions,
+ *     - avoids repeated lookup overhead,
+ *     - keeps the C++ codebase modular, explicit, and maintainable.
+ */
+
+
+#ifndef R_INTERFACE_H
+#define R_INTERFACE_H
+
 #include <Rcpp.h>
 
 // -----------------------------------------------------------------------------
@@ -156,150 +209,4 @@ inline Rcpp::Function r_system_file() {
 } // namespace glmbayes_R
 
 
-//////////////////////////////////////////////////////////////////////////////////////
-
-
-
-// EnvelopeBuild_cpp
-
-// Rcpp::Function EnvelopeOpt("EnvelopeOpt");
-// Rcpp::Function expGrid("expand.grid");
-// Rcpp::Function asMat("as.matrix");
-// Rcpp::Function EnvSort("EnvelopeSort");
-
-
-//Rcpp::Function(\"format\")
-
-//Rcpp::Function(\"Sys.time\")
-
-// EnvelopeBuild_Ind_Normal_Gamma.cpp
-
-//Rcpp::Function EnvelopeOpt(\"EnvelopeOpt\");
-//Rcpp::Function expGrid(\"expand.grid\");"    
-//Rcpp::Function asMat(\"as.matrix\");         
-//Rcpp::Function EnvSort(\"EnvelopeSort\");   
-
-
-// EnvelopeDispersionBuild.cpp (two of these are function arguments)
-                             
-                             
-// Rcpp::Function& parallel_fn," 
-// Rcpp::Function(\"as.numeric\")
-// Rcpp::Function(\"Sys.time\")
-// Rcpp::Function& ub2_parallel_fn
-
-
-//EnvelopeEval.cpp
-
-//Rcpp::Function(\"format\")
-//Rcpp::Function(\"Sys.time\")
-//Rcpp::Function r_interactive(\"interactive\");"
-// Rcpp::Function readline(\"readline\");" 
-//
-
-//EnvelopeOrchestrator.cpp
-
-//Rcpp::Function EnvelopeSort = pkg[\"EnvelopeSort\"];
-
-
-//EnvelopeSize.cpp
-
-//Rcpp::Function EnvelopeOpt(\"EnvelopeOpt\");
-//
-
-//export_wrappers.cpp (likely function arguments)
-
-// const Rcpp::Function& f2,
-// const Rcpp::Function& f3,
-
-
-// kernel_loader.cpp
-
-// Rcpp::Function(\"system.file\")
-
-
-// rGammaGamma.cpp
-
-// Rcpp::Function qgamma(\"qgamma\");
-// Rcpp::Function rgamma_ct(\"rgamma_ct\");
-// Rcpp::Function runif(\"runif\");
-
-
-// rGammaGaussian.cpp
-
-// Rcpp::Function rgamma_ct(\"rgamma_ct\");
-
-
-//rIndepNormalGammaReg.cpp
-
-// Rcpp::Function interactive = base[\"interactive\"];
-// Rcpp::Function(\"format\")
-// Rcpp::Function(\"Sys.time\")
-// Rcpp::Function readline(\"readline\");
-// Rcpp::Function fmt(\"format\");
-// Rcpp::Function(\"as.numeric\")
-// Rcpp::Function lm_wfit(\"lm.wfit\");
-// Rcpp::Function optim(\"optim\");
-// Rcpp::Function gaussian(\"gaussian\");
-// Rcpp::Function glmbfamfunc = glmbayes_ns[\"glmbfamfunc\"];
-// Rcpp::Function f2 = famfunc[\"f2\"];
-// Rcpp::Function f3 = famfunc[\"f3\"];
-
-// rNormalGammaReg.cpp
-
-
-
-                                  
-//Rcpp::Function rNormal_reg_wfit(\"rNormal_reg.wfit\");
-//Rcpp::Function glmbfamfunc(\"glmbfamfunc\");          
-//Rcpp::Function gaussian(\"gaussian\");       
-                                  
-// rNormalGLM.cpp
-
-
-// Rcpp::Function asVec(\"as.vector\");
-// Rcpp::Function r_interactive(\"interactive\");
-// Rcpp::Function readline(\"readline\");
-// Rcpp::Function(\"format\")
-// Rcpp::Function(\"Sys.time\")
-// Rcpp::Function asMat(\"as.matrix\");
-// Rcpp::Function asVec(\"as.vector\");
-// Rcpp::Function optfun(\"optim\");
-// Rcpp::Function tryfun(\"try\");
-
-
-
-// rNormalReg.cpp
-
-
-// Rcpp::Function asMat(\"as.matrix\");
-// Rcpp::Function asVec(\"as.vector\");
-// Rcpp::Function lm_fit_fun(\"lm.fit\");
-
-
-Rcpp::Function rNormal_reg_wfit(\"rNormal_reg.wfit\");"
-
-
-
-
-
-                                  [[13]]$text
-                                  [1] "  Rcpp::Function rNormal_reg_wfit(\"rNormal_reg.wfit\");"
-                                  [2] "  Rcpp::Function glmbfamfunc(\"glmbfamfunc\");"          
-                                  [3] "  Rcpp::Function gaussian(\"gaussian\");"                
-                                  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#endif

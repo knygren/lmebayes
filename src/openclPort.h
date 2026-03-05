@@ -1,3 +1,40 @@
+/**
+ * @file openclPort.h
+ * @brief Public OpenCL interface for glmbayes, including kernel loading,
+ *        device discovery, capability probing, and Rcpp-to-std::vector
+ *        conversion helpers.
+ *
+ * @namespace openclPort
+ * @brief Lightweight OpenCL utility layer providing kernel management and
+ *        device‑level information for optional GPU acceleration.
+ *
+ * @section ImplementedIn
+ *   These declarations are implemented in:
+ *     - OpenCL_helper.cpp
+ *     - opencl_detect.cpp
+ *     - kernel_loader.cpp
+ *     - (optional) additional OpenCL backend files guarded by USE_OPENCL
+ *
+ * @section UsedBy
+ *   These functions are consumed by:
+ *     - Envelope construction routines (EnvelopeBuild, EnvelopeEval,
+ *       EnvelopeDispersionBuild) when OpenCL acceleration is enabled
+ *     - R wrappers that expose GPU availability and kernel loading to users
+ *
+ * @section Responsibilities
+ *   Provides:
+ *     - Rcpp → std::vector conversion utilities for kernel argument buffers
+ *     - GPU/device enumeration and capability checks (gpu_names, has_opencl)
+ *     - Kernel source and library loading from inst/cl/ directories
+ *     - Conditional OpenCL configuration and build‑option generation
+ *
+ *   This module:
+ *     - is optional and only active when compiled with USE_OPENCL,
+ *     - isolates all OpenCL‑specific logic from the statistical code,
+ *     - ensures safe fallback to CPU execution when no GPU is available.
+ */
+
+
 #ifndef OPENCLPORT_H
 #define OPENCLPORT_H
 

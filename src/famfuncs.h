@@ -1,25 +1,50 @@
 // -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*-
 
+/**
+ * @file famfuncs.h
+ * @brief Family-specific likelihood and envelope components for glmbayes.
+ *
+ * @namespace glmbayes::fam
+ * @brief Core log-likelihood, log-posterior, and corresponding log gradient components for each GLM family.
+ *
+ * @section ImplementedIn
+ *   These declarations are implemented in:
+ *     - famfuncs_binomial.cpp
+ *     - famfuncs_Gamma.cpp
+ *     - famfuncs_gaussian.cpp
+ *     - famfuncs_poisson.cpp
+ *
+ * @section UsedBy
+ *   These functions are consumed by:
+ *     - Envelopefuncs.cpp
+ *     - EnvelopeEval.cpp
+ *     - EnvelopeBuild.cpp
+ *     - rNormalGLM.cpp
+ *     - rIndepNormalGammaReg.cpp
+ *
+ * @section Responsibilities
+ *   Provides f1, f2, f3 components for all GLM families and link functions.
+ *   Supplies both standard and parallel-safe (RMatrix/RVector) variants.
+ *   
+ *   f1 functions --> Negative log-likelihoods
+ *   f2 functions --> Negative log-likelihood+ small prior component (used for models in standard form)
+ *   f3 functions --> Gradients for negative log-likelihoods + small prior components (used for models in standard form)
+ *   inv_f3       --> Functions used to compute inverse gradients (with respect to dispersion) for gaussian families
+ *
+ *   Functions are used during both envelope construction and simulation
+ *   
+ */
+
+
+#ifndef GLMBAYES_FAM_H
+#define GLMBAYES_FAM_H
+
 // we only include RcppArmadillo.h which pulls Rcpp.h in for us
 #include "RcppArmadillo.h"
 #include <RcppParallel.h>
 
 using namespace Rcpp;
 using namespace RcppParallel;
-
-
-// Dependencies:
-//
-// 1) famfuncs_binomial.cpp
-// 2) famfuncs_Gamma.cpp
-// 3) famfuncs_gaussian.cpp
-// 4) famfuncs_poisson.cpp
-
-// 5) Envelopefuncs.cpp
-// 6) EnvelopeEval.cpp
-// 7) EnvelopeBuild.cpp
-// 8) rindep_norm_gamma_reg_cpp.cpp
-// 9) rnnorm_reg_cpp.cpp
 
 
 
@@ -53,7 +78,30 @@ arma::vec f2_binomial_logit_rmat(
     const RVector<double>& alpha,
     const RVector<double>& wt,
     int progbar);
-arma::mat  f3_binomial_logit(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,int progbar);
+arma::mat  f3_binomial_logit(NumericMatrix b,
+                             NumericVector y, 
+                             NumericMatrix x,
+                             NumericMatrix mu,
+                             NumericMatrix P,
+                             NumericVector alpha,
+                             NumericVector wt,
+                             int progbar);
+
+// Combined f2/f3 evaluator (binomial–logit)
+// Computes negative log‑posterior (f2) and gradient (f3) in one pass.
+// Returns a list with:
+//   $qf   : NumericVector length = m1   (same as f2_binomial_logit)
+//   $grad : NumericMatrix m1 × l2       (same as f3_binomial_logit)
+Rcpp::List f2_f3_binomial_logit(
+    Rcpp::NumericMatrix  b,
+    Rcpp::NumericVector  y,
+    Rcpp::NumericMatrix  x,
+    Rcpp::NumericMatrix  mu,
+    Rcpp::NumericMatrix  P,
+    Rcpp::NumericVector  alpha,
+    Rcpp::NumericVector  wt,
+    int                  progbar = 0
+);
 
 //----------------- binomial_Probit -------------------------------------------------
   
@@ -69,6 +117,17 @@ arma::vec f2_binomial_probit_rmat(
     const RVector<double>& wt,
     int progbar);
 arma::mat  f3_binomial_probit(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,int progbar);
+
+Rcpp::List f2_f3_binomial_probit(
+    Rcpp::NumericMatrix  b,
+    Rcpp::NumericVector  y,
+    Rcpp::NumericMatrix  x,
+    Rcpp::NumericMatrix  mu,
+    Rcpp::NumericMatrix  P,
+    Rcpp::NumericVector  alpha,
+    Rcpp::NumericVector  wt,
+    int                  progbar = 0
+);
 
 //----------------- binomial_cloglog -------------------------------------------------
   
@@ -87,6 +146,17 @@ NumericVector  f2_binomial_cloglog(NumericMatrix b,NumericVector y, NumericMatri
       int progbar);
 arma::mat  f3_binomial_cloglog(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,int progbar);
 
+
+Rcpp::List f2_f3_binomial_cloglog(
+    Rcpp::NumericMatrix  b,
+    Rcpp::NumericVector  y,
+    Rcpp::NumericMatrix  x,
+    Rcpp::NumericMatrix  mu,
+    Rcpp::NumericMatrix  P,
+    Rcpp::NumericVector  alpha,
+    Rcpp::NumericVector  wt,
+    int                  progbar = 0
+);
   
 //----------------- Poisson -------------------------------------------------
 
@@ -173,3 +243,5 @@ arma::mat Inv_f3_with_disp_rmat(
 } // famfuncs
 
 } //glmbayes
+
+#endif

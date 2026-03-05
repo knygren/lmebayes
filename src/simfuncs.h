@@ -1,5 +1,47 @@
 // -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*-
 
+/**
+ * @file simfuncs.h
+ * @brief Simulation and posterior sampling routines for glmbayes.
+ *
+ * @namespace glmbayes::sim
+ * @brief Core Normal, Normal–Gamma, and independent Normal–Gamma samplers.
+ *
+ * @section ImplementedIn
+ *   These declarations are implemented in:
+ *     - rNormalGLM.cpp
+ *     - rIndepNormalGammaReg.cpp
+ *     - rNormalGammaReg.cpp
+ *     - rGammaGaussian.cpp
+ *     - rGammaGamma.cpp
+ *     - glmb_Standardize_Model.cpp
+ *
+ * @section UsedBy
+ *   These functions are consumed by:
+ *     - export_wrappers.cpp 
+ *
+ * @section Responsibilities
+ *   Provides simulation kernels for:
+ *     - Normal GLM posterior draws (standardized and unstandardized)
+ *     - Normal–Gamma regression models
+ *     - Independent Normal–Gamma regression models (standard and parallel variants)
+ *     - Gamma–Gaussian and Gamma–Gamma models
+ *
+ *   All routines:
+ *     - assume validated inputs from R wrappers,
+ *     - use Rcpp::List for structured return objects,
+ *   
+ *   Some routines:
+ *     - rely on envelope objects and f2/f3 functions for accept–reject sampling,
+ *     - support optional parallelization and OpenCL where applicable.
+ */
+
+// -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*-
+
+#ifndef GLMBAYES_SIM_H
+#define GLMBAYES_SIM_H
+
+
 // we only include RcppArmadillo.h which pulls Rcpp.h in for us
 #include "RcppArmadillo.h"
 
@@ -168,3 +210,5 @@ Rcpp::List glmb_Standardize_Model(
 
 }
 }
+
+#endif

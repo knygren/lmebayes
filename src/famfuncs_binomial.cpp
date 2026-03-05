@@ -385,6 +385,93 @@ arma::mat  f3_binomial_logit(NumericMatrix b,NumericVector y, NumericMatrix x,Nu
 
 
 
+// Combined f2/f3 for binomial–logit (CPU, non‑OpenCL)
+// Matches the existing f2_binomial_logit and f3_binomial_logit numerically,
+// but computes both in a single pass over the data.
+
+Rcpp::List f2_f3_binomial_logit(
+    Rcpp::NumericMatrix  b,
+    Rcpp::NumericVector  y,
+    Rcpp::NumericMatrix  x,
+    Rcpp::NumericMatrix  mu,
+    Rcpp::NumericMatrix  P,
+    Rcpp::NumericVector  alpha,
+    Rcpp::NumericVector  wt,
+    int                  progbar
+) {
+  // Dimensions
+  int l1 = x.nrow();   // observations
+  int l2 = x.ncol();   // coefficients
+  int m1 = b.ncol();   // grid points
+  
+  // Temporary views / buffers
+  Rcpp::NumericMatrix b2temp(l2, 1);
+  arma::mat x2    (x.begin(),     l1, l2, false);
+  arma::mat alpha2(alpha.begin(), l1, 1,  false);
+  
+  Rcpp::NumericVector xb(l1);
+  arma::colvec xb2(xb.begin(), l1, false);  // shares memory with xb
+  
+  Rcpp::NumericVector yy(l1);
+  Rcpp::NumericVector qf(m1);               // f2 output
+  
+  Rcpp::NumericMatrix bmu(l2, 1);
+  arma::mat mu2 (mu.begin(),  l2, 1, false);
+  arma::mat bmu2(bmu.begin(), l2, 1, false);
+  arma::mat P2  (P.begin(),   l2, l2, false);
+  
+  // Gradient buffer: l2 × m1, then transposed to m1 × l2 on return
+  Rcpp::NumericMatrix out(l2, m1);
+  arma::mat out2(out.begin(), l2, m1, false);
+  
+  for (int i = 0; i < m1; ++i) {
+    Rcpp::checkUserInterrupt();
+    if (progbar == 1) {
+      progress_bar(i, m1 - 1);
+      if (i == m1 - 1) Rcpp::Rcout << "" << std::endl;
+    }
+    
+    // Current grid point b[, i]
+    b2temp = b(Range(0, l2 - 1), Range(i, i));
+    arma::mat b2(b2temp.begin(), l2, 1, false);
+    
+    // Prior term: 0.5 * (b - mu)' P (b - mu)
+    bmu2 = b2 - mu2;
+    double prior = 0.5 * arma::as_scalar(bmu2.t() * P2 * bmu2);
+    
+    // Linear predictor and logistic transform
+    // xb2(j) = exp(-alpha - x b), xb(j) = p_j after the loop below
+    xb2 = exp(-alpha2 - x2 * b2);
+    
+    for (int j = 0; j < l1; ++j) {
+      xb(j) = 1.0 / (1.0 + xb(j));  // p_j = logistic(η_j)
+    }
+    
+    // f2: negative binomial log-likelihood (vectorized)
+    yy = -dbinom_glmb(y, wt, xb, /*lg=*/1);
+    qf(i) = std::accumulate(yy.begin(), yy.end(), prior);
+    
+    // f3 residuals: (p - y) * wt, reusing xb / xb2 buffer
+    for (int j = 0; j < l1; ++j) {
+      xb(j) = (xb(j) - y(j)) * wt(j);
+    }
+    
+    // Gradient: P (b - mu) + X' * residual
+    Rcpp::NumericMatrix::Column outcol = out(_, i);
+    arma::mat outtemp2(outcol.begin(), 1, l2, false);
+    outtemp2 = P2 * bmu2 + x2.t() * xb2;
+  }
+  
+  arma::mat grad = trans(out2);  // m1 × l2, matching f3_binomial_logit
+  
+  return Rcpp::List::create(
+    Rcpp::Named("qf")   = qf,    // same as f2_binomial_logit(...)
+    Rcpp::Named("grad") = grad   // same as f3_binomial_logit(...)
+  );
+}
+
+
+
 ///////////////////////// Probit Functions ///////////////////////////////////////
 
 NumericVector  f1_binomial_probit(NumericMatrix b,NumericVector y,NumericMatrix x,NumericVector alpha,NumericVector wt)
@@ -656,6 +743,95 @@ arma::mat  f3_binomial_probit(NumericMatrix b,NumericVector y, NumericMatrix x,N
     return trans(out2);      
 }
 
+
+Rcpp::List f2_f3_binomial_probit(
+    Rcpp::NumericMatrix  b,
+    Rcpp::NumericVector  y,
+    Rcpp::NumericMatrix  x,
+    Rcpp::NumericMatrix  mu,
+    Rcpp::NumericMatrix  P,
+    Rcpp::NumericVector  alpha,
+    Rcpp::NumericVector  wt,
+    int                  progbar
+) {
+  // Dimensions
+  int l1 = x.nrow();
+  int l2 = x.ncol();
+  int m1 = b.ncol();
+  
+  // Outputs (same storage order as original f3: we’ll transpose at the end)
+  Rcpp::NumericVector qf(m1);
+  Rcpp::NumericMatrix grad(l2, m1);
+  arma::mat grad2(grad.begin(), l2, m1, false);
+  
+  // Common Armadillo views
+  arma::mat x2(x.begin(),     l1, l2, false);
+  arma::mat mu2(mu.begin(),   l2, 1,  false);
+  arma::mat P2(P.begin(),     l2, l2, false);
+  arma::mat alpha2(alpha.begin(), l1, 1, false);
+  
+  // Temporaries matching original f2/f3
+  Rcpp::NumericMatrix b2temp(l2, 1);
+  Rcpp::NumericVector xb(l1);
+  arma::colvec xb2(xb.begin(), l1, false);
+  
+  Rcpp::NumericMatrix bmu(l2, 1);
+  arma::mat bmu2(bmu.begin(), l2, 1, false);
+  
+  Rcpp::NumericVector yy(l1);
+  Rcpp::NumericVector p1(l1);
+  Rcpp::NumericVector p2(l1);
+  Rcpp::NumericVector d1(l1);
+  
+  for (int i = 0; i < m1; i++) {
+    Rcpp::checkUserInterrupt();
+    if (progbar == 1) {
+      progress_bar(i, m1 - 1);
+      if (i == m1 - 1) Rcpp::Rcout << "" << std::endl;
+    }
+    
+    // --- extract b_i exactly as in originals ---
+    b2temp = b(Rcpp::Range(0, l2 - 1), Rcpp::Range(i, i));
+    arma::mat b2(b2temp.begin(), l2, 1, false);
+    
+    // --- prior term (shared by f2 and f3) ---
+    bmu2 = b2 - mu2;
+    double mahal = 0.5 * arma::as_scalar(bmu2.t() * P2 * bmu2);
+    
+    // =========================
+    // f2 part (matches f2_binomial_probit)
+    // =========================
+    xb2 = alpha2 + x2 * b2;          // eta
+    xb  = pnorm(xb, 0.0, 1.0);       // p = Φ(eta)
+    
+    yy   = -dbinom_glmb(y, wt, xb, true);
+    qf[i] = std::accumulate(yy.begin(), yy.end(), mahal);
+    
+    // =========================
+    // f3 part (matches f3_binomial_probit)
+    // =========================
+    xb2 = alpha2 + x2 * b2;          // eta again
+    p1  = pnorm(xb, 0.0, 1.0);       // Φ(eta)
+    p2  = pnorm(-xb, 0.0, 1.0);      // Φ(-eta)
+    d1  = dnorm(xb, 0.0, 1.0);       // φ(eta)
+    
+    for (int j = 0; j < l1; j++) {
+      xb(j) = (y(j) * d1(j) / p1(j) - (1 - y(j)) * d1(j) / p2(j)) * wt(j);
+    }
+    
+    // xb2 shares memory with xb, as in original f3
+    // This fills columns in the same order as original out2
+    grad2.col(i) = P2 * bmu2 - x2.t() * xb2;
+  }
+  
+  // Match legacy f3 return orientation (so EnvelopeEval sees 9 x 2, not 2 x 9)
+  arma::mat grad_out = grad2.t();
+  
+  return Rcpp::List::create(
+    Rcpp::Named("qf")   = qf,
+    Rcpp::Named("grad") = Rcpp::wrap(grad_out)
+  );
+}
 
 
 ///////////////////////// cLOGLOG FUNCTION ///////////////////////////////////////
@@ -937,6 +1113,99 @@ arma::mat  f3_binomial_cloglog(NumericMatrix b,NumericVector y, NumericMatrix x,
   
     return trans(out2);      
 }
+
+Rcpp::List f2_f3_binomial_cloglog(
+    Rcpp::NumericMatrix  b,
+    Rcpp::NumericVector  y,
+    Rcpp::NumericMatrix  x,
+    Rcpp::NumericMatrix  mu,
+    Rcpp::NumericMatrix  P,
+    Rcpp::NumericVector  alpha,
+    Rcpp::NumericVector  wt,
+    int                  progbar
+) {
+  // Dimensions
+  int l1 = x.nrow();
+  int l2 = x.ncol();
+  int m1 = b.ncol();
+  
+  // Outputs (same storage order as original f3: we’ll transpose at the end)
+  Rcpp::NumericVector qf(m1);
+  Rcpp::NumericMatrix grad(l2, m1);
+  arma::mat grad2(grad.begin(), l2, m1, false);
+  
+  // Common Armadillo views
+  arma::mat x2(x.begin(),     l1, l2, false);
+  arma::mat mu2(mu.begin(),   l2, 1,  false);
+  arma::mat P2(P.begin(),     l2, l2, false);
+  arma::mat alpha2(alpha.begin(), l1, 1, false);
+  
+  // Temporaries matching original f2/f3
+  Rcpp::NumericMatrix b2temp(l2, 1);
+  Rcpp::NumericVector xb(l1);
+  arma::colvec xb2(xb.begin(), l1, false);
+  
+  Rcpp::NumericMatrix bmu(l2, 1);
+  arma::mat bmu2(bmu.begin(), l2, 1, false);
+  
+  Rcpp::NumericVector yy(l1);
+  Rcpp::NumericVector p1(l1);
+  Rcpp::NumericVector p2(l1);
+  Rcpp::NumericVector atemp(l1);
+  
+  for (int i = 0; i < m1; i++) {
+    Rcpp::checkUserInterrupt();
+    if (progbar == 1) {
+      progress_bar(i, m1 - 1);
+      if (i == m1 - 1) Rcpp::Rcout << "" << std::endl;
+    }
+    
+    // --- extract b_i exactly as in originals ---
+    b2temp = b(Rcpp::Range(0, l2 - 1), Rcpp::Range(i, i));
+    arma::mat b2(b2temp.begin(), l2, 1, false);
+    
+    // --- prior term (shared by f2 and f3) ---
+    bmu2 = b2 - mu2;
+    double mahal = 0.5 * arma::as_scalar(bmu2.t() * P2 * bmu2);
+    
+    // =========================
+    // f2 part (matches f2_binomial_cloglog)
+    // =========================
+    xb2 = alpha2 + x2 * b2;          // eta
+    
+    for (int j = 0; j < l1; j++) {
+      xb(j) = 1.0 - std::exp(-std::exp(xb(j)));
+    }
+    
+    yy   = -dbinom_glmb(y, wt, xb, true);
+    qf[i] = std::accumulate(yy.begin(), yy.end(), mahal);
+    
+    // =========================
+    // f3 part (matches f3_binomial_cloglog)
+    // =========================
+    xb2 = alpha2 + x2 * b2;          // eta again
+    
+    for (int j = 0; j < l1; j++) {
+      p1(j)    = 1.0 - std::exp(-std::exp(xb(j)));
+      p2(j)    = std::exp(-std::exp(xb(j)));
+      atemp(j) = std::exp(xb(j) - std::exp(xb(j)));
+      xb(j)    = ( (y(j) * atemp(j) / p1(j)) -
+        ((1.0 - y(j)) * atemp(j) / p2(j)) ) * wt(j);
+    }
+    
+    // xb2 shares memory with xb, as in original f3
+    grad2.col(i) = P2 * bmu2 - x2.t() * xb2;
+  }
+  
+  // Match legacy f3 return orientation
+  arma::mat grad_out = grad2.t();
+  
+  return Rcpp::List::create(
+    Rcpp::Named("qf")   = qf,
+    Rcpp::Named("grad") = Rcpp::wrap(grad_out)
+  );
+}
+
 
 }  //famfuncs
 }  //glmbayes

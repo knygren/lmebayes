@@ -1,3 +1,38 @@
+/**
+ * @file progress_utils.h
+ * @brief Timing, timestamping, and console‑progress utilities used throughout glmbayes.
+ *
+ * @namespace glmbayes::progress
+ * @brief Lightweight helpers for wall‑clock timing, human‑readable duration
+ *        formatting, timestamp generation, and progress‑bar output during
+ *        long‑running computations.
+ *
+ * @section ImplementedIn
+ *   These declarations are implemented in:
+ *     - progress_utils.cpp        (progress_bar implementation)
+ *     - inline definitions within this header (timestamps, Timer, formatting)
+ *
+ * @section UsedBy
+ *   These functions are consumed by:
+ *     - envelope construction routines (EnvelopeBuild, EnvelopeDispersionBuild)
+ *     - simulation and sampling routines (Normal, Normal–Gamma, GLM samplers)
+ *     - R‑facing wrappers that report timing or progress to the console
+ *     - diagnostic and benchmarking utilities across the glmbayes backend
+ *
+ * @section Responsibilities
+ *   Provides:
+ *     - timestamp helpers (`now_hms`, `timestamp_cpp`) for consistent logging,
+ *     - a lightweight `Timer` struct for measuring elapsed wall‑clock time,
+ *     - duration formatting utilities (`format_hms` overloads),
+ *     - comma‑formatted integer printing for large iteration counts,
+ *     - a console progress bar (`progress_bar`) for iterative algorithms.
+ *
+ *   These utilities:
+ *     - avoid external dependencies and remain cross‑platform,
+ *     - use Rcpp::Rcout for seamless integration with R console output,
+ *     - are designed to be lightweight enough for use inside tight loops.
+ */
+
 #ifndef PROGRESS_UTILS_H
 #define PROGRESS_UTILS_H
 

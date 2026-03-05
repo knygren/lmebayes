@@ -1,18 +1,54 @@
 // -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*-
 
+/**
+ * @file Envelopefuncs.h
+ * @brief Core envelope–construction routines for glmbayes.
+ *
+ * @namespace glmbayes::env
+ * @brief Algorithms for grid construction, envelope building, evaluation,
+ *        sorting, and dispersion–aware refinement used in accept–reject
+ *        sampling for GLM Bayesian models.
+ *
+ * @section ImplementedIn
+ *   These declarations are implemented in:
+ *     - EnvelopeSize.cpp
+ *     - EnvelopeBuild.cpp
+ *     - EnvelopeEval.cpp
+ *     - EnvelopeBuild_Ind_Normal_Gamma.cpp
+ *     - EnvelopeDispersionBuild.cpp
+ *
+ * @section UsedBy
+ *   These functions are consumed by:
+ *     - EnvelopeOrchestrator.cpp (high‑level orchestration)
+ *     - rNormalGLM.cpp and rIndepNormalGammaReg.cpp (simulation routines)
+ *     - export_wrappers wrappers that expose envelope construction to the user
+ *
+ * @section Responsibilities
+ *   Provides the computational kernels for:
+ *     - grid sizing and initialization (EnvelopeSize)
+ *     - envelope construction for standard GLM families (EnvelopeBuild)
+ *     - envelope evaluation at grid points (EnvelopeEval)
+ *     - independent Normal–Gamma envelope variants (EnvelopeBuild_Ind_Normal_Gamma)
+ *     - dispersion‑aware envelope refinement (EnvelopeDispersionBuild)
+ *     - envelope sorting and UB‑list assembly (EnvelopeSort_cpp)
+ *     - grid and log‑probability updates (EnvelopeSet_Grid, EnvelopeSet_LogP)
+ *
+ *   These routines:
+ *     - assume validated inputs from R wrappers,
+ *     - operate on Armadillo matrices and Rcpp vectors,
+ *     - support optional OpenCL and parallel execution where applicable,
+ *     - form the backbone of accept–reject sampling in glmbayes.
+ */
+
+#ifndef GLMBAYES_ENV_H
+#define GLMBAYES_ENV_H
+
+
 // we only include RcppArmadillo.h which pulls Rcpp.h in for us
 #include "RcppArmadillo.h"
 
 using namespace Rcpp;
 
-// Dependencies:
-
-
-// 1) EnvelopeSize.cpp
-// 2) EnvelopeBuild.cpp
-// 3) EnvelopeEval.cpp
-// 4) EnvelopeBuild_Ind_Normal_Gamma.cpp
-// 5) EnvelopeDispersionBuild.cpp
 
 namespace glmbayes{
 
@@ -194,3 +230,4 @@ double UB2(double dispersion,
 
 
 
+#endif
