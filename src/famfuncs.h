@@ -173,6 +173,17 @@ arma::vec f2_poisson_rmat(const RMatrix<double>& b,       // candidate coefficie
 
 arma::mat  f3_poisson(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,int progbar);
 
+Rcpp::List f2_f3_poisson(
+    Rcpp::NumericMatrix  b,
+    Rcpp::NumericVector  y,
+    Rcpp::NumericMatrix  x,
+    Rcpp::NumericMatrix  mu,
+    Rcpp::NumericMatrix  P,
+    Rcpp::NumericVector  alpha,
+    Rcpp::NumericVector  wt,
+    int                  progbar = 0
+);
+
 //----------------- Gamma -------------------------------------------------
   
 NumericVector  f1_gamma(NumericMatrix b,NumericVector y,NumericMatrix x,NumericVector alpha,NumericVector wt);
@@ -187,6 +198,17 @@ arma::vec f2_gamma_rmat(const RMatrix<double>& b,       // candidate coefficient
                           int progbar );          // progress toggle
 
 arma::mat  f3_gamma(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt,int progbar);
+
+Rcpp::List f2_f3_gamma(
+    Rcpp::NumericMatrix  b,
+    Rcpp::NumericVector  y,
+    Rcpp::NumericMatrix  x,
+    Rcpp::NumericMatrix  mu,
+    Rcpp::NumericMatrix  P,
+    Rcpp::NumericVector  alpha,
+    Rcpp::NumericVector  wt,
+    int                  progbar = 0
+);
 
 //----------------- Gaussian -------------------------------------------------
   
@@ -213,6 +235,17 @@ arma::vec f2_gaussian_rmat_mat(const RcppParallel::RMatrix<double>& b,   // cand
 
 arma::mat  f3_gaussian(NumericMatrix b,NumericVector y, NumericMatrix x,NumericMatrix mu,NumericMatrix P,NumericVector alpha,NumericVector wt);
 
+
+Rcpp::List f2_f3_gaussian(
+    Rcpp::NumericMatrix  b,
+    Rcpp::NumericVector  y,
+    Rcpp::NumericMatrix  x,
+    Rcpp::NumericMatrix  mu,
+    Rcpp::NumericMatrix  P,
+    Rcpp::NumericVector  alpha,
+    Rcpp::NumericVector  wt,
+    int                  progbar = 0
+);
 
 //----------------- Inv_f3 --Gaussian -------------------------------------------------
   

@@ -323,40 +323,102 @@ Rcpp::List f2_f3_non_opencl(
   
   // --- quasibinomial family (reuse binomial kernels) ---
   else if (family == "quasibinomial" && link == "logit") {
-    NegLL  = f2_binomial_logit(b, y, x, mu, P, alpha, wt, progbar);
-    cbars2 = f3_binomial_logit(b, y, x, mu, P, alpha, wt, progbar);
+    // NegLL  = f2_binomial_logit(b, y, x, mu, P, alpha, wt, progbar);
+    // cbars2 = f3_binomial_logit(b, y, x, mu, P, alpha, wt, progbar);
+    
+    f2_f3_list = f2_f3_binomial_logit(b, y, x, mu, P, alpha, wt, progbar);
+    
+    NegLL  = Rcpp::as<Rcpp::NumericVector>(f2_f3_list["qf"]);
+    cbars2 = Rcpp::as<arma::mat>(f2_f3_list["grad"]);
+    
   }
   else if (family == "quasibinomial" && link == "probit") {
-    NegLL  = f2_binomial_probit(b, y, x, mu, P, alpha, wt, progbar);
-    cbars2 = f3_binomial_probit(b, y, x, mu, P, alpha, wt, progbar);
+    // NegLL  = f2_binomial_probit(b, y, x, mu, P, alpha, wt, progbar);
+    // cbars2 = f3_binomial_probit(b, y, x, mu, P, alpha, wt, progbar);
+    
+    f2_f3_list = f2_f3_binomial_probit(b, y, x, mu, P, alpha, wt, progbar);
+    
+    NegLL  = Rcpp::as<Rcpp::NumericVector>(f2_f3_list["qf"]);
+    cbars2 = Rcpp::as<arma::mat>(f2_f3_list["grad"]);
+    
   }
   else if (family == "quasibinomial" && link == "cloglog") {
-    NegLL  = f2_binomial_cloglog(b, y, x, mu, P, alpha, wt, progbar);
-    cbars2 = f3_binomial_cloglog(b, y, x, mu, P, alpha, wt, progbar);
+    // NegLL  = f2_binomial_cloglog(b, y, x, mu, P, alpha, wt, progbar);
+    // cbars2 = f3_binomial_cloglog(b, y, x, mu, P, alpha, wt, progbar);
+    
+    f2_f3_list = f2_f3_binomial_cloglog(b, y, x, mu, P, alpha, wt, progbar);
+    
+    NegLL  = Rcpp::as<Rcpp::NumericVector>(f2_f3_list["qf"]);
+    cbars2 = Rcpp::as<arma::mat>(f2_f3_list["grad"]);
+    
   }
   
   // --- poisson family ---
   else if (family == "poisson") {
-    NegLL  = f2_poisson(b, y, x, mu, P, alpha, wt, progbar);
-    cbars2 = f3_poisson(b, y, x, mu, P, alpha, wt, progbar);
-  }
+    // NegLL  = f2_poisson(b, y, x, mu, P, alpha, wt, progbar);
+    // cbars2 = f3_poisson(b, y, x, mu, P, alpha, wt, progbar);
+
+    f2_f3_list = f2_f3_poisson(b, y, x, mu, P, alpha, wt, progbar);
+    
+    NegLL  = Rcpp::as<Rcpp::NumericVector>(f2_f3_list["qf"]);
+    cbars2 = Rcpp::as<arma::mat>(f2_f3_list["grad"]);
+    
+    // Rcpp::Rcout << "Legacy NegLL: " << NegLL << "\n";
+    // Rcpp::Rcout << "New NegLL:    " << NegLL_temp << "\n";
+    // 
+    // Rcpp::Rcout << "Legacy cbars2:\n" << cbars2 << "\n";
+    // Rcpp::Rcout << "New cbars2:\n" << cbars2_temp << "\n";
+    
+      }
   
   // --- quasipoisson family (reuse poisson kernels) ---
   else if (family == "quasipoisson") {
-    NegLL  = f2_poisson(b, y, x, mu, P, alpha, wt, progbar);
-    cbars2 = f3_poisson(b, y, x, mu, P, alpha, wt, progbar);
+    // NegLL  = f2_poisson(b, y, x, mu, P, alpha, wt, progbar);
+    // cbars2 = f3_poisson(b, y, x, mu, P, alpha, wt, progbar);
+    // 
+    f2_f3_list = f2_f3_poisson(b, y, x, mu, P, alpha, wt, progbar);
+    
+    NegLL  = Rcpp::as<Rcpp::NumericVector>(f2_f3_list["qf"]);
+    cbars2 = Rcpp::as<arma::mat>(f2_f3_list["grad"]);
+    
+    
   }
   
   // --- gamma family ---
   else if (family == "Gamma") {
-    NegLL  = f2_gamma(b, y, x, mu, P, alpha, wt, progbar);
-    cbars2 = f3_gamma(b, y, x, mu, P, alpha, wt, progbar);
-  }
+    // NegLL  = f2_gamma(b, y, x, mu, P, alpha, wt, progbar);
+    // cbars2 = f3_gamma(b, y, x, mu, P, alpha, wt, progbar);
+
+    f2_f3_list = f2_f3_gamma(b, y, x, mu, P, alpha, wt, progbar);
+    
+    NegLL  = Rcpp::as<Rcpp::NumericVector>(f2_f3_list["qf"]);
+    cbars2 = Rcpp::as<arma::mat>(f2_f3_list["grad"]);
+    
+    // Rcpp::Rcout << "Legacy NegLL: " << NegLL << "\n";
+    // Rcpp::Rcout << "New NegLL:    " << NegLL_temp << "\n";
+    // 
+    // Rcpp::Rcout << "Legacy cbars2:\n" << cbars2 << "\n";
+    // Rcpp::Rcout << "New cbars2:\n" << cbars2_temp << "\n";
+
+        
+      }
   
   // --- gaussian family ---
   else if (family == "gaussian") {
-    NegLL  = f2_gaussian(b, y, x, mu, P, alpha, wt);
-    cbars2 = f3_gaussian(b, y, x, mu, P, alpha, wt);
+    // NegLL  = f2_gaussian(b, y, x, mu, P, alpha, wt);
+    // cbars2 = f3_gaussian(b, y, x, mu, P, alpha, wt);
+    
+    f2_f3_list = f2_f3_gaussian(b, y, x, mu, P, alpha, wt, progbar);
+    
+    NegLL  = Rcpp::as<Rcpp::NumericVector>(f2_f3_list["qf"]);
+    cbars2 = Rcpp::as<arma::mat>(f2_f3_list["grad"]);
+    
+    // Rcpp::Rcout << "Legacy NegLL: " << NegLL << "\n";
+    // Rcpp::Rcout << "New NegLL:    " << NegLL_temp << "\n";
+    // 
+    // Rcpp::Rcout << "Legacy cbars2:\n" << cbars2 << "\n";
+    // Rcpp::Rcout << "New cbars2:\n" << cbars2_temp << "\n";
+    
   }
   
   else {

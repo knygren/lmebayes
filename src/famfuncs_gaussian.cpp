@@ -5,10 +5,14 @@
 #include "nmath_local.h"
 #include "dpq_local.h"
 #include "famfuncs.h"
+#include "progress_utils.h"
+
 
 using namespace Rcpp;
 using namespace RcppParallel;
 using namespace glmbayes::fam;
+using namespace glmbayes::progress;
+
 
 
 namespace glmbayes{
@@ -354,7 +358,90 @@ arma::mat  f3_gaussian(NumericMatrix b,NumericVector y, NumericMatrix x,NumericM
   return trans(out2);      
 }
 
-
+Rcpp::List f2_f3_gaussian(
+    Rcpp::NumericMatrix  b,
+    Rcpp::NumericVector  y,
+    Rcpp::NumericMatrix  x,
+    Rcpp::NumericMatrix  mu,
+    Rcpp::NumericMatrix  P,
+    Rcpp::NumericVector  alpha,
+    Rcpp::NumericVector  wt,
+    int                  progbar
+) {
+  using Rcpp::Range;
+  
+  int l1 = x.nrow();   // observations
+  int l2 = x.ncol();   // predictors
+  int m1 = b.ncol();   // grid points
+  
+  // Outputs
+  Rcpp::NumericVector  qf(m1);
+  Rcpp::NumericMatrix  grad(l2, m1);   // internal: l2 × m1 (cols = gridpoints)
+  arma::mat            grad2(grad.begin(), l2, m1, false);
+  
+  // Armadillo views
+  arma::mat x2    (x.begin(),     l1, l2, false);
+  arma::mat mu2   (mu.begin(),    l2, 1,  false);
+  arma::mat P2    (P.begin(),     l2, l2, false);
+  arma::mat alpha2(alpha.begin(), l1, 1,  false);
+  arma::colvec y2 (y.begin(),     l1, 1,  false);
+  arma::colvec wt2(wt.begin(),    l1, 1,  false);
+  
+  // Temporary buffers
+  Rcpp::NumericVector xb(l1);
+  arma::colvec        xb2(xb.begin(), l1, false);
+  
+  Rcpp::NumericMatrix bmu(l2, 1);
+  arma::mat           bmu2(bmu.begin(), l2, 1, false);
+  
+  // invwt = 1/sqrt(wt) as in original f2_gaussian
+  Rcpp::NumericVector invwt(l1);
+  for (int j = 0; j < l1; ++j) {
+    invwt[j] = 1.0 / std::sqrt(wt[j]);
+  }
+  
+  Rcpp::NumericVector yy(l1);
+  
+  for (int i = 0; i < m1; ++i) {
+    Rcpp::checkUserInterrupt();
+    if (progbar == 1) {
+      glmbayes::progress::progress_bar(i, m1 - 1);
+      if (i == m1 - 1) Rcpp::Rcout << "" << std::endl;
+    }
+    
+    // Current beta column (l2 × 1)
+    Rcpp::NumericMatrix b2temp = b(Range(0, l2 - 1), Range(i, i));
+    arma::mat b_i(b2temp.begin(), l2, 1, false);
+    
+    // Prior term: 0.5 * (b - mu)^T P (b - mu)
+    bmu2 = b_i - mu2;
+    double mahal = 0.5 * arma::as_scalar(bmu2.t() * P2 * bmu2);
+    
+    // Linear predictor: xb = alpha + X b
+    xb2 = alpha2 + x2 * b_i;
+    
+    // f2: negative log-likelihood (identical to original f2_gaussian)
+    yy = -dnorm_glmb(y, xb, invwt, true);
+    qf[i] = std::accumulate(yy.begin(), yy.end(), mahal);
+    
+    // f3: gradient (identical algebra to original f3_gaussian)
+    arma::colvec xb_shift = xb2 - y2;          // alpha + Xb - y
+    arma::colvec dterm    = wt2 % xb_shift;    // diag(wt) * (alpha + Xb - y)
+    
+    arma::colvec gcol = P2 * bmu2 + x2.t() * dterm;
+    
+    // store as column i (internal l2 × m1)
+    grad2.col(i) = gcol;
+  }
+  
+  // Match legacy f3 return orientation (trans(out2))
+  arma::mat grad_out = grad2.t();   // m1 × l2
+  
+  return Rcpp::List::create(
+    Rcpp::Named("qf")   = qf,
+    Rcpp::Named("grad") = Rcpp::wrap(grad_out)
+  );
+}
 
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadillo.h>
