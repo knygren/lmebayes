@@ -234,9 +234,6 @@ Rcpp::List glmb_Standardize_Model(
     // from Prior_Setup, P3 is diagonal, so P5 equals I and downstream use of P5 vs I cannot be
     // distinguished unless a test prior that yields non-diagonal P3 (or scale < 0.5) is used.
 
-    // TEMPORARY: validation printout of P5 (part of prior shifted to modified log-likelihood)
-    P5.print("[glmb_Standardize_Model] P5 (prior part in modified log-likelihood)");
-    
     return Rcpp::List::create(
       Rcpp::Named("bstar2")=b5,       // Transformed posterior mode (untransposed also used)
       Rcpp::Named("A")=A4_1,                 // Precision for Standardized data precision 

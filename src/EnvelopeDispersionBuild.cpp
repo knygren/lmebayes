@@ -672,9 +672,6 @@ Rcpp::List bound_rss_over_dispersion(
   arma::vec Pmu     = cache["Pmu"];
   Pmat = 0.5 * (Pmat + Pmat.t());
 
-  // TEMPORARY: validation printout (should match P5 from glmb_Standardize_Model)
-  Pmat.print("[bound_rss_over_dispersion] Pmat (prior part in modified log-likelihood)");
-
   bool dbg = verbose;
   if (dbg && !R_finite(RSS_ML)) Rcout << "[bound_rss:VALIDATE] RSS_ML non-finite\n";
 
@@ -985,13 +982,12 @@ Rcpp::List rss_face_quadratic_sum_internal(
 
 // ---------------------------------------------------------------------
 // bound_ub2_over_dispersion
-// Computes a closed-form lower bound for UB2 per face using the naive
-// minimization (P=0 decomposition). No optimization dependency.
-// Returns disp_min_ub2 and ub2_min (same shape as minimizer output).
+// Evaluate UB2 at the dispersion endpoints [low, upp] for each face and
+// return the per-face minimum and the matching dispersion. No quadratic
+// algebra, no dependency on UB2 minimization.
 // ---------------------------------------------------------------------
 Rcpp::List bound_ub2_over_dispersion(
     int gs,
-    int l1,
     double low,
     double upp,
     const Rcpp::List& cache,
@@ -1000,14 +996,8 @@ Rcpp::List bound_ub2_over_dispersion(
     const Rcpp::NumericMatrix& x,
     const Rcpp::NumericVector& alpha,
     const Rcpp::NumericVector& wt,
-    double rss_min_global,
-    const Rcpp::NumericVector& rss_min_parallel,
-    double RSS_ML,
-    int RSS_Min_Type,
-    int UB2_Min_Type,
-    bool verbose,
-    const Rcpp::List& rss_bound_res
-) {
+    double rss_min_global
+    ) {
   using namespace Rcpp;
   using namespace arma;
 
@@ -1016,83 +1006,65 @@ Rcpp::List bound_ub2_over_dispersion(
   NumericVector disp_min_ub2(gs);
   NumericVector ub2_min(gs);
 
-  arma::mat base_A  = cache["base_A"];
-  arma::vec base_B0 = cache["base_B0"];
-  arma::mat Pmat    = cache["Pmat"];
-  arma::vec Pmu     = cache["Pmu"];
+  // Local selector for UB2 endpoint method:
+  // 1 = UB2() via rss_face_at_disp (current default)
+  // 2 = RSS-based quadratic form using M_min / M_max at low/upp
+  int UB_Min_Method = 2;
+
+  // Shared matrices (extracted once; only used when UB_Min_Method == 2)
+  mat base_A  = cache["base_A"];
+  vec base_B0 = cache["base_B0"];
+  mat Pmat    = cache["Pmat"];
+  vec Pmu     = cache["Pmu"];
   Pmat = 0.5 * (Pmat + Pmat.t());
 
-  // TEMPORARY: validation printout (should match P5 from glmb_Standardize_Model)
-  Pmat.print("[bound_ub2_over_dispersion] Pmat (prior part in modified log-likelihood)");
+  vec beta_hat;
+  mat M_min, M_max;
+  double RSS_ML_local = 0.0;
 
-  arma::vec beta_hat = -arma::solve(base_A, base_B0);
-  arma::mat Q = base_A;
-  arma::mat Qinv = arma::inv_sympd(Q);
+  if (UB_Min_Method == 2) {
+    M_min = Rcpp::as<mat>(cache["M_min"]);
+    M_max = Rcpp::as<mat>(cache["M_max"]);
 
-  arma::mat A_max = Pmat + base_A / low;
-  A_max = 0.5 * (A_max + A_max.t());
-  arma::mat Ainv_max = arma::inv_sympd(A_max);
-  arma::mat M_min = Ainv_max.t() * base_A * Ainv_max;
-  M_min = 0.5 * (M_min + M_min.t());
-  double C = arma::eig_sym(M_min)(0);
-  double m_min_sq = (rss_min_global - RSS_ML) / C;
-
-  double t_min = 1.0 / upp;
-  double t_max = 1.0 / low;
-  double kappa_global = arma::as_scalar((-base_B0 - base_A * beta_hat).t() * Qinv * (-base_B0 - base_A * beta_hat)) - C * m_min_sq;
-
-  if (verbose && gs <= 81) {
-    Rcout << "[UB2:validation] low=" << low << " upp=" << upp << " t_min=" << t_min << " t_max=" << t_max << " kappa=" << kappa_global << "\n";
-    Rcout << "[UB2:validation] face | t_star | d_star | UB2_star | UB2_low | UB2_upp | UB2_star_new\n";
+    beta_hat      = -solve(base_A, base_B0);
+    mat X         = Rcpp::as<mat>(x);
+    vec yv        = Rcpp::as<vec>(y);
+    vec alphav    = Rcpp::as<vec>(alpha);
+    vec wv        = Rcpp::as<vec>(wt);
+    vec resid_ml  = yv - X * beta_hat - alphav;
+    RSS_ML_local  = as_scalar(resid_ml.t() * (wv % resid_ml));
   }
 
   for (int j = 0; j < gs; ++j) {
-    arma::vec cbar_j_vec(p);
-    for (int r = 0; r < p; ++r) cbar_j_vec(r) = cbars(j, r);
-    arma::vec b_j = cbar_j_vec - Pmu - Pmat * beta_hat;
-    double zeta = arma::as_scalar(b_j.t() * Qinv * b_j);
-    double t_star;
-    if (kappa_global <= 0.0) {
-      t_star = t_max;
-    } else {
-      double t_crit = std::sqrt(zeta / kappa_global);
-      if (t_crit < t_min) {
-        t_star = t_min;
-      } else if (t_crit > t_max) {
-        t_star = t_max;
-      } else {
-        t_star = t_crit;
-      }
-    }
-
-    double d_star = 1.0 / t_star;
     NumericVector cbars_j(p);
     for (int r = 0; r < p; ++r) cbars_j[r] = cbars(j, r);
-    double ub2_star = UB2(d_star, cache, cbars_j, y, x, alpha, wt, rss_min_global);
 
-    // Evaluate UB2 at the dispersion interval endpoints
-    double ub2_low = UB2(low, cache, cbars_j, y, x, alpha, wt, rss_min_global);
-    double ub2_upp = UB2(upp, cache, cbars_j, y, x, alpha, wt, rss_min_global);
-    double ub2_star_new = std::min(ub2_low, ub2_upp);
+    double ub2_low = NA_REAL;
+    double ub2_upp = NA_REAL;
 
-    // For bounding, use the best endpoint and record the matching dispersion
+    if (UB_Min_Method == 1) {
+      // Method 1: original UB2 helper
+      ub2_low = UB2(low, cache, cbars_j, y, x, alpha, wt, rss_min_global);
+      ub2_upp = UB2(upp, cache, cbars_j, y, x, alpha, wt, rss_min_global);
+    } else {
+      // Method 2: RSS-based quadratic form with M_min / M_max
+      vec cbar_j_vec(p);
+      for (int r = 0; r < p; ++r) cbar_j_vec(r) = cbars(j, r);
+      vec b_j = cbar_j_vec - Pmu - Pmat * beta_hat;
+
+      double rss_low_approx = RSS_ML_local + as_scalar(b_j.t() * M_min * b_j);
+      double rss_upp_approx = RSS_ML_local + as_scalar(b_j.t() * M_max * b_j);
+
+      ub2_low = (0.5 / low) * (rss_low_approx - rss_min_global);
+      ub2_upp = (0.5 / upp) * (rss_upp_approx - rss_min_global);
+    }
+
     if (ub2_low <= ub2_upp) {
       disp_min_ub2[j] = low;
       ub2_min[j]      = ub2_low;
     } else {
       disp_min_ub2[j] = upp;
       ub2_min[j]      = ub2_upp;
-    }
-
-    if (verbose && gs <= 81) {
-      Rcout << "  " << j
-            << " | " << t_star
-            << " | " << d_star
-            << " | " << ub2_star
-            << " | " << ub2_low
-            << " | " << ub2_upp
-            << " | " << ub2_star_new
-            << "\n";
     }
   }
 
@@ -1678,8 +1650,8 @@ List EnvelopeDispersionBuild(
   // --- NEW: selector for RSS source ---
   // 1 = use minimization (default)
   // 2 = use RSS_ML (skip minimization)
-  int RSS_Min_Type = 1;  // change manually for testing
-  int UB2_Min_Type = 1;  // change manually for testing
+  // int RSS_Min_Type = 1;  // change manually for testing (currently unused: RSS minimization disabled)
+  // int UB2_Min_Type = 1;  // change manually for testing (currently unused: UB2 minimization disabled)
   
   double n_w = 0.0;
   for (int i = 0; i < wt.size(); ++i)    n_w += wt[i];
@@ -1721,7 +1693,7 @@ List EnvelopeDispersionBuild(
   NumericMatrix thetabars = Env["thetabars"];  // gs x l1 (grid of tangencies)
   NumericVector logP1     = Env["logP"];       // length gs
   int gs = cbars.nrow();
-  int l1 = cbars.ncol();
+  // int l1 = cbars.ncol();  // unused after disabling UB2 minimization
   
   /// Step 3B: Precompute elements for finding inverse function for cbars
   
@@ -1757,11 +1729,50 @@ List EnvelopeDispersionBuild(
     arma::vec resid = yv - X * beta_hat - alphav;
     RSS_ML = arma::as_scalar(resid.t() * (wv % resid));
   }
-  
+
+  // Step 3B1.5: Precompute A_max, M_min, A_min, M_max once so they can be
+  // shared by both RSS and UB2 bounding logic (even though the current
+  // implementations still compute their own versions internally).
+  {
+    arma::mat base_A  = cache["base_A"];
+    arma::mat Pmat    = cache["Pmat"];
+    Pmat = 0.5 * (Pmat + Pmat.t());
+
+    // A_max and M_min at d = low
+    arma::mat A_max = Pmat + base_A / low;
+    A_max = 0.5 * (A_max + A_max.t());
+    arma::mat Ainv_max = arma::inv_sympd(A_max);
+    arma::mat M_min = Ainv_max.t() * base_A * Ainv_max;
+    M_min = 0.5 * (M_min + M_min.t());
+
+    // A_min and M_max at d = upp
+    arma::mat A_min = Pmat + base_A / upp;
+    A_min = 0.5 * (A_min + A_min.t());
+    arma::mat Ainv_min = arma::inv_sympd(A_min);
+    arma::mat M_max = Ainv_min.t() * base_A * Ainv_min;
+    M_max = 0.5 * (M_max + M_max.t());
+
+    // Store in cache for potential reuse by bounding functions
+    cache["A_max"] = A_max;
+    cache["M_min"] = M_min;
+    cache["A_min"] = A_min;
+    cache["M_max"] = M_max;
+  }
+
   // Step 3B2: Closed-form RSS_min bound (dispersion-aware ball)
+  if (verbose) {
+    Rcpp::Rcout << "[EnvelopeDispersionBuild:bound_rss] Entering: "
+                << glmbayes::progress::timestamp_cpp()
+                << "\n";
+  }
   Rcpp::List rss_bound_res = bound_rss_over_dispersion(
     cache, Env, RSS_ML, shape2, rate3, low, upp, verbose
   );
+  if (verbose) {
+    Rcpp::Rcout << "[EnvelopeDispersionBuild:bound_rss] Exiting: "
+                << glmbayes::progress::timestamp_cpp()
+                << "\n";
+  }
   Rcpp::NumericVector rss_bound_parallel;
   bool bound_ok = false;
   if (rss_bound_res.containsElementNamed("ok") && Rcpp::as<bool>(rss_bound_res["ok"])) {
@@ -1900,18 +1911,11 @@ List EnvelopeDispersionBuild(
                   << glmbayes::progress::timestamp_cpp()
                   << "\n";
   }
-
   Rcpp::List bound_res = bound_ub2_over_dispersion(
-    gs, l1, low, upp,
+    gs, low, upp,
     cache, cbars,
     y, x, alpha, wt,
-    rss_min_global,
-    rss_min_parallel,
-    RSS_ML,
-    RSS_Min_Type,
-    UB2_Min_Type,
-    verbose,
-    rss_bound_res
+    rss_min_global
   );
 
   if (verbose) {
@@ -1922,13 +1926,16 @@ List EnvelopeDispersionBuild(
 
   NumericVector disp_min_ub2_bound = bound_res["disp_min_ub2"];
 
+  // UB2 minimization over dispersion is currently disabled: the endpoint
+  // evaluation in bound_ub2_over_dispersion is used as the UB2 source.
+  // The block below (call to minimize_ub2_over_dispersion and use of its
+  // outputs) is kept for potential future re‑enablement.
+  /*
   if (verbose) {
     Rcpp::Rcout << "[EnvelopeDispersionBuild:minimize_ub2] Entering: "
-                  << glmbayes::progress::timestamp_cpp()
-                  << "\n";
+                << glmbayes::progress::timestamp_cpp()
+                << "\n";
   }
-  // Run UB2 minimization only for diagnostics / comparison; the *bounding*
-  // result from bound_ub2_over_dispersion will be used downstream.
   Rcpp::List ub2_res = minimize_ub2_over_dispersion(
     gs, l1, low, upp,
     cache, cbars,
@@ -1942,32 +1949,19 @@ List EnvelopeDispersionBuild(
     rss_bound_res,
     disp_min_ub2_bound
   );
-
-  // Results from minimization (for diagnostics only)
   NumericVector ub2_min_from_minimize      = ub2_res["ub2_min"];
   NumericVector disp_min_ub2_from_minimize = ub2_res["disp_min_ub2"];
+  if (verbose) {
+    Rcpp::Rcout << "[EnvelopeDispersionBuild:minimize_ub2] Exiting: "
+                << glmbayes::progress::timestamp_cpp()
+                << "\n";
+  }
+  */
 
   // Results from bounding (used downstream)
   NumericVector ub2_min_bound = bound_res["ub2_min"];
   NumericVector disp_min_ub2  = disp_min_ub2_bound;
   NumericVector ub2_min       = ub2_min_bound;
-
-  if (verbose && gs <= 81) {
-    Rcpp::Rcout << "[UB2:comparison] face | d_bound | d_min | UB2_bound | UB2_min | d_diff | UB2_diff\n";
-    for (int j = 0; j < gs; ++j) {
-      double d_diff   = disp_min_ub2_bound[j] - disp_min_ub2_from_minimize[j];
-      double ub2_diff = ub2_min_bound[j]      - ub2_min_from_minimize[j];
-      Rcpp::Rcout << "  " << j << " | " << disp_min_ub2_bound[j] << " | " << disp_min_ub2_from_minimize[j]
-                  << " | " << ub2_min_bound[j] << " | " << ub2_min_from_minimize[j]
-                  << " | " << d_diff << " | " << ub2_diff << "\n";
-    }
-  }
-
-  if (verbose) {
-    Rcpp::Rcout << "[EnvelopeDispersionBuild:minimize_ub2] Exiting: "
-                  << glmbayes::progress::timestamp_cpp()
-                  << "\n";
-  }
 
     if (verbose) {
       
