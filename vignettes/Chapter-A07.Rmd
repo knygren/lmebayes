@@ -716,6 +716,182 @@ the quadratic form \(\|\beta_j(d) - \hat{\beta}\|_2^2\) equals \((r^{*}_j)^{T} \
 Let \(RSS_{ML} = RSS(\hat{\beta})\).
 
 
+**Remark: Form for \(\tilde{M}(\cdot)\).**
+
+The function \( \tilde{M}(t)\) \) can we re-expressed as \( \tilde{M}(t)=Q^{-1/2}(Q^{-1/2}PQ^{-1/2}+tI)^{-2}Q^{-1/2} \). Moreover under the default prior specification, the standardization procedure ensures that \(P=I\) so in that case \(\tilde{M}(t)=Q^{-1/2}(Q^{-1}+tI)^{-2}Q^{-1/2} \).
+
+Now, define a new function \( \tilde{\mathrm{UB2}}_{j}(\cdot) \) by \( \tilde{\mathrm{UB2}}_{j}(t)=UB2_{j}(1/t) \). For that function, we now have
+
+
+**Remark: First and second order derivatives for \(\tilde{UB2}_{j}(\cdot)\) (general \(Q\), \(P\)).**
+
+Reparameterize with \(t = 1/d\), so \(d \in [\mathrm{low},\,\mathrm{upp}]\) corresponds to
+\(t \in [1/\mathrm{upp},\,1/\mathrm{low}]\), and define
+\(\tilde{UB2}_{j}(t) = UB2_{j}(1/t)\). Using Proposition 2 and
+\(\tilde{M}(t) = A(t)^{-1} Q\, A(t)^{-1}\), \(A(t) = P + t\,Q\), we can write
+\[
+\tilde{UB2}_{j}(t) = \frac{t}{2}\bigl(g_j(t) - \Delta\bigr),
+\]
+where \(\Delta = RSS_{\mathrm{Min}} - RSS_{ML} \ge 0\) and
+\(g_j(t) = (r^{*}_j)^{T} \tilde{M}(t)\, r^{*}_j\).
+
+Let \(K = Q^{-1/2} P Q^{-1/2}\) and \(v_j = Q^{-1/2} r^{*}_j\). Then
+\(\tilde{M}(t) = Q^{-1/2}(K + tI)^{-2} Q^{-1/2}\), so
+\(g_j(t) = v_j^{T}(Q^{-1/2} P Q^{-1/2} + tI)^{-2} v_j\), and
+\[
+g_j'(t) = -2\, v_j^{T}(Q^{-1/2} P Q^{-1/2} + tI)^{-3} v_j,
+\qquad
+g_j''(t) = 6\, v_j^{T}(Q^{-1/2} P Q^{-1/2} + tI)^{-4} v_j.
+\]
+
+The **first derivative** is
+
+\[
+\tilde{UB2}_{j}'(t)
+= \frac{1}{2}\Bigl(
+  v_j^{T}(Q^{-1/2} P Q^{-1/2} + tI)^{1/2}(Q^{-1/2} P Q^{-1/2} + tI)^{-3}(Q^{-1/2} P Q^{-1/2} + tI)^{1/2} v_j - \Delta\Bigr)
+- t\, v_j^{T}(Q^{-1/2} P Q^{-1/2} + tI)^{-3} v_j.
+\]
+
+The first derivative equals zero when
+\[
+t^{*}
+= \frac{
+  v_j^{T}\bigl(Q^{-1/2} P Q^{-1/2} + t^{*}I\bigr)^{-2}v_j - \Delta
+}{
+  2\, v_j^{T}\bigl(Q^{-1/2} P Q^{-1/2} + t^{*}I\bigr)^{-3}v_j
+}.
+\]
+
+When \(\Delta > 0\), the numerator is strictly less than \(v_j^{T}\bigl(Q^{-1/2} P Q^{-1/2} + t^{*}I\bigr)^{-2}v_j\), so dividing by the positive denominator gives
+\[
+\frac{ v_j^{T}\bigl(Q^{-1/2} P Q^{-1/2} + t^{*}I\bigr)^{-2}v_j }{ v_j^{T}\bigl(Q^{-1/2} P Q^{-1/2} + t^{*}I\bigr)^{-3}v_j } > 2t^{*}.
+\]
+To see that the left-hand side is a weighted average of the eigenvalues of \(Q^{-1/2} P Q^{-1/2} + t^{*}I\), write \(K = Q^{-1/2} P Q^{-1/2}\) and let \(\mu_1,\ldots,\mu_r\) be the eigenvalues of \(K + t^{*}I\) (so \(\mu_i = \lambda_i + t^{*}\) for eigenvalues \(\lambda_i\) of \(K\)). In the eigenbasis of \(K\), \(v_j^{T}(K+t^{*}I)^{-2}v_j = \sum_i w_i \mu_i^{-2}\) and \(v_j^{T}(K+t^{*}I)^{-3}v_j = \sum_i w_i \mu_i^{-3}\), where \(w_i\) are the squared components of \(v_j\) in that basis (so \(w_i \ge 0\), \(\sum_i w_i = \|v_j\|^2\)). Then
+\[
+\frac{ \sum_i w_i \mu_i^{-2} }{ \sum_i w_i \mu_i^{-3} }
+= \frac{ \sum_i (w_i \mu_i^{-3})\,\mu_i }{ \sum_i w_i \mu_i^{-3} }
+= \sum_i \rho_i \mu_i,
+\qquad
+\rho_i = \frac{ w_i \mu_i^{-3} }{ \sum_k w_k \mu_k^{-3} } \ge 0,\quad \sum_i \rho_i = 1,
+\]
+so the ratio is a convex combination of the \(\mu_i\). Hence it lies between \(\min_i \mu_i = \lambda_{\min}(K) + t^{*}\) and \(\max_i \mu_i = \lambda_{\max}(K) + t^{*}\), and in particular is at least \(\lambda_{\min}\bigl(Q^{-1/2} P Q^{-1/2}\bigr) + t^{*}\). Thus \(\lambda_{\min}\bigl(Q^{-1/2} P Q^{-1/2}\bigr) + t^{*} > 2t^{*}\), so \(t^{*} < \lambda_{\min}\bigl(Q^{-1/2} P Q^{-1/2}\bigr)\), i.e. \(t^{*} I \prec Q^{-1/2} P Q^{-1/2}\) (in the Loewner order). When \(\Delta = 0\) the same argument yields \(t^{*} I \preceq Q^{-1/2} P Q^{-1/2}\).
+
+If \(P = k Q\) for some positive constant \(k\), then \(Q^{-1/2} P Q^{-1/2} + t^{*}I = (k+t^{*})I\), so the numerator is \((k+t^{*})^{-2}\|v_j\|^2 - \Delta\) and the denominator is \(2\,(k+t^{*})^{-3}\|v_j\|^2\), giving
+\[
+t^{*}
+= \frac{(k+t^{*})\|v_j\|^2 - \Delta\,(k+t^{*})^{3}}{2\,\|v_j\|^2}
+= \frac{k+t^{*}}{2} - \frac{\Delta\,(k+t^{*})^{3}}{2\,\|v_j\|^2}.
+\]
+
+which is equivalent to
+
+\[
+t^{*} = k - \frac{\Delta\,(k+t^{*})^{3}}{\|v_j\|^2} \lt k
+\]
+
+
+
+In the special case \(\Delta = 0\) (e.g. when \(RSS_{\mathrm{Min}} = RSS_{ML}\)), this reduces to \(t^{*} = (k+t^{*})/2\), hence \(t^{*} = k\).
+
+The **second derivative** is
+
+
+\[
+\tilde{UB2}_{j}''(t)
+= v_j^{T}\Bigl(
+  3t\,(Q^{-1/2} P Q^{-1/2} + tI)^{-4}
+  - 2\,(Q^{-1/2} P Q^{-1/2}+tI)^{1/2}(Q^{-1/2} P Q^{-1/2} + tI)^{-4}(Q^{-1/2} P Q^{-1/2}+tI)^{1/2}
+\Bigr) v_j.
+\]
+
+which is equal to zero when 
+
+\[
+t^{*}
+= \frac{2}{3}
+  \cdot
+  \frac{
+    v_j^{T}\bigl(Q^{-1/2} P Q^{-1/2} + t^{*}I\bigr)^{-3}v_j
+  }{
+    v_j^{T}\bigl(Q^{-1/2} P Q^{-1/2} + t^{*}I\bigr)^{-4}v_j
+  }.
+\]
+
+At such a \(t^{*}\), the same reasoning as for the first derivative shows that the ratio on the right is a weighted average of the eigenvalues of \(Q^{-1/2} P Q^{-1/2} + t^{*}I\) (with weights proportional to \(w_i \mu_i^{-4}\)), so it lies between \(\lambda_{\min}\bigl(Q^{-1/2} P Q^{-1/2}\bigr) + t^{*}\) and \(\lambda_{\max}\bigl(Q^{-1/2} P Q^{-1/2}\bigr) + t^{*}\). Thus \(\lambda_{\min} + t^{*} \le \frac{3}{2}t^{*}\), so \(t^{*} \ge 2\lambda_{\min}\bigl(Q^{-1/2} P Q^{-1/2}\bigr)\), i.e. \(2\,\lambda_{\min}\bigl(Q^{-1/2} P Q^{-1/2}\bigr)\,I \preceq t^{*} I\) (the opposite inequality to the first-derivative case: critical points satisfy \(t^{*} I \prec Q^{-1/2} P Q^{-1/2}\), inflection points satisfy \(t^{*} I \succeq 2\lambda_{\min}\,I\)).
+
+If \(P = k Q\) for some positive constant \(k\), then the above reduces to 
+
+
+\[
+t^{*}
+= \frac{2}{3}
+  \cdot
+  \frac{
+    (k+t^{*})^{-3} \cdot v_j^{T}I v_j
+  }{
+    (k+t^{*})^{-4} \cdot  v_j^{T}Iv_j
+  }  =  \frac{2}{3}  \cdot    (k+t^{*}) 
+\]
+
+which implies \(t^{*} = 2k\). When \(P = k Q\), \(\tilde{UB2}_{j}\) is concave for \(t < 2k\) and convex for \(t > 2k\) (inflection at \(t = 2k\)). Any critical point (first derivative zero) satisfies \(t^{*} < k\), so it lies in the concave region. Thus any critical point is a local maximum, and the **minimum** of \(\tilde{UB2}_{j}(t)\) on the interval \(t \in [1/\mathrm{upp},\,1/\mathrm{low}]\) (equivalently, of \(UB2_j(d)\) on \(d \in [\mathrm{low},\,\mathrm{upp}]\)) occurs at one of the **endpoints** of the interval. Because of how our current implementation works (see the standardization in `glmb_Standardize_Model` and the component shifted to the prior), the \(P\) matrix here is \(0.5\) times the full prior matrix when we use a Zellner-like default prior. Connecting this back to the `Prior_Setup` function, this actually means that \(t^{*} = \mathrm{pwt}/(1-\mathrm{pwt})\).
+
+
+
+**First derivative when \(P = I\):**
+\[
+\tilde{UB2}_{j}'(t)
+= \frac{1}{2}\Bigl(
+  v_j^{T}(Q^{-1} + tI)^{1/2}(Q^{-1} + tI)^{-3}(Q^{-1} + tI)^{1/2} v_j - \Delta\Bigr)
+- t\, v_j^{T}(Q^{-1} + tI)^{-3} v_j.
+\]
+
+**Second derivative when \(P = I\):**
+\[
+\tilde{UB2}_{j}''(t)
+= -2\, v_j^{T}(Q^{-1}+tI)^{1/2}(Q^{-1} + tI)^{-4}(Q^{-1}+tI)^{1/2} v_j
++ 3t\, v_j^{T}(Q^{-1} + tI)^{-4} v_j.
+\]
+
+
+In the case \(P = I\), we have \(K = Q^{-1}\), so the signs of the derivatives are
+still governed by quadratic forms in powers of \(Q^{-1} + tI\). The first derivative
+\(\tilde{UB2}_{j}'(t)\) remains negative for large \(t\) (since \(\Delta \ge 0\) and the
+quadratic terms decay to 0), so \(\tilde{UB2}_{j}(t)\) is decreasing in the upper part
+of the interval. The second derivative \(\tilde{UB2}_{j}''(t)\) is a sum of a negative
+term and a positive term built from the same operator \((Q^{-1} + tI)^{-4}\); for small
+\(t\) the negative contribution dominates (concave), and for sufficiently large \(t\)
+the positive contribution dominates (convex). Thus there is at least one point
+\(t^{*} > 0\), depending on \(Q\) and \(v_j\), at which the curvature changes sign:
+\(\tilde{UB2}_{j}''(t) < 0\) for \(t\) below \(t^{*}\) and \(\tilde{UB2}_{j}''(t) > 0\)
+for \(t\) above \(t^{*}\).
+
+
+
+
+*Signs (general \(Q \succ 0\), \(P \succ 0\)).*  
+For \(t > 0\), \(K + tI \succ 0\), so \((K + tI)^{-k}\) is positive definite for \(k = 2,3,4\).  
+Hence \(g_j(t) > 0\), \(g_j'(t) < 0\), and \(g_j''(t) > 0\) for all \(t > 0\) (when \(v_j \neq 0\)).  
+As \(t \to \infty\), \(g_j(t) \to 0\) and \(g_j'(t) \to 0\), so
+\(\tilde{UB2}_{j}'(t) \to -\Delta/2 \le 0\); thus \(\tilde{UB2}_{j}(t)\) is **decreasing for large \(t\)**.  
+The second derivative \(\tilde{UB2}_{j}''(t)\) is the sum of a negative term and a positive term; for small \(t\) the negative term dominates (concave), and for large \(t\) the positive term dominates (convex), so there is a unique \(t^{*} > 0\) where \(\tilde{UB2}_{j}''(t^{*}) = 0\), and \(\tilde{UB2}_{j}\) is concave on \((0,\,t^{*})\) and convex on \((t^{*},\,\infty)\).
+
+*Proof.*  
+From Proposition 2 and \(\tilde{M}(t) = A(t)^{-1} Q\, A(t)^{-1}\), \(A(t) = P + t\,Q\), we have
+\(\tilde{UB2}_{j}(t) = \frac{t}{2}(g_j(t) - \Delta)\) with \(\Delta = RSS_{\mathrm{Min}} - RSS_{ML}\) and
+\(g_j(t) = (r^{*}_j)^{T} \tilde{M}(t)\, r^{*}_j\). With \(RSS_{\mathrm{Min}}\) from Proposition 1,
+\(RSS_{\mathrm{Min}} \ge RSS_{ML}\), so \(\Delta \ge 0\). Differentiating gives
+\(\tilde{UB2}_{j}'(t) = \frac{1}{2}(g_j(t) - \Delta) + \frac{t}{2}\,g_j'(t)\).  
+Using \(\tilde{M}(t) = Q^{-1/2}(K + tI)^{-2} Q^{-1/2}\), \(K = Q^{-1/2} P Q^{-1/2}\), \(v_j = Q^{-1/2} r^{*}_j\), we get
+\(g_j(t) = v_j^{T}(K + tI)^{-2} v_j\). Differentiating \((K + tI)^{-2}\) with respect to \(t\) yields
+\(\frac{d}{dt}(K + tI)^{-2} = -2(K + tI)^{-3}\), so
+\(g_j'(t) = -2\, v_j^{T}(K + tI)^{-3} v_j\), and similarly
+\(g_j''(t) = 6\, v_j^{T}(K + tI)^{-4} v_j\). Substituting into
+\(\tilde{UB2}_{j}''(t) = g_j'(t) + \frac{t}{2}\,g_j''(t)\) gives the stated formula for \(\tilde{UB2}_{j}''(t)\). \(\square\)
+
+
+
+
 **Proposition 1: Lower bound for \(RSS_j(\cdot)\).**
 
 For face index \(j\) and dispersion \(d \in [\mathrm{low},\,\mathrm{upp}]\),
@@ -750,22 +926,61 @@ UB2_j(d) \;=\; \frac{1}{2d}(RSS_{ML} \;+\; (r^{*}_j)^{T}\tilde{M}_0(1/d)\, r^{*}
 \;+\; (r^{*}_j)^{T}\bigl(\tilde{M}(1/d) - \tilde{M}_0(1/d)\bigr) r^{*}_j - RSS_{\mathrm{Min}}  )
 \] 
 
-Moreover, the terms involving \(d\) satisfy the following inequalities
+Moreover, the terms involving \(d\) satisfy the following :
 
-- \(  (r^{*}_{j})^{T}\tilde{M}_0(1/d)  r^{*}_{j}  \ge (r^{*}_{j})^{T}\tilde{M}_0(1/low)  r^{*}_{j} \)  
+- \(  \frac{1}{2d}(r^{*}_j)^{T}\tilde{M}_0(1/d)\, r^{*}_j    = \frac{d}{2}(r^{*}_j)^{T}Q^{-1} r^{*}_j \ge 0  \)  
 
-- \(  (r^{*}_{j})^{T}(\tilde{M}(1/d) - \tilde{M}_0(1/d))  r^{*}_{j}  \ge (r^{*}_{j})^{T}(\tilde{M}(1/upp) - \tilde{M}_0(1/upp))  r^{*}_{j} \)  
+- \( 0 \ge \frac{1}{2d}(r^{*}_{j})^{T}\bigl(\tilde{M}(1/d) - \tilde{M}_0(1/d)\bigr) r^{*}_{j}  \ge \frac{1}{2d} (r^{*}_{j})^{T}\bigl(\tilde{M}(1/\mathrm{upp}) - \tilde{M}_0(1/\mathrm{upp})\bigr) r^{*}_{j}  \)  
 
-and hence for all \(d \in [low,upp]\)
+- \( 0 \ge \frac{1}{2d} (RSS_{ML} - RSS_{\mathrm{Min}}) = \frac{1}{2d} (RSS_{ML} - RSS_{\mathrm{Min}}) \)
 
- \[
- RSS_j(d) \ge RSS_{ML} \;+\; (r^{*}_{j})^{T}\tilde{M}_0(1/\mathrm{low})\, r^{*}_{j}
-\;+\; (r^{*}_{j})^{T}\bigl(\tilde{M}(1/\mathrm{upp}) - \tilde{M}_0(1/\mathrm{upp})\bigr) r^{*}_{j}
- \] 
+from which it follows that \( \forall d \in [low,upp] \)
 
-and we can thus set
-\(RSS_{\mathrm{LB}} = \min_j \Bigl( RSS_{ML} \;+\; (r^{*}_{j})^{T}\tilde{M}_0(1/\mathrm{low})\, r^{*}_{j}
-\;+\; (r^{*}_{j})^{T}\bigl(\tilde{M}(1/\mathrm{upp}) - \tilde{M}_0(1/\mathrm{upp})\bigr) r^{*}_{j} \Bigr)\).
+\[
+\begin{aligned}
+UB2_j(d)
+&\ge \frac{d}{2}(r^{*}_j)^{T}Q^{-1} r^{*}_j
+\;+\; \frac{1}{2d}(r^{*}_{j})^{T}\bigl(\tilde{M}(1/\mathrm{upp}) - \tilde{M}_0(1/\mathrm{upp})\bigr) r^{*}_{j}
+\;+\; \frac{1}{2d}(RSS_{ML} - RSS_{\mathrm{Min}}) \\
+&\ge \frac{\mathrm{low}}{2}(r^{*}_j)^{T}Q^{-1} r^{*}_j
+\;+\; \frac{1}{2\,\mathrm{low}}(r^{*}_{j})^{T}\bigl(\tilde{M}(1/\mathrm{upp}) - \tilde{M}_0(1/\mathrm{upp})\bigr) r^{*}_{j}
+\;+\; \frac{1}{2\,\mathrm{low}}(RSS_{ML} - RSS_{\mathrm{Min}}).
+\end{aligned}
+\]
+
+since the above inequalities imply that the expression on the right hand side of the first inequality is non-decreasing over the range \( [low,upp]\).
+
+We can thus set \( \text{UB2_Min}_{j} = \frac{\mathrm{low}}{2}(r^{*}_j)^{T}Q^{-1} r^{*}_j
+\;+\; \frac{1}{2\,\mathrm{low}}(r^{*}_{j})^{T}\bigl(\tilde{M}(1/\mathrm{upp}) - \tilde{M}_0(1/\mathrm{upp})\bigr) r^{*}_{j}
+\;+\; \frac{1}{2\,\mathrm{low}}(RSS_{ML} - RSS_{\mathrm{Min}}).  \).
+
+
+
+
+**Remark (minimizer of the right-hand side).**  
+Reparameterize with \(t = 1/d\), so \(d \in [\mathrm{low},\,\mathrm{upp}]\) corresponds to \(t \in [1/\mathrm{upp},\,1/\mathrm{low}]\).  
+Write \(\gamma_j = (r^{*}_j)^{T} Q^{-1} r^{*}_j\), \(\delta_j = (r^{*}_j)^{T}\bigl(\tilde{M}(1/\mathrm{upp}) - \tilde{M}_0(1/\mathrm{upp})\bigr) r^{*}_j\), and \(\Delta = RSS_{ML} - RSS_{\mathrm{Min}}\).  
+The right-hand side of the bound becomes
+\(\phi_j(t) = \gamma_j/(2t) + (\delta_j + \Delta)\,t/2\).  
+Differentiating with respect to \(t\) gives
+\(\frac{d\phi_j}{dt} = -\gamma_j/(2t^2) + (\delta_j + \Delta)/2\).  
+
+*Proof that \(\frac{d\phi_j}{dt} < 0\) for \(t > 0\).*  
+The first term is \(-\gamma_j/(2t^2)\).  
+Since \(Q\) is positive definite, \(\gamma_j = (r^{*}_j)^{T} Q^{-1} r^{*}_j \ge 0\), with \(\gamma_j > 0\) whenever \(r^{*}_j \neq 0\).  
+Thus \(-\gamma_j/(2t^2) \le 0\) for all \(t > 0\), and strictly negative when \(\gamma_j > 0\).  
+The second term is \((\delta_j + \Delta)/2\), with \(\Delta = RSS_{ML} - RSS_{\mathrm{Min}}\).  
+By definition, \(RSS_{\mathrm{Min}}\) is the minimum over \(j\) of a lower bound on \(RSS_j(d)\), and each of those bounds is at least \(RSS_{ML}\) (Proposition 1).  
+Hence \(RSS_{\mathrm{Min}} \ge RSS_{ML}\), so \(\Delta \le 0\).  
+*Proof that \(\delta_j < 0\).*  
+By definition, \(\tilde{M}(t) = A(t)^{-1} Q\, A(t)^{-1}\) with \(A(t) = P + t\,Q\), and \(\tilde{M}_0(t) = (1/t^2)\,Q^{-1}\) (the no-prior matrix, from \(A_0(t) = t\,Q\)).  
+For \(P \succ 0\), we have \(A(t) = P + t\,Q \succ t\,Q\), so \(A(t)^{-1} \prec (t\,Q)^{-1} = Q^{-1}/t\) in the Loewner order.  
+Thus \(\tilde{M}(t) = A(t)^{-1} Q\, A(t)^{-1} \prec (Q^{-1}/t)\, Q\, (Q^{-1}/t) = Q^{-1}/t^2 = \tilde{M}_0(t)\), so \(\tilde{M}(t) - \tilde{M}_0(t) \prec 0\).  
+Therefore \(\delta_j = (r^{*}_j)^{T}\bigl(\tilde{M}(1/\mathrm{upp}) - \tilde{M}_0(1/\mathrm{upp})\bigr) r^{*}_j < 0\) whenever \(r^{*}_j \neq 0\).  
+Hence \(\delta_j + \Delta \le 0\), so \((\delta_j + \Delta)/2 \le 0\).  
+Thus \(\frac{d\phi_j}{dt}\) is the sum of a term that is \(\le 0\) (and \(< 0\) when \(\gamma_j > 0\)) and a term that is \(\le 0\), hence \(\frac{d\phi_j}{dt} < 0\) whenever \(\gamma_j > 0\), and \(\frac{d\phi_j}{dt} \le 0\) in general.  
+So \(\phi_j\) is strictly decreasing in \(t\) (for \(\gamma_j > 0\)), the first-order condition has no real roots, and the right-hand side of the bound is strictly increasing in \(d\).  
+The minimum over \(d \in [\mathrm{low},\,\mathrm{upp}]\) is therefore attained at \(d = \mathrm{low}\).
 
 
 ### 4.5 Proposition: Log‑posterior decomposition in dispersion form

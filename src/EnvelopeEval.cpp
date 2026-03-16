@@ -449,7 +449,11 @@ Rcpp::List EnvelopeEval(const Rcpp::NumericMatrix& G4,   // grid (parameters × 
                         bool use_opencl ,
                         bool verbose ) {
   int progbar = 0;
-  
+
+  // TEMPORARY: validation printout (should match P5 from glmb_Standardize_Model)
+  Rcpp::Rcout << "[EnvelopeEval] P (prior part in modified log-likelihood):\n";
+  Rcpp::print(P);
+
   // Optional pilot timing for large parameter dimension
   // (originally: if (l1 >= 14) ...; here we use number of columns in G4)
   // --- Pilot timing ---

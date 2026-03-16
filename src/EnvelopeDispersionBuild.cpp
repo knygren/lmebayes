@@ -672,6 +672,9 @@ Rcpp::List bound_rss_over_dispersion(
   arma::vec Pmu     = cache["Pmu"];
   Pmat = 0.5 * (Pmat + Pmat.t());
 
+  // TEMPORARY: validation printout (should match P5 from glmb_Standardize_Model)
+  Pmat.print("[bound_rss_over_dispersion] Pmat (prior part in modified log-likelihood)");
+
   bool dbg = verbose;
   if (dbg && !R_finite(RSS_ML)) Rcout << "[bound_rss:VALIDATE] RSS_ML non-finite\n";
 
@@ -1018,6 +1021,10 @@ Rcpp::List bound_ub2_over_dispersion(
   arma::mat Pmat    = cache["Pmat"];
   arma::vec Pmu     = cache["Pmu"];
   Pmat = 0.5 * (Pmat + Pmat.t());
+
+  // TEMPORARY: validation printout (should match P5 from glmb_Standardize_Model)
+  Pmat.print("[bound_ub2_over_dispersion] Pmat (prior part in modified log-likelihood)");
+
   arma::vec beta_hat = -arma::solve(base_A, base_B0);
   arma::mat Q = base_A;
   arma::mat Qinv = arma::inv_sympd(Q);
@@ -1036,7 +1043,7 @@ Rcpp::List bound_ub2_over_dispersion(
 
   if (verbose && gs <= 81) {
     Rcout << "[UB2:validation] low=" << low << " upp=" << upp << " t_min=" << t_min << " t_max=" << t_max << " kappa=" << kappa_global << "\n";
-    Rcout << "[UB2:validation] face | t_star | d_star | UB2_star\n";
+    Rcout << "[UB2:validation] face | t_star | d_star | UB2_star | UB2_low | UB2_upp | UB2_star_new\n";
   }
 
   for (int j = 0; j < gs; ++j) {
@@ -1063,11 +1070,29 @@ Rcpp::List bound_ub2_over_dispersion(
     for (int r = 0; r < p; ++r) cbars_j[r] = cbars(j, r);
     double ub2_star = UB2(d_star, cache, cbars_j, y, x, alpha, wt, rss_min_global);
 
-    disp_min_ub2[j] = d_star;
-    ub2_min[j] = ub2_star;
+    // Evaluate UB2 at the dispersion interval endpoints
+    double ub2_low = UB2(low, cache, cbars_j, y, x, alpha, wt, rss_min_global);
+    double ub2_upp = UB2(upp, cache, cbars_j, y, x, alpha, wt, rss_min_global);
+    double ub2_star_new = std::min(ub2_low, ub2_upp);
+
+    // For bounding, use the best endpoint and record the matching dispersion
+    if (ub2_low <= ub2_upp) {
+      disp_min_ub2[j] = low;
+      ub2_min[j]      = ub2_low;
+    } else {
+      disp_min_ub2[j] = upp;
+      ub2_min[j]      = ub2_upp;
+    }
 
     if (verbose && gs <= 81) {
-      Rcout << "  " << j << " | " << t_star << " | " << d_star << " | " << ub2_star << "\n";
+      Rcout << "  " << j
+            << " | " << t_star
+            << " | " << d_star
+            << " | " << ub2_star
+            << " | " << ub2_low
+            << " | " << ub2_upp
+            << " | " << ub2_star_new
+            << "\n";
     }
   }
 
@@ -1902,7 +1927,8 @@ List EnvelopeDispersionBuild(
                   << glmbayes::progress::timestamp_cpp()
                   << "\n";
   }
-
+  // Run UB2 minimization only for diagnostics / comparison; the *bounding*
+  // result from bound_ub2_over_dispersion will be used downstream.
   Rcpp::List ub2_res = minimize_ub2_over_dispersion(
     gs, l1, low, upp,
     cache, cbars,
@@ -1917,18 +1943,22 @@ List EnvelopeDispersionBuild(
     disp_min_ub2_bound
   );
 
-  NumericVector ub2_min      = ub2_res["ub2_min"];
-  NumericVector disp_min_ub2 = ub2_res["disp_min_ub2"];
+  // Results from minimization (for diagnostics only)
+  NumericVector ub2_min_from_minimize      = ub2_res["ub2_min"];
+  NumericVector disp_min_ub2_from_minimize = ub2_res["disp_min_ub2"];
 
+  // Results from bounding (used downstream)
   NumericVector ub2_min_bound = bound_res["ub2_min"];
+  NumericVector disp_min_ub2  = disp_min_ub2_bound;
+  NumericVector ub2_min       = ub2_min_bound;
 
   if (verbose && gs <= 81) {
     Rcpp::Rcout << "[UB2:comparison] face | d_bound | d_min | UB2_bound | UB2_min | d_diff | UB2_diff\n";
     for (int j = 0; j < gs; ++j) {
-      double d_diff   = disp_min_ub2_bound[j] - disp_min_ub2[j];
-      double ub2_diff = ub2_min_bound[j] - ub2_min[j];
-      Rcpp::Rcout << "  " << j << " | " << disp_min_ub2_bound[j] << " | " << disp_min_ub2[j]
-                  << " | " << ub2_min_bound[j] << " | " << ub2_min[j]
+      double d_diff   = disp_min_ub2_bound[j] - disp_min_ub2_from_minimize[j];
+      double ub2_diff = ub2_min_bound[j]      - ub2_min_from_minimize[j];
+      Rcpp::Rcout << "  " << j << " | " << disp_min_ub2_bound[j] << " | " << disp_min_ub2_from_minimize[j]
+                  << " | " << ub2_min_bound[j] << " | " << ub2_min_from_minimize[j]
                   << " | " << d_diff << " | " << ub2_diff << "\n";
     }
   }

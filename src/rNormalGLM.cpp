@@ -219,6 +219,23 @@ Rcpp::List glmb_Standardize_Model(
     NumericVector b5=asVec(b4_1); // Maybe this causes error?
     
     NumericMatrix mu5_1=0*mu4_1; // Does this modify mu4_1? Set mu5_1 to 0 more efficiently
+
+    // Interpretation at end of standardization (Nygren & Nygren 2006, standard form):
+    // I     --> Prior for standardized model (identity).
+    // P5    --> Part of prior shifted to log-likelihood (modified log-likelihood).
+    // I+P5  --> Prior for original full model in standardized coords (equiv. to P passed in).
+    // A4    --> Data precision for modified model.
+    // A4-P5 --> Data precision for original log-likelihood (equiv. to X'WX in standardized coords).
+    // I+A4  --> Posterior precision in standardized space (equiv. to A1 passed in).
+    //
+    // Special case: When P3 is diagonal and only one "divide by 2" is needed (scale=0.5), we have
+    // epsilon = (1/2)*P3 and P4 = P3 - epsilon = (1/2)*P3, so epsilon = P4. The second transform
+    // makes both the prior and P4 into I, hence P5 = I. With the default (Zellner-like) prior
+    // from Prior_Setup, P3 is diagonal, so P5 equals I and downstream use of P5 vs I cannot be
+    // distinguished unless a test prior that yields non-diagonal P3 (or scale < 0.5) is used.
+
+    // TEMPORARY: validation printout of P5 (part of prior shifted to modified log-likelihood)
+    P5.print("[glmb_Standardize_Model] P5 (prior part in modified log-likelihood)");
     
     return Rcpp::List::create(
       Rcpp::Named("bstar2")=b5,       // Transformed posterior mode (untransposed also used)
