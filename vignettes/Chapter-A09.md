@@ -152,14 +152,15 @@ Same as rNormalGLM: if `est_total_sec > 300`, prompt in interactive sessions.
 
 ## 7. EnvelopeDispersionBuild Pilot (Envelope Construction)
 
-Parallelization is also used during **envelope construction** in `EnvelopeDispersionBuild`, for the RSS and UB2 minimization steps when the grid is large.
+The RSS path in `EnvelopeDispersionBuild` now uses closed-form bounds (`bound_rss_over_dispersion`) and no longer performs minimization or pilots. The UB2 path, when enabled, would use parallelization and pilots:
 
-### 7.1 When Pilots Run
+### 7.1 When Pilots Run (UB2 path, when enabled)
 
-When the number of envelope faces `gs` exceeds a threshold (e.g., \(3^{14}\)), the code runs pilot blocks before the full minimization:
+When the number of envelope faces `gs` exceeds a threshold (e.g., \(3^{14}\)), the UB2 code runs pilot blocks before the full minimization:
 
-- **RSS pilot:** `run_rss_pilot_block` – estimates time for the RSS minimization phase
 - **UB2 pilot:** `run_ub2_pilot_block` – estimates time for the UB2 minimization phase
+
+*(Note: The UB2 minimization and pilot are currently commented out; the package uses `bound_ub2_over_dispersion` instead.)*
 
 ### 7.2 Five-Minute Safeguard
 
