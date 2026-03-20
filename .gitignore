@@ -16,3 +16,5 @@ inst/doc
 glmbayes.Rcheck/
 .Rproj.user
 *.Rproj
+*.tar
+*.tar.gz
