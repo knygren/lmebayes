@@ -198,26 +198,13 @@
 }
 
 
-#' Internal wrapper for RSS face evaluation
-#'
-#' @keywords internal
-#' @noRd
-.rss_face_at_disp_cpp <- function(dispersion, cache, cbars_j, y, x, alpha, wt) {
-  .Call(`_glmbayes_rss_face_at_disp_cpp_export`,
-        dispersion, cache, cbars_j, y, x, alpha, wt)
-}
-
-
-#' Internal wrapper for UB2 face evaluation
-#'
-#' @keywords internal
-#' @noRd
-.UB2_cpp <- function(dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global) {
-  .Call(`_glmbayes_UB2_cpp_export`,
-        dispersion, cache, cbars_j, y, x, alpha, wt, rss_min_global)
-}
-
-
+## (phased out) Former R callbacks for RSS/UB2 minimization
+## - `.rss_face_at_disp_cpp`
+## - `.UB2_cpp`
+##
+## These were used by the older RSS/UB2 minimization callbacks passed into
+## `optim()` during envelope construction. The active code path now uses the
+## closed-form C++ bounds instead.
 
 
 
