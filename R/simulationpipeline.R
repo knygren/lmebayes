@@ -2117,6 +2117,7 @@ EnvelopeEval <- function(G4, y, x, mu, P, alpha, wt,
 #' with \eqn{test1 \le 0} and each UB term \eqn{\ge 0}, ensuring the accept/reject
 #' procedure is valid and unbiased.
 #' @seealso \code{\link{EnvelopeBuild}}, \code{\link{glmb}}, \code{\link{glmbfamfunc}}
+#' @example inst/examples/Ex_EnvelopeDispersionBuild.R
 #' @usage EnvelopeDispersionBuild(
 #'   Env, Shape, Rate, P, y, x, alpha, n_obs, RSS_post, RSS_ML,
 #'   mu, wt, max_disp_perc = 0.99,
