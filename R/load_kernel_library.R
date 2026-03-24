@@ -430,13 +430,7 @@
 #' @return A character string containing the kernel source code or combined
 #'   kernel library.
 #'
-#' @examples
-#' \dontrun{
-#' if (has_opencl()) {
-#'   src <- load_kernel_source("nmath/bd0.cl")
-#'   lib <- load_kernel_library("nmath")
-#' }
-#' }
+#' @example inst/examples/Ex_load_kernel_source.R
 #'
 #' @export
 load_kernel_source <- function(relative_path, package = "glmbayes") {

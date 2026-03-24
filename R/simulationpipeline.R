@@ -1910,6 +1910,8 @@ EnvelopeSetLogP <- function(logP, NegLL, cbars, G3) {
 #'   for OpenCL evaluation on a pilot subset of the grid.}
 #' }
 #'
+#' @example inst/examples/Ex_EnvelopeEval.R
+#'
 #' @rdname EnvelopeEval
 #' @export
 #' @usage EnvelopeEval(G4, y, x, mu, P, alpha, wt,
@@ -2116,7 +2118,8 @@ EnvelopeEval <- function(G4, y, x, mu, P, alpha, wt,
 #' \deqn{ test = test1 - UB2 - UB3A - UB3B, }
 #' with \eqn{test1 \le 0} and each UB term \eqn{\ge 0}, ensuring the accept/reject
 #' procedure is valid and unbiased.
-#' @seealso \code{\link{EnvelopeBuild}}, \code{\link{glmb}}, \code{\link{glmbfamfunc}}
+#' @seealso \code{\link{EnvelopeBuild}}, \code{\link{EnvelopeCentering}} (for obtaining
+#'   \code{RSS_post} and anchored dispersion), \code{\link{glmb}}, \code{\link{glmbfamfunc}}
 #' @example inst/examples/Ex_EnvelopeDispersionBuild.R
 #' @usage EnvelopeDispersionBuild(
 #'   Env, Shape, Rate, P, y, x, alpha, n_obs, RSS_post, RSS_ML,
@@ -2413,6 +2416,8 @@ rNormalGLM_std<-function(n, y, x, mu, P, alpha, wt, f2, Envelope, family, link, 
 #' \code{\link{EnvelopeOrchestrator}} for envelope construction,
 #' \code{\link{rNormalGLM_std}} for the non-Gaussian standardized sampler,
 #' \code{\link{rindepNormalGamma_reg}} for the full simulation routine.
+#'
+#' @example inst/examples/Ex_rIndepNormalGammaReg_std.R
 #'
 #' @export
 rIndepNormalGammaReg_std <- function(n, y, x, mu, P, alpha, wt, f2, Envelope,

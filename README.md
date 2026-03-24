@@ -107,7 +107,7 @@ Use example() and demo() to explore built-in examples and demos for supported fa
     example("rlmb")
 
     ## Larger gaussian Model (14 variables) with GPU Acceleration (requires OpenCL)
-    example("Boston")
+    demo("Ex_08_Boston")
 
     ## Larger Binomial Model (14 variables) with GPU Acceleration (requires OpenCL)
     example("Cleveland")
@@ -118,8 +118,11 @@ Use example() and demo() to explore built-in examples and demos for supported fa
     ## Hierarchical Generalized Linear Model (Poisson - BikeSharing) - rglmb
     demo("Ex_09_BikeSharingPoisson")
 
-    ## Detailed Simulation Pipeline for rNormalGLM models
+    ## Detailed Simulation Pipeline for rNormalGLM models (JASA 2006, Vignette Chapter A05)
     example("rNormalGLM_std")
+
+    ## Detailed Simulation Pipeline for rIndepNormalGammaReg models (Vignette Chapter A07)
+    example("rIndepNormalGammaReg_std")
 
 ## Methodology
 

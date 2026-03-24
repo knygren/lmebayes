@@ -39,6 +39,8 @@
 #' \code{\link{EnvelopeOrchestrator}} for envelope construction,
 #' \code{\link{rindepNormalGamma_reg}} for the full simulation routine.
 #'
+#' @example inst/examples/Ex_EnvelopeCentering.R
+#'
 #' @export
 EnvelopeCentering <- function(y, x, mu, P, offset, wt, shape, rate,
                              Gridtype = 2L, verbose = FALSE) {

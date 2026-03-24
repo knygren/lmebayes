@@ -63,6 +63,7 @@
 #' @references
 #' \insertAllCited{}
 #' @importFrom Rdpack reprompt
+#' @example inst/examples/Ex_Gamma_ct.R
 #' @rdname Gamma_ct
 #' @order 1
 #' @export

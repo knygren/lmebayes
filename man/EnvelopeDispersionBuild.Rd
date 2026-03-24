@@ -214,15 +214,13 @@ procedure is valid and unbiased.
 
 # This example mirrors the current C++ algorithm path for Gaussian regression
 # with an independent Normal-Gamma prior:
-#   rIndepNormalGammaReg_std:
-#     - compute initial dispersion (weighted lm.wfit residual variance)
-#     - iterate: sample beta using rNormal_reg at current dispersion, compute
-#       RSS_Post2, and update dispersion2 via Gamma posterior update
-#     - optimize posterior mode for coefficients (optim + f2/f3)
-#     - standardize the model (glmb_Standardize_Model)
-#     - build coefficient envelope (EnvelopeBuild)
-#     - build dispersion-aware envelope (EnvelopeDispersionBuild)
-#     - sort envelope components (EnvelopeSort)
+#   rIndepNormalGammaReg:
+#     - Step A: EnvelopeCentering (initial dispersion + dispersion anchoring loop)
+#     - Step B: optimize posterior mode for coefficients (optim + f2/f3)
+#     - Step C: standardize the model (glmb_Standardize_Model)
+#     - Step D: build coefficient envelope (EnvelopeBuild)
+#     - Step E: build dispersion-aware envelope (EnvelopeDispersionBuild)
+#     - Step F: sort envelope components (EnvelopeSort)
 # It stops after envelope construction (no standardized-envelope sampling).
 
 ctl <- c(4.17, 5.58, 5.18, 6.11, 4.50, 4.61, 5.17, 4.53, 5.33, 5.14)
@@ -252,80 +250,33 @@ famfunc <- glmbfamfunc(gaussian())
 f2 <- famfunc$f2
 f3 <- famfunc$f3
 
-Gridtype_core <- as.integer(2)  # C++ uses this in the RSS anchoring loop
+Gridtype_core <- as.integer(2)
 
 ###############################################################################
-# Step A: Initial dispersion2 via weighted lm.wfit residual variance
+# Step A: EnvelopeCentering (initial dispersion + dispersion anchoring loop)
 ###############################################################################
-y_star <- y - offset2
-fit0 <- lm.wfit(x = x, y = y_star, w = wt)
-res0 <- fit0$residuals
-RSS0 <- sum(res0^2)
-p_rank <- as.integer(fit0$rank)
+centering <- EnvelopeCentering(
+  y = y,
+  x = x,
+  mu = as.vector(mu),
+  P = P,
+  offset = offset2,
+  wt = wt,
+  shape = shape,
+  rate = rate,
+  Gridtype = Gridtype_core,
+  verbose = FALSE
+)
 
-dispersion2 <- RSS0 / (n_obs - p_rank)
 
-###############################################################################
-# Step B: Iterate dispersion anchoring: compute RSS_Post2 and update dispersion
-###############################################################################
-n_beta_draws <- as.integer(10000)
-n_rss_iter <- as.integer(10)
+dispersion2 <- centering$dispersion
+RSS_Post2 <- centering$RSS_post
 
 n_w <- sum(wt)
 
-RSS_Post2 <- NA_real_
-cpp_out <- NULL
-
-for (j in seq_len(n_rss_iter)) {
-  # Match C++: call rNormalReg at current dispersion2
-  prior_list_loop <- list(
-    mu = mu,
-    P = P,
-    dispersion = dispersion2
-  )
-
-  cpp_out <- rNormal_reg(
-    n = n_beta_draws,
-    y = y,
-    x = x,
-    prior_list = prior_list_loop,
-    offset = offset2,
-    weights = wt,
-    family = gaussian(),
-    Gridtype = Gridtype_core,
-    use_parallel = FALSE,
-    use_opencl = FALSE,
-    verbose = FALSE,
-    progbar = FALSE
-  )
-
-  beta_draws <- cpp_out$coefficients # n_beta_draws x p
-
-  # Match C++ algebra (gaussian identity):
-  #   lp_mat  = beta_draws \%*\% t(x)
-  #   eta_mat = lp_mat + offset
-  #   diff    = eta_mat - y
-  #   RSS_temp = rowSums( (diff^2) * wt )
-  #   RSS_Post2 = mean(RSS_temp)
-  lp_mat <- beta_draws \%*\% t(x)
-  eta_mat <- lp_mat + matrix(offset2, nrow = n_beta_draws, ncol = n_obs, byrow = TRUE)
-  diff_mat <- eta_mat - matrix(y, nrow = n_beta_draws, ncol = n_obs, byrow = TRUE)
-  res_sq <- diff_mat * diff_mat
-
-  res_sq_weighted <- res_sq * matrix(wt, nrow = n_beta_draws, ncol = n_obs, byrow = TRUE)
-  RSS_temp <- rowSums(res_sq_weighted)
-  RSS_Post2 <- mean(RSS_temp)
-
-  # Update shape2, rate2 and dispersion2 exactly as in C++
-  shape2 <- shape + n_w / 2.0
-  rate2 <- rate + RSS_Post2 / 2.0
-  dispersion2 <- rate2 / (shape2 - 1.0)
-}
-
 ###############################################################################
-# Step C: Coefficient posterior mode optimization (optim + f2/f3)
+# Step B: Coefficient posterior mode optimization (optim + f2/f3)
 ###############################################################################
-bstar_mode <- as.vector(cpp_out$coef.mode)
 dispstar <- dispersion2
 
 wt2_opt <- wt / dispstar
@@ -352,7 +303,7 @@ bstar <- opt_out$par
 A1 <- opt_out$hessian
 
 ###############################################################################
-# Step D: Standardize model (glmb_Standardize_Model)
+# Step C: Standardize model (glmb_Standardize_Model)
 ###############################################################################
 Standard_Mod <- glmb_Standardize_Model(
   y = as.vector(y),
@@ -369,7 +320,7 @@ mu2_std <- Standard_Mod$mu2
 P2_std <- Standard_Mod$P2
 
 ###############################################################################
-# Step E: EnvelopeBuild (coefficient envelope at Gridtype = 3)
+# Step D: EnvelopeBuild (coefficient envelope at Gridtype = 3)
 ###############################################################################
 max_disp_perc <- 0.99
 n_env <- as.integer(200) # used by EnvelopeBuild for diagnostics/overhead
@@ -401,7 +352,7 @@ Env2 <- EnvelopeBuild(
 )
 
 ###############################################################################
-# Step F: EnvelopeDispersionBuild (dispersion-aware envelope)
+# Step E: EnvelopeDispersionBuild (dispersion-aware envelope)
 ###############################################################################
 disp_env_out <- EnvelopeDispersionBuild(
   Env = Env2,
@@ -424,7 +375,7 @@ disp_env_out <- EnvelopeDispersionBuild(
 )
 
 ###############################################################################
-# Step G: EnvelopeSort (mirror EnvelopeOrchestrator: disp_grid_type = 2)
+# Step F: EnvelopeSort (mirror EnvelopeOrchestrator: disp_grid_type = 2)
 ###############################################################################
 Env3_raw <- disp_env_out$Env_out
 UB_list_new <- disp_env_out$UB_list
@@ -480,5 +431,6 @@ env_final
 
 }
 \seealso{
-\code{\link{EnvelopeBuild}}, \code{\link{glmb}}, \code{\link{glmbfamfunc}}
+\code{\link{EnvelopeBuild}}, \code{\link{EnvelopeCentering}} (for obtaining
+\code{RSS_post} and anchored dispersion), \code{\link{glmb}}, \code{\link{glmbfamfunc}}
 }

@@ -1,15 +1,11 @@
-############################### Start of EnvelopeDispersionBuild example ####################
+############################### Start of rIndepNormalGammaReg_std example ####################
 
-# This example mirrors the current C++ algorithm path for Gaussian regression
-# with an independent Normal-Gamma prior:
-#   rIndepNormalGammaReg:
-#     - Step A: EnvelopeCentering (initial dispersion + dispersion anchoring loop)
-#     - Step B: optimize posterior mode for coefficients (optim + f2/f3)
-#     - Step C: standardize the model (glmb_Standardize_Model)
-#     - Step D: build coefficient envelope (EnvelopeBuild)
-#     - Step E: build dispersion-aware envelope (EnvelopeDispersionBuild)
-#     - Step F: sort envelope components (EnvelopeSort)
-# It stops after envelope construction (no standardized-envelope sampling).
+# This example demonstrates calling rIndepNormalGammaReg_std directly for Gaussian
+# regression with an independent Normal-Gamma prior. It uses Ex_EnvelopeDispersionBuild
+# as a starting point (Steps A through F: EnvelopeCentering, mode optimization,
+# standardization, EnvelopeBuild, EnvelopeDispersionBuild, EnvelopeSort), then
+# adds sampling and back-transformation to unstandardized form (like the C++ code
+# and rNormalGLM_std).
 
 ctl <- c(4.17, 5.58, 5.18, 6.11, 4.50, 4.61, 5.17, 4.53, 5.33, 5.14)
 trt <- c(4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69)
@@ -55,7 +51,6 @@ centering <- EnvelopeCentering(
   Gridtype = Gridtype_core,
   verbose = FALSE
 )
-
 
 dispersion2 <- centering$dispersion
 RSS_Post2 <- centering$RSS_post
@@ -106,6 +101,8 @@ A <- Standard_Mod$A
 x2_std <- Standard_Mod$x2
 mu2_std <- Standard_Mod$mu2
 P2_std <- Standard_Mod$P2
+L2Inv <- Standard_Mod$L2Inv
+L3Inv <- Standard_Mod$L3Inv
 
 ###############################################################################
 # Step D: EnvelopeBuild (coefficient envelope at Gridtype = 3)
@@ -207,13 +204,46 @@ env_final <- list(
   upp = gamma_list_new$disp_upper
 )
 
-print(env_final$low)
-print(env_final$upp)
-print(env_final$gamma_list[c("shape3", "rate2")])
-
-env_final
+###############################################################################
+# Step G: Sample via rIndepNormalGammaReg_std (standardized space)
+###############################################################################
+n <- as.integer(100)
+sim <- rIndepNormalGammaReg_std(
+  n = n,
+  y = as.vector(y),
+  x = as.matrix(x2_std),
+  mu = as.matrix(mu2_std, ncol = 1),
+  P = as.matrix(P2_std),
+  alpha = as.vector(alpha),
+  wt = as.vector(wt),
+  f2 = f2,
+  Envelope = env_final$Env,
+  gamma_list = env_final$gamma_list,
+  UB_list = env_final$UB_list,
+  family = "gaussian",
+  link = "identity",
+  progbar = FALSE,
+  verbose = FALSE
+)
 
 ###############################################################################
-# End: envelope construction only
+# Step H: Back-transform to unstandardized form (mirror C++ and rNormalGLM_std)
 ###############################################################################
+# beta_out is n x p (one draw per row); t(beta_out) is p x n
+coef_unstd <- L2Inv %*% L3Inv %*% t(sim$beta_out)
+for (i in seq_len(n)) {
+  coef_unstd[, i] <- coef_unstd[, i] + as.vector(mu)
+}
+coefficients <- t(coef_unstd)  # n x p, one draw per row
+colnames(coefficients) <- colnames(x)
 
+###############################################################################
+# Summary output
+###############################################################################
+summary(coefficients)
+mean(sim$iters_out)
+sim$disp_out[1:5]
+
+###############################################################################
+# End of rIndepNormalGammaReg_std example
+###############################################################################

@@ -56,6 +56,7 @@
 #' @references
 #' \insertAllCited{}
 #' @importFrom Rdpack reprompt
+#' @example inst/examples/Ex_InvGamma_ct.R
 #' @rdname InvGamma_ct
 #' @export
 pinvgamma_ct <- function(dispersion, shape, rate) {

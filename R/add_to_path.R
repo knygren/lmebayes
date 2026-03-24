@@ -13,12 +13,7 @@
 #'
 #' @return No return value; called for side effects.
 #'
-#' @examples
-#' \dontrun{
-#' add_to_path_windows(c("C:/OpenCL/bin"))
-#' add_to_path_linux(c("/usr/local/cuda/bin"))
-#' add_to_libpath_linux(c("/usr/local/cuda/lib64"))
-#' }
+#' @example inst/examples/Ex_add_to_path.R
 #'
 #' @seealso [Sys.getenv], [Sys.setenv]
 #'

@@ -465,6 +465,8 @@ generally leads to clearer code and more maintainable OpenCL integrations.
 }
 
 \examples{
+############################### Start of load_kernel_source example ####################
+
 \dontrun{
 if (has_opencl()) {
   src <- load_kernel_source("nmath/bd0.cl")
@@ -472,4 +474,7 @@ if (has_opencl()) {
 }
 }
 
+###############################################################################
+## End of load_kernel_source example
+###############################################################################
 }
