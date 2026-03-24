@@ -135,7 +135,7 @@ List EnvelopeDispersionBuild(
 
 
 /// EnvelopeCentering: dispersion anchoring for Normal-Gamma; RSS_post is closed-form
-/// E[RSS] each iteration and drives the Gamma update; MC RSS optional (verbose).
+/// E[RSS] each iteration and drives the Gamma update.
 List EnvelopeCentering(
     NumericVector y,
     NumericMatrix x,

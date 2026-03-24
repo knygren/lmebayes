@@ -5,8 +5,7 @@
 #' posterior weighted RSS (closed form under the Normal posterior for
 #' coefficients) for use in envelope construction when the dispersion is
 #' unknown. The dispersion-anchoring loop updates dispersion from the Gamma
-#' posterior using that expected RSS each iteration. Verbose diagnostic output
-#' from C++ is currently disabled (MC comparison block commented in source).
+#' posterior using that expected RSS each iteration.
 #' This step is typically called inside \code{rIndepNormalGammaReg()} before
 #' \code{\link{EnvelopeOrchestrator}}, but may be used directly for diagnostics
 #' or custom workflows.
@@ -20,7 +19,7 @@
 #' @param shape Numeric. Shape parameter of the Gamma prior for the dispersion.
 #' @param rate Numeric. Rate parameter of the Gamma prior for the dispersion.
 #' @param Gridtype Integer. Grid construction method (default \code{2}).
-#' @param verbose Logical. Whether to print progress messages.
+#' @param verbose Logical. Reserved for API compatibility; currently unused in C++.
 #'
 #' @return
 #' A list with components:

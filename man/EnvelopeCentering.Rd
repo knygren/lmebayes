@@ -36,7 +36,7 @@ EnvelopeCentering(
 
 \item{Gridtype}{Integer. Grid construction method (default \code{2}).}
 
-\item{verbose}{Logical. Whether to print progress messages.}
+\item{verbose}{Logical. Reserved for API compatibility; currently unused in C++.}
 }
 \value{
 A list with components:
@@ -51,8 +51,7 @@ last iteration).}
 posterior weighted RSS (closed form under the Normal posterior for
 coefficients) for use in envelope construction when the dispersion is
 unknown. The dispersion-anchoring loop updates dispersion from the Gamma
-posterior using that expected RSS each iteration. Verbose diagnostic output
-from C++ is currently disabled (MC comparison block commented in source).
+posterior using that expected RSS each iteration.
 This step is typically called inside \code{rIndepNormalGammaReg()} before
 \code{\link{EnvelopeOrchestrator}}, but may be used directly for diagnostics
 or custom workflows.

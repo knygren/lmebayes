@@ -1,46 +1,24 @@
 // -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*-
 
 #include "RcppArmadillo.h"
-
-// #include "famfuncs.h"  // was for parity with rNormalReg.cpp (MC path commented out)
 #include "Envelopefuncs.h"
 #include <math.h>
-// #include "simfuncs.h"  // rNormalReg (MC path) commented out below
-// #include "progress_utils.h"  // only used by commented verbose timestamps below
 
 using namespace Rcpp;
-// using namespace glmbayes::sim;
-// using namespace glmbayes::progress;
 
 namespace {
 
 /// Closed-form E[ sum_i w_i (y_i - x_i' beta - offset_i)^2 ] under the same
-/// Gaussian posterior as glmbayes::sim::rNormalReg. Signature mirrors rNormalReg;
-/// unused parameters keep call-site parity with rNormalReg.
+/// Gaussian posterior as rNormalReg (weighted Normal–Normal conjugate update).
 double RSS_helper(
-    int n,
     NumericVector y,
     NumericMatrix x,
     NumericVector mu,
     NumericMatrix P,
     NumericVector offset,
     NumericVector wt,
-    double dispersion,
-    Function f2,
-    Function f3,
-    NumericVector start,
-    std::string family,
-    std::string link,
-    int Gridtype
+    double dispersion
 ) {
-  (void)n;
-  (void)f2;
-  (void)f3;
-  (void)start;
-  (void)family;
-  (void)link;
-  (void)Gridtype;
-
   Function asMat("as.matrix");
   const int l1 = x.ncol();
   const int l2 = x.nrow();
@@ -109,13 +87,10 @@ List EnvelopeCentering(
     int Gridtype,
     bool verbose
 ) {
-  (void)verbose;  // retained in API; verbose logging commented out below
-  // const int n_beta_draws = 10000;  // was: MC draw count; RSS_helper ignores n (see (void)n)
+  (void)verbose;
+  (void)Gridtype;
   const int n_rss_iter = 10;
   Rcpp::Function lm_wfit("lm.wfit");
-  Rcpp::Function gaussian("gaussian");
-  Rcpp::Environment glmbayes_ns = Rcpp::Environment::namespace_env("glmbayes");
-  Rcpp::Function glmbfamfunc = glmbayes_ns["glmbfamfunc"];
 
   int n_obs = y.size();
   NumericVector ystar(n_obs);
@@ -140,76 +115,19 @@ List EnvelopeCentering(
   int p = Rcpp::as<int>(fit["rank"]);
   double dispersion2 = RSS / (n_obs - p);
 
-  Rcpp::List famfunc = glmbfamfunc(gaussian());
-  Rcpp::Function f2 = famfunc["f2"];
-  Rcpp::Function f3 = famfunc["f3"];
-
-  // MC path only (weighted RSS from rNormalReg draws):
-  // arma::mat X = Rcpp::as<arma::mat>(x);
-  // arma::vec Y = Rcpp::as<arma::vec>(y);
-  // arma::rowvec y_row = Y.t();
-  // arma::rowvec off_row = Rcpp::as<arma::rowvec>(offset);
-  // arma::rowvec wt_row = Rcpp::as<arma::rowvec>(wt);
-
-  // Rcpp::List cpp_out;
   double RSS_post_expected = NA_REAL;
-  // double RSS_mc = NA_REAL;
-
-  // if (verbose) {
-  //   Rcpp::Rcout << "[EnvelopeCentering] Entering loop: "
-  //               << glmbayes::progress::timestamp_cpp() << "\n";
-  // }
 
   for (int j = 0; j < n_rss_iter; ++j) {
     const double RSS_closed = RSS_helper(
-        0,  // n_beta_draws when MC enabled
-        y, x, mu, P, offset, wt,
-        dispersion2,
-        f2, f3,
-        mu,
-        "gaussian",
-        "identity",
-        Gridtype
+        y, x, mu, P, offset, wt, dispersion2
     );
 
-    // cpp_out = rNormalReg(
-    //   n_beta_draws,
-    //   y, x, mu, P, offset, wt,
-    //   dispersion2,
-    //   f2, f3,
-    //   mu,
-    //   "gaussian",
-    //   "identity",
-    //   Gridtype
-    // );
-
-    // arma::mat beta_draws = Rcpp::as<arma::mat>(cpp_out["coefficients"]);
-    // arma::mat lp_mat = beta_draws * X.t();
-    // arma::mat eta_mat = lp_mat.each_row() + off_row;
-    // arma::mat mu_mat = eta_mat;
-    // arma::mat diff = mu_mat.each_row() - y_row;
-    // arma::mat res_sq = diff % diff;
-    // arma::mat res_sq_weighted = res_sq;
-    // res_sq_weighted.each_row() %= wt_row;
-    // arma::vec RSS_temp = arma::sum(res_sq_weighted, 1);
-    // RSS_mc = arma::mean(RSS_temp);
     RSS_post_expected = RSS_closed;
-
-    // if (verbose) {
-    //   Rcpp::Rcout << "[EnvelopeCentering] iter " << j
-    //               << "  RSS E[.] (closed)=" << RSS_closed
-    //               << "  RSS (MC mean)=" << RSS_mc << "\n";
-    // }
 
     double shape2 = shape + n_w / 2.0;
     double rate2 = rate + RSS_closed / 2.0;
     dispersion2 = rate2 / (shape2 - 1.0);
   }
-
-  // if (verbose) {
-  //   Rcpp::Rcout << "[EnvelopeCentering] Exiting loop: "
-  //               << glmbayes::progress::timestamp_cpp() << "\n";
-  // }
 
   return List::create(
     Named("dispersion") = dispersion2,
