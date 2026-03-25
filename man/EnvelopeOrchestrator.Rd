@@ -135,7 +135,7 @@ Simulation should be carried out afterward using either
 # regression with an independent Normal-Gamma prior. It mirrors the algorithm
 # path used inside rIndepNormalGammaReg:
 #   - Step A: Initial dispersion via weighted lm.wfit residual variance
-#   - Step B: EnvelopeCentering loop (sample beta, compute RSS_Post2, update
+#   - Step B: EnvelopeCentering loop (closed-form expected RSS, update
 #             dispersion2 via Gamma posterior) to anchor the envelope
 #   - Step C: Coefficient posterior mode optimization (optim + f2/f3)
 #   - Step D: Standardize the model (glmb_Standardize_Model)
@@ -173,63 +173,24 @@ f3 <- famfunc$f3
 Gridtype_core <- as.integer(2)
 
 ###############################################################################
-# Step A: Initial dispersion2 via weighted lm.wfit residual variance
+# Step A/B: EnvelopeCentering (starting at weighted lm.wfit dispersion and
+# iteratively refining it via closed-form expected RSS)
 ###############################################################################
-y_star <- y - offset2
-fit0 <- lm.wfit(x = x, y = y_star, w = wt)
-res0 <- fit0$residuals
-RSS0 <- sum(res0^2)
-p_rank <- as.integer(fit0$rank)
+centering <- EnvelopeCentering(
+  y = as.vector(y),
+  x = as.matrix(x),
+  mu = as.vector(mu),
+  P = as.matrix(P),
+  offset = as.vector(offset2),
+  wt = as.vector(wt),
+  shape = shape,
+  rate = rate,
+  Gridtype = Gridtype_core,
+  verbose = FALSE
+)
 
-dispersion2 <- RSS0 / (n_obs - p_rank)
-
-###############################################################################
-# Step B: EnvelopeCentering loop (RSS_Post2 and dispersion2 anchoring)
-###############################################################################
-n_beta_draws <- as.integer(10000)
-n_rss_iter <- as.integer(10)
-
-n_w <- sum(wt)
-
-RSS_Post2 <- NA_real_
-cpp_out <- NULL
-
-for (j in seq_len(n_rss_iter)) {
-  prior_list_loop <- list(
-    mu = mu,
-    P = P,
-    dispersion = dispersion2
-  )
-
-  cpp_out <- rNormal_reg(
-    n = n_beta_draws,
-    y = y,
-    x = x,
-    prior_list = prior_list_loop,
-    offset = offset2,
-    weights = wt,
-    family = gaussian(),
-    Gridtype = Gridtype_core,
-    use_parallel = FALSE,
-    use_opencl = FALSE,
-    verbose = FALSE,
-    progbar = FALSE
-  )
-
-  beta_draws <- cpp_out$coefficients
-
-  lp_mat <- beta_draws \%*\% t(x)
-  eta_mat <- lp_mat + matrix(offset2, nrow = n_beta_draws, ncol = n_obs, byrow = TRUE)
-  diff_mat <- eta_mat - matrix(y, nrow = n_beta_draws, ncol = n_obs, byrow = TRUE)
-  res_sq <- diff_mat * diff_mat
-  res_sq_weighted <- res_sq * matrix(wt, nrow = n_beta_draws, ncol = n_obs, byrow = TRUE)
-  RSS_temp <- rowSums(res_sq_weighted)
-  RSS_Post2 <- mean(RSS_temp)
-
-  shape2 <- shape + n_w / 2.0
-  rate2 <- rate + RSS_Post2 / 2.0
-  dispersion2 <- rate2 / (shape2 - 1.0)
-}
+dispersion2 <- centering$dispersion
+RSS_Post2   <- centering$RSS_post
 
 ###############################################################################
 # Step C: Coefficient posterior mode optimization (optim + f2/f3)

@@ -28,7 +28,10 @@ EnvelopeDispersionBuild(
 
 \item{n_obs}{Number of observations}
 
-\item{RSS_post}{Posterior-predictive residual sum of squares}
+\item{RSS_post}{Expected posterior weighted residual sum of squares
+(i.e., \eqn{\mathbb{E}[\mathrm{RSS}(\beta)\mid y,\phi]} under the Normal
+posterior for \eqn{\beta} at fixed dispersion \eqn{\phi = d}). This value
+is used for dispersion anchoring / Gamma updates.}
 
 \item{RSS_ML}{Residual sum of squares associated with MLE estimate}
 

@@ -2020,7 +2020,10 @@ EnvelopeEval <- function(G4, y, x, mu, P, alpha, wt,
 #' @param x          a design matrix of dimension \code{m * p}
 #' @param alpha      Numeric offset vector of length `m`
 #' @param n_obs      Number of observations
-#' @param RSS_post   Posterior-predictive residual sum of squares
+#' @param RSS_post   Expected posterior weighted residual sum of squares
+#'   (i.e., \eqn{\mathbb{E}[\mathrm{RSS}(\beta)\mid y,\phi]} under the Normal
+#'   posterior for \eqn{\beta} at fixed dispersion \eqn{\phi = d}). This value
+#'   is used for dispersion anchoring / Gamma updates.
 #' @param RSS_ML   Residual sum of squares associated with MLE estimate
 #' @param max_disp_perc Truncation level for dispersion (default 0.99)
 #' @param disp_lower lower bound truncation for dispersion 

@@ -194,8 +194,9 @@ This joint log‑posterior is **jointly concave** in \((\beta,\tau)\), which is 
    - This provides a first estimate of the dispersion parameter.
 
 2. **Fit Bayesian models with fixed but gradually refined dispersion parameters**  
-   - Start from the classical dispersion estimate and iteratively refine it.  
-   - At each iteration, fit a Bayesian model with dispersion held fixed, compute posterior residual sums of squares (`RSS_Post2`), and update the Gamma parameters for the precision:  
+  - Start from the classical dispersion estimate and iteratively refine it (a fixed-point refinement).  
+  - At each iteration, keep the dispersion fixed and compute the **posterior expected weighted residual sum of squares**
+    (`RSS_Post2`) in closed form under the Normal posterior for \(\beta\). Update the Gamma parameters for the precision:  
      \[
      \text{shape}_2 = \text{shape} + \tfrac{n_{w}}{2}, \qquad
      \text{rate}_2 = \text{rate} + \tfrac{\text{RSS}_{\text{Post}}}{2}.
@@ -203,8 +204,12 @@ This joint log‑posterior is **jointly concave** in \((\beta,\tau)\), which is 
      
 where  
  \[
- \text{RSS}_{\text{post}} = \sum_{i=1}^n w_i (y_i - x_i^\top\hat\beta)^2.
+ \mathrm{RSS}_{\text{post}}
+ = \mathbb{E}\!\left[\sum_{i=1}^n w_i (y_i - x_i^\top\beta)^2 \,\middle|\, y,\phi\right]
+ = \sum_{i=1}^n w_i\,(y_i - x_i^\top m_\beta)^2 \;+\; \mathrm{tr}\!\bigl(X^\top W X\,\Sigma_\beta\bigr),
  \]
+
+with \(m_\beta = \mathbb{E}[\beta \mid y,\phi]\) and \(\Sigma_\beta = \mathrm{Var}(\beta \mid y,\phi)\).
 
      
      
