@@ -127,7 +127,42 @@ shape     <- n_prior / 2
 rate      <- disp_ML * shape
 ```
 
-```{r schools-ng-gibbs, eval = TRUE}
+The **`dNormal_Gamma`** Gibbs chunk below is **not evaluated** when the vignette is
+built (`eval = FALSE`).
+Stored draws are loaded in **`chapter13-load-schools-gibbs`** from
+**`inst/extdata/Chapter13_Eight_Schools_two_gibbs.rds`**, produced by
+**`data-raw/make_Chapter13_Eight_Schools_gibbs_output.R`**.
+
+```{r chapter13-load-schools-gibbs}
+ch13_path <- system.file(
+  "extdata", "Chapter13_Eight_Schools_two_gibbs.rds",
+  package = "glmbayes"
+)
+stopifnot(nzchar(ch13_path), file.exists(ch13_path))
+ch13 <- readRDS(ch13_path)
+ng <- ch13$normal_gamma
+ind <- ch13$indep_norm_gamma
+stopifnot(
+  ncol(ng$theta_out) == J,
+  nrow(ng$theta_out) == ng$n_sim,
+  ncol(ind$theta_out) == J,
+  nrow(ind$theta_out) == ind$n_sim
+)
+theta_out_ng <- ng$theta_out
+mu_out_ng <- ng$mu_out
+sigma_theta_out_ng <- ng$sigma_theta_out
+n_burn_ng <- ng$n_burn
+n_sim_ng <- ng$n_sim
+theta_out <- ind$theta_out
+mu_out <- ind$mu_out
+sigma_theta_out <- ind$sigma_theta_out
+iters_out1 <- ind$iters_out1
+iters_out2 <- ind$iters_out2
+n_burn_schools <- ind$n_burn
+n_sim_schools <- ind$n_sim
+```
+
+```{r schools-ng-gibbs, eval = FALSE}
 set.seed(101)
 x_one <- as.matrix(rep(1, J), nrow = J, ncol = 1)
 theta_ng <- estimate
@@ -174,14 +209,21 @@ sqrt(diag(var(theta_out_ng)))
 The **`dNormal_Gamma`** prior is well-suited for Gibbs sampling: each call avoids the RSS/UB2 minimization used by **`dIndependent_Normal_Gamma`**, so run time stays manageable.
 
 
-### 2.2 Eight Schools with dIndependent_Normal_Gamma Prior (commented out for vignette build)
+### 2.2 Eight Schools with dIndependent_Normal_Gamma Prior
 
-The same hierarchical model can be fit with **`dIndependent_Normal_Gamma`**, which assumes prior independence between coefficients and precision. This prior triggers repeated envelope minimization (RSS and UB2) on each population-block draw, making it slower and less suitable for long Gibbs runs. The code chunks below are disabled (`eval = FALSE`) for faster vignette builds.
+The same hierarchical model can be fit with **`dIndependent_Normal_Gamma`**, which
+assumes prior independence between coefficients and precision.
+This prior triggers repeated envelope minimization (RSS and UB2) on each
+population-block draw, making it slower and less suitable for long Gibbs runs.
+
+The Gibbs chunks below are **not evaluated** at vignette build time (`eval = FALSE`);
+results for this block are loaded from the same RDS as in §2.1
+(**`chapter13-load-schools-gibbs`**).
 
 1. **Population block:** Draw \((\mu, \sigma_\theta^2) \mid \theta\) using **`rlmb`** with **`dIndependent_Normal_Gamma(mu_mu, sigma_mu, shape, rate)`**.
 2. **School block:** Same as above—draw \(\theta_j \mid \mu, \sigma_\theta^2, y_j\) using **`dNormal(...)`**.
 
-```{r schools-indep-setup, eval = TRUE}
+```{r schools-indep-setup, eval = FALSE}
 theta <- estimate
 n_burn_schools <- 1000
 n_sim_schools  <- 1000
@@ -192,7 +234,7 @@ iters_out1 <- numeric(n_burn_schools)
 iters_out2 <- numeric(n_sim_schools)
 ```
 
-```{r schools-burnin, eval = TRUE}
+```{r schools-burnin, eval = FALSE}
 set.seed(102)
 x_one <- as.matrix(rep(1, J), nrow = J, ncol = 1)
 
@@ -215,7 +257,7 @@ for (k in seq_len(n_burn_schools)) {
 mean(iters_out1)
 ```
 
-```{r schools-gibbs, eval = TRUE}
+```{r schools-gibbs, eval = FALSE}
 for (k in seq_len(n_sim_schools)) {
   out_pop <- rlmb(1, y = theta, x = x_one,
                   pfamily = dIndependent_Normal_Gamma(mu_mu, sigma_mu, shape = shape, rate = rate))
