@@ -27,7 +27,7 @@
 #' }
 #'
 #' @source UCI Machine Learning Repository: Heart Disease Data Set.
-#' \url{https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/}
+#' \url{https://archive.ics.uci.edu/dataset/45/heart+disease}
 #'
 #' @usage data("Cleveland")
 #'

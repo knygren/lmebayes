@@ -33,21 +33,25 @@
 #'   Here **df** means the **numerator** (effective prior count) before dividing by 2 for the
 #'   Gamma shape---not residual degrees of freedom and not a \code{data.frame}.
 #'   \describe{
-#'     \item{\code{"n_prior"}}{(default) \eqn{\texttt{shape} = n_{\mathrm{prior}}/2}. With
+#'     \item{\code{"n_prior"}}{(default) shape numerator \eqn{n_{\mathrm{prior}}}, so
+#'       \eqn{\texttt{shape}=(n_{\mathrm{prior}}+1)/2}. With
 #'       \code{\link{dIndependent_Normal_Gamma}}, the weak-prior limit of the log-target is
 #'       close to the **joint** Gaussian log-likelihood in \eqn{(\beta,\tau)} (full-sample
 #'       counting for dispersion). With \code{\link{dNormal_Gamma}}, the conjugate conditional
 #'       \eqn{\pi(\beta\mid\tau)} adds an extra \eqn{(p/2)\log\tau} term, so the **same**
 #'       \code{shape} implies **different** limiting dispersion behavior across these
 #'       \code{pfamily}s.}
-#'     \item{\code{"n_prior+p"}}{\eqn{\texttt{shape} = (n_{\mathrm{prior}}+p)/2}; \code{rate} is still
-#'       \eqn{(n_{\mathrm{prior}}/2)\cdot\texttt{dispersion}} (same as \code{"n_prior"}), i.e. the usual
-#'       \code{shape <- shape + p/2} with \code{rate} fixed. Intended for
+#'     \item{\code{"n_prior+p"}}{shape numerator \eqn{n_{\mathrm{prior}}+p}, so
+#'       \eqn{\texttt{shape}=(n_{\mathrm{prior}}+p+1)/2} (\eqn{p/2} more than \code{"n_prior"}).
+#'       Pre-calibration \code{rate} matches \code{"n_prior"} on the \eqn{n_{\mathrm{prior}}} scale;
+#'       Gaussian \code{\link{compute_gaussian_prior}} output adjusts \code{rate} as in Details.
+#'       Intended for
 #'       \code{\link{dIndependent_Normal_Gamma}} when you want marginal coefficient uncertainty
 #'       in the **\eqn{n_{\mathrm{effective}}-p}** / \code{summary(\link[stats]{lm})} spirit
 #'       as \code{pwt} approaches 0 (weak-prior limit). The weak-prior log-target **no longer** coincides with the raw
 #'       log-likelihood because a \eqn{(p/2)\log\tau} prior contribution remains.}
-#'     \item{\code{"n_prior-p"}}{\eqn{\texttt{shape} = (n_{\mathrm{prior}}-p)/2}; \code{rate} is still
+#'     \item{\code{"n_prior-p"}}{shape numerator \eqn{n_{\mathrm{prior}}-p}, so
+#'       \eqn{\texttt{shape}=(n_{\mathrm{prior}}-p+1)/2}; pre-calibration \code{rate} uses
 #'       \eqn{(n_{\mathrm{prior}}/2)\cdot\texttt{dispersion}}. Intended for
 #'       \code{\link{dNormal_Gamma}} when you want to **offset** the \eqn{(p/2)\log\tau} from
 #'       \eqn{\pi(\beta\mid\tau)} so the total prior \eqn{\log\tau} term aligns with an
@@ -210,30 +214,33 @@
 #' (With vector `pwt` or with `sd`, `pwt` is not overwritten.)
 #'
 #' When applicable, `Prior_Setup()` computes the shape and rate parameters for a Gamma prior on the residual precision (inverse variance), used in
-#' compound prior families such as `dNormal_Gamma()`, `dIndependent_Normal_Gamma()`, and `dGamma()`. Let \eqn{p=\texttt{ncol}(x)}. The **shape** is
-#' \deqn{\text{shape} = \frac{n_{\mathrm{shape}}}{2}}
-#' where \eqn{n_{\mathrm{shape}}} is set by `shape_df`:
+#' compound prior families such as `dNormal_Gamma()`, `dIndependent_Normal_Gamma()`, and `dGamma()`. Let \eqn{p=\texttt{ncol}(x)}. Write \eqn{n_{\mathrm{shape}}} for the
+#' shape numerator from `shape_df` (\eqn{n_{\mathrm{prior}}}, \eqn{n_{\mathrm{prior}}+p}, or \eqn{n_{\mathrm{prior}}-p}). The **shape** hyperparameter is
+#' \deqn{\text{shape} = \frac{n_{\mathrm{shape}} + 1}{2}}
 #' \describe{
-#'   \item{\code{shape_df = "n_prior"}}{\eqn{n_{\mathrm{shape}} = n_{\mathrm{prior}}}}
-#'   \item{\code{shape_df = "n_prior+p"}}{\eqn{n_{\mathrm{shape}} = n_{\mathrm{prior}} + p}}
+#'   \item{\code{shape_df = "n_prior"}}{\eqn{n_{\mathrm{shape}} = n_{\mathrm{prior}}}, so \eqn{\texttt{shape}=(n_{\mathrm{prior}}+1)/2}}
+#'   \item{\code{shape_df = "n_prior+p"}}{\eqn{n_{\mathrm{shape}} = n_{\mathrm{prior}} + p}, so \eqn{\texttt{shape}=(n_{\mathrm{prior}}+p+1)/2}}
 #'   \item{\code{shape_df = "n_prior-p"}}{\eqn{n_{\mathrm{shape}} = n_{\mathrm{prior}} - p}
-#'     (requires \eqn{n_{\mathrm{prior}} > p})}
+#'     (requires \eqn{n_{\mathrm{prior}} > p}), so \eqn{\texttt{shape}=(n_{\mathrm{prior}}-p+1)/2}}
 #' }
-#' The **rate** is tied to the **nominal** prior sample size \eqn{n_{\mathrm{prior}}}, not to the
-#' adjusted **shape** when \code{shape_df} adds or subtracts \eqn{p}:
-#' \deqn{\text{rate} = \frac{n_{\mathrm{prior}}}{2} \cdot \text{dispersion}}
-#' So for \code{shape_df = "n_prior+p"}, \eqn{\texttt{shape} = (n_{\mathrm{prior}}+p)/2} but
-#' \eqn{\texttt{rate}} is the same as for \code{shape_df = "n_prior"} with the same \eqn{n_{\mathrm{prior}}}
-#' and \code{dispersion}. This matches the common recipe for \code{\link{dIndependent_Normal_Gamma}}:
-#' increase Gamma **shape** by \eqn{p/2} while leaving **rate** at the \code{"n_prior"} value.
+#' Before Gaussian calibration (internal Step 9), the **rate** uses the **nominal**
+#' \eqn{n_{\mathrm{prior}}} only: \eqn{\text{rate} = (n_{\mathrm{prior}}/2)\cdot\texttt{dispersion}},
+#' so \eqn{\texttt{shape}} can move with \code{shape_df} while \eqn{\texttt{rate}} stays on the
+#' \eqn{n_{\mathrm{prior}}} scale. After \code{\link{compute_gaussian_prior}} (Gaussian models),
+#' both \eqn{\texttt{shape}} and \eqn{\texttt{rate}} are replaced so that
+#' \eqn{E[\sigma^2\mid y]=\texttt{dispersion}}{} with \eqn{\texttt{dispersion}=S_{\mathrm{marg}}/(n_{\mathrm{effective}}-p)};
+#' then \eqn{\texttt{rate}} depends on \eqn{n_{\mathrm{shape}}} through the calibrated prior rate
+#' (see \code{\link{compute_gaussian_prior}}). For \code{shape_df = "n_prior+p"}, \eqn{\texttt{shape}}
+#' still increases by \eqn{p/2} relative to \code{"n_prior"}, but \eqn{\texttt{rate}} need not match
+#' the \code{"n_prior"} value.
 #'    
 #' ### Gaussian dispersion
 #'
 #' For \code{family = gaussian()}, the function always computes a **classical** weighted
 #' residual-variance ratio from the internal \code{\link[stats]{glm.fit}} (not \code{\link[stats]{glm}}):
 #' with \eqn{\mathrm{RSS}_w = \sum_i w_i r_i^2} and \eqn{n_{\mathrm{effective}} = \sum_i w_i},
-#' \deqn{d_{\mathrm{OLS}} = \frac{\mathrm{RSS}_w}{n_{\mathrm{effective}} - 2}}
-#' requiring \eqn{n_{\mathrm{effective}} > 2}. This is **not**
+#' \deqn{d_{\mathrm{OLS}} = \frac{\mathrm{RSS}_w}{n_{\mathrm{effective}} - p}}
+#' requiring \eqn{n_{\mathrm{effective}} > p} with \eqn{p=\texttt{ncol}(x)}. This is **not**
 #' \code{summary(glm.fit(...))$dispersion}.
 #'
 #' If \code{n_prior} is available so a Gamma prior on precision is defined (\code{shape},
@@ -243,12 +250,14 @@
 #'
 #' The posterior shape and rate for residual precision (Gaussian sampling fragment) are:
 #' \deqn{\text{shape}_{\mathrm{post}} = \text{shape} + \frac{n_{\mathrm{effective}}}{2}
-#'       = \frac{n_{\mathrm{shape}} + n_{\mathrm{effective}}}{2}}
+#'       = \frac{n_{\mathrm{shape}} + n_{\mathrm{effective}} + 1}{2}}
 #' \deqn{\text{rate}_{\mathrm{post}} = \text{rate} + \frac{\mathrm{RSS}_w}{2}.}
-#' With the default \code{shape_df = "n_prior"}, \eqn{n_{\mathrm{shape}}=n_{\mathrm{prior}}} and
-#' \eqn{\text{rate} = \texttt{dispersion}\,n_{\mathrm{prior}}/2}, so
-#' \eqn{\text{rate}_{\mathrm{post}} = \texttt{dispersion}\,n_{\mathrm{prior}}/2 + \mathrm{RSS}_w/2}
-#' as before.
+#' With the default \code{shape_df = "n_prior"}, before \code{\link{compute_gaussian_prior}}
+#' one has \eqn{n_{\mathrm{shape}}=n_{\mathrm{prior}}} and
+#' \eqn{\text{rate} = \texttt{dispersion}\,n_{\mathrm{prior}}/2}, hence
+#' \eqn{\text{rate}_{\mathrm{post}} = \texttt{dispersion}\,n_{\mathrm{prior}}/2 + \mathrm{RSS}_w/2}.
+#' Gaussian calibration then replaces \code{dispersion}, \code{shape}, and \code{rate} using
+#' \eqn{S_{\mathrm{marg}}} (see \code{\link{compute_gaussian_prior}}).
 #'
 #' This structure allows the prior to contribute pseudo-observations to the residual precision estimate, enabling adaptive shrinkage and hierarchical 
 #' regularization---especially valuable in small-sample or high-dimensional settings.
@@ -260,8 +269,8 @@
 #'   the precision-weighted coefficient scale (same as the \code{Sigma_0} argument to
 #'   \code{\link{compute_gaussian_prior}}). \code{NULL} for other families.}
 #' \item{dispersion}{Empirical bayes estimate for the dispersion (gaussian model only)}
-#' \item{shape}{Derived prior shape parameter (gaussian model only). Defaults to n_prior/2 where n_prior is derived from pwt if not provided}
-#' \item{rate}{Derived prior rate parameter (gaussian model only). Defaults to (n_prior*dispersion)/2 where n_prior is derived from pwt if not provided}
+#' \item{shape}{Derived prior shape parameter (gaussian model only). From \code{shape_df} numerator \eqn{n_{\mathrm{shape}}}{} as \eqn{(n_{\mathrm{shape}}+1)/2}{}; after calibration see \code{\link{compute_gaussian_prior}}.}
+#' \item{rate}{Derived prior rate parameter (gaussian model only). Pre-calibration uses \eqn{(n_{\mathrm{prior}}/2)\cdot\texttt{dispersion}}{}; Gaussian output replaces this with the calibrated rate from \code{\link{compute_gaussian_prior}}.}
 #' \item{coefficients}{Named numeric vector of prior-implied posterior-mean coefficients.
 #'   For \code{gaussian()} this uses the closed-form Zellner blend
 #'   \eqn{(1-\texttt{pwt})\hat\beta+\texttt{pwt}\mu} (scalar or per-coefficient \code{pwt})
@@ -582,10 +591,11 @@ if (!is.null(sd)) {
   ## Gaussian: weighted RSS ratio; Gamma: MASS::gamma.dispersion; else NULL.
   ## ---------------------------------------------------------------------------
   ## --- CONDITIONAL DISPERSION (Gaussian): explicit ratio from glm.fit object -----
-  ## Uses stats::glm.fit (not glm()). Default: dispersion = RSS_w / (n_effective - 2).
+  ## Uses stats::glm.fit (not glm()). Baseline dispersion = RSS_w / (n_effective - p),
+  ## p = ncol(x), matching weighted residual df and \code{\link{compute_gaussian_prior}}.
   ## # Old MLE-style ratio (retained for reference, not used):
   ## # dispersion <- rss_weighted / n_effective
-  ## With rate = dispersion * shape (shape = n_prior/2), posterior summaries of tau = 1/d
+  ## With rate = dispersion * shape (shape = (n_prior+1)/2 after shape_df), posterior summaries of tau = 1/d
   ## depend on pwt unless additional structure holds (see Details).
   rss_weighted_stored <- NA_real_
   dispersion_classical <- NA_real_
@@ -599,13 +609,14 @@ if (!is.null(sd)) {
     if (!is.finite(n_effective) || n_effective <= 0) {
       stop("n_effective must be strictly positive to compute Gaussian dispersion.")
     }
-    if (n_effective <= 2) {
+    if (n_effective <= nvar) {
       stop(
-        "Gaussian dispersion requires n_effective > 2 ",
-        "(denominator n_effective - 2)."
+        "Gaussian dispersion requires n_effective > p (number of coefficients); ",
+        "use denominator n_effective - p. Got n_effective = ", n_effective,
+        ", p = ", nvar, "."
       )
     }
-    dispersion <- rss_weighted / (n_effective - 2)
+    dispersion <- rss_weighted / (n_effective - nvar)
     if (!is.finite(dispersion) || dispersion <= 0) {
       stop("Computed Gaussian dispersion must be strictly positive.")
     }
@@ -740,9 +751,9 @@ if (!is.null(sd)) {
   ## Step 9: Build Gamma(shape, rate) hyperparameters when available.
   ## For Gaussian this provides precision-prior terms used in calibration.
   ## ---------------------------------------------------------------------------
-  ## Gamma on precision: shape = n_shape_num/2, rate = dispersion * (n_prior/2).
+  ## Gamma on precision: shape = (n_shape_num + 1) / 2, rate = dispersion * (n_prior/2).
   ## n_shape_num from shape_df: n_prior, n_prior+p, or n_prior-p (latter needs n_prior > p).
-  ## Rate uses n_prior/2 always so n_prior+p matches "shape += p/2, rate unchanged" vs n_prior.
+  ## Pre-calibration rate uses n_prior/2; compute_gaussian_prior() then sets rate from n_shape_num.
   ## Sigma may be rescaled below by Gaussian calibration; shape/rate use current dispersion.
   dispersion_for_shape_rate <- dispersion
   if (!is.null(n_prior) && length(n_prior) == 1L && !is.null(dispersion_for_shape_rate)) {
@@ -762,7 +773,7 @@ if (!is.null(sd)) {
         n_prior - p_coef
       }
     )
-    shape <- n_shape_num / 2
+    shape <- (n_shape_num + 1L) / 2
     if (!is.finite(shape) || shape <= 0) {
       stop("Computed shape must be strictly positive.")
     }

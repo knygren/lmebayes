@@ -30,7 +30,7 @@ test_that("lmb: Independent Normal-Gamma with scaled diagonal Sigma (non-Zellner
   expect_true(all(is.finite(fit$coef.means)))
 })
 
-test_that("Prior_Setup shape_df n_prior+p matches shape + p/2 with rate unchanged", {
+test_that("Prior_Setup shape_df n_prior+p: shape += p/2, same calibrated dispersion", {
   ctl <- c(4.17, 5.58)
   trt <- c(4.81, 4.17)
   group <- gl(2, 2, 4)
@@ -42,12 +42,21 @@ test_that("Prior_Setup shape_df n_prior+p matches shape + p/2 with rate unchange
     shape_df = "n_prior"
   )
   p <- ncol(ps$x)
+  n_w <- ps$PriorSettings$n_effective
+  S_marg <- ps$dispersion * (n_w - p)
   ps1 <- Prior_Setup(
     weight ~ group,
     gaussian(),
     pwt = 0.01,
     shape_df = "n_prior+p"
   )
+  ## Prior Gamma(shape, rate) on precision; posterior E[sigma^2|y] = (rate + S_marg/2)/(shape + n_w/2 - 1)
+  ## is calibrated to dispersion for both shape_df settings, but rate differs (see compute_gaussian_prior).
+  post_mean_sigma2 <- function(ps) {
+    (ps$rate + S_marg / 2) / (ps$shape + n_w / 2 - 1)
+  }
   expect_equal(ps1$shape, ps$shape + p / 2)
-  expect_equal(ps1$rate, ps$rate)
+  expect_equal(ps1$dispersion, ps$dispersion)
+  expect_equal(post_mean_sigma2(ps), ps$dispersion)
+  expect_equal(post_mean_sigma2(ps1), ps$dispersion)
 })

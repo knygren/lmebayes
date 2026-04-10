@@ -1360,7 +1360,7 @@ that is proportional to the data precision:
 equivalently prior **precision** \(\tau\, (pwt/(1-pwt))\, G\).
 This is the structure implied by `Prior_Setup()` together with
 `dNormal_Gamma(..., Sigma_0, ...)` when
-\(\texttt{Sigma_0} = ((1-pwt)/pwt)\, G^{-1}\) (Zellner \(g\)-prior
+\(\Sigma_0 = ((1-pwt)/pwt)\, G^{-1}\) (Zellner \(g\)-prior
 relative to \(G^{-1}\); see Section 3.2).
 
 Define the **effective prior sample size** \(n_{\mathrm{prior}} > 0\) by
@@ -1561,9 +1561,9 @@ parameterization of the \(t\) density).
 #### `Prior_Setup()` dispersion and the Gamma rates \(b_{0}\), \(b_{n}\)
 
 For Gaussian models with scalar `n_prior`, `Prior_Setup()` sets the prior Gamma
-**rate** to \(\texttt{rate} = (n_{\mathrm{prior}}/2)\, d\) with
-\(d = \texttt{dispersion}\) returned by the function. In the notation above,
-\(b_{0} = \texttt{rate}\).
+**rate** to \(\mathrm{rate} = (n_{\mathrm{prior}}/2)\, d\), where \(d\) is the
+scalar `dispersion` returned by the function. In the notation above,
+\(b_{0} = \mathrm{rate}\).
 
 The **posterior** Gamma rate is
 \(b_{n} = b_{0} + \frac{1}{2} S_{\mathrm{marg}}\). Thus a larger returned
@@ -1577,9 +1577,9 @@ the augmented least-squares step then produces a **different** \(S_{\mathrm{marg
 
 #### Special case: \(b_{0} = \frac{1}{2}(n_{\mathrm{prior}}/n_{w})\,S_{\mathrm{marg}}\)
 
-
-
+\[
 \frac{S_{\mathrm{marg}}}{n_{w}}
+\]
 
 This choice is **not** the `Prior_Setup()` default; it is a **hypothetical**
 reparameterization that sets the prior Gamma rate proportional to the **same**

@@ -47,8 +47,11 @@ dimension \code{[p x p]} where \code{p = ncol(X)}.}
 \code{Prior_Setup()} plumbing (default \code{NULL}). When provided, the
 returned \code{Sigma} is set to this matrix and the returned
 \code{Sigma_0} is set to \code{Sigma / dispersion} using the returned
-calibrated \code{dispersion}. When \code{NULL}, the existing calibrated
-\code{Sigma} / input \code{Sigma_0} path is used.}
+\code{dispersion}. If \code{Sigma} is \code{NULL} but \code{dispersion} is
+provided, the returned \code{dispersion} is set to that input and the
+returned \code{Sigma} is set to \code{Sigma_0 * dispersion}. When both are
+\code{NULL}, the existing calibrated \code{Sigma} / input \code{Sigma_0}
+path is used.}
 
 \item{n_prior}{Positive scalar effective prior sample size.}
 
@@ -104,9 +107,19 @@ alternative prior structure on coefficients.
 The function computes:
 \itemize{
 \item \eqn{S_{marg} = RSS_w + (\hat\beta-\mu)^T(\Sigma_0 + (X^T W X)^{-1})^{-1}(\hat\beta-\mu)}
-\item \eqn{b_0 = \frac{1}{2}\frac{n_{prior}}{n_{effective}}S_{marg}}
-\item \eqn{E[\sigma^2 \mid y] = S_{marg}\frac{n_{effective}+n_{prior}}{n_{effective}(n_{effective}+n_{prior}-2)}}
-\item \eqn{\Sigma = \frac{n_{effective}}{n_{prior}} E[\sigma^2 \mid y] (X^T W X)^{-1}}
+\item \code{shape} from \code{shape_df}; write \eqn{n_{\mathrm{shape}}}{} for the implied
+shape numerator (\code{n_prior}, \code{n_prior+p}, or \code{n_prior-p}). The prior
+Gamma \code{shape} is \eqn{(n_{\mathrm{shape}}+1)/2}{}. Posterior Gamma shape is
+\eqn{a_n = (n_{\mathrm{shape}}+n_w+1)/2}{} with \eqn{n_w}{} = \code{n_effective}.
+\item Calibrated \code{dispersion} equals \eqn{S_{marg}/(n_w-p)}{} with \eqn{p=\texttt{ncol}(X)}{},
+i.e.\ the usual weighted residual-df denominator.
+\item Prior rate \eqn{b_0 = \frac{1}{2} S_{marg}(n_{\mathrm{shape}}+p-1)/(n_w-p)}{} so that
+\eqn{b_n=b_0+S_{marg}/2}{} gives \eqn{E[\sigma^2\mid y]=b_n/(a_n-1)=S_{marg}/(n_w-p)}{}.
+The \eqn{+1}{} in the prior shape and \eqn{p-1}{} in the rate numerator pair so
+\eqn{a_n-1}{} and \eqn{b_n}{} share a factor \eqn{n_{\mathrm{shape}}+n_w-1}{}; this
+preserves the posterior mean dispersion while improving prior propriety when
+\eqn{p=1}{} and \eqn{n_{\mathrm{prior}}}{} is small.
+\item \eqn{\Sigma = (n_w/n_{\mathrm{prior}}) E[\sigma^2 \mid y] (X^T W X)^{-1}}{}
 }
 with Gamma shape controlled by \code{shape_df}.
 
@@ -117,21 +130,20 @@ Gamma prior on precision becomes increasingly concentrated.
 \item The expected coefficient location remains centered at \eqn{\mu}; this
 function does not change the mean vector, only scale components.
 \item As \eqn{n_{prior}\to 0^+}, the returned expected dispersion tends to
-\eqn{S_{marg}/(n_{effective}-2)} from the formula
-\eqn{E[\sigma^2|y]=S_{marg}(n_{effective}+n_{prior})/[n_{effective}(n_{effective}+n_{prior}-2)]},
-i.e. a finite data-dominated limit when \eqn{n_{effective}>2}.
-\item As \eqn{n_{prior}\to 0^+}, \eqn{b_0\to 0} and shape terms can become
-very small depending on \code{shape_df}; this corresponds to a very diffuse
-precision prior and may be numerically delicate near the boundary.
-\item In the Chapter 11 scalar-\code{pwt} special-case path
-(\eqn{pwt=n_{prior}/(n_{prior}+n_w)} with fixed \eqn{n_w>2}), one has
-\eqn{pwt\to 0}, \eqn{S_{marg}\to RSS}, \eqn{b_n\to RSS/2},
-\eqn{a_n-1\to (n_w-2)/2}, and \eqn{V_n\to (X^TWX)^{-1}. Therefore}
-\deqn{
-  \mathrm{Cov}(\beta\mid y)\to \frac{RSS}{n_w-2}(X^TWX)^{-1},
-  }
-matching the classical weighted least-squares covariance under the
-Gaussian \code{glm.fit} dispersion convention used in \code{Prior_Setup}.
+\eqn{S_{marg}/(n_{\mathrm{effective}}-p)} when \eqn{n_{\mathrm{effective}}>p}.
+With \eqn{S_{marg}\to \mathrm{RSS}_w}, this matches the usual weighted
+Gaussian unbiased dispersion \eqn{\mathrm{RSS}_w/(n_{\mathrm{effective}}-p)}.
+\item Strict positivity of \eqn{b_0}{} requires \eqn{n_{\mathrm{shape}}+p>1}{}.
+Prior \code{shape} is at least \eqn{1/2}{} because \eqn{\texttt{shape}=(n_{\mathrm{shape}}+1)/2}{}.
+As \eqn{n_{prior}\to 0^+}, terms can become very small depending on \code{shape_df}; this
+corresponds to a very diffuse precision prior and may be numerically
+delicate near the boundary.
+\item In the Chapter 11 scalar-\code{pwt} path
+(\eqn{pwt=n_{prior}/(n_{prior}+n_w)} with fixed \eqn{n_w>p}), one has
+\eqn{pwt\to 0}, \eqn{S_{marg}\to \mathrm{RSS}_w},
+\eqn{E[\sigma^2\mid y]\to \mathrm{RSS}_w/(n_w-p)}, and \eqn{V_n\to (X^TWX)^{-1}}
+under the conjugate Zellner setup, so marginal coefficient covariance
+aligns with \eqn{\mathrm{RSS}_w/(n_w-p)\,(X^TWX)^{-1}} in the same limit.
 \item The \code{shape_df} choice adjusts how coefficient dimension \eqn{p}
 enters the precision shape (\code{"n_prior"}, \code{"n_prior+p"}, \code{"n_prior-p"}).
 }

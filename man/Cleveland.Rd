@@ -26,7 +26,7 @@ A data frame with 297 observations and 15 variables:
 }
 \source{
 UCI Machine Learning Repository: Heart Disease Data Set.
-\url{https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/}
+\url{https://archive.ics.uci.edu/dataset/45/heart+disease}
 }
 \usage{
 data("Cleveland")

@@ -3,13 +3,9 @@ test_that("Bayesian binomial-logit regression-OpenCL", {
     # Skip on CRAN to avoid long runtime / external data fetch
   skip_on_cran()
   
-  # Load Cleveland dataset (you may want to ship a small version in data/)
-  url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data"
-  df  <- read.csv(url, header = FALSE, na.strings = "?")
-  names(df) <- c("age", "sex", "cp", "trestbps", "chol", "fbs", "restecg",
-                 "thalach", "exang", "oldpeak", "slope", "ca", "thal", "num")
-  df <- na.omit(df)
-  df$hd <- factor(ifelse(df$num > 0, "Yes", "No"), levels = c("No", "Yes"))
+  ## Bundled cleaned UCI Cleveland data (see ?Cleveland); avoid fetching the
+  ## raw UCI URL in tests — archive paths often move or block non-browser clients.
+  df <- Cleveland
   
   # Prior setup
   ps <- Prior_Setup(hd ~ age + sex + cp + trestbps + chol +
