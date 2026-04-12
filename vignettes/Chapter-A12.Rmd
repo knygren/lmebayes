@@ -50,6 +50,10 @@ The goal is to make the calibration used by `Prior_Setup()` transparent, reprodu
 that users can confidently interpret or modify the priors supplied to `dNormal()`, `dNormal_Gamma()`,
 and `dIndependent_Normal_Gamma()`.
 
+Textbook treatments of conjugate Normal--Gamma linear models and related updating appear in
+[@Gelman2013; @Raiffa1961]. The Zellner $g$-prior scaling used for coefficient covariances is due to
+[@zellner1986gprior]. Applied prior construction with `Prior_Setup()` is in [@glmbayesChapter03].
+
 
 
 
@@ -109,6 +113,7 @@ W_i(\beta) := -\frac{d^2 \ell_i}{d\eta_i^2}\Big|_{\eta_i=x_i^{\mathsf T}\beta}
 \ge 0
 \]
 (log-concavity in $\eta$; Chapter 5), and $W(\beta)$ diagonal.
+The Hessian form of $P(\beta)$ matches standard GLM theory [@McCullagh1989].
 
 Write $W_i(\beta) = w_i\,\omega_i(\beta)$ with fixed $w_i$ and mean-dependent
 $\omega_i(\beta)$. Let $W_{\mathrm{obs}}=\mathrm{diag}(w_i)$ and
@@ -210,6 +215,7 @@ E(\beta\mid y)
 Thus the posterior mean is a convex combination of the likelihood estimate
 $\beta^\ast$ and prior mean $\mu$: larger `pwt` gives more pull toward $\mu$.
 In the limit as $\mathrm{pwt}\to 0$, it approaches $\beta^\ast$.
+The underlying precision combination is the usual normal--normal Bayes linear model update [@LindleySmith1972].
 
 
 
@@ -618,6 +624,7 @@ Then
 - The denominator \(n_w-p\) reflects the **residual degrees of freedom** in the weighted Gaussian model.
 
 Together, these determine how prior strength interacts with sample size and model dimension.
+Theorem 1 restates standard conjugate Normal--Gamma posterior formulas under this calibration [@Gelman2013; @Raiffa1961].
 
 
 ### **Theorem 2 (Weak‑prior limit of the `dNormal_Gamma()` posterior)**
@@ -927,6 +934,7 @@ calibration.
 The independent Normal–Gamma (ING) prior replaces the conjugate covariance structure 
 \(\tau^{-1}\Sigma_0\) with a fixed coefficient-scale covariance \(\Sigma\), while using a Gamma prior on 
 \(\tau\) whose shape parameter differs from the conjugate Normal–Gamma case by \(p/2\).
+[@GriffinBrown2010] develop inference with Normal--Gamma priors in regression when independence replaces full conjugacy.
 
 The default call is
 
@@ -1994,7 +2002,7 @@ posterior convergence theory.
 ### Appendix B: Derivation of Theorem 1 (Conjugate Normal–Gamma posterior)
 
 We sketch how each closed‑form expression in Theorem 1 follows from standard Normal–Gamma algebra
-under the calibration in §3.3.1–3.3.2.
+under the calibration in §3.3.1–3.3.2; see [@Raiffa1961; @Gelman2013] for the underlying updates.
 
 #### B.1 Setup and joint kernel
 
