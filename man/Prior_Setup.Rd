@@ -439,7 +439,6 @@ weight <- c(ctl, trt)
 
 ## Set up prior for gaussian model
 ps2 <- Prior_Setup(weight ~ group, family = gaussian())
-p <- ncol(ps2$x)
 ps2
 
 ## Conjugate Normal Prior (fixed dispersion)
@@ -465,7 +464,7 @@ lmb.D9_v3 <- lmb(
   dIndependent_Normal_Gamma(
     ps2$mu,
     ps2$Sigma,
-    shape = ps2$shape + p / 2,
+    shape = ps2$shape_ING,
     rate = ps2$rate
   )
 )
@@ -484,7 +483,7 @@ rglmb.D9 <- rglmb(
   pfamily = dIndependent_Normal_Gamma(
     ps2$mu,
     ps2$Sigma,
-    shape = ps2$shape + p / 2,
+    shape = ps2$shape_ING,
     rate = ps2$rate
   ),
   weights = wt,
@@ -498,7 +497,7 @@ rlmb.D9 <- rlmb(
   pfamily = dIndependent_Normal_Gamma(
     ps2$mu,
     ps2$Sigma,
-    shape = ps2$shape + p / 2,
+    shape = ps2$shape_ING,
     rate = ps2$rate
   ),
   weights = wt
@@ -518,7 +517,7 @@ prior_list_rindepNormalGamma <- list(
   mu = ps2$mu,
   Sigma = ps2$Sigma,
   dispersion = ps2$dispersion,
-  shape = ps2$shape + p / 2,
+  shape = ps2$shape_ING,
   rate = ps2$rate,
   Precision = solve(ps2$Sigma),
   max_disp_perc = 0.99

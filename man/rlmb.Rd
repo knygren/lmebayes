@@ -143,13 +143,13 @@ group  <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
 weight <- c(ctl, trt)
 
 ps <- Prior_Setup(weight ~ group)
-p  <- ncol(ps$x)
 x  <- ps$x
 mu <- ps$mu
 V  <- ps$Sigma
 y <- ps$y
 shape    <- ps$shape
 rate     <- ps$rate
+rate_dg  <- if (!is.null(ps$rate_gamma)) ps$rate_gamma else rate
 
 
 ## Two-Block Gibbs sampler for Plant Weight regression model
@@ -169,7 +169,7 @@ for (i in 1:n_burnin) {
   
   ## Update block for dispersion
   out2 <- rlmb(n = 1, y = y, x = x,
-  pfamily = dGamma(shape = shape, rate = rate, beta = out1$coefficients[1, ]))
+    pfamily = dGamma(shape = shape, rate = rate_dg, beta = out1$coefficients[1, ]))
   dispersion2 <- out2$dispersion
 }
 
@@ -184,7 +184,7 @@ for (i in 1:n_samples) {
 
   ## Update block for dispersion
   out2 <- rlmb(n = 1, y = y, x = x,
-               pfamily = dGamma(shape = shape, rate = rate, beta = out1$coefficients[1, ]))
+               pfamily = dGamma(shape = shape, rate = rate_dg, beta = out1$coefficients[1, ]))
   dispersion2 <- out2$dispersion
   
   ## Store output
@@ -206,14 +206,13 @@ print(coda::effectiveSize(mcmc_two_block)["dispersion"])
 ## Same model using the lmb function
 
 lmb.D9 <- lmb(n= 4000,weight  ~ group,
-  pfamily = dIndependent_Normal_Gamma(ps$mu, ps$Sigma, shape = ps$shape + p / 2, rate  = ps$rate))
+  pfamily = dIndependent_Normal_Gamma(ps$mu, ps$Sigma, shape = ps$shape_ING, rate  = ps$rate))
 
 ## lmb summary
 summary(lmb.D9)
 
 
 ## rlmb with dGamma prior (dispersion-only; coefficients fixed)
-rate_dg <- if (!is.null(ps$rate_gamma)) ps$rate_gamma else rate
 out_rlmb_dGamma <- rlmb(n = 100, y = y, x = x,
   pfamily = dGamma(shape = shape, rate = rate_dg, beta = ps$coefficients),
   weights = rep(1, length(y)))

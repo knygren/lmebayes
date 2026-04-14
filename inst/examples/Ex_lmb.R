@@ -6,7 +6,6 @@ group <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
 weight <- c(ctl, trt)
 
 ps <- Prior_Setup(weight ~ group, gaussian())
-p <- ncol(ps$x)
 # mu <- ps$mu
 # V  <- ps$Sigma
 # mu[1, 1] <- mean(weight)
@@ -40,14 +39,14 @@ lmb.D9_v2 <- lmb(
 summary(lmb.D9_v2)
 vcov(lmb.D9_v2)
 
-## Independent_Normal_Gamma_Prior (same mu, Sigma, rate as dNormal_Gamma; shape + p/2)
+## Independent_Normal_Gamma_Prior (same mu, Sigma, rate as dNormal_Gamma; shape = ps$shape_ING)
 
 lmb.D9_v3 <- lmb(
   weight ~ group,
   dIndependent_Normal_Gamma(
     ps$mu,
     ps$Sigma,
-    shape = ps$shape + p / 2,
+    shape = ps$shape_ING,
     rate  = ps$rate
   )
 )

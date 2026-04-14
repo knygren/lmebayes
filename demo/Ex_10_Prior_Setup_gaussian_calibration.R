@@ -4,8 +4,8 @@
 ## (shape = (n_prior+k)/2, default k=1; see ?compute_gaussian_prior). `dNormal()` uses
 ## `ps$Sigma` and `dispersion = ps$dispersion`. The same returned `rate`, `mu`,
 ## `Sigma`, and `Sigma_0` apply to both `dNormal_Gamma()` and
-## `dIndependent_Normal_Gamma()`; for the latter, pass `shape = ps$shape + p/2`
-## with `p = ncol(ps$x)` (see ?Prior_Setup).
+## `dIndependent_Normal_Gamma()`; for the latter, pass `shape = ps$shape_ING`
+## (see ?Prior_Setup).
 ##
 ## Run: demo(Ex_10_Prior_Setup_gaussian_calibration, package = "glmbayes")
 
@@ -50,7 +50,6 @@ ps <- Prior_Setup(
   intercept_source = "full_model",
   effects_source = "full_model"
 )
-p <- ncol(ps$x)
 
 fit_ng <- lmb(
   weight ~ group,
@@ -68,7 +67,7 @@ fit_ing <- lmb(
   pfamily = dIndependent_Normal_Gamma(
     ps$mu,
     ps$Sigma,
-    shape = ps$shape + p / 2,
+    shape = ps$shape_ING,
     rate = ps$rate
   ),
   n = n_mc
@@ -84,8 +83,8 @@ fit_dn <- lmb(
   n = n_mc
 )
 
-cat("\n======== One Prior_Setup(); NG uses ps$shape; ING uses ps$shape + p/2 =========\n")
-cat("shape (NG) =", ps$shape, "  shape (ING) =", ps$shape + p / 2, "  rate =", ps$rate, "\n")
+cat("\n======== One Prior_Setup(); NG uses ps$shape; ING uses ps$shape_ING =========\n")
+cat("shape (NG) =", ps$shape, "  shape_ING =", ps$shape_ING, "  rate =", ps$rate, "\n")
 
 cat("\n======== Classical vs. Posterior vcov(lmb) =========\n")
 cat("Classical Scaled:\n")

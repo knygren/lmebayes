@@ -32,12 +32,12 @@ weight <- c(ctl, trt)
 
 ps <- Prior_Setup(weight ~ group)
 x <- ps$x
-p <- ncol(x)
 y <- ps$y
 mu <- ps$mu
 V <- ps$Sigma
 shape <- ps$shape
 rate <- ps$rate
+rate_dg <- if (!is.null(ps$rate_gamma)) ps$rate_gamma else rate
 
 message("Independent Normal-Gamma lmb (n = 10000) ...")
 lmb_D9_v3 <- lmb(
@@ -46,7 +46,7 @@ lmb_D9_v3 <- lmb(
   dIndependent_Normal_Gamma(
     ps$mu,
     ps$Sigma,
-    shape = ps$shape + p / 2,
+    shape = ps$shape_ING,
     rate = ps$rate,
     max_disp_perc = 0.99,
     disp_lower = NULL,
@@ -66,7 +66,7 @@ for (i in seq_len(1000L)) {
   out2 <- rlmb(
     n = 1L, y = y, x = x,
     pfamily = dGamma(
-      shape = shape, rate = rate,
+      shape = shape, rate = rate_dg,
       beta = out1$coefficients[1, ]
     )
   )
@@ -86,7 +86,7 @@ for (i in seq_len(n_sim_gibbs)) {
   out2 <- rlmb(
     n = 1L, y = y, x = x,
     pfamily = dGamma(
-      shape = shape, rate = rate,
+      shape = shape, rate = rate_dg,
       beta = out1$coefficients[1, ]
     )
   )

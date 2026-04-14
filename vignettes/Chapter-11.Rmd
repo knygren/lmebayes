@@ -564,13 +564,12 @@ stopifnot(
 ```
 
 ```{r Independent_normal_gamma_prior, eval = FALSE}
-p <- ncol(ps$x)
 lmb.D9_v3 <- lmb(n = 10000,
   weight ~ group,
   dIndependent_Normal_Gamma(
     ps$mu,
     ps$Sigma,
-    shape = ps$shape + p / 2,
+    shape = ps$shape_ING,
     rate  = ps$rate,
     max_disp_perc = 0.99,
     disp_lower = NULL,

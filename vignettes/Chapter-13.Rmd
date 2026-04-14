@@ -56,6 +56,7 @@ mu   <- ps$mu
 V    <- ps$Sigma
 shape <- ps$shape
 rate  <- ps$rate
+rate_dg <- if (!is.null(ps$rate_gamma)) ps$rate_gamma else rate
 disp_ML <- ps$dispersion
 ```
 
@@ -67,7 +68,7 @@ dispersion_current <- disp_ML
 n_burn  <- 1000
 for (i in seq_len(n_burn)) {
   out_beta <- rlmb(n = 1, y = y, x = x, pfamily = dNormal(mu = mu, Sigma = V, dispersion = dispersion_current))
-  out_phi  <- rlmb(n = 1, y = y, x = x, pfamily = dGamma(shape = shape, rate = rate, beta = out_beta$coefficients[1, ]))
+  out_phi  <- rlmb(n = 1, y = y, x = x, pfamily = dGamma(shape = shape, rate = rate_dg, beta = out_beta$coefficients[1, ]))
   dispersion_current <- out_phi$dispersion
 }
 
@@ -77,7 +78,7 @@ beta_out <- matrix(0, nrow = n_sim, ncol = 2)
 disp_out <- numeric(n_sim)
 for (i in seq_len(n_sim)) {
   out_beta <- rlmb(n = 1, y = y, x = x, pfamily = dNormal(mu = mu, Sigma = V, dispersion = dispersion_current))
-  out_phi  <- rlmb(n = 1, y = y, x = x, pfamily = dGamma(shape = shape, rate = rate, beta = out_beta$coefficients[1, ]))
+  out_phi  <- rlmb(n = 1, y = y, x = x, pfamily = dGamma(shape = shape, rate = rate_dg, beta = out_beta$coefficients[1, ]))
   dispersion_current    <- out_phi$dispersion
   beta_out[i, ]         <- out_beta$coefficients[1, ]
   disp_out[i]           <- out_phi$dispersion
@@ -85,7 +86,7 @@ for (i in seq_len(n_sim)) {
 ```
 
 ```{r dobson-compare}
-lmb_D9 <- lmb(weight ~ group, dIndependent_Normal_Gamma(mu, V, shape = shape + ncol(x) / 2, rate = rate))
+lmb_D9 <- lmb(weight ~ group, dIndependent_Normal_Gamma(mu, V, shape = ps$shape_ING, rate = ps$rate))
 print(lmb_D9)
 
 ## Compare Gibbs vs lmb: means and SDs

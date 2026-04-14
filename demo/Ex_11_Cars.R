@@ -8,8 +8,8 @@
 ## covariance; see Chapter A12).
 ##
 ## `dNormal()` uses `ps$Sigma` and **default** `dispersion = ps$dispersion`. 
-## `dIndependent_Normal_Gamma()` uses `shape = ps$shape + p/2` with `p = ncol(ps$x)`
-## (same `ps$rate` as `dNormal_Gamma()`); see `?Prior_Setup`.
+## `dIndependent_Normal_Gamma()` uses `shape = ps$shape_ING` (same `ps$rate` as
+## `dNormal_Gamma()`); see `?Prior_Setup`.
 ## `dGamma()` uses fixed `ps$coefficients` with `rate = ps$rate_gamma` when present
 ## (RSS at the Zellner blend; else `ps$rate`).
 ##
@@ -64,7 +64,7 @@ V_lm_shrunk <- (1 - pwt) * V_lm
 
 cat("\n======== Prior_Setup (pwt = 0.001, Gaussian) =========\n")
 print(ps$PriorSettings)
-cat("p =", p, "  ps$shape =", ps$shape, "  ps$shape + p/2 (ING) =", ps$shape + p / 2, "\n")
+cat("p =", p, "  ps$shape =", ps$shape, "  ps$shape_ING =", ps$shape_ING, "\n")
 cat(
   "ps$rate (S_marg calibration) =", ps$rate,
   "  ps$rate_gamma (RSS at blend, dGamma) =", ps$rate_gamma, "\n"
@@ -102,7 +102,7 @@ fit_ing <- lmb(
   pfamily = dIndependent_Normal_Gamma(
     ps$mu,
     ps$Sigma,
-    shape = ps$shape + p / 2,
+    shape = ps$shape_ING,
     rate = ps$rate
   ),
   n = n_mc

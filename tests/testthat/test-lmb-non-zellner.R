@@ -9,7 +9,6 @@ test_that("lmb: Independent Normal-Gamma with scaled diagonal Sigma (non-Zellner
   weight <- c(ctl, trt)
 
   ps <- Prior_Setup(weight ~ group, gaussian())
-  p <- ncol(ps$x)
   Sigma_non_zellner <- 0.001 * diag(diag(ps$Sigma))
 
   fit <- lmb(
@@ -17,7 +16,7 @@ test_that("lmb: Independent Normal-Gamma with scaled diagonal Sigma (non-Zellner
     dIndependent_Normal_Gamma(
       ps$mu,
       Sigma_non_zellner,
-      shape = ps$shape + p / 2,
+      shape = ps$shape_ING,
       rate  = ps$rate
     ),
     n = 500L,

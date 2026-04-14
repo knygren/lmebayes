@@ -23,6 +23,6 @@ rate= disp_ML*shape
 lmb.D9=lmb(weight ~ group,dNormal_Gamma(mu,V/disp_ML,shape=shape,rate=rate))
 summary(lmb.D9)
 
-# Independent_Normal_Gamma_Prior
-lmb.D9_v2=lmb(weight ~ group,dIndependent_Normal_Gamma(mu,V,shape=shape,rate=rate))
+# Independent_Normal_Gamma_Prior (shape_ING, rate from Prior_Setup calibration)
+lmb.D9_v2=lmb(weight ~ group,dIndependent_Normal_Gamma(mu,V,shape=ps$shape_ING,rate=ps$rate))
 summary(lmb.D9_v2)

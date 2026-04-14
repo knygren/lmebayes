@@ -47,6 +47,6 @@ for(i in 1:1000){
 colMeans(beta_out)
 mean(disp_out)
 
-# Same model using Independent_Normal_Gamma_Prior
-lmb.D9_v2=lmb(weight ~ group,dIndependent_Normal_Gamma(mu,V,shape=shape,rate=rate))
+# Same model using Independent_Normal_Gamma_Prior (shape_ING, rate from Prior_Setup)
+lmb.D9_v2=lmb(weight ~ group,dIndependent_Normal_Gamma(mu,V,shape=ps$shape_ING,rate=ps$rate))
 summary(lmb.D9_v2)

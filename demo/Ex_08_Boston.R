@@ -32,7 +32,6 @@ readline("\n--- End of Classical Model block. Press <Enter> to continue... ---")
 # Conjugate Normal prior (fixed dispersion)
 # --------------------------------
 ps <- Prior_Setup(form, gaussian(), data = Boston_centered)
-p <- ncol(ps$x)
 
 lmb.boston <- lmb(
   form,
@@ -73,7 +72,7 @@ lmb.boston_v3 <- glmb(n = 1000,
                       data       = Boston_centered,
                       family     = gaussian(),
                       pfamily    = dIndependent_Normal_Gamma(ps$mu, ps$Sigma,
-                                                             shape = ps$shape + p / 2,
+                                                             shape = ps$shape_ING,
                                                              rate  = ps$rate
                       ),
                       use_parallel = TRUE,
