@@ -25,3 +25,4 @@
 ^\.RDataTmp$
 ^data-raw$
 ^scripts$
+^\.github$

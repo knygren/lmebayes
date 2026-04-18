@@ -52,6 +52,14 @@ jobs:
 
     steps:
       - uses: r-hub/actions/checkout@v1
+
+      # Workaround for: AddressSanitizer ODR-violation between libtbb.so and libtbbmalloc.so
+      # (Intel TBB / RcppParallel). ASan hint: ASAN_OPTIONS=detect_odr_violation=0
+      # Must be set before setup-deps so loading R during pak install does not abort.
+      - name: ASan suppress TBB ODR false positive (clang-asan / gcc-asan)
+        if: ${{ matrix.config.label == 'clang-asan' || matrix.config.label == 'gcc-asan' }}
+        run: echo "ASAN_OPTIONS=detect_odr_violation=0" >> "$GITHUB_ENV"
+
       - uses: r-hub/actions/platform-info@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}
@@ -60,6 +68,36 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+
+      # Workaround for: lazy-load fails loading RcppArmadillo.so — libquadmath.so.0 not found.
+      # Intel platform uses a Fedora container; RcppArmadillo (via gfortran/quadmath) needs the
+      # libquadmath runtime package on the image. Not a glmbayes R code issue.
+      - name: Install libquadmath (Fedora / Intel container)
+        if: ${{ matrix.config.label == 'intel' }}
+        run: |
+          set -eux
+          if command -v dnf >/dev/null 2>&1; then
+            dnf install -y libquadmath
+          elif command -v microdnf >/dev/null 2>&1; then
+            microdnf install -y libquadmath
+          else
+            echo "Expected dnf or microdnf on this image" >&2
+            exit 1
+          fi
+
+      # Workaround for: R_NamespaceRegistry compilation failure on R-devel.
+      # Seen on: valgrind, nosuggests.
+      - name: Diagnostics (R / Rcpp)
+        if: ${{ matrix.config.label == 'valgrind' || matrix.config.label == 'nosuggests' }}
+        run: |
+          Rscript -e "cat('R:', R.version.string, '\n')"
+          Rscript -e "if (requireNamespace('Rcpp', quietly=TRUE)) cat('Rcpp:', as.character(packageVersion('Rcpp')), '\n') else cat('Rcpp: <not installed>\\n')"
+
+      - name: Force reinstall Rcpp (GitHub) for R-devel
+        if: ${{ matrix.config.label == 'valgrind' || matrix.config.label == 'nosuggests' }}
+        run: |
+          Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org')"
+          Rscript -e "remotes::install_github('RcppCore/Rcpp', upgrade='never')"
       - uses: r-hub/actions/run-check@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}
@@ -89,6 +127,32 @@ jobs:
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
+
+      # Workaround for: R_NamespaceRegistry compilation failure on Windows R-devel.
+      # (This keeps the workaround scoped; other platforms still use CRAN binaries.)
+      - name: Diagnostics (R / Rcpp)
+        if: ${{ matrix.config.label == 'windows' }}
+        shell: bash
+        run: |
+          Rscript -e "cat('R:', R.version.string, '\n')"
+          Rscript -e "if (requireNamespace('Rcpp', quietly=TRUE)) cat('Rcpp:', as.character(packageVersion('Rcpp')), '\n') else cat('Rcpp: <not installed>\\n')"
+
+      - name: Force reinstall Rcpp (GitHub) for R-devel
+        if: ${{ matrix.config.label == 'windows' }}
+        shell: bash
+        run: |
+          Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org')"
+          Rscript -e "remotes::install_github('RcppCore/Rcpp', upgrade='never')"
+
+      # Workaround for: ubuntu-next vignette build fails loading rlang.so
+      # Error: undefined symbol: SETLENGTH
+      - name: Force rebuild vignette toolchain from source (ubuntu-next)
+        if: ${{ matrix.config.label == 'ubuntu-next' }}
+        shell: bash
+        run: |
+          Rscript -e "cat('R:', R.version.string, '\n')"
+          Rscript -e "install.packages('pak', repos='https://cloud.r-project.org')"
+          Rscript -e "pak::pkg_install(c('rlang','cli','glue','vctrs','lifecycle','xfun','yaml','knitr','rmarkdown'), upgrade=TRUE, source=TRUE)"
       - uses: r-hub/actions/run-check@v1
         with:
           job-config: ${{ matrix.config.job-config }}

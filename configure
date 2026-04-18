@@ -4,9 +4,26 @@
 # It detects RcppParallel, OpenCL headers/libs, performs a runtime probe,
 # detects CUDA (optional), and generates src/Makevars dynamically.
 
+# Use R_HOME/bin/Rscript (Writing R Extensions). Bare "Rscript" on PATH can print
+# warnings on some check systems that get captured into Makevars and break g++.
+#
+# Prefer R on PATH (R RHOME): GitHub Actions / rhub sometimes set R_HOME to a
+# stale value; the R used for R CMD INSTALL must match this configure run.
+if command -v R >/dev/null 2>&1; then
+  R_HOME=$(R RHOME)
+elif [ -z "$R_HOME" ]; then
+  echo "configure: R not on PATH and R_HOME is unset" >&2
+  exit 1
+fi
+if [ -z "$R_HOME" ] || [ ! -x "$R_HOME/bin/Rscript" ]; then
+  echo "configure: could not find executable Rscript at \$R_HOME/bin/Rscript (R_HOME=$R_HOME)" >&2
+  exit 1
+fi
+RSCRIPT="$R_HOME/bin/Rscript"
+
 # ---- 1. Detect RcppParallel include and library paths ----
-RPP_INC_DIR=$(Rscript -e "cat(system.file('include', package = 'RcppParallel'))")
-RPP_LIB_DIR=$(Rscript -e "cat(system.file('lib', package = 'RcppParallel'))")
+RPP_INC_DIR=$("$RSCRIPT" -e "cat(system.file('include', package = 'RcppParallel'))")
+RPP_LIB_DIR=$("$RSCRIPT" -e "cat(system.file('lib', package = 'RcppParallel'))")
 
 echo ">> Detected RcppParallel include dir: $RPP_INC_DIR"
 echo ">> Detected RcppParallel lib dir: $RPP_LIB_DIR"
