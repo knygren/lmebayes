@@ -15,12 +15,33 @@ if (!file.exists(fh)) {
   quit(status = 0L)
 }
 
-txt <- paste(readLines(fh, warn = FALSE), collapse = "\n")
-orig <- txt
+lines <- readLines(fh, warn = FALSE)
+orig <- lines
 
-# Whitespace-tolerant (indent may vary). R_UnboundValue = CRAN; R_NilValue = GitHub.
+# 1) Single-line form (CRAN / GitHub): entire call on one line
+idx <- which(
+  grepl("R_getVarEx", lines, fixed = TRUE) &
+    grepl("R_NamespaceRegistry", lines, fixed = TRUE) &
+    grepl("R_UnboundValue|R_NilValue", lines, perl = TRUE)
+)
+if (length(idx)) {
+  i <- idx[[1L]]
+  indent <- regmatches(lines[i], regexpr("^[[:space:]]*", lines[i], perl = TRUE))
+  if (!length(indent) || !nzchar(indent[1L])) {
+    indent <- ""
+  } else {
+    indent <- indent[1L]
+  }
+  lines[i] <- paste0(indent, "Shield env(R_getRegisteredNamespace(ns.c_str()));")
+  writeLines(lines, fh)
+  message("patch_rcpp_function_h: patched line ", i, " in ", fh)
+  quit(status = 0L)
+}
+
+# 2) Fallback: whole-file regex (multiline / odd spacing)
+txt <- paste(lines, collapse = "\n")
 pat <- paste0(
-  "Shield(?:<SEXP>)?[[:space:]]+env\\(",
+  "(?s)Shield(?:<SEXP>)?[[:space:]]+env\\(",
   "R_getVarEx\\(",
   "Rf_install\\(ns\\.c_str\\(\\)\\),[[:space:]]*",
   "R_NamespaceRegistry,[[:space:]]*FALSE,[[:space:]]*",
@@ -30,14 +51,13 @@ pat <- paste0(
 repl <- "Shield env(R_getRegisteredNamespace(ns.c_str()));"
 
 if (!grepl(pat, txt, perl = TRUE)) {
-  message("patch_rcpp_function_h: no R_getVarEx/R_NamespaceRegistry line matched — skip")
+  message("patch_rcpp_function_h: no R_getVarEx/R_NamespaceRegistry pattern matched — skip")
   quit(status = 0L)
 }
 
-txt <- gsub(pat, repl, txt, perl = TRUE)
-if (identical(txt, orig)) {
+txt2 <- gsub(pat, repl, txt, perl = TRUE)
+if (identical(txt2, txt)) {
   quit(status = 0L)
 }
-
-writeLines(strsplit(txt, "\n", fixed = TRUE)[[1L]], fh)
-message("patch_rcpp_function_h: patched ", fh)
+writeLines(strsplit(txt2, "\n", fixed = TRUE)[[1L]], fh)
+message("patch_rcpp_function_h: patched (regex) ", fh)

@@ -1,5 +1,5 @@
 # Invoked by configure / configure.win. Prints a single -I"path" line to stdout (Rcpp include dir).
-# Messages go to stderr.
+# Messages and warnings go to stderr.
 #
 # GLMBAYES_RCPP_LIB — optional: explicit library directory that contains Rcpp/ (e.g. CI user library).
 # If unset and several libraries contain Rcpp, the newest packageVersion("Rcpp") wins.
@@ -48,7 +48,89 @@ pick_lib <- function() {
   best
 }
 
+parse_rcpp_minimum_version <- function() {
+  if (!file.exists("DESCRIPTION")) {
+    return(NULL)
+  }
+  imp <- tryCatch(
+    read.dcf("DESCRIPTION", fields = "Imports")[[1L]],
+    error = function(e) ""
+  )
+  imp <- gsub("[\n\r]", " ", imp, perl = TRUE)
+  m <- regexec("Rcpp\\s*\\(>=\\s*([0-9.]+)\\)", imp, perl = TRUE)
+  r <- regmatches(imp, m)[[1L]]
+  if (length(r) < 2L) {
+    return(NULL)
+  }
+  tryCatch(package_version(r[[2L]]), warning = function(w) NULL, error = function(e) NULL)
+}
+
+rcpp_configure_warnings <- function(lib) {
+  rv <- getRversion()
+  r_devel <- nzchar(R.version$status) && grepl("devel|Under development", R.version$status, ignore.case = TRUE)
+  r_ge_45 <- rv >= "4.5.0"
+
+  v_inst <- tryCatch(packageVersion("Rcpp", lib.loc = lib), error = function(e) NULL)
+  if (!is.null(v_inst)) {
+    vmin <- parse_rcpp_minimum_version()
+    if (!is.null(vmin) && v_inst < vmin) {
+      writeLines(sprintf(
+        "configure: WARNING: installed Rcpp %s is older than DESCRIPTION Imports (>= %s).",
+        as.character(v_inst), as.character(vmin)
+      ), con = stderr())
+    }
+  }
+
+  pd <- tryCatch(
+    suppressWarnings(packageDescription("Rcpp", lib.loc = lib)),
+    error = function(e) NULL
+  )
+  if (identical(pd, NA)) {
+    return(invisible())
+  }
+  has_remote <- any(vapply(
+    c("RemoteSha", "GithubRepo", "GithubUsername"),
+    function(f) {
+      v <- pd[[f]]
+      !is.null(v) && length(v) && nzchar(as.character(v)[1L])
+    },
+    FUN.VALUE = logical(1L)
+  ))
+  repo <- pd[["Repository"]]
+  repo_cran <- !is.null(repo) && identical(as.character(repo), "CRAN")
+  repo_unknown <- is.null(repo) || !nzchar(as.character(repo))
+
+  if ((r_devel || r_ge_45) && !has_remote && (repo_cran || repo_unknown)) {
+    writeLines(
+      paste0(
+        "configure: WARNING: Rcpp looks like a CRAN install (no GitHub Remote* fields). ",
+        "On R-devel / R >= 4.5, a stale CRAN tree can leave Rcpp headers incompatible with R ",
+        "(e.g. R_NamespaceRegistry). Consider remotes::install_github(\"RcppCore/Rcpp\") ",
+        "or ensure install_github actually replaced the library."
+      ),
+      con = stderr()
+    )
+  }
+
+  fh <- file.path(lib, "Rcpp", "include", "Rcpp", "Function.h")
+  if (file.exists(fh)) {
+    txt <- paste(readLines(fh, warn = FALSE), collapse = "\n")
+    if (grepl("R_getVarEx\\([^)]*R_NamespaceRegistry[^)]*R_UnboundValue", txt, perl = TRUE)) {
+      writeLines(
+        paste0(
+          "configure: WARNING: Rcpp Function.h matches CRAN-style R_UnboundValue line. ",
+          "If compilation fails with R_NamespaceRegistry, reinstall Rcpp from GitHub or use a patched header."
+        ),
+        con = stderr()
+      )
+    }
+  }
+  invisible()
+}
+
 lib <- pick_lib()
+rcpp_configure_warnings(lib)
+
 inc <- normalizePath(
   system.file("include", package = "Rcpp", lib.loc = lib),
   winslash = "/",

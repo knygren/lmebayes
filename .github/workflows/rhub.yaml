@@ -266,16 +266,19 @@ jobs:
           echo "BUILD_ARGS=--no-build-vignettes" >> "$GITHUB_ENV"
           echo "CHECK_ARGS=--no-build-vignettes --ignore-vignettes" >> "$GITHUB_ENV"
 
-      # Same flags as r-hub/actions/run-check inner rcmdcheck (empty BUILD_ARGS/CHECK_ARGS → strsplit gives nothing extra).
-      - uses: r-lib/actions/check-r-package@v2
+      # Windows: do not use r-lib/check-r-package as-is — rcmdcheck(install_deps=TRUE) reinstalls
+      # Rcpp from CRAN during the check, undoing tools/patch_rcpp_function_h.R. Patch again, then
+      # rcmdcheck with install_deps=FALSE (same args as check-r-package defaults).
+      - name: R-CMD-check (windows, install_deps=FALSE)
         if: ${{ matrix.config.label == 'windows' }}
+        shell: bash
         env:
           R_KEEP_PKG_SOURCE: yes
-        with:
-          args: 'c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error")'
-          build_args: 'c("--no-manual")'
-          upload-results: never
-          upload-snapshots: false
+        run: |
+          set -eux
+          export GLMBAYES_RCPP_LIB="${GLMBAYES_RCPP_LIB:-$(Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(ul)')}"
+          Rscript tools/patch_rcpp_function_h.R
+          Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); rcmdcheck::rcmdcheck(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check", install_deps = FALSE)'
 
       - uses: r-hub/actions/run-check@v1
         if: ${{ matrix.config.label == 'ubuntu-next' }}
