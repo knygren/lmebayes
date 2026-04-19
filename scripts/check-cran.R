@@ -48,19 +48,19 @@ if (!nzchar(Sys.getenv("GITHUB_PAT", ""))) {
 #
 # pkg_name <- "glmbayes"
 # lib <- .libPaths()[1L]
-#
+# 
 # if (pkg_name %in% rownames(installed.packages(lib.loc = lib, noCache = TRUE))) {
 #   remove.packages(pkg_name, lib = lib)
 # }
-#
+# 
 # o_files <- list.files("src", pattern = "\\.o$", recursive = TRUE, full.names = TRUE)
 # if (length(o_files)) {
 #   unlink(o_files, force = TRUE)
 # }
-#
+# 
 # tarball <- devtools::build(vignettes = TRUE)
 # install.packages(tarball, repos = NULL, type = "source", lib = lib)
-#
+# 
 # pkg_dir <- file.path(lib, pkg_name)
 # pkg_bytes <- sum(
 #   file.info(list.files(pkg_dir, recursive = TRUE, full.names = TRUE))$size,

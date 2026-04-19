@@ -434,7 +434,7 @@ prior_list_rGamma <- list(
 )
 
 ## Note: for a full dGamma run across rGamma_reg/rglmb/rlmb/glmb/lmb, see:
-## example("summary.rgamma_reg")
+## example("summary.rGamma_reg")
 
 ## -------------------------------------------------------------------------
 ## dGamma prior illustration: Prior_Setup(shape, rate_gamma or rate) + fixed beta

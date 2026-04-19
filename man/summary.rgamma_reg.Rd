@@ -20,7 +20,7 @@ summary is desired.}
 \item{\ldots}{Additional optional arguments}
 }
 \description{
-These functions are all \code{\link{methods}} for class \code{rgamna_reg} or \code{summary.rgamma_reg} objects.
+These functions are all \code{\link{methods}} for class \code{rGamma_reg} or \code{summary.rGamma_reg} objects.
 }
 \examples{
 ## summary.rGamma_reg: dGamma prior (dispersion-only; coefficients fixed)

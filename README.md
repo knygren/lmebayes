@@ -93,6 +93,62 @@ symbolic model description and family specification used by glm(). By default, P
 All supported models feature log-concave likelihoods, enabling efficient iid sampling via enveloping functions and
 subgradient-based accept-reject algorithms (for models where other standard iid sampling algorithms are unavailable).
 
+
+## Supported families, links, and pfamilies
+
+As with `glm()`, models are defined by a formula for the linear predictor and a `family()` describing the likelihood and 
+link. In addition, `glmb()` requires a **pfamily** object specifying the prior.
+
+The supported likelihood families, link functions, and compatible pfamilies are:
+
+| Likelihood family           | Link functions                    | Compatible pfamilies                                      |
+|-----------------------------|------------------------------------|------------------------------------------------------------|
+| Gaussian                    | identity                           | dNormal, dGamma, dNormal_Gamma, dIndependent_Normal_Gamma |
+| Poisson / Quasi-Poisson     | log                                | dNormal                                                    |
+| Binomial / Quasi-Binomial   | logit, probit, cloglog             | dNormal                                                    |
+| Gamma                       | log                                | dNormal, dGamma                                            |
+
+### Prior_Setup
+
+For a default, data‑aligned prior using the same formula and family as `glm()`, call `Prior_Setup(formula, family, data = ..., ...)`. 
+The returned list includes default settings for the following:
+
+- **mu**, **Sigma** — Zellner‑style normal prior components for use with most priors  
+- **Additional Gaussian‑specific calibration components**:  
+  - `dispersion` for use with the `dNormal()` prior (gaussian and Gamma families)
+  - `Sigma_0`, `shape` and `rate` for use with the `dNormal_Gamma()` prior  
+  - `shape_ING` and `rate` for use with `dIndependent_Normal_Gamma()` prior 
+  - `shape`, `rate_gamma` and `coefficients` for use with the `dGamma()` prior  
+
+Optional arguments adjust prior weight, centering, and related settings (see the function help and vignette Chapter 03).
+
+### Typical Prior_Setup wiring
+
+Assuming `ps <- Prior_Setup(...)`:
+
+- **All non‑Gaussian families:**  
+  Use `dNormal(mu = ps$mu, Sigma = ps$Sigma)`.  
+  (For Gamma GLMs, also supply `dispersion` from the fitted GLM or from `ps`; see `example("glmb")`.)
+
+- **Gaussian — normal prior with known dispersion:**  
+  Use `dNormal(mu = ps$mu, Sigma = ps$Sigma, dispersion = ps$dispersion)`.
+
+- **Gaussian — conjugate Normal–Gamma:**  
+  Use `dNormal_Gamma(mu = ps$mu, Sigma_0 = ps$Sigma_0, shape = ps$shape, rate = ps$rate)`.
+
+- **Gaussian — independent Normal–Gamma:**  
+  Use `dIndependent_Normal_Gamma(mu = ps$mu, Sigma = ps$Sigma, shape = ps$shape_ING, rate = ps$rate)`.
+
+- **Gaussian — dispersion via dGamma (coefficients fixed):**  
+  Use `dGamma(shape = ps$shape, rate = ps$rate_gamma, beta = ps$coefficients)`.
+
+The default priors have limiting behaviors that produce estimates resembling classical estimates as priors get weak 
+(see documentation and vignettes for details).
+
+All supported models have log‑concave likelihoods, enabling efficient iid sampling via enveloping functions
+and subgradient‑based accept–reject algorithms, especially for models lacking standard iid samplers. 
+
+
 ## Examples and Demos
 
 Use `example()` and `demo()` to explore built-in examples and demos for supported families and links:
@@ -120,7 +176,7 @@ Use `example()` and `demo()` to explore built-in examples and demos for supporte
 
     ## Two-step Boston example: estimates and summarizes models with unknown
     ## dispersion using dGamma priors via rGamma_reg, rglmb, rlmb, glmb, and lmb
-    example("summary.rgamma_reg")
+    example("summary.rGamma_reg")
 
     ## High-dimensional Gaussian model (14 predictors) with GPU acceleration (requires OpenCL)
     demo("Ex_08_Boston")
@@ -300,4 +356,3 @@ details behind the samplers.
   sampling (e.g. binary search) to select the grid component per candidate
   instead of scanning PLSD, improving the simulation loop when many candidates
   are evaluated.
-- Improve References for Vignettes and Select Functions

@@ -1,6 +1,6 @@
   #' Summarizing Bayesian gamma_reg Distribution Functions
 #'
-#' These functions are all \code{\link{methods}} for class \code{rgamna_reg} or \code{summary.rgamma_reg} objects.
+#' These functions are all \code{\link{methods}} for class \code{rGamma_reg} or \code{summary.rGamma_reg} objects.
 #' 
 #' @aliases 
 #' summary.rGamma_reg
