@@ -51,7 +51,7 @@ Ubuntu’s default repositories often contain older R versions. To install the c
 sudo apt-get install --no-install-recommends dirmngr gnupg ca-certificates software-properties-common
 sudo gpg --keyserver keyserver.ubuntu.com --recv-key E298A3A825C0D65DFD57CBB651716619E084DAB9
 sudo gpg -a --export E298A3A825C0D65DFD57CBB651716619E084DAB9 | sudo tee /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
-sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/"
+sudo add-apt-repository "deb https://CRAN.R-project.org/bin/linux/ubuntu/ jammy-cran40/"
 sudo apt-get update
 sudo apt-get install build-essential r-base-dev
 
@@ -98,7 +98,7 @@ Choose one of:
   https://developer.nvidia.com/cuda-downloads
 
 - **Intel OpenCL SDK (OpenCL CPU + headers)**  
-  https://www.intel.com/content/www/us/en/developer/tools/opencl-sdk/overview.html
+  https://www.intel.com/content/www/us/en/developer/archive/tools/tools-opencl-applications.html
 
 - **Khronos OpenCL Headers (header‑only download)**  
   https://github.com/KhronosGroup/OpenCL-Headers

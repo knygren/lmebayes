@@ -110,7 +110,7 @@ The function computes:
 
 \item Posterior Gamma shape:
 \eqn{a_n = (n_{\mathrm{prior}} + n_w + k)/2},
-where \eqn{n_w = \texttt{n_effective}}.
+where \eqn{n_w = n_{\mathrm{effective}}}.
 
 \item Calibrated dispersion:
 \deqn{

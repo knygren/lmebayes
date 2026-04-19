@@ -54,7 +54,7 @@
 #' @author
 #' Kjell Nygren
 #'
-#' @import stats Rcpp RcppArmadillo
+#' @import stats Rcpp
 #' @importFrom Rcpp evalCpp
 #' @importFrom MASS mvrnorm
 #' @importFrom Rdpack reprompt

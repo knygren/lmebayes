@@ -2,7 +2,7 @@ Package: glmbayes
 Type: Package
 Title: Bayesian Generalized Linear Models (IID Samples)
 Version: 0.1.0
-Date: 2025-12-13
+Date: 2026-04-19
 Authors@R: person("Kjell", "Nygren", role = c("aut","cre"), email = "kjell.a.nygren@gmail.com")
 Description: Generates iid samples for Bayesian Generalized Linear Models.
 License: GPL-2
@@ -12,7 +12,6 @@ Imports:
     stats,
     coda,
     Rcpp (>= 1.1.1),
-    RcppArmadillo,
     RcppParallel,
     Rdpack (>= 0.11-0)
 RdMacros: Rdpack

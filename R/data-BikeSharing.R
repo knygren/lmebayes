@@ -34,7 +34,7 @@
 #' }
 #'
 #' @source UCI Machine Learning Repository: Bike Sharing Dataset.
-#' \url{https://archive.ics.uci.edu/ml/machine-learning-databases/00275/}
+#' \url{https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset}
 #'
 #' @example inst/examples/Ex_BikeSharing.R
 #'
