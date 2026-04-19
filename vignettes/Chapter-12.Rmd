@@ -261,7 +261,7 @@ Because CRAN and R‑universe do not build packages with OpenCL support, install
 ```r
 install.packages(
   "glmbayes",
-  repos = c("https://knygren.r-universe.dev", "https://cloud.r-project.org"),
+  repos = c("https://cloud.r-project.org", "https://knygren.r-universe.dev"),
   type = "source"
 )
 ```

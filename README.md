@@ -22,8 +22,8 @@ https://github.com/knygren/glmbayes/blob/main/NEWS.md
 To install the current development version (excluding OpenCL functionality):
 
 install.packages("glmbayes",
-                 repos = c("https://knygren.r-universe.dev",
-                           "https://cloud.r-project.org"))
+                 repos = c("https://cloud.r-project.org",
+                           "https://knygren.r-universe.dev"))
 
 To install a version suitable for large models with GPU acceleration, follow the instructions from 
 
