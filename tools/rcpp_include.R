@@ -65,6 +65,42 @@ parse_rcpp_minimum_version <- function() {
   tryCatch(package_version(r[[2L]]), warning = function(w) NULL, error = function(e) NULL)
 }
 
+rcpp_configure_version_info <- function(lib) {
+  # Version + library are echoed by configure / configure.win from stdout line 1 (see below).
+  pd <- tryCatch(
+    suppressWarnings(packageDescription("Rcpp", lib.loc = lib)),
+    error = function(e) NULL
+  )
+  if (is.list(pd) && !identical(pd, NA)) {
+    rs <- pd[["RemoteSha"]]
+    if (!is.null(rs) && length(rs) && nzchar(as.character(rs)[1L])) {
+      writeLines(sprintf("configure: Rcpp RemoteSha: %s", as.character(rs)[1L]), con = stderr())
+    }
+    gr <- pd[["GithubRepo"]]
+    gu <- pd[["GithubUsername"]]
+    if (!is.null(gr) && nzchar(as.character(gr)) && !is.null(gu) && nzchar(as.character(gu))) {
+      writeLines(sprintf("configure: Rcpp source: %s/%s", as.character(gu)[1L], as.character(gr)[1L]), con = stderr())
+    }
+    rp <- pd[["Repository"]]
+    if (!is.null(rp) && nzchar(as.character(rp))) {
+      writeLines(sprintf("configure: Rcpp Repository: %s", as.character(rp)[1L]), con = stderr())
+    }
+  }
+  fh <- file.path(lib, "Rcpp", "include", "Rcpp", "Function.h")
+  if (file.exists(fh)) {
+    h <- readLines(fh, warn = FALSE)
+    has_ub <- any(grepl("R_getVarEx", h, fixed = TRUE) & grepl("R_UnboundValue", h, fixed = TRUE))
+    writeLines(
+      sprintf(
+        "configure: Rcpp Function.h: line with R_getVarEx + R_UnboundValue present = %s",
+        has_ub
+      ),
+      con = stderr()
+    )
+  }
+  invisible()
+}
+
 rcpp_configure_warnings <- function(lib) {
   rv <- getRversion()
   r_devel <- nzchar(R.version$status) && grepl("devel|Under development", R.version$status, ignore.case = TRUE)
@@ -129,12 +165,17 @@ rcpp_configure_warnings <- function(lib) {
 }
 
 lib <- pick_lib()
+rcpp_configure_version_info(lib)
 rcpp_configure_warnings(lib)
 
+ver <- tryCatch(as.character(packageVersion("Rcpp", lib.loc = lib)), error = function(e) "unknown")
+# Line 1 for configure / configure.win: version TAB library (no tabs in path assumed).
+cat(sprintf("%s\t%s\n", ver, lib))
 inc <- normalizePath(
   system.file("include", package = "Rcpp", lib.loc = lib),
   winslash = "/",
   mustWork = TRUE
 )
 p <- gsub("\\\\", "/", inc)
-cat(sprintf('-I"%s"', p))
+# Line 2: PKG_CPPFLAGS fragment for Makevars (single line).
+cat(sprintf('-I"%s"\n', p))
