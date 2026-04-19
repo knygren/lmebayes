@@ -248,6 +248,12 @@ FULL_CXXFLAGS="$FULL_CXXFLAGS $RPP_CPPFLAGS"
 echo ">> FULL_CXXFLAGS    = '$FULL_CXXFLAGS'"
 echo ">> FULL_LIBS        = '$FULL_LIBS'"
 
-# ---- 16. Write final Makevars ----
-echo "PKG_CXXFLAGS = $FULL_CXXFLAGS" > src/Makevars
+# ---- 16. Rcpp include (multiple .libPaths() / GLMBAYES_RCPP_LIB) — see tools/rcpp_include.R ----
+echo ">> Resolving Rcpp include flags via tools/rcpp_include.R"
+RCPP_CPPFLAGS=$("$RSCRIPT" --vanilla tools/rcpp_include.R) || exit $?
+echo ">> RCPP_CPPFLAGS    = '$RCPP_CPPFLAGS'"
+
+# ---- 17. Write final Makevars (PKG_CPPFLAGS precedes LinkingTo -I so newest Rcpp wins) ----
+echo "PKG_CPPFLAGS = $RCPP_CPPFLAGS" > src/Makevars
+echo "PKG_CXXFLAGS = $FULL_CXXFLAGS" >> src/Makevars
 echo "PKG_LIBS = $FULL_LIBS" >> src/Makevars

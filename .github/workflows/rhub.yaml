@@ -226,9 +226,9 @@ jobs:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
 
-      # Workaround for: R_NamespaceRegistry (Windows R-devel vs CRAN Rcpp). setup-r sets R_LIBS_USER to
-      # D:/a/_temp/Library — R CMD build resolves LinkingTo Rcpp to THAT path (-I.../Library/Rcpp/include).
-      # Installing GitHub Rcpp under RUNNER_TEMP/rhub-windows-Rcpp was ignored; replace Rcpp in R_LIBS_USER.
+      # Windows R-devel vs CRAN Rcpp (R_NamespaceRegistry): install GitHub Rcpp into R_LIBS_USER, then
+      # set GLMBAYES_RCPP_LIB so configure.win + tools/rcpp_include.R emit PKG_CPPFLAGS for that tree
+      # (newest Rcpp wins among .libPaths() if unset).
       - name: Diagnostics (R / Rcpp)
         if: ${{ matrix.config.label == 'windows' }}
         shell: bash
@@ -246,20 +246,13 @@ jobs:
           Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org')"
           Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; message("Replacing Rcpp in: ", ul); for (L in unique(c(ul, .libPaths()))) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; remotes::install_github("RcppCore/Rcpp", lib = ul, upgrade = "never", auth_token = tok, force = TRUE)'
           Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; p <- system.file("include/Rcpp/Function.h", package = "Rcpp", lib.loc = ul); cat("Rcpp Function.h:", p, "\n"); if (nzchar(p)) cat(any(grepl("R_NamespaceRegistry", readLines(p, warn = FALSE))), "\n")'
-
-      - name: Export PKG_CPPFLAGS for Rcpp include (windows)
-        if: ${{ matrix.config.label == 'windows' }}
-        shell: bash
-        run: |
-          set -eux
-          INC=$(Rscript -e "ul <- Sys.getenv('R_LIBS_USER'); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(gsub('\\\\', '/', normalizePath(system.file('include', package = 'Rcpp', lib.loc = ul), winslash = '/', mustWork = TRUE)))")
-          echo "PKG_CPPFLAGS=-I${INC}" >> "$GITHUB_ENV"
+          Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(paste0("GLMBAYES_RCPP_LIB=", ul, "\n"), file = Sys.getenv("GITHUB_ENV"), append = TRUE)'
 
       # ubuntu-next: CRAN rlang vs R-devel (SETLENGTH) breaks vignette rebuild. Skip vignettes via
       # BUILD_ARGS/CHECK_ARGS in GITHUB_ENV (see nosuggests comment — nested check-r-package needs it).
       # Re-enable when CRAN/GitHub rlang matches ubuntu-next R.
-      # Windows: use r-lib check-r-package directly (not r-hub run-check). Nested run-check did not
-      # reliably pass PKG_CPPFLAGS / job env into rcmdcheck’s compile, so LinkingTo kept using stale CRAN Rcpp.
+      # Windows: r-lib check-r-package (r-hub run-check nested rcmdcheck was fragile for env).
+      # Rcpp headers: src/Makevars.win from configure.win + tools/rcpp_include.R (not PKG_CPPFLAGS in GITHUB_ENV).
       - name: Skip vignettes (ubuntu-next) — BUILD_ARGS/CHECK_ARGS for rcmdcheck
         if: ${{ matrix.config.label == 'ubuntu-next' }}
         shell: bash

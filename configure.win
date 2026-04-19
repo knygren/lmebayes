@@ -168,6 +168,27 @@ done
 echo "🔎 CL_HEADER = $CL_HEADER"
 
 # --------------------------------------------------------------------
+# 6b. Rcpp include — not part of OpenCL SEARCH_PATHS; R finds LinkingTo Rcpp via .libPaths().
+# If several libraries contain Rcpp, tools/rcpp_include.R picks the newest (or GLMBAYES_RCPP_LIB).
+# Emitting PKG_CPPFLAGS puts -I.../Rcpp/include before other flags so g++ prefers that tree.
+# --------------------------------------------------------------------
+RSCRIPT=""
+if [ -n "${R_HOME:-}" ] && [ -x "${R_HOME}/bin/Rscript" ]; then
+  RSCRIPT="${R_HOME}/bin/Rscript"
+elif [ -n "${R_HOME:-}" ] && [ -n "${R_ARCH:-}" ] && [ -x "${R_HOME}/bin${R_ARCH}/Rscript" ]; then
+  RSCRIPT="${R_HOME}/bin${R_ARCH}/Rscript"
+else
+  RSCRIPT=$(command -v Rscript 2>/dev/null || true)
+fi
+if [ -z "$RSCRIPT" ]; then
+  echo "configure.win: cannot find Rscript (set R_HOME)" >&2
+  exit 1
+fi
+echo "🔧 Resolving Rcpp include via: $RSCRIPT"
+RCPP_CPPFLAGS=$("$RSCRIPT" --vanilla tools/rcpp_include.R) || exit $?
+echo "📦 RCPP_CPPFLAGS = $RCPP_CPPFLAGS"
+
+# --------------------------------------------------------------------
 # 7. Generate Makevars.win
 # --------------------------------------------------------------------
 # If cl.h is found:
@@ -195,11 +216,13 @@ if [ -n "$CL_HEADER" ]; then
   echo "⚙️  LIB_FLAG     = $LIB_FLAG"
 
   # CRAN-safe, OpenMP-free, quoting-stable
-  MAKEVARS_CONTENT="PKG_CXXFLAGS = -DGLMBAYES_BUILD -DUSE_OPENCL $INCLUDE_FLAG
+  MAKEVARS_CONTENT="PKG_CPPFLAGS = $RCPP_CPPFLAGS
+PKG_CXXFLAGS = -DGLMBAYES_BUILD -DUSE_OPENCL $INCLUDE_FLAG
 PKG_LIBS = $LIB_FLAG -lOpenCL \$(LAPACK_LIBS) \$(BLAS_LIBS) \$(FLIBS)"
 else
   # CPU-only fallback, also CRAN-safe
-  MAKEVARS_CONTENT="PKG_CXXFLAGS = -DGLMBAYES_BUILD
+  MAKEVARS_CONTENT="PKG_CPPFLAGS = $RCPP_CPPFLAGS
+PKG_CXXFLAGS = -DGLMBAYES_BUILD
 PKG_LIBS = \$(LAPACK_LIBS) \$(BLAS_LIBS) \$(FLIBS)"
 fi
 
