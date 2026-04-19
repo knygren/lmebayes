@@ -103,8 +103,10 @@ jobs:
       # on run-check (no knitr/rmarkdown). BUILD_ARGS/CHECK_ARGS must be in GITHUB_ENV (not only the
       # run-check step env): r-hub run-check delegates to nested r-lib/check-r-package, which reads
       # Sys.getenv("BUILD_ARGS") — nested composites often do not inherit the parent step env.
-      - name: Skip vignettes (nosuggests) — BUILD_ARGS/CHECK_ARGS for rcmdcheck
-        if: ${{ matrix.config.label == 'nosuggests' }}
+      # ubuntu-next is a *container* platform (see r-hub setup/platforms.json), so it runs in this
+      # job — not other-platforms. CRAN rlang vs R-patched (SETLENGTH) breaks vignette rebuild there.
+      - name: Skip vignettes (nosuggests, ubuntu-next) — BUILD_ARGS/CHECK_ARGS for rcmdcheck
+        if: ${{ matrix.config.label == 'nosuggests' || matrix.config.label == 'ubuntu-next' }}
         run: |
           echo "BUILD_ARGS=--no-build-vignettes" >> "$GITHUB_ENV"
           echo "CHECK_ARGS=--no-build-vignettes --ignore-vignettes" >> "$GITHUB_ENV"
@@ -254,17 +256,9 @@ jobs:
           Rscript tools/patch_rcpp_function_h.R
           Rscript -e 'p <- file.path(Sys.getenv("GLMBAYES_RCPP_LIB"), "Rcpp", "include", "Rcpp", "Function.h"); if (file.exists(p)) { h <- readLines(p, warn = FALSE); cat("Function.h still has R_getVarEx+Registry:", any(grepl("R_getVarEx.*R_NamespaceRegistry", h, perl = TRUE)), "\n") }'
 
-      # ubuntu-next: CRAN rlang vs R-devel (SETLENGTH) breaks vignette rebuild. Skip vignettes via
-      # BUILD_ARGS/CHECK_ARGS in GITHUB_ENV (see nosuggests comment — nested check-r-package needs it).
-      # Re-enable when CRAN/GitHub rlang matches ubuntu-next R.
+      # ubuntu-next vignettes: handled in linux-containers job (ubuntu-next is a container image).
       # Windows: r-lib check-r-package (r-hub run-check nested rcmdcheck was fragile for env).
       # Rcpp headers: src/Makevars.win from configure.win + tools/rcpp_include.R (not PKG_CPPFLAGS in GITHUB_ENV).
-      - name: Skip vignettes (ubuntu-next) — BUILD_ARGS/CHECK_ARGS for rcmdcheck
-        if: ${{ matrix.config.label == 'ubuntu-next' }}
-        shell: bash
-        run: |
-          echo "BUILD_ARGS=--no-build-vignettes" >> "$GITHUB_ENV"
-          echo "CHECK_ARGS=--no-build-vignettes --ignore-vignettes" >> "$GITHUB_ENV"
 
       # Windows: do not use r-lib/check-r-package as-is — rcmdcheck(install_deps=TRUE) reinstalls
       # Rcpp from CRAN during the check, undoing tools/patch_rcpp_function_h.R. Patch again, then
@@ -281,13 +275,7 @@ jobs:
           Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); rcmdcheck::rcmdcheck(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check", install_deps = FALSE)'
 
       - uses: r-hub/actions/run-check@v1
-        if: ${{ matrix.config.label == 'ubuntu-next' }}
-        with:
-          job-config: ${{ matrix.config.job-config }}
-          token: ${{ secrets.RHUB_TOKEN }}
-
-      - uses: r-hub/actions/run-check@v1
-        if: ${{ matrix.config.label != 'windows' && matrix.config.label != 'ubuntu-next' }}
+        if: ${{ matrix.config.label != 'windows' }}
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
