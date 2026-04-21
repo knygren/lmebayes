@@ -191,13 +191,13 @@ jobs:
         run: |
           echo "matrix.config.label=${{ matrix.config.label }}"
           echo "v2_labels=clang-asan,gcc-asan,valgrind,nosuggests"
-          echo "will_use_v2=${{ contains(fromJSON('[\"clang-asan\",\"gcc-asan\",\"valgrind\",\"nosuggests\"]'), matrix.config.label) }}"
-          echo "will_use_rhub_v1=${{ !contains(fromJSON('[\"clang-asan\",\"gcc-asan\",\"valgrind\",\"nosuggests\"]'), matrix.config.label) }}"
+          echo "will_use_v2=${{ contains('clang-asan,gcc-asan,valgrind,nosuggests', matrix.config.label) }}"
+          echo "will_use_rhub_v1=${{ !contains('clang-asan,gcc-asan,valgrind,nosuggests', matrix.config.label) }}"
 
       # clang-asan / gcc-asan / valgrind / nosuggests: use r-lib check-r-package directly to avoid
       # r-hub wrapper/post-step behavior and keep check args explicit per label.
       - uses: r-lib/actions/check-r-package@v2
-        if: ${{ contains(fromJSON('["clang-asan","gcc-asan","valgrind","nosuggests"]'), matrix.config.label) }}
+        if: ${{ contains('clang-asan,gcc-asan,valgrind,nosuggests', matrix.config.label) }}
         env:
           ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=0
           UBSAN_OPTIONS: halt_on_error=0:abort_on_error=0
@@ -210,7 +210,7 @@ jobs:
           upload-snapshots: false
 
       - uses: r-hub/actions/run-check@v1
-        if: ${{ !contains(fromJSON('["clang-asan","gcc-asan","valgrind","nosuggests"]'), matrix.config.label) }}
+        if: ${{ !contains('clang-asan,gcc-asan,valgrind,nosuggests', matrix.config.label) }}
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
