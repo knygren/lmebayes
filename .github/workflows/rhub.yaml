@@ -73,16 +73,17 @@ jobs:
           job-config: ${{ matrix.config.job-config }}
 
       # c23/noremap can fail loading RcppParallel's TBB (`libtbb.so.2`) due to libc++ runtime symbol
-      # mismatch. Use tinythread backend there to avoid loading TBB in namespace startup.
-      - name: RcppParallel backend workaround (c23 / noremap)
-        if: ${{ matrix.config.label == 'c23' || matrix.config.label == 'noremap' }}
+      # mismatch. clang21/clang22 can fail on TBB requiring ASan runtime symbols
+      # (__asan_option_detect_stack_use_after_return). Use tinythread backend there to avoid TBB.
+      - name: RcppParallel backend workaround (c23 / noremap / clang21 / clang22)
+        if: ${{ matrix.config.label == 'c23' || matrix.config.label == 'noremap' || matrix.config.label == 'clang21' || matrix.config.label == 'clang22' }}
         run: |
           echo "RCPP_PARALLEL_BACKEND=tinythread" >> "$GITHUB_ENV"
 
-      # On c23/noremap, prebuilt RcppParallel+TBB can fail at namespace load with libc++/libstdc++
-      # symbol mismatch (_ZNSt13exception_ptr...). Rebuild RcppParallel in tinythread mode.
-      - name: Reinstall RcppParallel (tinythread, no TBB) for c23 / noremap
-        if: ${{ matrix.config.label == 'c23' || matrix.config.label == 'noremap' }}
+      # On these images, prebuilt RcppParallel+TBB may fail at namespace load (libc++ mismatch or
+      # missing ASan symbols). Rebuild RcppParallel in tinythread mode.
+      - name: Reinstall RcppParallel (tinythread, no TBB) for c23 / noremap / clang21 / clang22
+        if: ${{ matrix.config.label == 'c23' || matrix.config.label == 'noremap' || matrix.config.label == 'clang21' || matrix.config.label == 'clang22' }}
         run: |
           set -eux
           Rscript -e 'lib <- .libPaths()[1L]; if ("RcppParallel" %in% rownames(installed.packages(lib.loc = lib, noCache = TRUE))) remove.packages("RcppParallel", lib = lib); Sys.setenv(RCPP_PARALLEL_BACKEND = "tinythread", RCPP_PARALLEL_USE_TBB = "0"); install.packages("RcppParallel", lib = lib, repos = "https://cloud.r-project.org", type = "source", Ncpus = 2L); cat("RcppParallel backend env:", Sys.getenv("RCPP_PARALLEL_BACKEND"), "\n")'
