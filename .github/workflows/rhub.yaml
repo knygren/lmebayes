@@ -73,10 +73,31 @@ jobs:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
 
-      # ubuntu-next: CRAN *binary* rlang.so can reference SETLENGTH while R-patched no longer exposes it;
-      # library(testthat) → rlang then fails. Rebuild rlang from source for this R (also fixes rmarkdown/knitr).
+      # Compare runner R to current CRAN release (via rversions). When R is not ahead of that release,
+      # skip R-devel workarounds (GitHub Rcpp, ubuntu-next rlang rebuild, etc.).
+      - name: R vs CRAN release (for workarounds)
+        id: r-release
+        run: |
+          set -eux
+          Rscript -e '
+            gh <- Sys.getenv("GITHUB_OUTPUT")
+            stopifnot(nzchar(gh))
+            install.packages("rversions", repos = "https://cloud.r-project.org", quiet = TRUE)
+            rel <- as.character(rversions::r_release()[["version"]][1])
+            rv <- as.character(getRversion())
+            ahead <- getRversion() > package_version(rel)
+            cat(sprintf("cran_r_release=%s\n", rel), file = gh, append = TRUE)
+            cat(sprintf("r_ahead_of_release=%s\n", if (ahead) "true" else "false"), file = gh, append = TRUE)
+            message(
+              "R version=", rv, " | CRAN release=", rel,
+              " | r_ahead_of_release=", ahead
+            )
+          '
+
+      # ubuntu-next: CRAN *binary* rlang.so can reference SETLENGTH while R-patched/RC no longer exposes it;
+      # library(testthat) → rlang then fails. Only when R is ahead of current CRAN release (same class of drift).
       - name: Reinstall rlang from source (ubuntu-next — testthat / SETLENGTH)
-        if: ${{ matrix.config.label == 'ubuntu-next' }}
+        if: ${{ matrix.config.label == 'ubuntu-next' && steps.r-release.outputs.r_ahead_of_release == 'true' }}
         run: |
           set -eux
           Rscript -e 'lib <- .libPaths()[1L]; try(remove.packages("rlang", lib = lib), silent = TRUE); install.packages("rlang", lib = lib, repos = "https://cloud.r-project.org", type = "source", Ncpus = 2L)'
@@ -97,21 +118,17 @@ jobs:
             exit 1
           fi
 
-      # Workaround for: R_NamespaceRegistry in Rcpp/Function.h (R-devel vs Rcpp headers).
-      # CRAN source Rcpp can still lag R-devel; GitHub Rcpp matches (same idea as Windows job).
+      # When R is ahead of CRAN release, R-devel headers need GitHub Rcpp (R_NamespaceRegistry / Function.h).
       - name: Diagnostics (R / Rcpp)
         if: ${{ matrix.config.label == 'valgrind' || matrix.config.label == 'nosuggests' || matrix.config.label == 'clang-asan' || matrix.config.label == 'gcc-asan' }}
         run: |
           Rscript -e "cat('R:', R.version.string, '\n')"
           Rscript -e "if (requireNamespace('Rcpp', quietly=TRUE)) cat('Rcpp:', as.character(packageVersion('Rcpp')), '\n') else cat('Rcpp: <not installed>\\n')"
 
-      # nosuggests: setup-deps does not install Suggests — prepend one lib via R_LIBS for source Rcpp
-      # (R-devel). Do NOT set R_LIBS_USER to that path: it replaces the default user library and
-      # hides packages setup-deps installed (e.g. rcmdcheck for run-check). Vignettes are skipped
-      # on run-check (no knitr/rmarkdown). BUILD_ARGS/CHECK_ARGS must be in GITHUB_ENV (not only the
-      # run-check step env): r-hub run-check delegates to nested r-lib/check-r-package, which reads
-      # Sys.getenv("BUILD_ARGS") — nested composites often do not inherit the parent step env.
-      # ubuntu-next: rlang rebuilt from source above — vignettes can use rmarkdown/knitr again.
+      # nosuggests: setup-deps does not install Suggests — prepend one lib via R_LIBS for Rcpp.
+      # Do NOT set R_LIBS_USER to that path: it replaces the default user library and hides packages
+      # setup-deps installed (e.g. rcmdcheck for run-check). Vignettes are skipped on run-check.
+      # BUILD_ARGS/CHECK_ARGS must be in GITHUB_ENV: nested check-r-package reads Sys.getenv("BUILD_ARGS").
       - name: Skip vignettes (nosuggests) — BUILD_ARGS/CHECK_ARGS for rcmdcheck
         if: ${{ matrix.config.label == 'nosuggests' }}
         run: |
@@ -127,19 +144,27 @@ jobs:
           mkdir -p "$RHUB_NS_LIB"
           echo "R_LIBS=$RHUB_NS_LIB" >> "$GITHUB_ENV"
 
-      - name: Install Rcpp from CRAN (source) for R-devel (nosuggests)
+      # nosuggests: R_LIBS is only the extra lib — Rcpp must live there. Use GitHub Rcpp when R is ahead
+      # of CRAN release; otherwise CRAN source is enough.
+      - name: Nosuggests — install Rcpp (GitHub if R ahead of CRAN release, else CRAN source)
         if: ${{ matrix.config.label == 'nosuggests' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          R_AHEAD_OF_RELEASE: ${{ steps.r-release.outputs.r_ahead_of_release }}
         run: |
-          Rscript -e 'lib <- Sys.getenv("R_LIBS"); stopifnot(nzchar(lib)); install.packages("Rcpp", lib = lib, repos = "https://cloud.r-project.org", type = "source")'
+          Rscript -e "lib <- Sys.getenv('R_LIBS'); stopifnot(nzchar(lib)); ahead <- identical(Sys.getenv('R_AHEAD_OF_RELEASE'), 'true'); if (ahead) { install.packages('remotes', repos='https://cloud.r-project.org'); try(remove.packages('Rcpp', lib=lib), silent=TRUE); remotes::install_github('RcppCore/Rcpp', lib=lib, upgrade='never', auth_token=Sys.getenv('GITHUB_TOKEN')) } else { install.packages('Rcpp', lib=lib, repos='https://cloud.r-project.org', type='source') }"
 
-      # valgrind + ASan: R-devel needs headers from GitHub when CRAN Rcpp lags (R_NamespaceRegistry).
-      - name: Install Rcpp from GitHub (valgrind / clang-asan / gcc-asan)
-        if: ${{ matrix.config.label == 'valgrind' || matrix.config.label == 'clang-asan' || matrix.config.label == 'gcc-asan' }}
+      # Skip ubuntu-next: CRAN Rcpp + rlang rebuild suffices there. Skip nosuggests: dedicated step above.
+      - name: Install Rcpp from GitHub (R ahead of CRAN release)
+        if: ${{ steps.r-release.outputs.r_ahead_of_release == 'true' && matrix.config.label != 'ubuntu-next' && matrix.config.label != 'nosuggests' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
+          set -eux
           Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org')"
-          Rscript -e 'lib <- .libPaths()[1L]; try(remove.packages("Rcpp", lib = lib), silent = TRUE); remotes::install_github("RcppCore/Rcpp", upgrade = "never", auth_token = Sys.getenv("GITHUB_TOKEN"))'
+          Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- .libPaths()[1L]; for (L in unique(.libPaths())) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE)'
+          export GLMBAYES_RCPP_LIB="$(Rscript -e 'cat(.libPaths()[1L])')"
+          echo "GLMBAYES_RCPP_LIB=${GLMBAYES_RCPP_LIB}" >> "$GITHUB_ENV"
 
       # After GitHub Rcpp: lazy-load fails on RcppArmadillo.so — libflexiblas.so.3 (CRAN binary links FlexiBLAS).
       # Rebuild RcppArmadillo from source against R's BLAS (no FlexiBLAS runtime on image).
@@ -162,33 +187,30 @@ jobs:
             echo "VALGRIND_OPTS=${OPTS}" >> "$GITHUB_ENV"
           fi
 
-      # clang-asan / gcc-asan: use r-lib check-r-package directly — r-hub run-check adds a post-step
-      # "Fail for UBSAN errors" that greps *.Rout for "runtime error:" / "SUMMARY: UndefinedBehaviorSanitizer:".
-      # TBB/RcppParallel still prints those even when rcmdcheck exits OK, so the rhub step fails spuriously.
-      # Args match r-hub/actions/run-check (empty CHECK_ARGS / BUILD_ARGS).
+      - name: Debug selected check path
+        run: |
+          echo "matrix.config.label=${{ matrix.config.label }}"
+          echo "v2_labels=clang-asan,gcc-asan,valgrind,nosuggests"
+          echo "will_use_v2=${{ contains(fromJSON('[\"clang-asan\",\"gcc-asan\",\"valgrind\",\"nosuggests\"]'), matrix.config.label) }}"
+          echo "will_use_rhub_v1=${{ !contains(fromJSON('[\"clang-asan\",\"gcc-asan\",\"valgrind\",\"nosuggests\"]'), matrix.config.label) }}"
+
+      # clang-asan / gcc-asan / valgrind / nosuggests: use r-lib check-r-package directly to avoid
+      # r-hub wrapper/post-step behavior and keep check args explicit per label.
       - uses: r-lib/actions/check-r-package@v2
-        if: ${{ matrix.config.label == 'clang-asan' || matrix.config.label == 'gcc-asan' }}
+        if: ${{ contains(fromJSON('["clang-asan","gcc-asan","valgrind","nosuggests"]'), matrix.config.label) }}
         env:
           ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=0
           UBSAN_OPTIONS: halt_on_error=0:abort_on_error=0
           R_KEEP_PKG_SOURCE: yes
+          R_LIBS: ${{ matrix.config.label == 'nosuggests' && format('{0}/rhub-nosuggests-lib', runner.temp) || '' }}
         with:
-          args: 'c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error")'
-          build_args: 'c("--no-manual")'
+          args: ${{ matrix.config.label == 'valgrind' && 'c("--no-manual", "--as-cran", "--use-valgrind", "--install-args=--build", "--no-stop-on-test-error")' || matrix.config.label == 'nosuggests' && 'c("--no-manual", "--as-cran", "--install-args=--build", "--no-build-vignettes", "--ignore-vignettes", "--no-stop-on-test-error")' || 'c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error")' }}
+          build_args: ${{ matrix.config.label == 'nosuggests' && 'c("--no-manual", "--no-build-vignettes")' || 'c("--no-manual")' }}
           upload-results: never
           upload-snapshots: false
 
-      # nosuggests: must pass R_LIBS on the step (same path as prep); generic run-check does not inherit GITHUB_ENV reliably.
       - uses: r-hub/actions/run-check@v1
-        if: ${{ matrix.config.label == 'nosuggests' }}
-        env:
-          R_LIBS: ${{ format('{0}/rhub-nosuggests-lib', runner.temp) }}
-        with:
-          token: ${{ secrets.RHUB_TOKEN }}
-          job-config: ${{ matrix.config.job-config }}
-
-      - uses: r-hub/actions/run-check@v1
-        if: ${{ matrix.config.label != 'clang-asan' && matrix.config.label != 'gcc-asan' && matrix.config.label != 'nosuggests' }}
+        if: ${{ !contains(fromJSON('["clang-asan","gcc-asan","valgrind","nosuggests"]'), matrix.config.label) }}
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
@@ -235,20 +257,53 @@ jobs:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
 
-      # Windows R-devel vs CRAN Rcpp (R_NamespaceRegistry): install GitHub Rcpp into R_LIBS_USER, then
-      # set GLMBAYES_RCPP_LIB so configure.win + tools/rcpp_include.R emit PKG_CPPFLAGS for that tree
-      # (newest Rcpp wins among .libPaths() if unset).
+      - name: R vs CRAN release (for workarounds)
+        id: r-release
+        shell: bash
+        run: |
+          set -eux
+          Rscript -e "
+            gh <- Sys.getenv('GITHUB_OUTPUT')
+            stopifnot(nzchar(gh))
+            install.packages('rversions', repos = 'https://cloud.r-project.org', quiet = TRUE)
+            rel <- as.character(rversions::r_release()[['version']][1])
+            rv <- as.character(getRversion())
+            ahead <- getRversion() > package_version(rel)
+            cat(sprintf('cran_r_release=%s\n', rel), file = gh, append = TRUE)
+            cat(sprintf('r_ahead_of_release=%s\n', if (ahead) 'true' else 'false'), file = gh, append = TRUE)
+            message(
+              'R version=', rv, ' | CRAN release=', rel,
+              ' | r_ahead_of_release=', ahead
+            )
+          "
+
+      # macOS / Linux VM / m1-san: R-devel headers vs CRAN Rcpp (R_NamespaceRegistry). Windows uses
+      # R_LIBS_USER + configure.win (step below). install_github into default library.
+      # Remove Rcpp from every .libPaths() entry (same as Windows); set GLMBAYES_RCPP_LIB so
+      # tools/rcpp_include.R cannot pick another CRAN tree when versions tie.
+      - name: Install Rcpp from GitHub (macOS / Linux VM, R ahead of CRAN release)
+        if: ${{ steps.r-release.outputs.r_ahead_of_release == 'true' && matrix.config.label != 'windows' }}
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -eux
+          Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org')"
+          Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- .libPaths()[1L]; for (L in unique(.libPaths())) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE)'
+          export GLMBAYES_RCPP_LIB="$(Rscript -e 'cat(.libPaths()[1L])')"
+          echo "GLMBAYES_RCPP_LIB=${GLMBAYES_RCPP_LIB}" >> "$GITHUB_ENV"
+
+      # When R is ahead of CRAN release: GitHub Rcpp + GLMBAYES_RCPP_LIB + rcmdcheck(install_deps=FALSE).
       - name: Diagnostics (R / Rcpp)
-        if: ${{ matrix.config.label == 'windows' }}
+        if: ${{ matrix.config.label == 'windows' && steps.r-release.outputs.r_ahead_of_release == 'true' }}
         shell: bash
         run: |
           Rscript -e "cat('R:', R.version.string, '\n')"
           Rscript -e "if (requireNamespace('Rcpp', quietly=TRUE)) cat('Rcpp:', as.character(packageVersion('Rcpp')), '\n') else cat('Rcpp: <not installed>\\n')"
 
-      # Rcpp: Windows R-devel may need optional Function.h patch (opt-in: GLMBAYES_PATCH_RCPP_FUNCTION_H).
-      # Default patch is OFF so configure does not mutate Rcpp on r-universe / R 4.6+ (R_getRegisteredNamespace).
-      - name: Install Rcpp from GitHub (Windows R-devel)
-        if: ${{ matrix.config.label == 'windows' }}
+      # Rcpp: optional Function.h patch (opt-in: GLMBAYES_PATCH_RCPP_FUNCTION_H). Default OFF.
+      - name: Install Rcpp from GitHub (Windows, R ahead of CRAN release)
+        if: ${{ matrix.config.label == 'windows' && steps.r-release.outputs.r_ahead_of_release == 'true' }}
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -268,11 +323,9 @@ jobs:
       # Windows: r-lib check-r-package (r-hub run-check nested rcmdcheck was fragile for env).
       # Rcpp headers: src/Makevars.win from configure.win + tools/rcpp_include.R (not PKG_CPPFLAGS in GITHUB_ENV).
 
-      # Windows: do not use r-lib/check-r-package as-is — rcmdcheck(install_deps=TRUE) reinstalls
-      # Rcpp from CRAN during the check, undoing tools/patch_rcpp_function_h.R. Patch again, then
-      # rcmdcheck with install_deps=FALSE (same args as check-r-package defaults).
+      # R ahead of CRAN: rcmdcheck(install_deps=TRUE) reinstalls CRAN Rcpp and breaks the GitHub fix.
       - name: R-CMD-check (windows, install_deps=FALSE)
-        if: ${{ matrix.config.label == 'windows' }}
+        if: ${{ matrix.config.label == 'windows' && steps.r-release.outputs.r_ahead_of_release == 'true' }}
         shell: bash
         env:
           R_KEEP_PKG_SOURCE: yes
@@ -283,8 +336,18 @@ jobs:
           # Rscript tools/patch_rcpp_function_h.R
           Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); rcmdcheck::rcmdcheck(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check", install_deps = FALSE)'
 
+      - name: R-CMD-check (macOS / Linux VM, install_deps=FALSE)
+        if: ${{ steps.r-release.outputs.r_ahead_of_release == 'true' && matrix.config.label != 'windows' }}
+        shell: bash
+        env:
+          R_KEEP_PKG_SOURCE: yes
+        run: |
+          set -eux
+          export GLMBAYES_RCPP_LIB="${GLMBAYES_RCPP_LIB:-$(Rscript -e 'cat(.libPaths()[1L])')}"
+          Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); rcmdcheck::rcmdcheck(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check", install_deps = FALSE)'
+
       - uses: r-hub/actions/run-check@v1
-        if: ${{ matrix.config.label != 'windows' }}
+        if: ${{ steps.r-release.outputs.r_ahead_of_release != 'true' }}
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
