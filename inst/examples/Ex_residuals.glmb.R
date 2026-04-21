@@ -35,13 +35,13 @@ res_high1=apply(res_out,2,FUN=quantile,probs=c(0.975))
 
 ## Simulate new data and get residuals for simulated data
 
-ysim1=simulate(glmb.out1,nsim=1,seed=NULL,pred=pred1,family="binomial",
+ysim1=simulate(glmb.out1,nsim=1,seed=10401L,pred=pred1,family="binomial",
                prior.weights=weights(glmb.out1))
 
 
 res_ysim_out1=residuals(glmb.out1,ysim=ysim1)
-res_low=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.025))
-res_high=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.975))
+res_low=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.025),na.rm=TRUE)
+res_high=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.975),na.rm=TRUE)
 
 
 par(mar = c(5, 4, 4, 2) + 0.1)  # Standard margin setup

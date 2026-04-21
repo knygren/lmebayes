@@ -270,11 +270,11 @@ To understand whether any of the above residuals might be unexpected outliers, w
 ```{r Simulate_New_Residuals}
 ## Simulate new data and get residuals for simulated data
 
-ysim1=simulate(glmb.out1,nsim=1,seed=NULL,pred=pred1,family="binomial",
+ysim1=simulate(glmb.out1,nsim=1,seed=10401L,pred=pred1,family="binomial",
                         prior.weights=weights(glmb.out1))
 res_ysim_out1=residuals(glmb.out1,ysim=ysim1)
-res_low=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.025))
-res_high=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.975))
+res_low=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.025),na.rm=TRUE)
+res_high=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.975),na.rm=TRUE)
 ```
 
 Using the simulate credible sets, we now plot them together. This reveals that the expected value for the actual residuals all fall within the credible sets of the simulated residuals for the new data.  However, the credible sets for some of residuals at the lower age falls outside of those bounds. We will look at how alternate model specifications can avoid this later in this chapter.  
@@ -589,11 +589,11 @@ res_high1=apply(res_out,2,FUN=quantile,probs=c(0.975))
 ```{r Simulate_New_Residuals2}
 ## Simulate new data and get residuals for simulated data
 
-ysim1=simulate(glmb.out2,nsim=1,seed=NULL,pred=pred1,family="binomial",
+ysim1=simulate(glmb.out2,nsim=1,seed=10402L,pred=pred1,family="binomial",
                         prior.weights=weights(glmb.out2))
 res_ysim_out1=residuals(glmb.out2,ysim=ysim1)
-res_low=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.025))
-res_high=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.975))
+res_low=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.025),na.rm=TRUE)
+res_high=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.975),na.rm=TRUE)
 ```
 
 
@@ -665,11 +665,11 @@ res_high1=apply(res_out,2,FUN=quantile,probs=c(0.975))
 ```{r Simulate_New_Residuals3}
 ## Simulate new data and get residuals for simulated data
 
-ysim1=simulate(glmb.out3,nsim=1,seed=NULL,pred=pred1,family="binomial",
+ysim1=simulate(glmb.out3,nsim=1,seed=10403L,pred=pred1,family="binomial",
                         prior.weights=weights(glmb.out3))
 res_ysim_out1=residuals(glmb.out3,ysim=ysim1)
-res_low=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.025))
-res_high=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.975))
+res_low=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.025),na.rm=TRUE)
+res_high=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.975),na.rm=TRUE)
 ```
 
 
@@ -741,11 +741,11 @@ res_high1=apply(res_out,2,FUN=quantile,probs=c(0.975))
 ```{r Simulate_New_Residuals4}
 ## Simulate new data and get residuals for simulated data
 
-ysim1=simulate(glmb.out4,nsim=1,seed=NULL,pred=pred1,family="binomial",
+ysim1=simulate(glmb.out4,nsim=1,seed=10404L,pred=pred1,family="binomial",
                         prior.weights=weights(glmb.out4))
 res_ysim_out1=residuals(glmb.out4,ysim=ysim1)
-res_low=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.025))
-res_high=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.975))
+res_low=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.025),na.rm=TRUE)
+res_high=apply(res_ysim_out1,2,FUN=quantile,probs=c(0.975),na.rm=TRUE)
 ```
 
 

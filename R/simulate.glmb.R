@@ -25,14 +25,15 @@
 #' @method  simulate glmb
 
 simulate.glmb<-function(object,nsim=1,seed=NULL,...){
-  
+  if (!is.null(seed)) set.seed(seed)
+
   family=object$family$family
   method_args=list(...)
   
   if(!is.null(method_args[['pred']])) { pred=method_args[['pred']]}
   else{pred=predict(object)}
   if(!is.null(method_args[['prior.weights']])) { wt=method_args[['prior.weights']]}
-  else{prior.weights=object$prior.weights}
+  else{ wt <- object$prior.weights }
   
   nvars=ncol(pred)
   nsims=nrow(pred)
