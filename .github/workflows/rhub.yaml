@@ -77,6 +77,7 @@ jobs:
       # arch makes ld.so print "cannot be preloaded ... ignored" and does not help TBB.
       - name: LD_PRELOAD Clang ASan runtime (clang21 / clang22 — RcppParallel libtbb)
         if: ${{ matrix.config.label == 'clang21' || matrix.config.label == 'clang22' }}
+        shell: bash
         env:
           RHUB_LABEL: ${{ matrix.config.label }}
         run: |
@@ -111,10 +112,39 @@ jobs:
           cat <<'RS' >"$f"
           gh <- Sys.getenv("GITHUB_OUTPUT")
           stopifnot(nzchar(gh))
-          install.packages("rversions", repos = "https://cloud.r-project.org", quiet = TRUE)
-          rel <- as.character(rversions::r_release()[["version"]][1])
+          is_rchk <- grepl("rchk", Sys.getenv("R_LIB_FOR_PAK", ""), ignore.case = TRUE) ||
+            grepl("rchk", R.home(), ignore.case = TRUE)
+          rel <- if (!is_rchk) {
+            lib_user <- Sys.getenv("R_LIBS_USER", "")
+            if (!nzchar(lib_user)) lib_user <- .libPaths()[1L]
+            dir.create(lib_user, showWarnings = FALSE, recursive = TRUE)
+            if (!lib_user %in% .libPaths()) .libPaths(c(lib_user, .libPaths()))
+            ok <- tryCatch({
+              install.packages(
+                "rversions",
+                lib = lib_user,
+                repos = "https://cloud.r-project.org",
+                quiet = TRUE,
+                type = "source",
+                Ncpus = 1L,
+                dependencies = TRUE
+              )
+              requireNamespace("rversions", quietly = TRUE)
+            }, error = function(e) FALSE)
+            if (ok) as.character(rversions::r_release()[["version"]][1]) else NA_character_
+          } else {
+            tryCatch({
+              dcf <- read.dcf(url("https://cloud.r-project.org/src/base/VERSION-INFO.dcf"))
+              as.character(dcf[1, "R"])
+            }, error = function(e) NA_character_)
+          }
           rv <- as.character(getRversion())
-          ahead <- getRversion() > package_version(rel)
+          ahead <- if (!is.na(rel) && nzchar(rel)) {
+            getRversion() > package_version(rel)
+          } else {
+            FALSE
+          }
+          if (is.na(rel) || !nzchar(rel)) rel <- "unknown"
           cat(sprintf("cran_r_release=%s\n", rel), file = gh, append = TRUE)
           cat(sprintf("r_ahead_of_release=%s\n", if (ahead) "true" else "false"), file = gh, append = TRUE)
           message(
@@ -187,18 +217,19 @@ jobs:
 
       # Skip ubuntu-next: CRAN Rcpp + rlang rebuild suffices there. Skip nosuggests: dedicated step above.
       # Skip clang21/clang22: ASan R + remotes/pkgbuild often breaks on install_github (tar/build-tools);
-      # setup-deps CRAN Rcpp is enough when headers match; if not, use a non-sanitizer rhub label for Rcpp.
+      # skip c23/noremap too: libc++ toolchain there can make RcppParallel/libtbb fail to load after
+      # GitHub Rcpp reinstall (missing std::exception_ptr symbol). setup-deps CRAN Rcpp is safer there.
       # Use R_LIBS_USER first (same as Windows): rhub setup-deps installs there; .libPaths()[1] can differ
       # (e.g. Intel/Fedora), so reinstalling only into [1] leaves no Rcpp visible to R CMD build.
       - name: Install Rcpp from GitHub (R ahead of CRAN release)
-        if: ${{ steps.r-release.outputs.r_ahead_of_release == 'true' && matrix.config.label != 'ubuntu-next' && matrix.config.label != 'nosuggests' && matrix.config.label != 'clang21' && matrix.config.label != 'clang22' }}
+        if: ${{ steps.r-release.outputs.r_ahead_of_release == 'true' && matrix.config.label != 'ubuntu-next' && matrix.config.label != 'nosuggests' && matrix.config.label != 'clang21' && matrix.config.label != 'clang22' && matrix.config.label != 'c23' && matrix.config.label != 'noremap' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -eux
           export TAR="${TAR:-/usr/bin/tar}"
           Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org')"
-          Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; message("Installing Rcpp into: ", ul); for (L in unique(c(ul, .libPaths()))) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE)'
+          Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; message("Installing Rcpp into: ", ul); for (L in unique(c(ul, .libPaths()))) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); ok <- FALSE; gh_err <- NULL; tryCatch({ remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE); ok <- TRUE }, error = function(e) { gh_err <<- conditionMessage(e) }); if (!ok) { message("GitHub Rcpp install failed (", gh_err, "); falling back to CRAN source Rcpp"); install.packages("Rcpp", lib = ul, repos = "https://cloud.r-project.org", type = "source", Ncpus = 2L); ok <- TRUE }; ip_ul <- tryCatch(rownames(installed.packages(lib.loc = ul, noCache = TRUE)), error = function(e) character()); if (!("Rcpp" %in% ip_ul)) stop("Rcpp missing after install attempts in lib=", ul)'
           export GLMBAYES_RCPP_LIB="$(Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(ul)')"
           echo "GLMBAYES_RCPP_LIB=${GLMBAYES_RCPP_LIB}" >> "$GITHUB_ENV"
 
@@ -226,14 +257,14 @@ jobs:
       - name: Debug selected check path
         run: |
           echo "matrix.config.label=${{ matrix.config.label }}"
-          echo "v2_labels=clang-asan,gcc-asan,valgrind,nosuggests"
-          echo "will_use_v2=${{ contains('clang-asan,gcc-asan,valgrind,nosuggests', matrix.config.label) }}"
-          echo "will_use_rhub_v1=${{ !contains('clang-asan,gcc-asan,valgrind,nosuggests', matrix.config.label) }}"
+          echo "v2_labels=clang-asan,gcc-asan,clang-ubsan,valgrind,nosuggests"
+          echo "will_use_v2=${{ contains('clang-asan,gcc-asan,clang-ubsan,valgrind,nosuggests', matrix.config.label) }}"
+          echo "will_use_rhub_v1=${{ !contains('clang-asan,gcc-asan,clang-ubsan,valgrind,nosuggests', matrix.config.label) }}"
 
-      # clang-asan / gcc-asan / valgrind / nosuggests: use r-lib check-r-package directly to avoid
+      # clang-asan / gcc-asan / clang-ubsan / valgrind / nosuggests: use r-lib check-r-package directly to avoid
       # r-hub wrapper/post-step behavior and keep check args explicit per label.
       - uses: r-lib/actions/check-r-package@v2
-        if: ${{ contains('clang-asan,gcc-asan,valgrind,nosuggests', matrix.config.label) }}
+        if: ${{ contains('clang-asan,gcc-asan,clang-ubsan,valgrind,nosuggests', matrix.config.label) }}
         env:
           ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=0
           UBSAN_OPTIONS: halt_on_error=0:abort_on_error=0
@@ -246,7 +277,7 @@ jobs:
           upload-snapshots: false
 
       - uses: r-hub/actions/run-check@v1
-        if: ${{ !contains('clang-asan,gcc-asan,valgrind,nosuggests', matrix.config.label) }}
+        if: ${{ !contains('clang-asan,gcc-asan,clang-ubsan,valgrind,nosuggests', matrix.config.label) }}
         env:
           ASAN_OPTIONS: ${{ matrix.config.label == 'clang-ubsan' && 'detect_odr_violation=0:detect_leaks=0' || '' }}
           UBSAN_OPTIONS: ${{ matrix.config.label == 'clang-ubsan' && 'halt_on_error=0:abort_on_error=0' || '' }}
@@ -305,10 +336,39 @@ jobs:
           cat <<'RS' >"$f"
           gh <- Sys.getenv("GITHUB_OUTPUT")
           stopifnot(nzchar(gh))
-          install.packages("rversions", repos = "https://cloud.r-project.org", quiet = TRUE)
-          rel <- as.character(rversions::r_release()[["version"]][1])
+          is_rchk <- grepl("rchk", Sys.getenv("R_LIB_FOR_PAK", ""), ignore.case = TRUE) ||
+            grepl("rchk", R.home(), ignore.case = TRUE)
+          rel <- if (!is_rchk) {
+            lib_user <- Sys.getenv("R_LIBS_USER", "")
+            if (!nzchar(lib_user)) lib_user <- .libPaths()[1L]
+            dir.create(lib_user, showWarnings = FALSE, recursive = TRUE)
+            if (!lib_user %in% .libPaths()) .libPaths(c(lib_user, .libPaths()))
+            ok <- tryCatch({
+              install.packages(
+                "rversions",
+                lib = lib_user,
+                repos = "https://cloud.r-project.org",
+                quiet = TRUE,
+                type = "source",
+                Ncpus = 1L,
+                dependencies = TRUE
+              )
+              requireNamespace("rversions", quietly = TRUE)
+            }, error = function(e) FALSE)
+            if (ok) as.character(rversions::r_release()[["version"]][1]) else NA_character_
+          } else {
+            tryCatch({
+              dcf <- read.dcf(url("https://cloud.r-project.org/src/base/VERSION-INFO.dcf"))
+              as.character(dcf[1, "R"])
+            }, error = function(e) NA_character_)
+          }
           rv <- as.character(getRversion())
-          ahead <- getRversion() > package_version(rel)
+          ahead <- if (!is.na(rel) && nzchar(rel)) {
+            getRversion() > package_version(rel)
+          } else {
+            FALSE
+          }
+          if (is.na(rel) || !nzchar(rel)) rel <- "unknown"
           cat(sprintf("cran_r_release=%s\n", rel), file = gh, append = TRUE)
           cat(sprintf("r_ahead_of_release=%s\n", if (ahead) "true" else "false"), file = gh, append = TRUE)
           message(
