@@ -709,7 +709,8 @@ Rcpp::List run_rcppparallel_pilot(
       std::string prompt = "Enter 1 to continue full run, 2 to stop and return partial results: ";
       
       while (true) {
-        std::string ans = Rcpp::as<std::string>(readline(Rcpp::wrap(prompt)));
+        Rcpp::Shield<SEXP> ans_sexp(readline(Rcpp::wrap(prompt)));
+        std::string ans = Rcpp::as<std::string>(ans_sexp);
         // trim whitespace
         auto ltrim = [](std::string &s) {
           s.erase(s.begin(), std::find_if(s.begin(), s.end(),
@@ -910,7 +911,8 @@ Rcpp::List run_rcppparallel_pilot(
       Rcpp::Function readline("readline");
       
       while (true) {
-        std::string ans = Rcpp::as<std::string>(readline(Rcpp::wrap(prompt)));
+        Rcpp::Shield<SEXP> ans_sexp(readline(Rcpp::wrap(prompt)));
+        std::string ans = Rcpp::as<std::string>(ans_sexp);
         
         // trim whitespace
         auto ltrim = [](std::string &s) {
@@ -1395,7 +1397,7 @@ Rcpp::List rNormalGLM(int n,NumericVector y,NumericMatrix x,
    ///Trying safe optimization
    
    // Wrap optim() in try()
-   SEXP optSEXP = tryfun(
+  Rcpp::Shield<SEXP> optSEXP(tryfun(
      optfun(
        Rcpp::_["par"]     = parin,
        Rcpp::_["fn"]      = f2,
@@ -1465,7 +1467,7 @@ Rcpp::List rNormalGLM(int n,NumericVector y,NumericMatrix x,
     P,   // Prior Precision Matrix (to be adjusted)
     b2a, // Posterior Mode from optimization (to be adjusted)
     A1  // Precision for Log-Posterior at posterior mode (to be adjusted)
-  );
+  ));
 
   //Rcout << "Finished Standardizing Model"  << std::endl;
   
@@ -1547,15 +1549,15 @@ Rcpp::List rNormalGLM(int n,NumericVector y,NumericMatrix x,
   // Choose serial vs. parallel sampler  
   if (!use_parallel || n == 1) {  
     if (verbose) Rcpp::Rcout << "[rNormalGLM] Running serial sampler (use_parallel=FALSE or n=1): "
-                             << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")())) 
-      << "\n";    
+                             << glmbayes::progress::timestamp_cpp()
+      << "\n";
     
     sim = rNormalGLM_std( n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,  f2, Envelope, family, link, progbar,verbose);  
   }
   else {  
     if (verbose) Rcpp::Rcout << "[rNormalGLM] Running parallel sampler (use_parallel=TRUE and n>1):"
-                             << Rcpp::as<std::string>(Rcpp::Function("format")(Rcpp::Function("Sys.time")())) 
-                             << "\n";          
+                             << glmbayes::progress::timestamp_cpp()
+                             << "\n";
       
     sim = rNormalGLM_std_parallel(n, y, x2_temp, mu2_temp, P2_temp, alpha, wt2,  f2, Envelope, family, link, progbar,verbose);  
   }  
