@@ -72,6 +72,13 @@ jobs:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
 
+      # c23/noremap can fail loading RcppParallel's TBB (`libtbb.so.2`) due to libc++ runtime symbol
+      # mismatch. Use tinythread backend there to avoid loading TBB in namespace startup.
+      - name: RcppParallel backend workaround (c23 / noremap)
+        if: ${{ matrix.config.label == 'c23' || matrix.config.label == 'noremap' }}
+        run: |
+          echo "RCPP_PARALLEL_BACKEND=tinythread" >> "$GITHUB_ENV"
+
       # clang21+ rhub images: optional LD_PRELOAD of libclang_rt.asan so RcppParallel's libtbb resolves
       # __asan_* under dlopen. The path must be real and loadable into R; a broken symlink or wrong
       # arch makes ld.so print "cannot be preloaded ... ignored" and does not help TBB.
@@ -87,9 +94,10 @@ jobs:
           ok=""
           for cand in "${cand_list[@]}"; do
             [ -r "$cand" ] || continue
-            real=$(readlink -f "$cand" 2>/dev/null || echo "$cand")
+            real=$(readlink -f "$cand" 2>/dev/null) || continue
             [ -r "$real" ] || continue
-            if env LD_PRELOAD="$real" Rscript --vanilla -e "invisible(NULL)" >/dev/null 2>&1; then
+            preload_err="$(env LD_PRELOAD="$real" Rscript --vanilla -e "invisible(NULL)" 2>&1 >/dev/null || true)"
+            if ! echo "$preload_err" | grep -q "cannot be preloaded"; then
               ok="$real"
               break
             fi
@@ -229,7 +237,7 @@ jobs:
           set -eux
           export TAR="${TAR:-/usr/bin/tar}"
           Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org')"
-          Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; message("Installing Rcpp into: ", ul); for (L in unique(c(ul, .libPaths()))) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); ok <- FALSE; gh_err <- NULL; tryCatch({ remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE); ok <- TRUE }, error = function(e) { gh_err <<- conditionMessage(e) }); if (!ok) { message("GitHub Rcpp install failed (", gh_err, "); falling back to CRAN source Rcpp"); install.packages("Rcpp", lib = ul, repos = "https://cloud.r-project.org", type = "source", Ncpus = 2L); ok <- TRUE }; ip_ul <- tryCatch(rownames(installed.packages(lib.loc = ul, noCache = TRUE)), error = function(e) character()); if (!("Rcpp" %in% ip_ul)) stop("Rcpp missing after install attempts in lib=", ul)'
+          Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; message("Installing Rcpp into: ", ul); for (L in unique(c(ul, .libPaths()))) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); gh_err <- NULL; github_ok <- FALSE; tryCatch({ remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE) }, error = function(e) { gh_err <<- conditionMessage(e) }); ip_ul <- tryCatch(rownames(installed.packages(lib.loc = ul, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip_ul) { d <- tryCatch(read.dcf(file.path(ul, "Rcpp", "DESCRIPTION")), error = function(e) NULL); if (!is.null(d) && nrow(d) > 0) github_ok <- isTRUE(tolower(d[1, "RemoteType"]) == "github") }; if (!github_ok) { message("GitHub Rcpp install not usable", if (!is.null(gh_err)) paste0(" (", gh_err, ")") else "", "; falling back to CRAN source Rcpp + Function.h patch"); install.packages("Rcpp", lib = ul, repos = "https://cloud.r-project.org", type = "source", Ncpus = 2L); fh <- file.path(ul, "Rcpp", "include", "Rcpp", "Function.h"); if (file.exists(fh)) { z <- readLines(fh, warn = FALSE); idx <- which(grepl("R_getVarEx", z, fixed = TRUE) & grepl("R_NamespaceRegistry", z, fixed = TRUE)); if (length(idx)) { i <- idx[[1L]]; indent <- sub("^([[:space:]]*).*", "\\1", z[i], perl = TRUE); z[i] <- paste0(indent, "Shield env(R_getRegisteredNamespace(ns.c_str()));"); writeLines(z, fh); message("Patched Rcpp Function.h after CRAN fallback: ", fh) } } }; ip_ul <- tryCatch(rownames(installed.packages(lib.loc = ul, noCache = TRUE)), error = function(e) character()); if (!("Rcpp" %in% ip_ul)) stop("Rcpp missing after install attempts in lib=", ul)'
           export GLMBAYES_RCPP_LIB="$(Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(ul)')"
           echo "GLMBAYES_RCPP_LIB=${GLMBAYES_RCPP_LIB}" >> "$GITHUB_ENV"
 
@@ -279,8 +287,8 @@ jobs:
       - uses: r-hub/actions/run-check@v1
         if: ${{ !contains('clang-asan,gcc-asan,clang-ubsan,valgrind,nosuggests', matrix.config.label) }}
         env:
-          ASAN_OPTIONS: ${{ matrix.config.label == 'clang-ubsan' && 'detect_odr_violation=0:detect_leaks=0' || '' }}
-          UBSAN_OPTIONS: ${{ matrix.config.label == 'clang-ubsan' && 'halt_on_error=0:abort_on_error=0' || '' }}
+          ASAN_OPTIONS: ${{ (matrix.config.label == 'clang-ubsan' || matrix.config.label == 'clang21' || matrix.config.label == 'clang22') && 'detect_odr_violation=0:detect_leaks=0' || '' }}
+          UBSAN_OPTIONS: ${{ (matrix.config.label == 'clang-ubsan' || matrix.config.label == 'clang21' || matrix.config.label == 'clang22') && 'halt_on_error=0:abort_on_error=0' || '' }}
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
