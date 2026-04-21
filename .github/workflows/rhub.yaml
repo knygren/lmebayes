@@ -334,7 +334,7 @@ jobs:
           export GLMBAYES_RCPP_LIB="${GLMBAYES_RCPP_LIB:-$(Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(ul)')}"
           # export GLMBAYES_PATCH_RCPP_FUNCTION_H=1
           # Rscript tools/patch_rcpp_function_h.R
-          Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); rcmdcheck::rcmdcheck(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check", install_deps = FALSE)'
+          Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); f <- rcmdcheck::rcmdcheck; a <- list(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check"); if ("install_deps" %in% names(formals(f))) a$install_deps <- FALSE; do.call(f, a)'
 
       - name: R-CMD-check (macOS / Linux VM, install_deps=FALSE)
         if: ${{ steps.r-release.outputs.r_ahead_of_release == 'true' && matrix.config.label != 'windows' }}
@@ -344,7 +344,7 @@ jobs:
         run: |
           set -eux
           export GLMBAYES_RCPP_LIB="${GLMBAYES_RCPP_LIB:-$(Rscript -e 'cat(.libPaths()[1L])')}"
-          Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); rcmdcheck::rcmdcheck(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check", install_deps = FALSE)'
+          Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); f <- rcmdcheck::rcmdcheck; a <- list(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check"); if ("install_deps" %in% names(formals(f))) a$install_deps <- FALSE; do.call(f, a)'
 
       - uses: r-hub/actions/run-check@v1
         if: ${{ steps.r-release.outputs.r_ahead_of_release != 'true' }}
