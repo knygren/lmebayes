@@ -53,13 +53,11 @@ jobs:
     steps:
       - uses: r-hub/actions/checkout@v1
 
-      # Sanitizer tuning for ASan jobs (must be before setup-deps). Also set on run-check step
-      # below — rhub/pkgbuild subprocesses do not always inherit GITHUB_ENV.
-      # - TBB ODR: detect_odr_violation=0
-      # - fontconfig/R leaks at vignette exit: detect_leaks=0 (LSAN exitcode=0 was not enough)
-      # - TBB scheduler.cpp UBSan: halt_on_error=0 abort_on_error=0
-      - name: ASan / UBSan env (clang-asan / gcc-asan)
-        if: ${{ matrix.config.label == 'clang-asan' || matrix.config.label == 'gcc-asan' }}
+      # Sanitizer tuning (must be before setup-deps). clang-ubsan uses ASan too; without
+      # detect_odr_violation=0, RcppParallel/TBB can abort with ODR-violation during lazy-load.
+      # Also set on check-r-package step — rhub/pkgbuild subprocesses do not always inherit GITHUB_ENV.
+      - name: ASan / UBSan env (clang-asan / gcc-asan / clang-ubsan)
+        if: ${{ matrix.config.label == 'clang-asan' || matrix.config.label == 'gcc-asan' || matrix.config.label == 'clang-ubsan' }}
         run: |
           echo "ASAN_OPTIONS=detect_odr_violation=0:detect_leaks=0" >> "$GITHUB_ENV"
           echo "UBSAN_OPTIONS=halt_on_error=0:abort_on_error=0" >> "$GITHUB_ENV"
@@ -72,6 +70,28 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+
+      # clang21+ rhub images use ASan-instrumented R; RcppParallel's bundled TBB is built with R's
+      # -fsanitize=address flags, so libtbb.so references __asan_* symbols. Those are not always
+      # visible to dlopen() without preloading the matching libclang_rt.asan (LLVM 21+; clang16–20 OK).
+      - name: LD_PRELOAD Clang ASan runtime (clang21 / clang22 — RcppParallel libtbb)
+        if: ${{ matrix.config.label == 'clang21' || matrix.config.label == 'clang22' }}
+        env:
+          RHUB_LABEL: ${{ matrix.config.label }}
+        run: |
+          set -eux
+          m="${RHUB_LABEL#clang}"
+          # Path is often .../lib/clang/21.1.2/lib/linux/... not .../clang/21/...
+          ASAN_SO=$(find "/usr/lib/llvm-${m}" \( -name 'libclang_rt.asan-x86_64.so' -o -name 'libclang_rt.asan.so' \) -path '*/linux/*' 2>/dev/null | head -n1 || true)
+          if [ -z "$ASAN_SO" ] || [ ! -f "$ASAN_SO" ]; then
+            ASAN_SO=$(find "/usr/lib/llvm-${m}" -name 'libclang_rt.asan*.so' 2>/dev/null | head -n1 || true)
+          fi
+          if [ -z "$ASAN_SO" ] || [ ! -f "$ASAN_SO" ]; then
+            echo "Could not find libclang_rt.asan under /usr/lib/llvm-${m}" >&2
+            exit 1
+          fi
+          echo "LD_PRELOAD=${ASAN_SO}" >> "$GITHUB_ENV"
+          echo "Set LD_PRELOAD=${ASAN_SO}"
 
       # Compare runner R to current CRAN release (via rversions). When R is not ahead of that release,
       # skip R-devel workarounds (GitHub Rcpp, ubuntu-next rlang rebuild, etc.).
@@ -159,6 +179,8 @@ jobs:
           Rscript -e "lib <- Sys.getenv('R_LIBS'); stopifnot(nzchar(lib)); ahead <- identical(Sys.getenv('R_AHEAD_OF_RELEASE'), 'true'); if (ahead) { install.packages('remotes', repos='https://cloud.r-project.org'); try(remove.packages('Rcpp', lib=lib), silent=TRUE); remotes::install_github('RcppCore/Rcpp', lib=lib, upgrade='never', auth_token=Sys.getenv('GITHUB_TOKEN')) } else { install.packages('Rcpp', lib=lib, repos='https://cloud.r-project.org', type='source') }"
 
       # Skip ubuntu-next: CRAN Rcpp + rlang rebuild suffices there. Skip nosuggests: dedicated step above.
+      # Use R_LIBS_USER first (same as Windows): rhub setup-deps installs there; .libPaths()[1] can differ
+      # (e.g. Intel/Fedora), so reinstalling only into [1] leaves no Rcpp visible to R CMD build.
       - name: Install Rcpp from GitHub (R ahead of CRAN release)
         if: ${{ steps.r-release.outputs.r_ahead_of_release == 'true' && matrix.config.label != 'ubuntu-next' && matrix.config.label != 'nosuggests' }}
         env:
@@ -166,8 +188,8 @@ jobs:
         run: |
           set -eux
           Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org')"
-          Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- .libPaths()[1L]; for (L in unique(.libPaths())) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE)'
-          export GLMBAYES_RCPP_LIB="$(Rscript -e 'cat(.libPaths()[1L])')"
+          Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; message("Installing Rcpp into: ", ul); for (L in unique(c(ul, .libPaths()))) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE)'
+          export GLMBAYES_RCPP_LIB="$(Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(ul)')"
           echo "GLMBAYES_RCPP_LIB=${GLMBAYES_RCPP_LIB}" >> "$GITHUB_ENV"
 
       # After GitHub Rcpp: lazy-load fails on RcppArmadillo.so — libflexiblas.so.3 (CRAN binary links FlexiBLAS).
@@ -215,6 +237,9 @@ jobs:
 
       - uses: r-hub/actions/run-check@v1
         if: ${{ !contains('clang-asan,gcc-asan,valgrind,nosuggests', matrix.config.label) }}
+        env:
+          ASAN_OPTIONS: ${{ matrix.config.label == 'clang-ubsan' && 'detect_odr_violation=0:detect_leaks=0' || '' }}
+          UBSAN_OPTIONS: ${{ matrix.config.label == 'clang-ubsan' && 'halt_on_error=0:abort_on_error=0' || '' }}
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
@@ -296,8 +321,8 @@ jobs:
         run: |
           set -eux
           Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org')"
-          Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- .libPaths()[1L]; for (L in unique(.libPaths())) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE)'
-          export GLMBAYES_RCPP_LIB="$(Rscript -e 'cat(.libPaths()[1L])')"
+          Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; message("Installing Rcpp into: ", ul); for (L in unique(c(ul, .libPaths()))) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE)'
+          export GLMBAYES_RCPP_LIB="$(Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(ul)')"
           echo "GLMBAYES_RCPP_LIB=${GLMBAYES_RCPP_LIB}" >> "$GITHUB_ENV"
 
       # When R is ahead of CRAN release: GitHub Rcpp + GLMBAYES_RCPP_LIB + rcmdcheck(install_deps=FALSE).
@@ -350,7 +375,7 @@ jobs:
           R_KEEP_PKG_SOURCE: yes
         run: |
           set -eux
-          export GLMBAYES_RCPP_LIB="${GLMBAYES_RCPP_LIB:-$(Rscript -e 'cat(.libPaths()[1L])')}"
+          export GLMBAYES_RCPP_LIB="${GLMBAYES_RCPP_LIB:-$(Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(ul)')}"
           Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); f <- rcmdcheck::rcmdcheck; a <- list(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check"); if ("install_deps" %in% names(formals(f))) a$install_deps <- FALSE; do.call(f, a)'
 
       - uses: r-hub/actions/run-check@v1
