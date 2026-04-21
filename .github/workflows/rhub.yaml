@@ -75,24 +75,28 @@ jobs:
 
       # Compare runner R to current CRAN release (via rversions). When R is not ahead of that release,
       # skip R-devel workarounds (GitHub Rcpp, ubuntu-next rlang rebuild, etc.).
+      # Use a temp .R file (not multiline Rscript -e): Windows Git Bash + R-devel can segfault on -e.
       - name: R vs CRAN release (for workarounds)
         id: r-release
         run: |
           set -eux
-          Rscript -e '
-            gh <- Sys.getenv("GITHUB_OUTPUT")
-            stopifnot(nzchar(gh))
-            install.packages("rversions", repos = "https://cloud.r-project.org", quiet = TRUE)
-            rel <- as.character(rversions::r_release()[["version"]][1])
-            rv <- as.character(getRversion())
-            ahead <- getRversion() > package_version(rel)
-            cat(sprintf("cran_r_release=%s\n", rel), file = gh, append = TRUE)
-            cat(sprintf("r_ahead_of_release=%s\n", if (ahead) "true" else "false"), file = gh, append = TRUE)
-            message(
-              "R version=", rv, " | CRAN release=", rel,
-              " | r_ahead_of_release=", ahead
-            )
-          '
+          f="${GITHUB_WORKSPACE}/.rhub-r-release-detect.R"
+          cat <<'RS' >"$f"
+          gh <- Sys.getenv("GITHUB_OUTPUT")
+          stopifnot(nzchar(gh))
+          install.packages("rversions", repos = "https://cloud.r-project.org", quiet = TRUE)
+          rel <- as.character(rversions::r_release()[["version"]][1])
+          rv <- as.character(getRversion())
+          ahead <- getRversion() > package_version(rel)
+          cat(sprintf("cran_r_release=%s\n", rel), file = gh, append = TRUE)
+          cat(sprintf("r_ahead_of_release=%s\n", if (ahead) "true" else "false"), file = gh, append = TRUE)
+          message(
+            "R version=", rv, " | CRAN release=", rel,
+            " | r_ahead_of_release=", ahead
+          )
+          RS
+          Rscript "$f"
+          rm -f "$f"
 
       # ubuntu-next: CRAN *binary* rlang.so can reference SETLENGTH while R-patched/RC no longer exposes it;
       # library(testthat) → rlang then fails. Only when R is ahead of current CRAN release (same class of drift).
@@ -262,20 +266,23 @@ jobs:
         shell: bash
         run: |
           set -eux
-          Rscript -e "
-            gh <- Sys.getenv('GITHUB_OUTPUT')
-            stopifnot(nzchar(gh))
-            install.packages('rversions', repos = 'https://cloud.r-project.org', quiet = TRUE)
-            rel <- as.character(rversions::r_release()[['version']][1])
-            rv <- as.character(getRversion())
-            ahead <- getRversion() > package_version(rel)
-            cat(sprintf('cran_r_release=%s\n', rel), file = gh, append = TRUE)
-            cat(sprintf('r_ahead_of_release=%s\n', if (ahead) 'true' else 'false'), file = gh, append = TRUE)
-            message(
-              'R version=', rv, ' | CRAN release=', rel,
-              ' | r_ahead_of_release=', ahead
-            )
-          "
+          f="${GITHUB_WORKSPACE}/.rhub-r-release-detect.R"
+          cat <<'RS' >"$f"
+          gh <- Sys.getenv("GITHUB_OUTPUT")
+          stopifnot(nzchar(gh))
+          install.packages("rversions", repos = "https://cloud.r-project.org", quiet = TRUE)
+          rel <- as.character(rversions::r_release()[["version"]][1])
+          rv <- as.character(getRversion())
+          ahead <- getRversion() > package_version(rel)
+          cat(sprintf("cran_r_release=%s\n", rel), file = gh, append = TRUE)
+          cat(sprintf("r_ahead_of_release=%s\n", if (ahead) "true" else "false"), file = gh, append = TRUE)
+          message(
+            "R version=", rv, " | CRAN release=", rel,
+            " | r_ahead_of_release=", ahead
+          )
+          RS
+          Rscript "$f"
+          rm -f "$f"
 
       # macOS / Linux VM / m1-san: R-devel headers vs CRAN Rcpp (R_NamespaceRegistry). Windows uses
       # R_LIBS_USER + configure.win (step below). install_github into default library.
