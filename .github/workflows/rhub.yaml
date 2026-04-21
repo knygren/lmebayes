@@ -79,6 +79,14 @@ jobs:
         run: |
           echo "RCPP_PARALLEL_BACKEND=tinythread" >> "$GITHUB_ENV"
 
+      # On c23/noremap, prebuilt RcppParallel+TBB can fail at namespace load with libc++/libstdc++
+      # symbol mismatch (_ZNSt13exception_ptr...). Rebuild RcppParallel in tinythread mode.
+      - name: Reinstall RcppParallel (tinythread, no TBB) for c23 / noremap
+        if: ${{ matrix.config.label == 'c23' || matrix.config.label == 'noremap' }}
+        run: |
+          set -eux
+          Rscript -e 'lib <- .libPaths()[1L]; if ("RcppParallel" %in% rownames(installed.packages(lib.loc = lib, noCache = TRUE))) remove.packages("RcppParallel", lib = lib); Sys.setenv(RCPP_PARALLEL_BACKEND = "tinythread", RCPP_PARALLEL_USE_TBB = "0"); install.packages("RcppParallel", lib = lib, repos = "https://cloud.r-project.org", type = "source", Ncpus = 2L); cat("RcppParallel backend env:", Sys.getenv("RCPP_PARALLEL_BACKEND"), "\n")'
+
       # clang21+ rhub images: optional LD_PRELOAD of libclang_rt.asan so RcppParallel's libtbb resolves
       # __asan_* under dlopen. The path must be real and loadable into R; a broken symlink or wrong
       # arch makes ld.so print "cannot be preloaded ... ignored" and does not help TBB.
@@ -96,7 +104,7 @@ jobs:
             [ -r "$cand" ] || continue
             real=$(readlink -f "$cand" 2>/dev/null) || continue
             [ -r "$real" ] || continue
-            preload_err="$(env LD_PRELOAD="$real" Rscript --vanilla -e "invisible(NULL)" 2>&1 >/dev/null || true)"
+            preload_err="$(env LD_PRELOAD="$real" Rscript --vanilla -e "invisible(NULL)" 2>&1 || true)"
             if ! echo "$preload_err" | grep -q "cannot be preloaded"; then
               ok="$real"
               break
@@ -227,10 +235,12 @@ jobs:
       # Skip clang21/clang22: ASan R + remotes/pkgbuild often breaks on install_github (tar/build-tools);
       # skip c23/noremap too: libc++ toolchain there can make RcppParallel/libtbb fail to load after
       # GitHub Rcpp reinstall (missing std::exception_ptr symbol). setup-deps CRAN Rcpp is safer there.
+      # skip intel too: current devel-intel image cannot compile either GitHub or CRAN Rcpp headers
+      # (R_BindingType_t / R_getRegisteredNamespace errors), so keep setup-deps Rcpp untouched.
       # Use R_LIBS_USER first (same as Windows): rhub setup-deps installs there; .libPaths()[1] can differ
       # (e.g. Intel/Fedora), so reinstalling only into [1] leaves no Rcpp visible to R CMD build.
       - name: Install Rcpp from GitHub (R ahead of CRAN release)
-        if: ${{ steps.r-release.outputs.r_ahead_of_release == 'true' && matrix.config.label != 'ubuntu-next' && matrix.config.label != 'nosuggests' && matrix.config.label != 'clang21' && matrix.config.label != 'clang22' && matrix.config.label != 'c23' && matrix.config.label != 'noremap' }}
+        if: ${{ steps.r-release.outputs.r_ahead_of_release == 'true' && matrix.config.label != 'ubuntu-next' && matrix.config.label != 'nosuggests' && matrix.config.label != 'clang21' && matrix.config.label != 'clang22' && matrix.config.label != 'c23' && matrix.config.label != 'noremap' && matrix.config.label != 'intel' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -240,6 +250,17 @@ jobs:
           Rscript -e 'tok <- Sys.getenv("GITHUB_TOKEN"); ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; message("Installing Rcpp into: ", ul); for (L in unique(c(ul, .libPaths()))) { ip <- tryCatch(rownames(installed.packages(lib.loc = L, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip) try(remove.packages("Rcpp", lib = L), silent = TRUE) }; if (dir.exists(file.path(ul, "Rcpp"))) unlink(file.path(ul, "Rcpp"), recursive = TRUE); gh_err <- NULL; github_ok <- FALSE; tryCatch({ remotes::install_github("RcppCore/Rcpp", lib = ul, ref = "master", upgrade = "always", auth_token = tok, force = TRUE) }, error = function(e) { gh_err <<- conditionMessage(e) }); ip_ul <- tryCatch(rownames(installed.packages(lib.loc = ul, noCache = TRUE)), error = function(e) character()); if ("Rcpp" %in% ip_ul) { d <- tryCatch(read.dcf(file.path(ul, "Rcpp", "DESCRIPTION")), error = function(e) NULL); if (!is.null(d) && nrow(d) > 0) github_ok <- isTRUE(tolower(d[1, "RemoteType"]) == "github") }; if (!github_ok) { message("GitHub Rcpp install not usable", if (!is.null(gh_err)) paste0(" (", gh_err, ")") else "", "; falling back to CRAN source Rcpp + Function.h patch"); install.packages("Rcpp", lib = ul, repos = "https://cloud.r-project.org", type = "source", Ncpus = 2L); fh <- file.path(ul, "Rcpp", "include", "Rcpp", "Function.h"); if (file.exists(fh)) { z <- readLines(fh, warn = FALSE); idx <- which(grepl("R_getVarEx", z, fixed = TRUE) & grepl("R_NamespaceRegistry", z, fixed = TRUE)); if (length(idx)) { i <- idx[[1L]]; indent <- sub("^([[:space:]]*).*", "\\1", z[i], perl = TRUE); z[i] <- paste0(indent, "Shield env(R_getRegisteredNamespace(ns.c_str()));"); writeLines(z, fh); message("Patched Rcpp Function.h after CRAN fallback: ", fh) } } }; ip_ul <- tryCatch(rownames(installed.packages(lib.loc = ul, noCache = TRUE)), error = function(e) character()); if (!("Rcpp" %in% ip_ul)) stop("Rcpp missing after install attempts in lib=", ul)'
           export GLMBAYES_RCPP_LIB="$(Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(ul)')"
           echo "GLMBAYES_RCPP_LIB=${GLMBAYES_RCPP_LIB}" >> "$GITHUB_ENV"
+
+      # For labels where GitHub Rcpp reinstall is skipped, R-devel snapshots can still expose
+      # Rcpp/Function.h's R_NamespaceRegistry branch at compile-time. Patch only when pattern exists.
+      - name: Patch Rcpp Function.h (clang21 / clang22 / rchk)
+        if: ${{ matrix.config.label == 'clang21' || matrix.config.label == 'clang22' || matrix.config.label == 'rchk' }}
+        run: |
+          set -eux
+          export GLMBAYES_RCPP_LIB="${GLMBAYES_RCPP_LIB:-$(Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(ul)')}"
+          echo "GLMBAYES_RCPP_LIB=${GLMBAYES_RCPP_LIB}" >> "$GITHUB_ENV"
+          export GLMBAYES_PATCH_RCPP_FUNCTION_H=1
+          Rscript tools/patch_rcpp_function_h.R
 
       # After GitHub Rcpp: lazy-load fails on RcppArmadillo.so — libflexiblas.so.3 (CRAN binary links FlexiBLAS).
       # Rebuild RcppArmadillo from source against R's BLAS (no FlexiBLAS runtime on image).
