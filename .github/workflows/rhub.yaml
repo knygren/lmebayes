@@ -68,6 +68,14 @@ jobs:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
 
+      # ubuntu-next: preemptive source rebuild of rlang before setup-deps to avoid
+      # cached/binary ABI mismatch (SETLENGTH) when R is ahead/patched.
+      - name: Reinstall rlang from source before setup-deps (ubuntu-next)
+        if: ${{ matrix.config.label == 'ubuntu-next' }}
+        run: |
+          set -eux
+          Rscript -e 'lib <- Sys.getenv("R_LIBS_USER", ""); if (!nzchar(lib)) lib <- .libPaths()[1L]; dir.create(lib, showWarnings = FALSE, recursive = TRUE); if (!lib %in% .libPaths()) .libPaths(c(lib, .libPaths())); try(remove.packages("rlang", lib = lib), silent = TRUE); install.packages("rlang", lib = lib, repos = "https://cloud.r-project.org", type = "source", Ncpus = 2L)'
+
       # Make setup-deps skip direct Rcpp resolution: duplicate Rcpp constraints in DESCRIPTION can make
       # pak force source builds too early. We temporarily remove Rcpp lines from Imports/Suggests, run
       # setup-deps, then restore DESCRIPTION and perform a custom Rcpp install policy below.
