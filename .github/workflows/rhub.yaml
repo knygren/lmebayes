@@ -68,26 +68,17 @@ jobs:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
 
-      # libc++/older Fedora gcc devel/intel labels (c23 / noremap / clang16–20 / gcc13–15 / intel):
-      # CRAN Rcpp 1.1.1-1 fails to compile (R_getRegisteredNamespace
-      # undeclared under clang++ -stdlib=libc++). DESCRIPTION lists Rcpp in Suggests with (>= 1.1.1-1); pak
-      # merges bounds and tries to build 1.1.1-1 during setup-deps before any Ensure step. Temporarily
-      # drop that Suggests line, preinstall Rcpp 1.1.1, restore DESCRIPTION after setup-deps, and skip
-      # Ensure Rcpp on these labels; check runs with _R_CHECK_FORCE_SUGGESTS_=FALSE so Suggests Rcpp
-      # is not forced to 1.1.1-1 during R CMD check.
-      - name: Rhub — relax DESCRIPTION for pak (toolchain-specific Rcpp Suggests)
-        if: ${{ contains('c23,noremap,clang16,clang17,clang18,clang19,clang20,gcc13,gcc14,gcc15,intel', matrix.config.label) }}
+      # Make setup-deps skip direct Rcpp resolution: duplicate Rcpp constraints in DESCRIPTION can make
+      # pak force source builds too early. We temporarily remove Rcpp lines from Imports/Suggests, run
+      # setup-deps, then restore DESCRIPTION and perform a custom Rcpp install policy below.
+      # Skip rchk here: rchk image intentionally lacks full build tools and should keep setup-deps defaults.
+      - name: Rhub — relax DESCRIPTION for setup-deps (temporary)
+        if: ${{ matrix.config.label != 'rchk' }}
         run: |
           set -eux
           cp -f DESCRIPTION DESCRIPTION.rhub-orig
-          sed -i '/^[[:space:]]*Rcpp (>= 1\.1\.1-1),$/d' DESCRIPTION
-          echo "Rhub DESCRIPTION patched for pak (removed duplicate Suggests Rcpp >= 1.1.1-1 line)"
-
-      - name: Rhub — preinstall Rcpp 1.1.1 before setup-deps (toolchain workaround)
-        if: ${{ contains('c23,noremap,clang16,clang17,clang18,clang19,clang20,gcc13,gcc14,gcc15,intel', matrix.config.label) }}
-        run: |
-          set -eux
-          Rscript -e 'lib <- Sys.getenv("R_LIBS_USER", ""); if (!nzchar(lib)) lib <- .libPaths()[1L]; dir.create(lib, showWarnings = FALSE, recursive = TRUE); if (!lib %in% .libPaths()) .libPaths(c(lib, .libPaths())); install.packages("remotes", lib = lib, repos = "https://cloud.r-project.org", type = "source", Ncpus = 1L); try(remove.packages("Rcpp", lib = lib), silent = TRUE); remotes::install_version("Rcpp", version = "1.1.1", lib = lib, repos = "https://cloud.r-project.org", type = "source", dependencies = TRUE, Ncpus = 2L); message("Rcpp preinstall: ", packageVersion("Rcpp"), " in ", lib)'
+          sed -i '/^[[:space:]]*Rcpp (>= [0-9.]\+\(-[0-9]\+\)\?),$/d' DESCRIPTION
+          echo "Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)"
 
       - uses: r-hub/actions/setup-deps@v1
         with:
@@ -95,17 +86,12 @@ jobs:
           job-config: ${{ matrix.config.job-config }}
 
       - name: Rhub — restore DESCRIPTION after setup-deps
-        if: ${{ contains('c23,noremap,clang16,clang17,clang18,clang19,clang20,gcc13,gcc14,gcc15,intel', matrix.config.label) }}
+        if: ${{ matrix.config.label != 'rchk' }}
         run: |
           set -eux
           test -f DESCRIPTION.rhub-orig
           mv -f DESCRIPTION.rhub-orig DESCRIPTION
           echo "DESCRIPTION restored to repository version"
-
-      - name: Rhub — check without forcing Suggests (libc++ Rcpp workaround)
-        if: ${{ contains('c23,noremap,clang16,clang17,clang18,clang19,clang20,gcc13,gcc14,gcc15,intel', matrix.config.label) }}
-        run: |
-          echo "_R_CHECK_FORCE_SUGGESTS_=FALSE" >> "$GITHUB_ENV"
 
       # c23/noremap can fail loading RcppParallel's TBB (`libtbb.so.2`) due to libc++ runtime symbol
       # mismatch. clang21/clang22 can fail on TBB requiring ASan runtime symbols
@@ -228,25 +214,22 @@ jobs:
           mkdir -p "$RHUB_NS_LIB"
           echo "R_LIBS=$RHUB_NS_LIB" >> "$GITHUB_ENV"
 
-      # Layered Rcpp: CRAN 1.1.1-1 → CRAN 1.1.1 → GitHub master; Function.h patch if installed < 1.1.1-1.
-      # Logic is inlined in this step (no separate script file in the repo). Matches DESCRIPTION when CRAN provides it.
-      # Runs after setup-deps (and after nosuggests sets R_LIBS) but before R CMD build/check.
-      # Skip intel: rhub devel-intel image often cannot compile Rcpp from source (toolchain); keep
-      # setup-deps Rcpp as before (same rationale as the old "skip intel" GitHub Rcpp step).
-      # Skip toolchain labels (c23, noremap, clang16–20, gcc13–15): pre-setup-deps path already
-      # installed Rcpp 1.1.1; Ensure would rebuild 1.1.1-1 and fail the same compile error.
+      # Unified Rcpp policy (unix containers): for oldrel use 1.1.1; for release/ahead use 1.1.1-1;
+      # fallback to alternate then GitHub. Apply patch only for ahead-of-release if needed.
       # Skip rchk: image intentionally lacks build tools, so source installs fail there.
       - name: Ensure Rcpp (CRAN → GitHub fallback, patch if needed)
-        if: ${{ matrix.config.label != 'intel' && matrix.config.label != 'rchk' && !contains('c23,noremap,clang16,clang17,clang18,clang19,clang20,gcc13,gcc14,gcc15', matrix.config.label) }}
+        if: ${{ matrix.config.label != 'rchk' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          MATRIX_LABEL: ${{ matrix.config.label }}
         run: |
           set -eux
           f="${GITHUB_WORKSPACE}/.rhub-ensure-rcpp-inline.R"
           cat <<'RS' >"$f"
-          target <- package_version("1.1.1-1")
+          target_min <- package_version("1.1.1-1")
           cran <- Sys.getenv("CRAN_REPOS", "https://cloud.r-project.org")
           tok <- Sys.getenv("GITHUB_TOKEN", "")
+          label <- Sys.getenv("MATRIX_LABEL", "")
           lib <- Sys.getenv("R_LIBS", "")
           if (!nzchar(lib)) {
             lib <- Sys.getenv("R_LIBS_USER", "")
@@ -295,12 +278,24 @@ jobs:
             if (nzchar(tok)) args$auth_token <- tok
             do.call(remotes::install_github, args)
           }
+          rel <- tryCatch({
+            if (!requireNamespace("rversions", quietly = TRUE)) {
+              utils::install.packages("rversions", lib = lib, repos = cran, quiet = TRUE, type = "source", Ncpus = 1L, dependencies = TRUE)
+            }
+            as.character(rversions::r_release()[["version"]][1L])
+          }, error = function(e) NA_character_)
+          rv <- getRversion()
+          ahead <- if (!is.na(rel) && nzchar(rel)) rv > package_version(rel) else FALSE
+          oldrel <- if (!is.na(rel) && nzchar(rel)) rv < package_version(rel) else FALSE
+          preferred <- if (oldrel) "1.1.1" else "1.1.1-1"
+          alternate <- if (preferred == "1.1.1-1") "1.1.1" else "1.1.1-1"
+
           maybe_patch <- function(ver) {
-            if (!is.na(ver) && ver >= target) {
-              log <<- c(log, paste0("- **Function.h patch**: skipped (Rcpp ", ver, " >= ", target, ")"))
+            if (!ahead || !is.na(ver) && ver >= target_min) {
+              log <<- c(log, paste0("- **Function.h patch**: skipped (ahead=", ahead, ", Rcpp=", if (is.na(ver)) "unknown" else ver, ")"))
               return(invisible())
             }
-            log <<- c(log, paste0("- **Function.h patch**: running (Rcpp ", if (is.na(ver)) "unknown" else ver, " < ", target, ")"))
+            log <<- c(log, paste0("- **Function.h patch**: running (ahead=true, Rcpp ", if (is.na(ver)) "unknown" else ver, " < ", target_min, ")"))
             repo <- Sys.getenv("GITHUB_WORKSPACE", "")
             if (!nzchar(repo)) repo <- getwd()
             patch <- file.path(repo, "tools", "patch_rcpp_function_h.R")
@@ -324,36 +319,30 @@ jobs:
           finish_ok <- function(resolved_line) {
             write_glmbayes_lib()
             append_summary(c(log, resolved_line))
+            if (oldrel && nzchar(ge)) cat("_R_CHECK_FORCE_SUGGESTS_=FALSE\n", file = ge, append = TRUE)
           }
-          if (requireNamespace("Rcpp", quietly = TRUE)) {
-            cur0 <- rcpp_desc_version()
-            if (!is.na(cur0) && cur0 >= target) {
-              message("Rcpp already >= ", target, ": ", cur0, " in ", lib)
-              write_glmbayes_lib()
-              append_summary(c("", "### Rcpp install (rhub Ensure step)", paste0("- **Skipped installs**: Rcpp ", cur0, " already in ", lib)))
-              quit(status = 0L)
-            }
-          }
+          log <<- c(log, paste0("- **Context**: label=", label, ", R=", rv, ", CRAN release=", if (is.na(rel)) "unknown" else rel, ", preferred=", preferred))
           ensure_remotes()
           strip_rcpp()
-          ok1 <- try_install("CRAN Rcpp 1.1.1-1 (source)", {
-            remotes::install_version("Rcpp", version = "1.1.1-1", lib = lib, repos = cran, type = "source", dependencies = TRUE, Ncpus = 2L)
+          ok1 <- try_install(paste0("CRAN Rcpp ", preferred, " (source)"), {
+            remotes::install_version("Rcpp", version = preferred, lib = lib, repos = cran, type = "source", dependencies = TRUE, Ncpus = 2L)
           })
           ver <- rcpp_desc_version()
-          if (ok1 && !is.na(ver) && ver >= target) {
-            message("Using Rcpp ", ver, " (CRAN 1.1.1-1 install path)")
-            finish_ok(paste0("- **Resolved**: ", ver, " (CRAN 1.1.1-1)"))
+          if (ok1 && !is.na(ver)) {
+            message("Using Rcpp ", ver, " (CRAN preferred install path)")
+            maybe_patch(ver)
+            finish_ok(paste0("- **Resolved**: ", ver, " (CRAN ", preferred, ")"))
             quit(status = 0L)
           }
           strip_rcpp()
-          ok2 <- try_install("CRAN Rcpp 1.1.1 (source)", {
-            remotes::install_version("Rcpp", version = "1.1.1", lib = lib, repos = cran, type = "source", dependencies = TRUE, Ncpus = 2L)
+          ok2 <- try_install(paste0("CRAN Rcpp ", alternate, " (source)"), {
+            remotes::install_version("Rcpp", version = alternate, lib = lib, repos = cran, type = "source", dependencies = TRUE, Ncpus = 2L)
           })
           ver <- rcpp_desc_version()
           if (ok2 && !is.na(ver)) {
-            message("Using Rcpp ", ver, " from CRAN (1.1.1)")
+            message("Using Rcpp ", ver, " from CRAN (alternate)")
             maybe_patch(ver)
-            finish_ok(paste0("- **Resolved**: ", ver, " (CRAN 1.1.1; patch if needed for headers < ", target, ")"))
+            finish_ok(paste0("- **Resolved**: ", ver, " (CRAN ", alternate, "; patch if needed)"))
             quit(status = 0L)
           }
           strip_rcpp()
@@ -503,23 +492,41 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+
+      - name: Rhub — relax DESCRIPTION for setup-deps (temporary)
+        run: |
+          set -eux
+          cp -f DESCRIPTION DESCRIPTION.rhub-orig
+          sed -i '/^[[:space:]]*Rcpp (>= [0-9.]\+\(-[0-9]\+\)\?),$/d' DESCRIPTION
+          echo "Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)"
+
       - uses: r-hub/actions/setup-deps@v1
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
+
+      - name: Rhub — restore DESCRIPTION after setup-deps
+        run: |
+          set -eux
+          test -f DESCRIPTION.rhub-orig
+          mv -f DESCRIPTION.rhub-orig DESCRIPTION
+          echo "DESCRIPTION restored to repository version"
 
       # Same layering as linux-containers (inlined below; no repo script file).
       - name: Ensure Rcpp (CRAN → GitHub fallback, patch if needed)
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          MATRIX_LABEL: ${{ matrix.config.label }}
         run: |
           set -eux
           f="${GITHUB_WORKSPACE}/.rhub-ensure-rcpp-inline.R"
           cat <<'RS' >"$f"
-          target <- package_version("1.1.1-1")
+          target_min <- package_version("1.1.1-1")
           cran <- Sys.getenv("CRAN_REPOS", "https://cloud.r-project.org")
           tok <- Sys.getenv("GITHUB_TOKEN", "")
+          label <- Sys.getenv("MATRIX_LABEL", "")
+          family <- if (label %in% c("macos", "macos-arm64", "m1-san")) "mac" else if (label == "windows") "windows" else "unix"
           lib <- Sys.getenv("R_LIBS", "")
           if (!nzchar(lib)) {
             lib <- Sys.getenv("R_LIBS_USER", "")
@@ -568,12 +575,24 @@ jobs:
             if (nzchar(tok)) args$auth_token <- tok
             do.call(remotes::install_github, args)
           }
+          rel <- tryCatch({
+            if (!requireNamespace("rversions", quietly = TRUE)) {
+              utils::install.packages("rversions", lib = lib, repos = cran, quiet = TRUE, type = "source", Ncpus = 1L, dependencies = TRUE)
+            }
+            as.character(rversions::r_release()[["version"]][1L])
+          }, error = function(e) NA_character_)
+          rv <- getRversion()
+          ahead <- if (!is.na(rel) && nzchar(rel)) rv > package_version(rel) else FALSE
+          oldrel <- if (!is.na(rel) && nzchar(rel)) rv < package_version(rel) else FALSE
+          preferred <- if (family == "mac" || oldrel) "1.1.1" else "1.1.1-1"
+          alternate <- if (preferred == "1.1.1-1") "1.1.1" else "1.1.1-1"
+
           maybe_patch <- function(ver) {
-            if (!is.na(ver) && ver >= target) {
-              log <<- c(log, paste0("- **Function.h patch**: skipped (Rcpp ", ver, " >= ", target, ")"))
+            if (family == "mac" || !ahead || !is.na(ver) && ver >= target_min) {
+              log <<- c(log, paste0("- **Function.h patch**: skipped (family=", family, ", ahead=", ahead, ", Rcpp=", if (is.na(ver)) "unknown" else ver, ")"))
               return(invisible())
             }
-            log <<- c(log, paste0("- **Function.h patch**: running (Rcpp ", if (is.na(ver)) "unknown" else ver, " < ", target, ")"))
+            log <<- c(log, paste0("- **Function.h patch**: running (family=", family, ", ahead=true, Rcpp ", if (is.na(ver)) "unknown" else ver, " < ", target_min, ")"))
             repo <- Sys.getenv("GITHUB_WORKSPACE", "")
             if (!nzchar(repo)) repo <- getwd()
             patch <- file.path(repo, "tools", "patch_rcpp_function_h.R")
@@ -597,36 +616,30 @@ jobs:
           finish_ok <- function(resolved_line) {
             write_glmbayes_lib()
             append_summary(c(log, resolved_line))
+            if (oldrel && family != "mac" && nzchar(ge)) cat("_R_CHECK_FORCE_SUGGESTS_=FALSE\n", file = ge, append = TRUE)
           }
-          if (requireNamespace("Rcpp", quietly = TRUE)) {
-            cur0 <- rcpp_desc_version()
-            if (!is.na(cur0) && cur0 >= target) {
-              message("Rcpp already >= ", target, ": ", cur0, " in ", lib)
-              write_glmbayes_lib()
-              append_summary(c("", "### Rcpp install (rhub Ensure step)", paste0("- **Skipped installs**: Rcpp ", cur0, " already in ", lib)))
-              quit(status = 0L)
-            }
-          }
+          log <<- c(log, paste0("- **Context**: label=", label, ", family=", family, ", R=", rv, ", CRAN release=", if (is.na(rel)) "unknown" else rel, ", preferred=", preferred))
           ensure_remotes()
           strip_rcpp()
-          ok1 <- try_install("CRAN Rcpp 1.1.1-1 (source)", {
-            remotes::install_version("Rcpp", version = "1.1.1-1", lib = lib, repos = cran, type = "source", dependencies = TRUE, Ncpus = 2L)
+          ok1 <- try_install(paste0("CRAN Rcpp ", preferred, " (source)"), {
+            remotes::install_version("Rcpp", version = preferred, lib = lib, repos = cran, type = "source", dependencies = TRUE, Ncpus = 2L)
           })
           ver <- rcpp_desc_version()
-          if (ok1 && !is.na(ver) && ver >= target) {
-            message("Using Rcpp ", ver, " (CRAN 1.1.1-1 install path)")
-            finish_ok(paste0("- **Resolved**: ", ver, " (CRAN 1.1.1-1)"))
+          if (ok1 && !is.na(ver)) {
+            message("Using Rcpp ", ver, " (CRAN preferred install path)")
+            maybe_patch(ver)
+            finish_ok(paste0("- **Resolved**: ", ver, " (CRAN ", preferred, ")"))
             quit(status = 0L)
           }
           strip_rcpp()
-          ok2 <- try_install("CRAN Rcpp 1.1.1 (source)", {
-            remotes::install_version("Rcpp", version = "1.1.1", lib = lib, repos = cran, type = "source", dependencies = TRUE, Ncpus = 2L)
+          ok2 <- try_install(paste0("CRAN Rcpp ", alternate, " (source)"), {
+            remotes::install_version("Rcpp", version = alternate, lib = lib, repos = cran, type = "source", dependencies = TRUE, Ncpus = 2L)
           })
           ver <- rcpp_desc_version()
           if (ok2 && !is.na(ver)) {
-            message("Using Rcpp ", ver, " from CRAN (1.1.1)")
+            message("Using Rcpp ", ver, " from CRAN (alternate)")
             maybe_patch(ver)
-            finish_ok(paste0("- **Resolved**: ", ver, " (CRAN 1.1.1; patch if needed for headers < ", target, ")"))
+            finish_ok(paste0("- **Resolved**: ", ver, " (CRAN ", alternate, "; patch if needed)"))
             quit(status = 0L)
           }
           strip_rcpp()
