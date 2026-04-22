@@ -75,7 +75,7 @@ jobs:
       - name: Rhub — relax DESCRIPTION for setup-deps (temporary)
         if: ${{ matrix.config.label != 'rchk' }}
         run: |
-          Rscript -e "f <- 'DESCRIPTION'; b <- 'DESCRIPTION.rhub-orig'; file.copy(f, b, overwrite = TRUE); x <- readLines(f, warn = FALSE); x <- x[!grepl('^[[:space:]]*Rcpp \\(>= [0-9.]+(-[0-9]+)?\\),$', x, perl = TRUE)]; writeLines(x, f); cat('Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)\\n')"
+          Rscript -e "f <- 'DESCRIPTION'; b <- 'DESCRIPTION.rhub-orig'; file.copy(f, b, overwrite = TRUE); x <- readLines(f, warn = FALSE); x <- x[!grepl('^[[:space:]]*Rcpp [(]>= [0-9.]+(-[0-9]+)?[)],$', x, perl = TRUE)]; writeLines(x, f); cat('Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)\\n')"
 
       - uses: r-hub/actions/setup-deps@v1
         with:
@@ -489,7 +489,7 @@ jobs:
 
       - name: Rhub — relax DESCRIPTION for setup-deps (temporary)
         run: |
-          Rscript -e "f <- 'DESCRIPTION'; b <- 'DESCRIPTION.rhub-orig'; file.copy(f, b, overwrite = TRUE); x <- readLines(f, warn = FALSE); x <- x[!grepl('^[[:space:]]*Rcpp \\(>= [0-9.]+(-[0-9]+)?\\),$', x, perl = TRUE)]; writeLines(x, f); cat('Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)\\n')"
+          Rscript -e "f <- 'DESCRIPTION'; b <- 'DESCRIPTION.rhub-orig'; file.copy(f, b, overwrite = TRUE); x <- readLines(f, warn = FALSE); x <- x[!grepl('^[[:space:]]*Rcpp [(]>= [0-9.]+(-[0-9]+)?[)],$', x, perl = TRUE)]; writeLines(x, f); cat('Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)\\n')"
 
       - uses: r-hub/actions/setup-deps@v1
         with:
