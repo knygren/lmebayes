@@ -83,20 +83,20 @@ jobs:
       # pak force source builds too early. We temporarily remove Rcpp lines from Imports/Suggests, run
       # setup-deps, then restore DESCRIPTION and perform a custom Rcpp install policy below.
       # Skip rchk here: rchk image intentionally lacks full build tools and should keep setup-deps defaults.
-      - name: Rhub — relax DESCRIPTION for setup-deps (temporary)
-        if: ${{ matrix.config.label != 'rchk' }}
-        run: |
-          Rscript -e "f <- 'DESCRIPTION'; b <- 'DESCRIPTION.rhub-orig'; file.copy(f, b, overwrite = TRUE); x <- readLines(f, warn = FALSE); x <- x[!grepl('^[[:space:]]*Rcpp [(]>= [0-9.]+(-[0-9]+)?[)],$', x, perl = TRUE)]; writeLines(x, f); cat('Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)\\n')"
+      # - name: Rhub — relax DESCRIPTION for setup-deps (temporary) [disabled]
+      #   if: ${{ matrix.config.label != 'rchk' }}
+      #   run: |
+      #     Rscript -e "f <- 'DESCRIPTION'; b <- 'DESCRIPTION.rhub-orig'; file.copy(f, b, overwrite = TRUE); x <- readLines(f, warn = FALSE); x <- x[!grepl('^[[:space:]]*Rcpp [(]>= [0-9.]+(-[0-9]+)?[)],$', x, perl = TRUE)]; writeLines(x, f); cat('Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)\\n')"
 
       - uses: r-hub/actions/setup-deps@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
 
-      - name: Rhub — restore DESCRIPTION after setup-deps
-        if: ${{ matrix.config.label != 'rchk' }}
-        run: |
-          Rscript -e "stopifnot(file.exists('DESCRIPTION.rhub-orig')); file.copy('DESCRIPTION.rhub-orig', 'DESCRIPTION', overwrite = TRUE); unlink('DESCRIPTION.rhub-orig'); cat('DESCRIPTION restored to repository version\\n')"
+      # - name: Rhub — restore DESCRIPTION after setup-deps [disabled]
+      #   if: ${{ matrix.config.label != 'rchk' }}
+      #   run: |
+      #     Rscript -e "stopifnot(file.exists('DESCRIPTION.rhub-orig')); file.copy('DESCRIPTION.rhub-orig', 'DESCRIPTION', overwrite = TRUE); unlink('DESCRIPTION.rhub-orig'); cat('DESCRIPTION restored to repository version\\n')"
 
       # c23/noremap/clang16/clang17 can fail loading RcppParallel's TBB (`libtbb.so.2`) due to libc++
       # runtime symbol mismatch. clang21/clang22 can fail on TBB requiring ASan runtime symbols
@@ -737,18 +737,18 @@ jobs:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
 
-      - name: Rhub — relax DESCRIPTION for setup-deps (temporary)
-        run: |
-          Rscript -e "f <- 'DESCRIPTION'; b <- 'DESCRIPTION.rhub-orig'; file.copy(f, b, overwrite = TRUE); x <- readLines(f, warn = FALSE); x <- x[!grepl('^[[:space:]]*Rcpp [(]>= [0-9.]+(-[0-9]+)?[)],$', x, perl = TRUE)]; writeLines(x, f); cat('Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)\\n')"
+      # - name: Rhub — relax DESCRIPTION for setup-deps (temporary) [disabled]
+      #   run: |
+      #     Rscript -e "f <- 'DESCRIPTION'; b <- 'DESCRIPTION.rhub-orig'; file.copy(f, b, overwrite = TRUE); x <- readLines(f, warn = FALSE); x <- x[!grepl('^[[:space:]]*Rcpp [(]>= [0-9.]+(-[0-9]+)?[)],$', x, perl = TRUE)]; writeLines(x, f); cat('Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)\\n')"
 
       - uses: r-hub/actions/setup-deps@v1
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
 
-      - name: Rhub — restore DESCRIPTION after setup-deps
-        run: |
-          Rscript -e "stopifnot(file.exists('DESCRIPTION.rhub-orig')); file.copy('DESCRIPTION.rhub-orig', 'DESCRIPTION', overwrite = TRUE); unlink('DESCRIPTION.rhub-orig'); cat('DESCRIPTION restored to repository version\\n')"
+      # - name: Rhub — restore DESCRIPTION after setup-deps [disabled]
+      #   run: |
+      #     Rscript -e "stopifnot(file.exists('DESCRIPTION.rhub-orig')); file.copy('DESCRIPTION.rhub-orig', 'DESCRIPTION', overwrite = TRUE); unlink('DESCRIPTION.rhub-orig'); cat('DESCRIPTION restored to repository version\\n')"
 
       # Same layering as linux-containers (inlined below; no repo script file).
       - name: Ensure Rcpp (CRAN → GitHub fallback, patch if needed)
