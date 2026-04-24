@@ -574,6 +574,12 @@ jobs:
             .libPaths(c(lib_run, .libPaths()))
           }
           rver <- as.character(getRversion())
+          r_svn_rev <- tryCatch({
+            v <- R.version
+            s <- if (!is.null(v[["svn.rev"]])) v[["svn.rev"]] else v[["svn rev"]]
+            s <- as.character(s)
+            if (!length(s) || !nzchar(s)) "unknown" else s
+          }, error = function(e) "unknown")
           rcpp <- if (requireNamespace("Rcpp", quietly = TRUE)) {
             as.character(packageVersion("Rcpp"))
           } else "not-installed"
@@ -611,6 +617,7 @@ jobs:
           report <- list(
             platform = plat,
             r_version = rver,
+            r_svn_rev = r_svn_rev,
             rcpp_version = rcpp,
             r_cmd_check_status = r_cmd,
             job_status = job_status,
@@ -1147,6 +1154,12 @@ jobs:
             .libPaths(c(lib_run, .libPaths()))
           }
           rver <- as.character(getRversion())
+          r_svn_rev <- tryCatch({
+            v <- R.version
+            s <- if (!is.null(v[["svn.rev"]])) v[["svn.rev"]] else v[["svn rev"]]
+            s <- as.character(s)
+            if (!length(s) || !nzchar(s)) "unknown" else s
+          }, error = function(e) "unknown")
           rcpp <- if (requireNamespace("Rcpp", quietly = TRUE)) {
             as.character(packageVersion("Rcpp"))
           } else "not-installed"
@@ -1184,6 +1197,7 @@ jobs:
           report <- list(
             platform = plat,
             r_version = rver,
+            r_svn_rev = r_svn_rev,
             rcpp_version = rcpp,
             r_cmd_check_status = r_cmd,
             job_status = job_status,
@@ -1406,19 +1420,20 @@ jobs:
           }
           lines <- c(lines, paste0(
             "_R CMD check_ column is parsed from `check/**/00check.log` (`Status:` line), except **rchk** (see **rchk** subsection). ",
-            "_Job_ column is the GitHub Actions job outcome after all steps (e.g. Valgrind grep can fail after `Status: OK`)."
+            "_Job_ column is the GitHub Actions job outcome after all steps (e.g. Valgrind grep can fail after `Status: OK`). ",
+            "**R svn rev** is `R.version[[\"svn.rev\"]]` or `R.version[[\"svn rev\"]]` from the matrix job (same session as Rcpp); compare to `R_SVN_REVISION` in Rcpp headers when debugging `Function.h` branches."
           ))
           lines <- c(lines, "")
           if (!length(rows)) {
             lines <- c(lines, "_No platform report artifacts were found._", "")
           } else {
-            lines <- c(lines, "| Platform | R version | Rcpp version | R CMD check (00check) | Job |",
-                       "|---|---:|---:|---|---|")
+            lines <- c(lines, "| Platform | R version | R svn rev | Rcpp version | R CMD check (00check) | Job |",
+                       "|---|---:|---:|---:|---|---|")
             for (x in rows) {
               lines <- c(lines, sprintf(
-                "| %s | %s | %s | %s | %s |",
-                getf(x, "platform"), getf(x, "r_version"), rcpp_stat(x),
-                rcmd_stat(x), job_outcome(x)
+                "| %s | %s | %s | %s | %s | %s |",
+                getf(x, "platform"), getf(x, "r_version"), getf(x, "r_svn_rev", "unknown"),
+                rcpp_stat(x), rcmd_stat(x), job_outcome(x)
               ))
             }
             lines <- c(lines, "")
@@ -1439,8 +1454,8 @@ jobs:
                 "The table below records whether we saw a completed native install marker `* DONE(<pkg>)` in any `check/**/00install.out`, plus optional paths that look like rchk/bcheck outputs under the workspace."
               ))
               lines <- c(lines, "")
-              lines <- c(lines, "| Platform | R | Rcpp | `* DONE(pkg)*` in 00install.out | Job | install log / artifacts |",
-                         "|---|---:|---:|---|---|---|")
+              lines <- c(lines, "| Platform | R | R svn rev | Rcpp | `* DONE(pkg)*` in 00install.out | Job | install log / artifacts |",
+                         "|---|---:|---:|---:|---|---|---|")
               rkget <- function(x, nm, alt = "") {
                 v <- x[[nm]]
                 if (is.null(v)) return(alt)
@@ -1454,8 +1469,9 @@ jobs:
                 if (nzchar(arts)) cell_parts <- c(cell_parts, arts)
                 cell <- if (length(cell_parts)) paste(cell_parts, collapse = " — ") else "—"
                 lines <- c(lines, sprintf(
-                  "| %s | %s | %s | %s | %s | %s |",
-                  getf(x, "platform"), getf(x, "r_version"), getf(x, "rcpp_version"),
+                  "| %s | %s | %s | %s | %s | %s | %s |",
+                  getf(x, "platform"), getf(x, "r_version"), getf(x, "r_svn_rev", "unknown"),
+                  getf(x, "rcpp_version"),
                   rkget(x, "rchk_native_install_done", "unknown"),
                   job_outcome(x),
                   cell
