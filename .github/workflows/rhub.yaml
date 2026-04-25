@@ -330,8 +330,8 @@ jobs:
           mkdir -p "$RHUB_NS_LIB"
           echo "R_LIBS=$RHUB_NS_LIB" >> "$GITHUB_ENV"
 
-      # Unified Rcpp policy (unix containers): for oldrel use 1.1.1; for release/ahead use 1.1.1-1;
-      # fallback to alternate then GitHub. Apply patch only for ahead-of-release if needed.
+      # Rcpp: always try CRAN 1.1.1-1 first, then 1.1.1 (alternate), then GitHub. Preinstall path
+      # keeps Rcpp if >= 1.1.1. Apply patch only for ahead-of-release if needed.
       # Skip rchk: image intentionally lacks build tools, so source installs fail there.
       - name: Ensure Rcpp (CRAN → GitHub fallback, patch if needed)
         if: ${{ matrix.config.label != 'rchk' }}
@@ -449,8 +449,8 @@ jobs:
           rv <- getRversion()
           ahead <- if (!is.na(rel) && nzchar(rel)) rv > package_version(rel) else FALSE
           oldrel <- if (!is.na(rel) && nzchar(rel)) rv < package_version(rel) else FALSE
-          preferred <- if (oldrel) "1.1.1" else "1.1.1-1"
-          alternate <- if (preferred == "1.1.1-1") "1.1.1" else "1.1.1-1"
+          preferred <- "1.1.1-1"
+          alternate <- "1.1.1"
 
           maybe_patch <- function(ver) {
             if (!ahead || !is.na(ver) && ver >= target_min) {
@@ -1096,7 +1096,7 @@ jobs:
         run: |
           Rscript -e "stopifnot(file.exists('DESCRIPTION.rhub-orig')); file.copy('DESCRIPTION.rhub-orig', 'DESCRIPTION', overwrite = TRUE); unlink('DESCRIPTION.rhub-orig'); cat('DESCRIPTION restored to repository version\n')"
 
-      # Same layering as linux-containers (inlined below; no repo script file).
+      # Same layering as linux-containers (inlined; Rcpp: 1.1.1-1 first, then 1.1.1, then GitHub).
       - name: Ensure Rcpp (CRAN → GitHub fallback, patch if needed)
         shell: bash
         env:
@@ -1213,8 +1213,8 @@ jobs:
           rv <- getRversion()
           ahead <- if (!is.na(rel) && nzchar(rel)) rv > package_version(rel) else FALSE
           oldrel <- if (!is.na(rel) && nzchar(rel)) rv < package_version(rel) else FALSE
-          preferred <- if (family == "mac" || oldrel) "1.1.1" else "1.1.1-1"
-          alternate <- if (preferred == "1.1.1-1") "1.1.1" else "1.1.1-1"
+          preferred <- "1.1.1-1"
+          alternate <- "1.1.1"
 
           maybe_patch <- function(ver) {
             if (family == "mac" || !ahead || !is.na(ver) && ver >= target_min) {
@@ -1408,10 +1408,10 @@ jobs:
           export GLMBAYES_RCPP_LIB="$(Rscript -e 'ul <- Sys.getenv("R_LIBS_USER"); if (!nzchar(ul)) ul <- .libPaths()[1L]; cat(ul)')"
           echo "GLMBAYES_RCPP_LIB=${GLMBAYES_RCPP_LIB}" >> "$GITHUB_ENV"
 
-      # When R is ahead of CRAN release: GLMBAYES_RCPP_LIB + rcmdcheck(install_deps=FALSE) avoids
-      # dependency reinstall downgrading Rcpp; CRAN Rcpp (>= 1.1.1-1) is installed by Ensure step.
+      # Only for R 4.6.0 with svn < 89746: GLMBAYES_RCPP_LIB + rcmdcheck(install_deps=FALSE) avoids
+      # run-check reinstalling deps and clobbering the Rcpp from Ensure. Otherwise use r-hub run-check.
       - name: Diagnostics (R / Rcpp)
-        if: ${{ matrix.config.label == 'windows' && steps.r-release.outputs.r_ahead_of_release == 'true' }}
+        if: ${{ matrix.config.label == 'windows' && steps.glmbayes_r460_snapshot.outputs.relax_description == 'true' }}
         shell: bash
         run: |
           Rscript -e "cat('R:', R.version.string, '\n')"
@@ -1437,13 +1437,12 @@ jobs:
           Rscript -e 'p <- file.path(Sys.getenv("GLMBAYES_RCPP_LIB"), "Rcpp", "include", "Rcpp", "Function.h"); if (file.exists(p)) { h <- readLines(p, warn = FALSE); cat("Function.h still has R_getVarEx+Registry:", any(grepl("R_getVarEx.*R_NamespaceRegistry", h, perl = TRUE)), "\n") }'
 
       # ubuntu-next vignettes: handled in linux-containers job (ubuntu-next is a container image).
-      # Windows: r-lib check-r-package (r-hub run-check nested rcmdcheck was fragile for env).
+      # Windows: use r-hub run-check by default; only the R 4.6.0 svn<89746 snapshot path uses custom rcmdcheck.
       # Rcpp headers: src/Makevars.win from configure.win + tools/rcpp_include.R (not PKG_CPPFLAGS in GITHUB_ENV).
 
-      # R ahead of CRAN: rcmdcheck(install_deps=TRUE) can reinstall dependencies; install_deps=FALSE
-      # keeps the CRAN Rcpp (>= 1.1.1-1) from the Ensure step visible to the build.
+      # Snapshot workaround only (see relax_description gate above), not for every R-devel ahead of CRAN.
       - name: R-CMD-check (windows, install_deps=FALSE)
-        if: ${{ matrix.config.label == 'windows' && steps.r-release.outputs.r_ahead_of_release == 'true' }}
+        if: ${{ matrix.config.label == 'windows' && steps.glmbayes_r460_snapshot.outputs.relax_description == 'true' }}
         shell: bash
         env:
           R_KEEP_PKG_SOURCE: yes
@@ -1455,7 +1454,7 @@ jobs:
           Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); f <- rcmdcheck::rcmdcheck; a <- list(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check"); if ("install_deps" %in% names(formals(f))) a$install_deps <- FALSE; do.call(f, a)'
 
       - name: R-CMD-check (macOS / Linux VM, install_deps=FALSE)
-        if: ${{ steps.r-release.outputs.r_ahead_of_release == 'true' && matrix.config.label != 'windows' }}
+        if: ${{ matrix.config.label != 'windows' && steps.glmbayes_r460_snapshot.outputs.relax_description == 'true' }}
         shell: bash
         env:
           R_KEEP_PKG_SOURCE: yes
@@ -1465,7 +1464,7 @@ jobs:
           Rscript -e 'if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false"); if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false"); options(crayon.enabled = TRUE); f <- rcmdcheck::rcmdcheck; a <- list(args = c("--no-manual", "--as-cran", "--install-args=--build", "--no-stop-on-test-error"), build_args = c("--no-manual"), error_on = "warning", check_dir = "check"); if ("install_deps" %in% names(formals(f))) a$install_deps <- FALSE; do.call(f, a)'
 
       - uses: r-hub/actions/run-check@v1
-        if: ${{ steps.r-release.outputs.r_ahead_of_release != 'true' }}
+        if: ${{ steps.glmbayes_r460_snapshot.outputs.relax_description != 'true' }}
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
