@@ -175,10 +175,8 @@ jobs:
           note=$(printf '%s' "$out" | tail -n1 | tr -d '\r')
           echo "glmbayes_r460_snapshot: Rscript=resolved relax=${relax}" >&2
           echo "relax_description=${relax}" >> "$GITHUB_OUTPUT"
-          # DESCRIPTION relax/restore steps are currently disabled; keep detector output
-          # for debugging, but force reporting flag to "false".
-          echo "GLMBAYES_RCPP_SNAPSHOT_WORKAROUND=false" >> "$GITHUB_ENV"
-          echo "GLMBAYES_RCPP_SNAPSHOT_WORKAROUND_NOTE=" >> "$GITHUB_ENV"
+          echo "GLMBAYES_RCPP_SNAPSHOT_WORKAROUND=${relax}" >> "$GITHUB_ENV"
+          echo "GLMBAYES_RCPP_SNAPSHOT_WORKAROUND_NOTE=${note}" >> "$GITHUB_ENV"
           echo "glmbayes_r460_snapshot: relax_description=${relax} note=${note}"
 
       # ubuntu-next: preemptively install rlang from GitHub before setup-deps.
@@ -197,7 +195,7 @@ jobs:
       # setup-deps, then restore DESCRIPTION and perform a custom Rcpp install policy below.
       # Only on stale R 4.6.0 (svn < 89746); see "Detect R 4.6.0 low-svn snapshot" above. Skip rchk.
       - name: Rhub — relax DESCRIPTION for setup-deps (R 4.6.0 svn < 89746 only)
-        if: false # temporarily disabled; was: matrix.config.label != 'rchk' && steps.glmbayes_r460_snapshot.outputs.relax_description == 'true'
+        if: ${{ matrix.config.label != 'rchk' && steps.glmbayes_r460_snapshot.outputs.relax_description == 'true' }}
         run: |
           Rscript -e "f <- 'DESCRIPTION'; b <- 'DESCRIPTION.rhub-orig'; file.copy(f, b, overwrite = TRUE); x <- readLines(f, warn = FALSE); x <- x[!grepl('^[[:space:]]*Rcpp [(]>= [0-9.]+(-[0-9]+)?[)],$', x, perl = TRUE)]; writeLines(x, f); cat('Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)\n')"
 
@@ -207,7 +205,7 @@ jobs:
           job-config: ${{ matrix.config.job-config }}
 
       - name: Rhub — restore DESCRIPTION after setup-deps (R 4.6.0 svn < 89746 only)
-        if: false # temporarily disabled; was: matrix.config.label != 'rchk' && steps.glmbayes_r460_snapshot.outputs.relax_description == 'true'
+        if: ${{ matrix.config.label != 'rchk' && steps.glmbayes_r460_snapshot.outputs.relax_description == 'true' }}
         run: |
           Rscript -e "stopifnot(file.exists('DESCRIPTION.rhub-orig')); file.copy('DESCRIPTION.rhub-orig', 'DESCRIPTION', overwrite = TRUE); unlink('DESCRIPTION.rhub-orig'); cat('DESCRIPTION restored to repository version\n')"
 
@@ -1083,14 +1081,12 @@ jobs:
           note=$(printf '%s' "$out" | tail -n1 | tr -d '\r')
           echo "glmbayes_r460_snapshot: Rscript=resolved relax=${relax}" >&2
           echo "relax_description=${relax}" >> "$GITHUB_OUTPUT"
-          # DESCRIPTION relax/restore steps are currently disabled; keep detector output
-          # for debugging, but force reporting flag to "false".
-          echo "GLMBAYES_RCPP_SNAPSHOT_WORKAROUND=false" >> "$GITHUB_ENV"
-          echo "GLMBAYES_RCPP_SNAPSHOT_WORKAROUND_NOTE=" >> "$GITHUB_ENV"
+          echo "GLMBAYES_RCPP_SNAPSHOT_WORKAROUND=${relax}" >> "$GITHUB_ENV"
+          echo "GLMBAYES_RCPP_SNAPSHOT_WORKAROUND_NOTE=${note}" >> "$GITHUB_ENV"
           echo "glmbayes_r460_snapshot: relax_description=${relax} note=${note}"
 
       - name: Rhub — relax DESCRIPTION for setup-deps (R 4.6.0 svn < 89746 only)
-        if: false # temporarily disabled; was: steps.glmbayes_r460_snapshot.outputs.relax_description == 'true'
+        if: ${{ steps.glmbayes_r460_snapshot.outputs.relax_description == 'true' }}
         run: |
           Rscript -e "f <- 'DESCRIPTION'; b <- 'DESCRIPTION.rhub-orig'; file.copy(f, b, overwrite = TRUE); x <- readLines(f, warn = FALSE); x <- x[!grepl('^[[:space:]]*Rcpp [(]>= [0-9.]+(-[0-9]+)?[)],$', x, perl = TRUE)]; writeLines(x, f); cat('Rhub DESCRIPTION patched for setup-deps (removed temporary Rcpp entries)\n')"
 
@@ -1100,7 +1096,7 @@ jobs:
           token: ${{ secrets.RHUB_TOKEN }}
 
       - name: Rhub — restore DESCRIPTION after setup-deps (R 4.6.0 svn < 89746 only)
-        if: false # temporarily disabled; was: steps.glmbayes_r460_snapshot.outputs.relax_description == 'true'
+        if: ${{ steps.glmbayes_r460_snapshot.outputs.relax_description == 'true' }}
         run: |
           Rscript -e "stopifnot(file.exists('DESCRIPTION.rhub-orig')); file.copy('DESCRIPTION.rhub-orig', 'DESCRIPTION', overwrite = TRUE); unlink('DESCRIPTION.rhub-orig'); cat('DESCRIPTION restored to repository version\n')"
 

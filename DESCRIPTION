@@ -18,7 +18,6 @@ RdMacros: Rdpack
 LinkingTo: Rcpp, RcppArmadillo, RcppParallel
 Depends: MASS, R (>= 3.5.0)
 Suggests:
-    Rcpp (>= 1.1.1-1),
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
