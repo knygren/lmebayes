@@ -10,6 +10,22 @@
 #' @param x an object of class \code{"summary.rGamma_reg"} for which a printed output is desired.
 #' @param digits the number of significant digits to use when printing.
 #' @param \ldots Additional optional arguments
+#' @return
+#' \code{summary.rGamma_reg()} returns an object of class
+#' \code{"summary.rGamma_reg"}, a list containing summaries of posterior
+#' draws for the dispersion and precision parameters. Components include:
+#' \item{call}{the matched call from the fitted object.}
+#' \item{n}{number of posterior draws.}
+#' \item{coefficients1}{matrix of prior means and standard deviations for
+#' precision and dispersion.}
+#' \item{coefficients}{matrix of posterior means, posterior standard
+#' deviations, Monte Carlo errors, and empirical tail probabilities.}
+#' \item{Percentiles}{matrix of posterior percentiles for dispersion draws.}
+#' \item{implied_disp_point}{dispersion point estimate implied by the Gamma
+#' prior on precision, computed as \code{rate / shape}.}
+#'
+#' \code{print.summary.rGamma_reg()} prints the summary object and returns
+#' \code{x} invisibly.
 #' @example inst/examples/Ex_summary.rgamma_reg.R
 #' @export
 #' @rdname summary.rgamma_reg

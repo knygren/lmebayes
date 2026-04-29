@@ -19,6 +19,23 @@ summary is desired.}
 
 \item{\ldots}{Additional optional arguments}
 }
+\value{
+\code{summary.rGamma_reg()} returns an object of class
+\code{"summary.rGamma_reg"}, a list containing summaries of posterior
+draws for the dispersion and precision parameters. Components include:
+\item{call}{the matched call from the fitted object.}
+\item{n}{number of posterior draws.}
+\item{coefficients1}{matrix of prior means and standard deviations for
+precision and dispersion.}
+\item{coefficients}{matrix of posterior means, posterior standard
+deviations, Monte Carlo errors, and empirical tail probabilities.}
+\item{Percentiles}{matrix of posterior percentiles for dispersion draws.}
+\item{implied_disp_point}{dispersion point estimate implied by the Gamma
+prior on precision, computed as \code{rate / shape}.}
+
+\code{print.summary.rGamma_reg()} prints the summary object and returns
+\code{x} invisibly.
+}
 \description{
 These functions are all \code{\link{methods}} for class \code{rGamma_reg} or \code{summary.rGamma_reg} objects.
 }
