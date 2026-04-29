@@ -1,4 +1,4 @@
-# CRAN submission comments — glmbayes 0.9.1
+# CRAN submission comments — glmbayes 0.9.2
 
 ## Package summary
 

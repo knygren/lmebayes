@@ -1,3 +1,7 @@
+# glmbayes 0.9.2
+
+* Version bump in preparation for resubmission incorporating CRAN review feedback.
+
 # glmbayes 0.9.1
 
 * Wrapped OpenCL-dependent examples in `\donttest{}` for CRAN compliance.
