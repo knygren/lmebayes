@@ -561,26 +561,6 @@ std::string load_kernel_library_wrapper_cpp_export(
 }
 
 // [[Rcpp::export]]
-std::string load_library_for_kernel_wrapper_cpp_export(
-    const std::string& kernel_relative_path,
-    const std::string& library_subdir,
-    const std::string& package = "glmbayes",
-    const std::string& depends_tag = "depends_nmath"
-) {
-  return load_library_for_kernel_wrapper(
-      kernel_relative_path, library_subdir, package, depends_tag);
-}
-
-// [[Rcpp::export]]
-bool kernel_all_depends_nmath_includes_qDiscrete_search_cpp_export(
-    const std::string& kernel_relative_path,
-    const std::string& package = "glmbayes"
-) {
-  return kernel_all_depends_nmath_includes_qDiscrete_search_wrapper(
-      kernel_relative_path, package);
-}
-
-// [[Rcpp::export]]
 bool has_opencl_cpp_export() {
   return has_opencl();
 }

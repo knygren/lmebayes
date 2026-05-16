@@ -28,6 +28,12 @@ see:
 The package includes extensive documentation on model fitting, prior
 construction, diagnostics, and optional GPU acceleration using OpenCL.
 
+\strong{Releases:} version \strong{0.9.3} is on CRAN (\code{install.packages("glmbayes")}).
+Development version \strong{0.9.4} is available from GitHub and R-Universe
+(\url{https://knygren.r-universe.dev/glmbayes}), not from CRAN.
+Prebuilt CRAN and R-Universe binaries do not include OpenCL; for GPU support
+with the CRAN release, install from source (see vignette \emph{Chapter 12}).
+
 IID posterior simulation for non-Gaussian GLMs and several non-conjugate
 linear-model setups uses the likelihood-subgradient envelope method of
 \insertCite{Nygren2006}{glmbayes}. Introductory material and worked

@@ -1,5 +1,5 @@
 test_that("Bayesian binomial-logit regression-OpenCL", {
-  skip_if(!has_opencl(), "OpenCL not available")
+  skip_if_no_opencl_kernels()
     # Skip on CRAN to avoid long runtime / external data fetch
   skip_on_cran()
   

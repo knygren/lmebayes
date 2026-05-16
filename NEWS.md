@@ -1,10 +1,17 @@
-# glmbayes 0.9.4 (unreleased)
+# glmbayes 0.9.4 (development)
 
-* In-repository development version after CRAN publication of 0.9.3.
-  Not intended for CRAN until changes are meaningful and stable.
+* Development version available from
+  [GitHub](https://github.com/knygren/glmbayes) and
+  [R-Universe](https://knygren.r-universe.dev/glmbayes) (not on CRAN).
+* The current CRAN release is **0.9.3** (`install.packages("glmbayes")`).
+* **OpenCL:** CRAN and R-Universe binaries are built without GPU support.
+  To use OpenCL acceleration with the CRAN release (0.9.3), install
+  **from source** on a system with OpenCL headers and libraries available
+  (see vignette *Chapter 12: Large Models: GPU Acceleration using OpenCL*).
 
 # glmbayes 0.9.3
 
+* Published on CRAN.
 * Version bump in response to CRAN resubmission feedback.
 
 # glmbayes 0.9.2

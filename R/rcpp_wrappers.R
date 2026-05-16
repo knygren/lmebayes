@@ -258,24 +258,6 @@
 
 #' @noRd
 #' @keywords internal
-.load_library_for_kernel_wrapper_cpp <- function(kernel_relative_path,
-                                                 library_subdir,
-                                                 package = "glmbayes",
-                                                 depends_tag = "depends_nmath") {
-  .Call(`_glmbayes_load_library_for_kernel_wrapper_cpp_export`,
-        kernel_relative_path, library_subdir, package, depends_tag)
-}
-
-#' @noRd
-#' @keywords internal
-.kernel_all_depends_nmath_includes_qDiscrete_search_cpp <- function(kernel_relative_path,
-                                                                      package = "glmbayes") {
-  .Call(`_glmbayes_kernel_all_depends_nmath_includes_qDiscrete_search_cpp_export`,
-        kernel_relative_path, package)
-}
-
-#' @noRd
-#' @keywords internal
 .has_opencl_cpp <- function() {
   .Call("_glmbayes_has_opencl_cpp_export")
 }

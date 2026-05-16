@@ -465,32 +465,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// load_library_for_kernel_wrapper_cpp_export
-std::string load_library_for_kernel_wrapper_cpp_export(const std::string& kernel_relative_path, const std::string& library_subdir, const std::string& package, const std::string& depends_tag);
-RcppExport SEXP _glmbayes_load_library_for_kernel_wrapper_cpp_export(SEXP kernel_relative_pathSEXP, SEXP library_subdirSEXP, SEXP packageSEXP, SEXP depends_tagSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::string& >::type kernel_relative_path(kernel_relative_pathSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type library_subdir(library_subdirSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type package(packageSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type depends_tag(depends_tagSEXP);
-    rcpp_result_gen = Rcpp::wrap(load_library_for_kernel_wrapper_cpp_export(kernel_relative_path, library_subdir, package, depends_tag));
-    return rcpp_result_gen;
-END_RCPP
-}
-// kernel_all_depends_nmath_includes_qDiscrete_search_cpp_export
-bool kernel_all_depends_nmath_includes_qDiscrete_search_cpp_export(const std::string& kernel_relative_path, const std::string& package);
-RcppExport SEXP _glmbayes_kernel_all_depends_nmath_includes_qDiscrete_search_cpp_export(SEXP kernel_relative_pathSEXP, SEXP packageSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::string& >::type kernel_relative_path(kernel_relative_pathSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type package(packageSEXP);
-    rcpp_result_gen = Rcpp::wrap(kernel_all_depends_nmath_includes_qDiscrete_search_cpp_export(kernel_relative_path, package));
-    return rcpp_result_gen;
-END_RCPP
-}
 // has_opencl_cpp_export
 bool has_opencl_cpp_export();
 RcppExport SEXP _glmbayes_has_opencl_cpp_export() {
@@ -544,8 +518,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmbayes_glmb_Standardize_Model_cpp_export", (DL_FUNC) &_glmbayes_glmb_Standardize_Model_cpp_export, 5},
     {"_glmbayes_load_kernel_source_wrapper_cpp_export", (DL_FUNC) &_glmbayes_load_kernel_source_wrapper_cpp_export, 2},
     {"_glmbayes_load_kernel_library_wrapper_cpp_export", (DL_FUNC) &_glmbayes_load_kernel_library_wrapper_cpp_export, 3},
-    {"_glmbayes_load_library_for_kernel_wrapper_cpp_export", (DL_FUNC) &_glmbayes_load_library_for_kernel_wrapper_cpp_export, 4},
-    {"_glmbayes_kernel_all_depends_nmath_includes_qDiscrete_search_cpp_export", (DL_FUNC) &_glmbayes_kernel_all_depends_nmath_includes_qDiscrete_search_cpp_export, 2},
     {"_glmbayes_has_opencl_cpp_export", (DL_FUNC) &_glmbayes_has_opencl_cpp_export, 0},
     {"_glmbayes_get_opencl_core_count_cpp_export", (DL_FUNC) &_glmbayes_get_opencl_core_count_cpp_export, 0},
     {"_glmbayes_gpu_names_cpp_export", (DL_FUNC) &_glmbayes_gpu_names_cpp_export, 0},

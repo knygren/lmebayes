@@ -85,14 +85,6 @@ load_kernel_library_wrapper_cpp_export <- function(subdir, package = "glmbayes",
     .Call(`_glmbayes_load_kernel_library_wrapper_cpp_export`, subdir, package, verbose)
 }
 
-load_library_for_kernel_wrapper_cpp_export <- function(kernel_relative_path, library_subdir, package = "glmbayes", depends_tag = "depends_nmath") {
-    .Call(`_glmbayes_load_library_for_kernel_wrapper_cpp_export`, kernel_relative_path, library_subdir, package, depends_tag)
-}
-
-kernel_all_depends_nmath_includes_qDiscrete_search_cpp_export <- function(kernel_relative_path, package = "glmbayes") {
-    .Call(`_glmbayes_kernel_all_depends_nmath_includes_qDiscrete_search_cpp_export`, kernel_relative_path, package)
-}
-
 has_opencl_cpp_export <- function() {
     .Call(`_glmbayes_has_opencl_cpp_export`)
 }

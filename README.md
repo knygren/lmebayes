@@ -17,8 +17,9 @@ The package includes a rich set of supporting tools for prior specification, mod
 that mirror those for lm() and glm(). Most functions are extensively documented, and a comprehensive set of vignettes
 are available to guide users through the package's capabilities.
 
-The released version is on [CRAN](https://CRAN.R-project.org/package=glmbayes).
-Development builds with the latest changes are on
+The current **CRAN release is version 0.9.3**
+([CRAN](https://CRAN.R-project.org/package=glmbayes)).
+**Development version 0.9.4** is available from
 [GitHub](https://github.com/knygren/glmbayes) and
 [R-Universe](https://knygren.r-universe.dev/glmbayes).
 For recent updates, see
@@ -26,13 +27,13 @@ For recent updates, see
 
 ## Installation
 
-**CRAN (release version)**
+**CRAN (release 0.9.3)**
 
 ```r
 install.packages("glmbayes")
 ```
 
-**Development version** (GitHub / R-Universe; may include changes not yet on CRAN):
+**Development version 0.9.4** (GitHub / R-Universe; not on CRAN):
 
 ```r
 install.packages("glmbayes",
@@ -40,8 +41,9 @@ install.packages("glmbayes",
                            "https://knygren.r-universe.dev"))
 ```
 
-Prebuilt binaries from CRAN and R-Universe are built without OpenCL GPU support.
-To install a version suitable for large models with GPU acceleration, follow the instructions in 
+Prebuilt binaries from CRAN (0.9.3) and R-Universe are built **without OpenCL GPU
+support**. For the CRAN release, OpenCL requires installing **from source** on a
+system with OpenCL development files available. To set up GPU acceleration, follow
 
 **Chapter 12 - Large Models: GPU Acceleration using OpenCL**
 https://knygren.r-universe.dev/articles/glmbayes/Chapter-12.html

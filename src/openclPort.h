@@ -73,13 +73,6 @@ using namespace Rcpp;
 // -----------------------------------------------------------------------------
 namespace openclPort {
 
-// Installed OpenCL source tree during migration (legacy copy under inst/cl_old/).
-// All kernel loaders resolve paths via system.file(cl_inst_subdir(), ...).
-// When inst/cl/ is repopulated, switch this to "cl".
-inline const char* cl_inst_subdir() {
-  return "cl_old";
-}
-
 // -------------------------------------------------------------------------
 // Rcpp → std::vector conversion utilities
 // -------------------------------------------------------------------------
@@ -118,47 +111,6 @@ int get_opencl_core_count();
 
 
 // -------------------------------------------------------------------------
-// Kernel file loading (implemented in kernel_loader.cpp). Declared
-// unconditionally so optional .cpp sources can compile without -DUSE_OPENCL;
-// stubs return safe defaults when OpenCL is disabled at link time.
-// -------------------------------------------------------------------------
-std::string load_kernel_source(
-    const std::string& relative_path,
-    const std::string& package = "glmbayes"
-);
-
-std::string load_kernel_library(
-    const std::string& subdir,
-    const std::string& package = "glmbayes",
-    bool verbose = false
-);
-
-std::string load_library_for_kernel(
-    const std::string& kernel_relative_path,
-    const std::string& library_subdir,
-    const std::string& package = "glmbayes",
-    const std::string& depends_tag = "depends_nmath"
-);
-
-bool kernel_all_depends_nmath_includes_qDiscrete_search(
-    const std::string& kernel_relative_path,
-    const std::string& package = "glmbayes"
-);
-
-std::string load_library_for_kernel_wrapper(
-    std::string kernel_relative_path,
-    std::string library_subdir,
-    std::string package = "glmbayes",
-    std::string depends_tag = "depends_nmath"
-);
-
-bool kernel_all_depends_nmath_includes_qDiscrete_search_wrapper(
-    std::string kernel_relative_path,
-    std::string package = "glmbayes"
-);
-
-
-// -------------------------------------------------------------------------
 // Conditional declarations: only available when USE_OPENCL is defined
 // -------------------------------------------------------------------------
 #ifdef USE_OPENCL
@@ -167,6 +119,20 @@ bool kernel_all_depends_nmath_includes_qDiscrete_search_wrapper(
 #define CL_TARGET_OPENCL_VERSION 300
 #include <CL/cl.h>
 #include <string>
+
+
+// Load a single .cl kernel file from inst/cl/<relative_path>
+std::string load_kernel_source(
+    const std::string& relative_path,
+    const std::string& package = "glmbayes"
+);
+
+// Load and concatenate all .cl files in a subdirectory (inst/cl/<subdir>/)
+std::string load_kernel_library(
+    const std::string& subdir,
+    const std::string& package = "glmbayes",
+    bool verbose = false
+);
 
 
 struct OpenCLConfig {
