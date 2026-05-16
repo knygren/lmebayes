@@ -64,13 +64,7 @@ Rcpp::List f2_f3_opencl(
   
   
 #ifdef USE_OPENCL
-  
-  std::string OPENCL_source     = load_kernel_source("OPENCL.cl");
-  std::string rmath_source     = load_kernel_library("rmath","glmbayes", false);
-  std::string nmath_source     = load_kernel_library("nmath","glmbayes", false);
-  std::string dpq_source     = load_kernel_library("dpq","glmbayes", false);
-  
-  
+
   if (family == "binomial"||family == "quasibinomial") {
     if (link == "logit") {
       kernel_name = "f2_f3_binomial_logit";
@@ -112,16 +106,20 @@ Rcpp::List f2_f3_opencl(
   
   else {
     Rcpp::stop("Unsupported family: " + family);
-  }  
-  
-  
-  
-  // load & call kernel runner
+  }
+
+  // Probe nmathopencl-style assembly (items 1–9); throws if any piece fails to load.
+  std::string ex_glmbayes_program_src =
+      load_ex_glmbayes_program_source(family, link, "glmbayes");
+  (void)ex_glmbayes_program_src;
+
+  // Legacy glmbayes program (still used for OpenCL execution)
+  std::string OPENCL_source     = load_kernel_source("OPENCL.cl");
+  std::string rmath_source     = load_kernel_library("rmath","glmbayes", false);
+  std::string nmath_source     = load_kernel_library("nmath","glmbayes", false);
+  std::string dpq_source     = load_kernel_library("dpq","glmbayes", false);
   std::string ksrc    = load_kernel_source(kernel_file);
-  
-  
-  /// Updated to use same "Program" logic for all models
-  
+
   all_src = OPENCL_source +
     "\n" +   rmath_source + 
     "\n" + dpq_source +

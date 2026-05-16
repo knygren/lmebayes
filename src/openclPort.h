@@ -134,6 +134,12 @@ std::string load_kernel_library(
     bool verbose = false
 );
 
+// nmathopencl-style ex_glmbayes program (shims + ex_glmbayes_nmath slice + ex_glmbayes_src kernel)
+std::string load_ex_glmbayes_program_source(
+    const std::string& family,
+    const std::string& link,
+    const std::string& package = "glmbayes"
+);
 
 struct OpenCLConfig {
   bool have_expm1;

@@ -1,6 +1,6 @@
 // @source_type: h
 // @source_origin: Rconfig.h
-// @provides: R_CONFIG_H, SIZEOF_SIZE_T, R_INLINE
+// @provides: R_CONFIG_H, SIZEOF_SIZE_T, R_INLINE, IEEE_754
 
 #ifndef R_CONFIG_H
 #define R_CONFIG_H
@@ -17,4 +17,9 @@
 #define R_INLINE inline
 #endif
 
+#ifndef IEEE_754
+#define IEEE_754 1
+#endif
+
 #endif /* R_CONFIG_H */
+
