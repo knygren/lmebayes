@@ -134,7 +134,7 @@ std::string load_kernel_library(
     bool verbose = false
 );
 
-// nmathopencl-style ex_glmbayes program (shims + ex_glmbayes_nmath slice + ex_glmbayes_src kernel)
+// nmathopencl-style ex_glmbayes program (shims + nmath slice + src kernel)
 std::string load_ex_glmbayes_program_source(
     const std::string& family,
     const std::string& link,

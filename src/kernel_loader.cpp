@@ -326,25 +326,25 @@ std::string resolve_ex_glmbayes_kernel_file(
 {
   if (family == "binomial" || family == "quasibinomial") {
     if (link == "logit") {
-      return "ex_glmbayes_src/f2_f3_binomial_logit.cl";
+      return "src/f2_f3_binomial_logit.cl";
     }
     if (link == "probit") {
-      return "ex_glmbayes_src/f2_f3_binomial_probit.cl";
+      return "src/f2_f3_binomial_probit.cl";
     }
     if (link == "cloglog") {
-      return "ex_glmbayes_src/f2_f3_binomial_cloglog.cl";
+      return "src/f2_f3_binomial_cloglog.cl";
     }
     throw std::runtime_error(
         "Unsupported link function for binomial family: " + link);
   }
   if (family == "poisson" || family == "quasipoisson") {
-    return "ex_glmbayes_src/f2_f3_poisson.cl";
+    return "src/f2_f3_poisson.cl";
   }
   if (family == "Gamma") {
-    return "ex_glmbayes_src/f2_f3_gamma.cl";
+    return "src/f2_f3_gamma.cl";
   }
   if (family == "gaussian") {
-    return "ex_glmbayes_src/f2_f3_gaussian.cl";
+    return "src/f2_f3_gaussian.cl";
   }
   throw std::runtime_error("Unsupported family: " + family);
 }
@@ -372,7 +372,7 @@ std::string load_ex_glmbayes_program_source(
   std::string system_source =
       load_kernel_library("System", package, false);
   std::string nmath_source = load_library_for_kernel(
-      kernel_file, "ex_glmbayes_nmath", package, "all_depends_nmath");
+      kernel_file, "nmath", package, "all_depends_nmath");
   std::string ksrc = load_kernel_source(kernel_file, package);
 
   return opencl_source +

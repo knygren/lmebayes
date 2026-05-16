@@ -1,14 +1,66 @@
-// dpois.cl - OpenCL Adaptation of dpois.c
-//@provides: dpois, dpois_raw
-//@depends: nmath, bd0, stirlerr
-//@includes: nmath, dpq
+// @source_type: c
+// @source_origin: dpois.c
+// @includes: nmath.h, dpq.h
+// @depends: bd0, lgamma, stirlerr, nmath, dpq
+// @provides: dpois, dpois_raw
+// @all_depends_count: 17
+// @all_depends: dpq, refactored, Rmath, nmath, stirlerr_cycle_free, chebyshev, cospi, fmax2, gammalims, lgammacor, log1p, gamma, lgamma, pgamma_utils, stirlerr_cycle_dependent, bd0, stirlerr
+// @load_order: 94
+// @local_macros: M_SQRT_2PI, x_LRG
+
+// openclport: macro hygiene pre-clean for concatenated translation units.
+#ifdef M_SQRT_2PI
+# undef M_SQRT_2PI
+#endif
+#ifdef x_LRG
+# undef x_LRG
+#endif
+
+/*
+ *  AUTHOR
+ *    Catherine Loader, catherine@research.bell-labs.com.
+ *    October 23, 2000.
+ *
+ *  Merge in to R:
+ *	Copyright (C) 2000-2021 The R Core Team
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, a copy is available at
+ *  https://www.R-project.org/Licenses/
+ *
+ *
+ * DESCRIPTION
+ *
+ *    dpois() checks argument validity and calls dpois_raw().
+ *
+ *    dpois_raw() computes the Poisson probability  lb^x exp(-lb) / x!.
+ *      This does not check that x is an integer, since dgamma() may
+ *      call this with a fractional x argument. Any necessary argument
+ *      checks should be done in the calling function.
+ *
+ */
+
+// openclport: include directives disabled for OpenCL C compilation.
+// openclport: preload equivalent ported headers/shims in program assembly.
+// openclport-disabled-include: #include "nmath.h"
+// openclport-disabled-include: #include "dpq.h"
 
 #define M_SQRT_2PI	2.50662827463100050241576528481104525301  /* sqrt(2*pi) */
 // sqrt(2 * Rmpfr::Const("pi", 128))
 #define x_LRG           2.86111748575702815380240589208115399625e+307 /* = 2^1023 / pi */
 
 // called also from dgamma.c, pgamma.c, dnbeta.c, dnbinom.c, dnchisq.c :
-inline double dpois_raw(double x, double lambda, int give_log)
+double dpois_raw(double x, double lambda, int give_log)
 {
     /*       x >= 0 ; integer for dpois(), but not e.g. for pgamma()!
         lambda >= 0
@@ -38,7 +90,7 @@ inline double dpois_raw(double x, double lambda, int give_log)
 
 
 
-inline double dpois(double x, double lambda, int give_log)
+double dpois(double x, double lambda, int give_log)
 {
 #ifdef IEEE_754
     if(ISNAN(x) || ISNAN(lambda))
@@ -54,3 +106,7 @@ inline double dpois(double x, double lambda, int give_log)
 
     return( dpois_raw(x,lambda,give_log) );
 }
+
+// openclport: macro hygiene post-clean for concatenated translation units.
+#undef M_SQRT_2PI
+#undef x_LRG
