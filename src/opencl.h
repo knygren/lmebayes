@@ -21,12 +21,15 @@
  *
  *   Unlike openclPort—which provides general utilities for kernel loading,
  *   device enumeration, and Rcpp → std::vector conversion—this namespace
- *   provides the GLM‑aware execution path used internally by glmbayes.
+ *   provides the GLM‑aware execution path used internally by glmbayes,
+ *   including assembly of the full OpenCL program for likelihood‑subgradient
+ *   (standard‑form f2/f3) evaluation on device.
  *
  * @section ImplementedIn
  *   These declarations are implemented in:
- *     - f2_f3_kernel_runner.cpp
- *     - f2_f3_opencl.cpp
+ *     - kernel_runners.cpp (f2_f3_kernel_runner)
+ *     - kernel_wrappers.cpp (f2_f3_opencl)
+ *     - kernel_loader.cpp (load_likelihood_subgradient_program, USE_OPENCL)
  *
  * @section UsedBy
  *   These functions are consumed by:
@@ -39,7 +42,7 @@
  *     - a low‑level GPU runner (f2_f3_kernel_runner) that executes the
  *       OpenCL kernel for f2/f3 evaluation on flattened buffers,
  *     - a high‑level Rcpp wrapper (f2_f3_opencl) that:
- *         • loads kernel sources,
+ *         • loads kernel sources via load_likelihood_subgradient_program,
  *         • flattens R matrices/vectors,
  *         • dispatches family/link‑specific kernels,
  *         • reconstructs outputs for R.
@@ -129,6 +132,15 @@ Rcpp::List f2_f3_opencl(
     Rcpp::NumericVector  wt,
     int                  progbar = 0
 );
+
+#ifdef USE_OPENCL
+// Concatenated OpenCL C source: prelude, shims, selective nmath, and src/f2_f3_*.cl.
+// See inst/cl/README.md.
+std::string load_likelihood_subgradient_program(
+    const std::string& family,
+    const std::string& link,
+    const std::string& package = "glmbayes");
+#endif
 
 } // namespace opencl
 } // namespace glmbayes

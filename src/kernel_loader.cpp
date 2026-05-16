@@ -3,6 +3,7 @@
 //#include <Rcpp.h>
 #include <RcppArmadillo.h>
 #include "openclPort.h"
+#include "opencl.h"
 
 #include <fstream>
 #include <sstream>
@@ -351,6 +352,16 @@ std::string resolve_kernel_path(
 
 } // namespace
 
+#endif // USE_OPENCL
+
+} // namespace openclPort
+
+
+
+#ifdef USE_OPENCL
+namespace glmbayes {
+namespace opencl {
+
 std::string load_likelihood_subgradient_program(
     const std::string& family,
     const std::string& link,
@@ -358,22 +369,22 @@ std::string load_likelihood_subgradient_program(
 {
   const std::string kernel_file = resolve_kernel_path(family, link);
 
-  std::string opencl_source = load_kernel_source("OPENCL.cl", package);
+  std::string opencl_source = openclPort::load_kernel_source("OPENCL.cl", package);
   std::string libr_shims_source =
-      load_kernel_library("libR_shims", package, false);
+      openclPort::load_kernel_library("libR_shims", package, false);
   std::string r_ext_types_source =
-      load_kernel_library("R_ext_types", package, false);
+      openclPort::load_kernel_library("R_ext_types", package, false);
   std::string r_shims_source =
-      load_kernel_library("R_shims", package, false);
+      openclPort::load_kernel_library("R_shims", package, false);
   std::string r_ext_runtime_source =
-      load_kernel_library("R_ext_runtime", package, false);
+      openclPort::load_kernel_library("R_ext_runtime", package, false);
   std::string r_ext_internals_source =
-      load_kernel_library("R_ext_internals", package, false);
+      openclPort::load_kernel_library("R_ext_internals", package, false);
   std::string system_source =
-      load_kernel_library("System", package, false);
+      openclPort::load_kernel_library("System", package, false);
   std::string nmath_source = load_library_for_kernel(
       kernel_file, "nmath", package, "all_depends_nmath");
-  std::string ksrc = load_kernel_source(kernel_file, package);
+  std::string ksrc = openclPort::load_kernel_source(kernel_file, package);
 
   return opencl_source +
     "\n" + libr_shims_source +
@@ -386,10 +397,9 @@ std::string load_likelihood_subgradient_program(
     "\n" + ksrc;
 }
 
-#endif
-
-}
-
+} // namespace opencl
+} // namespace glmbayes
+#endif // USE_OPENCL
 
 
 namespace openclPort {

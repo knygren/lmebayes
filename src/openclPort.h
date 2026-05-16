@@ -26,6 +26,8 @@
  *     - Rcpp → std::vector conversion utilities for kernel argument buffers
  *     - GPU/device enumeration and capability checks (gpu_names, has_opencl)
  *     - Kernel source and library loading from inst/cl/ directories
+ *       (generic loaders; full likelihood-subgradient program assembly is in
+ *       glmbayes::opencl::load_likelihood_subgradient_program — see inst/cl/README.md)
  *     - Conditional OpenCL configuration and build‑option generation
  *
  *   This module:
@@ -132,13 +134,6 @@ std::string load_kernel_library(
     const std::string& subdir,
     const std::string& package = "glmbayes",
     bool verbose = false
-);
-
-// OpenCL program source for standard-form f2/f3 (likelihood-subgradient envelope evaluation)
-std::string load_likelihood_subgradient_program(
-    const std::string& family,
-    const std::string& link,
-    const std::string& package = "glmbayes"
 );
 
 struct OpenCLConfig {
