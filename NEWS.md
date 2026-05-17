@@ -1,13 +1,31 @@
-# glmbayes 0.9.4 (development)
+# glmbayes 0.9.4
 
-* Development version available from
-  [GitHub](https://github.com/knygren/glmbayes) and
-  [R-Universe](https://knygren.r-universe.dev/glmbayes) (not on CRAN).
-* The current CRAN release is **0.9.3** (`install.packages("glmbayes")`).
-* **OpenCL:** CRAN and R-Universe binaries are built without GPU support.
-  To use OpenCL acceleration with the CRAN release (0.9.3), install
-  **from source** on a system with OpenCL headers and libraries available
-  (see vignette *Chapter 12: Large Models: GPU Acceleration using OpenCL*).
+* **Vignettes:** A vignette that previously used the `notangle` engine now
+  uses the standard R Markdown vignette machinery (`knitr` /
+  `rmarkdown::html_vignette`), so builds align with CRAN expectations and
+  vignette index ordering should be consistent with the rest of the package.
+
+* **OpenCL sources (`inst/cl`):** Removed unused or superseded material,
+  consolidated kernels and library fragments, and aligned `.cl` layout and
+  dependency tagging with the conventions used in **openclport** and
+  **nmathopencl** (prelude, shims, `nmath/` stems, family kernels under
+  `src/`). See `inst/cl/README.md` for how the assembled program is stitched.
+
+* **OpenCL program assembly:** Reworked loading so the full OpenCL program is
+  built from explicit fragments (global header, `nmath` closure, family/link
+  kernels) rather than ad hoc concatenation—clearer ownership of what enters
+  GPU compilation and easier parity with CPU paths.
+
+* **Tests:** Added and expanded **testthat** coverage aimed at OpenCL code
+  paths (including binomial examples that exercise GPU envelope evaluation),
+  complementing existing Cleveland-style checks.
+
+* **Bug fix — binomial OpenCL:** Binomial `f2_f3` OpenCL kernels now evaluate
+  the data log-likelihood with the same **proportion × trial-count**
+  semantics as **`dbinom_glmb`** on the CPU (`round` successes and trials,
+  clamped probability). This fixes envelope / PLSD failures for aggregated
+  binomial data (e.g. `cbind(successes, failures)` / `MASS::menarche`) where
+  the previous kernels treated **`y`** like a raw success count.
 
 # glmbayes 0.9.3
 

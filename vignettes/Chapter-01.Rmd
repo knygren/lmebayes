@@ -8,7 +8,7 @@ bibliography: REFERENCES.bib
 reference-section-title: References
 vignette: >
   %\VignetteIndexEntry{Chapter 01: Getting started with glmbayes}
-  %\VignetteEngine{knitr::rmarkdown_notangle}
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
