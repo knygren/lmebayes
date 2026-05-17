@@ -308,12 +308,14 @@ ncol
 neq
 newdata
 nmath
+nmathopencl
 noncanonical
 normall
 num
 nvar
 olddata
 opencl
+openclport
 operatorname
 orchestrator
 ouput

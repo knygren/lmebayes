@@ -7,8 +7,8 @@
 
 * **OpenCL sources (`inst/cl`):** Removed unused or superseded material,
   consolidated kernels and library fragments, and aligned `.cl` layout and
-  dependency tagging with the conventions used in **openclport** and
-  **nmathopencl** (prelude, shims, `nmath/` stems, family kernels under
+  dependency tagging with the conventions used in 'openclport' and
+  'nmathopencl' (prelude, shims, `nmath/` stems, family kernels under
   `src/`). See `inst/cl/README.md` for how the assembled program is stitched.
 
 * **OpenCL program assembly:** Reworked loading so the full OpenCL program is
