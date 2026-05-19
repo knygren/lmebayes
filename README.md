@@ -17,7 +17,7 @@ The package includes a rich set of supporting tools for prior specification, mod
 that mirror those for lm() and glm(). Most functions are extensively documented, and a comprehensive set of vignettes
 are available to guide users through the package's capabilities.
 
-The current **CRAN release is version 0.9.5**
+This repository is **0.9.6** in development. The current **CRAN release is version 0.9.5**
 ([CRAN](https://CRAN.R-project.org/package=glmbayes)).
 The [GitHub](https://github.com/knygren/glmbayes) repository holds the source; [R-Universe](https://knygren.r-universe.dev/glmbayes) builds binaries from it.
 See [NEWS.md](https://github.com/knygren/glmbayes/blob/main/NEWS.md) for changes.

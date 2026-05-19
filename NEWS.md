@@ -1,3 +1,7 @@
+# glmbayes 0.9.6
+
+* _In development. Release notes to be completed before CRAN submission._
+
 # glmbayes 0.9.5
 
 * **Tests / CRAN:** All **OpenCL**-specific **testthat** blocks now call

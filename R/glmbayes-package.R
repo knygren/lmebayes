@@ -24,7 +24,8 @@
 #' The package includes extensive documentation on model fitting, prior
 #' construction, diagnostics, and optional GPU acceleration using OpenCL.
 #'
-#' **Releases:** version **0.9.5** is on CRAN (`install.packages("glmbayes")`).
+#' **Releases:** This source tree is **0.9.6** (in development). The current
+#' **CRAN** release is **0.9.5** (`install.packages("glmbayes")`).
 #' Source is available from GitHub; R-Universe (\url{https://knygren.r-universe.dev/glmbayes})
 #' also builds binaries from that source.
 #' Prebuilt CRAN and R-Universe binaries do not include OpenCL; for GPU support

@@ -47,9 +47,7 @@ Prior_Setup(
     in the fitting process.  Should be \code{NULL} or a numeric vector.}
 
 \item{subset}{an optional vector specifying a subset of observations
-    to be used in the fitting process.  (See additional details about how
-    this argument interacts with data-dependent bases in the
-    \sQuote{Details} below.)}
+    to be used in the fitting process.}
 
 \item{na.action}{how \code{NAs} are treated. The default is first, any \code{\link{na.action}} attribute of
 data, second a \code{na.action} setting of \link{options}, and third \code{na.fail} if that is unset.
