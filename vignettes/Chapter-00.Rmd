@@ -81,27 +81,27 @@ This part presents Bayesian GLMs across the major likelihood families, including
 
 ## Part 4: Advanced Topics
 
-These chapters explore more complex modeling scenarios and computational strategies, including informative priors, unknown dispersion parameters, hierarchical (random effects) models, and GPU-accelerated envelope construction.
+These chapters explore more complex modeling scenarios and computational strategies, including informative priors, unknown dispersion parameters, linear and generalized linear mixed-effects (hierarchical) models, and GPU-accelerated envelope construction.
 
-- **Chapter 10 - Informative Priors: Centering and priors with differential prior weights**  
-  Construct more flexible priors by centering on domain-specific values and assigning variable-specific scales. Examine how differentiated prior weights influence shrinkage and interpretability.  
-  <https://knygren.r-universe.dev/articles/glmbayes/Chapter-10.html>
-
-- **Chapter 11 - Estimating Models with Unknown Dispersion Parameters**  
-  Extend envelope-based methods to models with unknown dispersion (e.g., Gamma and quasi-families). Use dedicated dispersion samplers to obtain joint posterior draws and quantify overdispersion uncertainty.  
-  <https://knygren.r-universe.dev/articles/glmbayes/Chapter-11.html>
-
-- **Chapter 12 - Large Models: GPU Acceleration using OpenCL**  
-  Scale Bayesian GLMs to higher-dimensional settings by offloading key computations to the GPU. Configure OpenCL, tune envelope construction for large models, and benchmark performance gains.  
-  <https://knygren.r-universe.dev/articles/glmbayes/Chapter-12.html>
-
-- **Chapter 13 - Hierarchical Linear Models**  
-  Fit hierarchical (random effects) linear models using block Gibbs sampling with `rlmb`. Covers dispersion-and-coefficients sampling (e.g., Dobson plant weight) and the Eight Schools example with conjugate and non-conjugate priors.  
-  <https://knygren.r-universe.dev/articles/glmbayes/Chapter-13.html>
-
-- **Chapter 14 - Hierarchical Generalized Linear Models**  
-  Extend hierarchical modeling to non-Gaussian families. Implements a two-block Gibbs sampler for Poisson regression with observation-level random effects using the BikeSharing dataset and `rglmb`.  
+- **Chapter 14 — Informative priors — centering and differential prior weights**  
+  Construct more flexible priors by centering on domain-specific values and assigning variable-specific scales. Examine how differential prior weights influence shrinkage and interpretability.  
   <https://knygren.r-universe.dev/articles/glmbayes/Chapter-14.html>
+
+- **Chapter 15 — Estimating models with unknown dispersion parameters**  
+  Extend envelope-based methods to models with unknown dispersion (e.g., Gamma and quasi-families). Use dedicated dispersion samplers to obtain joint posterior draws and quantify overdispersion uncertainty.  
+  <https://knygren.r-universe.dev/articles/glmbayes/Chapter-15.html>
+
+- **Chapter 16 — Large models: GPU acceleration using OpenCL**  
+  Scale Bayesian GLMs to higher-dimensional settings by offloading key computations to the GPU. Configure OpenCL, tune envelope construction for large models, and benchmark performance gains.  
+  <https://knygren.r-universe.dev/articles/glmbayes/Chapter-16.html>
+
+- **Chapter 17 — Linear mixed-effects models**  
+  Fit hierarchical (random effects) linear models using block Gibbs sampling with `rlmb`. Covers dispersion-and-coefficients sampling (e.g., Dobson plant weight) and the Eight Schools example with conjugate and non-conjugate priors.  
+  <https://knygren.r-universe.dev/articles/glmbayes/Chapter-17.html>
+
+- **Chapter 18 — Generalized linear mixed-effects models**  
+  Extend mixed-effects modeling to non-Gaussian families. Implements a two-block Gibbs sampler for Poisson regression with observation-level random effects using the BikeSharing dataset and `rglmb`.  
+  <https://knygren.r-universe.dev/articles/glmbayes/Chapter-18.html>
 
 ## Part 5: Simulation Methods and Technical Implementation
 

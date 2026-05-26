@@ -39,15 +39,15 @@ For users who are interested in the details of how the simulation is performed t
 |**Main Model Interfaces (GLM / LM)**|**glmb** | Chapter 07 — Models for the Binomial Family|
 |**Main Model Interfaces (GLM / LM)**|**glmb** | Chapter 08 — Models for the Poisson Family |
 |**Main Model Interfaces (GLM / LM)**|**glmb** | Chapter 09 — Models for the Gamma Family |
-| **Lower-Level Interfaces (GLM / LM)** | **rlmb** | Chapter 13 — Hierarchical Linear Models |
-| **Lower-Level Interfaces (GLM / LM)** | **rglmb** | Chapter 14 — Hierarchical Generalized Linear Models |
+| **Lower-Level Interfaces (GLM / LM)** | **rlmb** | Chapter 17 — Linear mixed-effects models |
+| **Lower-Level Interfaces (GLM / LM)** | **rglmb** | Chapter 18 — Generalized linear mixed-effects models |
 | **Model-Specific Simulation Functions** | **rNormal_reg, rGamma_reg, rNormal_Gamma_reg, rindependent_norm_gamma_reg** | Chapter A02: Overview of Estimation Procedures |
-| **pfamilies** |**dGamma, dNormal_Gamma, dIndependent_Normal_Gamma** | Chapter 11 — Estimating Models with Unknown Dispersion Parameters |
+| **pfamilies** |**dGamma, dNormal_Gamma, dIndependent_Normal_Gamma** | Chapter 15 — Estimating models with unknown dispersion parameters |
 | **Methods**| **Various method functions for glmbayes** | Chapter A03 — Methods Available in glmbayes |
 | **Envelope Related Functions** | Various Functions | Chapter A08 — Overview of Envelope Related Functions |
 | **Parallel Simulation Related Functions** | Various Functions | Chapter A09: Parallel Sampling Implementation using RcppParallel |
 | **Accelerated EnvelopedBuild Related Functions** | Various Functions | Chapter A10: Accelerated EnvelopeBuild Implementation using OpenCL |
-| **Utilities** | add_to_libpath_linux, add_to_path, add_to_path_linux, add_to_path_windows| Chapter 00 — Introduction<br>Chapter 01 — Getting Started |
+| **OpenCL host utilities** | \pkg{opencltools} (`detect_*`, PATH helpers, …) | Chapter 00 — Introduction; Chapter 01 — Getting Started |
 | **Datasets** | AMI, carinsca, Cleveland | Chapter 01 — Getting Started |
 
 

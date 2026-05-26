@@ -1,4 +1,4 @@
-# Precompute Eight Schools two-block Gibbs outputs for vignettes/Chapter-13.Rmd:
+# Precompute Eight Schools two-block Gibbs outputs for vignettes/Chapter-17.Rmd:
 #   (1) Population block: dNormal_Gamma (Gibbs-suitable)
 #   (2) Population block: dIndependent_Normal_Gamma (slower)
 # Same seeds, burn-in, and stored iterations as the vignette.
@@ -25,7 +25,7 @@ if (!requireNamespace("pkgload", quietly = TRUE)) {
 
 pkgload::load_all(export_all = FALSE)
 
-## --- schools-data (same as vignette Chapter-13.Rmd) ---
+## --- schools-data (same as vignette Chapter-17.Rmd) ---
 school   <- c("A", "B", "C", "D", "E", "F", "G", "H")
 estimate <- c(28.39, 7.94, -2.75, 6.82, -0.64, 0.63, 18.01, 12.16)
 sd_obs   <- c(14.9, 10.2, 16.3, 11.0, 9.4, 11.4, 10.4, 17.6)

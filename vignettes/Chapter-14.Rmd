@@ -1,12 +1,12 @@
 ---
-title: "Chapter 14: Hierarchical Generalized Linear Models"
+title: "Chapter 14: Informative priors — centering and differential prior weights"
 author: "Kjell Nygren"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 bibliography: REFERENCES.bib
 reference-section-title: References
 vignette: >
-  %\VignetteIndexEntry{Chapter 14: Hierarchical Generalized Linear Models}
+  %\VignetteIndexEntry{Chapter 14: Informative priors — centering and differential prior weights}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -20,212 +20,236 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(glmbayes)
-library(coda)
 ```
 
-# Chapter 14: Hierarchical Generalized Linear Models
-
-Chapter 13 focused on **hierarchical linear models**: the Eight Schools example with normally distributed group-level effects and known sampling variances. This chapter extends to **hierarchical generalized linear models** [@GelmanHill2007; @Gelman2013], specifically Poisson regression with observation-level random effects.
-
-We use the **BikeSharing** dataset and **`rglmb`** to implement a two-block Gibbs sampler. The Poisson likelihood is non-conjugate with the normal prior on the linear predictor, so each observation-level update requires an accept--reject step [@RobertCasella2004] via **`rglmb`**. For a full demo, see **`demo("Ex_09_BikeSharingPoisson")`**.
-
-## 1. Model Structure
-
-Let $y_i$ denote the count (hourly bike rentals) for observation $i$, and $x_i$ the covariate vector. The hierarchical model is:
-
-1. **Observation level:** $y_i \sim \text{Poisson}(\exp(\theta_i))$, with $\theta_i$ a latent log-rate.
-2. **Population level:** $\theta_i \sim N(x_i^\top \beta, \sigma_\theta^2)$, so covariates predict the random effects.
-
-The two-block Gibbs sampler alternates:
-
-1. **Block 1 (population):** Draw $(\beta, \sigma_\theta^2) \mid \theta$ — conjugate Normal-Gamma given $\theta$, implemented with **`rglmb`** (family `gaussian()`).
-2. **Block 2 (observations):** For each $i$, draw $\theta_i \mid \beta, \sigma_\theta^2, y_i$ — Poisson likelihood with normal prior, implemented with **`rglmb`** (family `poisson()`).
-
-With $n$ observations, Block 2 requires $n$ calls to **`rglmb`** per iteration. To keep run time manageable for the vignette, we use a 1% random subset of the data for training and reserve the rest for out-of-sample prediction. The chain used in Sections 4–5 is **precomputed** with the same settings as **`demo("Ex_09_BikeSharingPoisson")`** (`n_burn = 200`, `n_sim = 1000`) and stored as **`inst/extdata/BikeSharing_ch14_gibbs.rds`**. Section 3 still shows the full Gibbs code for reference; it is not re-run when this vignette is built.
-
-## 2. Data and Setup
-
-```{r bikesharing-setup}
-data("BikeSharing")
-
-# Center continuous predictors
-cont_vars <- c("temp", "atemp", "hum", "windspeed", "hr_sin", "hr_cos", "mon_sin", "mon_cos")
-BikeSharing_c <- BikeSharing
-BikeSharing_c[cont_vars] <- scale(BikeSharing[cont_vars], center = TRUE, scale = FALSE)
 
 
-# Formula (all variable model)
-form <- cnt ~ part_of_day + quarter + holiday + workingday + weathersit +
-  hr_sin + hr_cos + mon_sin + mon_cos + temp + atemp + hum + windspeed
 
-# Formula (Limited variable model)
-form2 <- cnt ~ part_of_day + quarter + holiday + workingday + weathersit +
-  hr_sin + hr_cos + mon_sin + mon_cos
 
-# Train/test split: indices bundled with precomputed Gibbs output (matches demo, set.seed(42))
-pct_train <- 0.01
-n <- nrow(BikeSharing_c)
-ch14_path <- system.file("extdata", "BikeSharing_ch14_gibbs.rds", package = "glmbayes")
-stopifnot(nzchar(ch14_path), file.exists(ch14_path))
-ch14_saved <- readRDS(ch14_path)
-stopifnot(length(ch14_saved$idx_train) == round(pct_train * n))
-idx_train <- ch14_saved$idx_train
-idx_test  <- setdiff(seq_len(n), idx_train)
 
-Bike_train <- BikeSharing_c[idx_train, ]
-Bike_test  <- BikeSharing_c[idx_test, ]
+# General Discussion 
 
-X_train <- model.matrix(form2, data = Bike_train)
-X_test  <- model.matrix(form2, data = Bike_test)
-y_train <- Bike_train$cnt
-y_test  <- Bike_test$cnt
-n_train <- length(y_train)
-n_test  <- length(y_test)
-p       <- ncol(X_train)
+As we saw in the previous chapter, using the Bayesian version *glmb* of the classical function *glm* requires the specification of an additional prior distribution (a pfamily). Envelope-based sampling builds on [@Nygren2006]. For Poisson and Binomial families, the most appropriate of the currently implemented priors would be the dNormal pfamily which requires specifying a prior mean and a prior variance-covariance matrix for the regression coefficients. Some models (covered more in a later Vignette) also requires providing either a constant or a prior for the dispersion (variance) parameter associated with the model. Here we focus on the case where only the regression coefficients require a prior and walk through an example where we specify a multivariate prior for a model with two coeffcients related to the Age of menarche (i.e., the age at which girls experience their first period).  As part of the setup, we discuss the approach taken and give some general advice in regards to setting of prior distributions.
+ 
+# The Age of Menarche Data 
 
-# Initial theta and prior for population block
-theta <- log(y_train + 0.5)
-data_pop <- data.frame(theta = theta, Bike_train)
-form_pop <- theta ~ part_of_day + quarter + holiday + workingday + weathersit +
-  hr_sin + hr_cos + mon_sin + mon_cos
-ps_pop <- Prior_Setup(form_pop, family = gaussian(), data = data_pop)
+The data we will be using here is the *menarche* data covering the *Age of Menarche* for girls in Warsaw. This data appears in [@VenablesRipley2002] and in their supporting *MASS* package. It is provided (and renamed) here so as to allow examples to run during build without loading of the *MASS* package.  
+
+In the data, there are observations related to 25 cohorts of girls at ages ranging from an average age of 9.21 to an average age of 17.58. The average age for each cohort is captured in a column named *Age*.  For each of the cohorts, there is also a column (*Total*) giving the total number of girls in the cohort and a column *Menarche* giving the number of girls out of the cohort who had experienced Menarche at that age.
+
+The first 5 observations are printed below. It is important to note that in Bayesian analyses (at least those that seek to incorporate prior/external information), the priors should ideally be based on information outside of the data being studied, so we will hold off on a more complete view of the data until we have mapped out our prior. The analysis we will be exploring here is a model of the relationship between age and the percentage of girls who have had their first period using various formulations of binomial regression.  
+
+```{r menarche data}
+## Load menarche data
+data(menarche,package="MASS")
+head(menarche, 5)
+
 ```
 
-## 3. Two-Block Gibbs Sampler
+# Variable Transformation and Preliminary Setup
 
-The following chunk is **not evaluated** when the vignette is built (`eval = FALSE`). For a live run, execute it in your session or use **`demo("Ex_09_BikeSharingPoisson")`** (expect a long runtime).
+Because of the need for a prior distribution, it is important that coefficients in Bayesian models can be interpreted so that analysts can set reasonable priors. This is true regardless of whether analysts are looking to give a model a *weak* prior (that will limit any move of the estimates away from those driven purely by the data for that specific model) or if the analyst is looking to give the model a *strong* prior that incorporates meaningful external information and/or prior knowledge. If the analysts can't interpret the coefficients, then is is difficult to know whether a prior distribution is *weak* or *strong* and whether it is likely to move estimates meaningfully away from classical estimates.   
 
-```{r bikesharing-gibbs, eval = FALSE}
-n_burn <- 200
-n_sim  <- 1000
+A useful approach to making coefficients more interpretable involves centering variables closer to the center (or at least within the support of) the data. To facilitate the interpretation of the coefficients in our model, we will therefore pick a reference age *ref_age1* within the support of the data (we pick 13 but you can feel free to pick a different reference age or to use the mean across the observations) and define a new variable *Age2=Age-ref_age1*. This will allow our prior for the intercept to represent a point estimate (on the chosen link function scale) for the percentage of girls who have had their first period by age 13. It also happens to be an age close to the average age of menarche in other sources [@HamiltonFairley2004, p. 29] which reported the UK average age of menarche in the UK as 12.9.  
 
-beta_out   <- matrix(0, nrow = n_sim, ncol = p)
-sigma_out  <- numeric(n_sim)
-theta_out  <- matrix(0, nrow = n_sim, ncol = n_train)
+In addition to the intercept, our model will contain a slope coefficient for the modified age variable that will capture the change in the percentage of girls who have had their first period (on the relevant link scale). To be able to formulate a prior for this, we will set up a second reference age *ref_age2* (our choice will be 15) at which we also will formulate a point estimate for the percentage who have had their first period. A point estimate for the slope on the link scale will then be derived as the difference between the two estimates (on the link scale) divided by the Age gap between the two reference ages. Below is code doing the variable transformation and a preliminary setup to prepare for the prior specification.   
 
-set.seed(123)
+```{r Analysis Setup}
+## Number of variables in model
+Age=menarche$Age
+nvars=2
+set.seed(333)
 
-# Burn-in
-burn_time <- system.time({
-  for (k in seq_len(n_burn)) {
-    out_pop <- rglmb(1, theta, X_train, family = gaussian(),
-      pfamily = dNormal_Gamma(ps_pop$mu, Sigma_0 = ps_pop$Sigma_0,
-        ps_pop$shape, ps_pop$rate))
-    beta   <- as.vector(out_pop$coefficients[1, ])
-    sigma_theta_sq <- out_pop$dispersion[1]
-    mu_all <- as.vector(X_train %*% beta)
-    for (i in seq_len(n_train)) {
-      theta[i] <- rglmb(1, y_train[i], matrix(1, 1, 1), family = poisson(),
-        pfamily = dNormal(mu = mu_all[i], Sigma = sigma_theta_sq))$coefficients[1, 1]
-    }
-  }
-})
+## Reference Ages for setting of priors and Age_Difference
+ref_age1=13  # user can modify this
+ref_age2=15  ## user can modify this
 
-burn_time
+## Define variables used later in analysis
+Age2=Age-ref_age1
+Age_Diff=ref_age2-ref_age1
 
-# Main simulation
-sim_time <- system.time({
-  for (k in seq_len(n_sim)) {
-    out_pop <- rglmb(1, theta, X_train, family = gaussian(),
-      pfamily = dNormal_Gamma(ps_pop$mu, Sigma_0 = ps_pop$Sigma_0,
-        ps_pop$shape, ps_pop$rate))
-    beta   <- as.vector(out_pop$coefficients[1, ])
-    sigma_theta_sq <- out_pop$dispersion[1]
-    mu_all <- as.vector(X_train %*% beta)
-    for (i in seq_len(n_train)) {
-      theta[i] <- rglmb(1, y_train[i], matrix(1, 1, 1), family = poisson(),
-        pfamily = dNormal(mu = mu_all[i], Sigma = sigma_theta_sq))$coefficients[1, 1]
-    }
-    beta_out[k, ]  <- beta
-    sigma_out[k]   <- sqrt(sigma_theta_sq)
-    theta_out[k, ] <- theta
-  }
-})
-
-
-sim_time
 ```
 
-Load the precomputed draws (regenerate with **`demo("Ex_09_BikeSharingPoisson")`** and save with `saveRDS` to `inst/extdata/BikeSharing_ch14_gibbs.rds`).
+# Setting prior point estimates, associated credible intervals, and correlation
 
-```{r bikesharing-gibbs-loaded}
-beta_out  <- ch14_saved$beta_out
-sigma_out <- ch14_saved$sigma_out
-n_burn    <- ch14_saved$n_burn
-n_sim     <- ch14_saved$n_sim
-mcmc_main <- ch14_saved$mcmc_main
-stopifnot(nrow(beta_out) == n_sim, length(sigma_out) == n_sim, ncol(beta_out) == p)
+We are now ready to specify our two point estimates with associated prior credible intervals and an assumed correlation (on the link scale). For the first reference age (13), we will provide a point estimate of 0.5 (50%) for the percentage of girls who have had their first period by age 13.  To account for the possibility that this percentage was a bit lower in Warsaw at the time data was collected, we will assume that the lower end of a 90% credible interval is at 0.3 (30%).  
+
+For the second reference age (15), we have not accessed as much meaningful data from other sources to inform the prior estimate, but we have a general sense that *"most"* girls likely have had their period by that age. Based on this, we select 0.9 (90%) as a prior point estimate and select 0.7 (70%) as the lower end of our associated credible interval.
+
+To complete the information needed to map this information to both prior means and a fully populated Variance-Covariance matrix, we account for the likely correlation between the percentage at the two ages. If one of our two point estimates turn out to be either too high (or low) for the Warsaw data, it is likely that the other estimate also could be too high (or low) for the data as well. To that end, we assume a prior 0.4 correlation between the two estimates on the relevant link scale. 
+
+Here is code setting these assumptions up.
+
+
+```{r Prior Info}
+
+## Point estimates at reference ages
+m1=0.5  
+m2=0.9
+
+## Lower bound of prior credible intervals for point estimates
+m1_lower=0.3
+m2_lower=0.7
+
+## Assumed correlation between the two (on link scale)
+m_corr=0.4
 ```
 
-## 4. CODA Diagnostics
 
-We summarize the main parameters ($\beta$ and $\sigma_\theta$) using the **coda** package [@PlummerEtAl2006]. Random effects $\theta$ are excluded from the summary. Object `mcmc_main` comes from the saved chain (coefficient columns match `X_train`, plus `sigma_theta`).
+#  Mapping the prior to the link scale
 
-```{r bikesharing-coda}
-summary(mcmc_main)
+To be able to use the prior information in our model, the information has to be mapped to the link scale and the point estimates (with associated credible intervals) have to be mapped to a point estimate and uncertainty for the slope. In order to do this, we first get the required link function and set up the matrices into which we will store the prior information (*mu1* and *V1*).
 
-es <- coda::effectiveSize(mcmc_main)
-knitr::kable(
-  data.frame(parameter = names(es), effective_size = as.numeric(es)),
-  row.names = FALSE,
-  digits = 4,
-  caption = "Effective sample size (coda::effectiveSize)"
-)
+```{r Logit: set up link function info and initialize prior matrices}
 
-ac1 <- coda::autocorr(mcmc_main, lag = 1)
-ac1_mat <- drop(ac1)
-own_ac1 <- diag(ac1_mat)
-names(own_ac1) <- colnames(mcmc_main)
-knitr::kable(
-  data.frame(parameter = names(own_ac1), lag_1_autocorr = as.numeric(own_ac1)),
-  row.names = FALSE,
-  digits = 4,
-  caption = "Lag-1 autocorrelation (diagonal of coda::autocorr, lag = 1)"
-)
+## Set up link function and initialize prior mean and Variance-Covariance matrices
+bi_logit <- binomial(link="logit")
+mu1<-matrix(0,nrow=nvars,ncol=1)
+rownames(mu1)=c("Intercept","Age2")
+colnames(mu1)=c("Prior Mean")
+V1<-1*diag(nvars)
+rownames(V1)=c("Intercept","Age2")
+colnames(V1)=c("Intercept","Age2")
 ```
 
-## 5. Out-of-Sample Prediction
 
-We compare two prediction strategies on the held-out test set:
+**Setting the prior mean**
 
-- **Option A (conditional):** $\hat{y}_i = \exp(x_i^\top \bar{\beta})$, where $\bar{\beta}$ is the posterior mean. No random-effect uncertainty.
-- **Option B (posterior predictive):** Draw $\theta_{\text{test}} \sim N(X_{\text{test}} \beta^{(s)}, \sigma^{(s)2})$, then $y \sim \text{Poisson}(\exp(\theta_{\text{test}}))$ for each posterior sample $s$; report the mean over samples.
+This piece of code now maps the prior assumptions to the logit scale and sets the prior mean vector. The mean for the intercept is just the logit transformation of the prior point estimate while the mean for the slope uses the difference between the logit transformed point estimates divided by the Age_Difference.
 
-```{r bikesharing-pred}
-beta_mean <- colMeans(beta_out)
-sigma_mean <- mean(sigma_out)
+```{r Logit:set prior means}
+## Prior mean for intercept is set to point estimate 
+## at reference age1 (on logit scale)
+mu1[1,1]=bi_logit$linkfun(m1)
 
-# Option A: conditional mean
-y_pred_cond <- exp(X_test %*% beta_mean)
-mae_cond  <- mean(abs(y_test - y_pred_cond))
-rmse_cond <- sqrt(mean((y_test - y_pred_cond)^2))
+## Prior mean for slope is set to difference in point estimates
+## on logit scale divided by Age_Diff
 
-# Option B: posterior predictive mean
-n_pred <- 500
-y_pred_samples <- matrix(0, nrow = n_pred, ncol = n_test)
-for (s in seq_len(n_pred)) {
-  idx_s <- sample(n_sim, 1)
-  beta_s  <- beta_out[idx_s, ]
-  sigma_s <- sigma_out[idx_s]
-  theta_test <- rnorm(n_test, mean = X_test %*% beta_s, sd = sigma_s)
-  y_pred_samples[s, ] <- rpois(n_test, lambda = exp(theta_test))
-}
-y_pred_mean <- colMeans(y_pred_samples)
-mae_pp  <- mean(abs(y_test - y_pred_mean))
-rmse_pp <- sqrt(mean((y_test - y_pred_mean)^2))
+mu1[2,1]=(bi_logit$linkfun(m2) -bi_logit$linkfun(m1))/Age_Diff 
+print(mu1)
 
-cat("Option A (conditional): MAE =", round(mae_cond, 2), " RMSE =", round(rmse_cond, 2), "\n")
-cat("Option B (post. pred.): MAE =", round(mae_pp, 2), " RMSE =", round(rmse_pp, 2), "\n")
+
 ```
 
-## 6. Summary
+**Setting the prior Variance-Covariance Matrix**
 
-| Component | Implementation |
-|-----------|----------------|
-| **Block 1 (population)** | `rglmb(1, theta, X, family = gaussian(), pfamily = dNormal_Gamma(...))` |
-| **Block 2 (observations)** | For each $i$: `rglmb(1, y[i], matrix(1,1,1), family = poisson(), pfamily = dNormal(mu_i, sigma^2))` |
-| **Prior for $\beta, \sigma^2$** | From `Prior_Setup` on $\theta \sim X\beta$ (Gaussian) |
-| **Data** | BikeSharing (1% train, 99% test for vignette) |
-| **Vignette chain** | Precomputed `BikeSharing_ch14_gibbs.rds` (200 burn-in, 1000 stored iterations) |
 
-For longer runs and full diagnostics, see **`demo("Ex_09_BikeSharingPoisson")`**. For hierarchical linear models, see Chapter 13.
+The piece of code setting the prior variance-covariance matrix for this prior specification is a bit more complex. It proceeds as follows:
+
+* Calculate the prior standard deviation for each of the point estimates by leveraging the lower bounds
+* Calculate the implied standard deviation for the slope using the formula for the variance of differences
+* Calculate the implied covariance between the intercept and the slope 
+* Populate the Prior Variance-Covariance matrix using the derived information
+
+```{r Logit:set prior Variance Covariance matrix}
+## Implied standard deviations for point estimates on logit scale
+
+sd_m1= (bi_logit$linkfun(m1) -bi_logit$linkfun(m1_lower))/1.96
+sd_m2= (bi_logit$linkfun(m2) -bi_logit$linkfun(m2_lower))/1.96
+
+## Also compute implied estimate for upper bound of confidence intervals
+
+m1_upper=bi_logit$linkinv(bi_logit$linkfun(m1)+sd_m1*1.96)
+m2_upper=bi_logit$linkinv(bi_logit$linkfun(m2)+sd_m2*1.96)
+print("m1_upper is:")
+m1_upper
+print("m2_upper is:")
+m2_upper
+
+
+## Implied Standard deviation for slope (using variance formula for difference between two variables)
+a=(1/Age_Diff)
+sd_slope=sqrt((a*sd_m1)^2+(a*sd_m2)^2-2*a*a*(sd_m1*sd_m2*m_corr))
+
+#Cov(m1,slope)=cov(m1, a*(m2-m1)) =a*E[(m1-E[m1])((m2-m1)-E[m2-m1])]
+#   =a*E[(m1-E[m1])(m2-E[m2])]- a* E[(m1-E[m1])(m1-E[m1])]
+##   =a*Cov[m1,m2] - a*Var[m1]
+##  =a*sd_m1*sd_m2*m_corr-a* sd_m1*sd_m1
+cov_V1=a*sd_m1*sd_m2*m_corr-a* sd_m1*sd_m1
+
+# Set covariance matrix
+V1[1,1]=sd_m1^2
+V1[2,2]=sd_slope^2
+V1[1,2]=cov_V1
+V1[2,1]=V1[1,2]
+print("V1 is:")
+print(V1)
+```
+
+# Running the Model 
+
+We are now ready to run a Logit model using the above specification. As a best practice, we recommend creating a data frame holding all the variables used in the model formula and to use it as the "data" for the model. We will show how this data can be used an an input to the prediction function in the next Chapter.
+
+The below code performs the step creating the Model data frame and then submits the model. 
+
+```{r Run Logit,results = "hide"}
+Menarche_Model_Data=data.frame(Age=menarche$Age,Total=as.integer(menarche$Total),
+Menarche=as.integer(menarche$Menarche),Age2)
+
+glmb.out1<-glmb(n=1000,cbind(Menarche, as.integer(Total-Menarche)) ~Age2,family=binomial(logit),
+pfamily=dNormal(mu=mu1,Sigma=V1),data=Menarche_Model_Data)
+
+```
+
+**Reviewing the printed output**
+
+To get a first read of the results, we now print the results of the model and re-print the prior mean specification so that we can do an initial comparison of the prior to the estimated posterior means. 
+
+```{r Print Logit}
+
+# Print model output
+print(glmb.out1)
+
+# Print prior mean as comparison
+print(t(mu1))
+
+```
+
+In reviewing the coefficients, we see that the intercepts look quite close, so our prior estimate at age 13 does not seem to have been a bad estimate for what the Warsaw data suggests. Our prior estimate for the slope parameter seems to be a bit lower than the posterior mean estimate but without information on the standard error or credible intervals connected to the posterior mean, we can't tell how off it might have been.  We ignore the other printed output for now (it will be discussed in the next chapter) and instead turn to a more extensive model summary.
+
+**Summarizing the model**
+
+To get a more detailed view of the model output, we simply use the summary function and its print method much like you would to generate a summary for output from the *glm* function. This results in a printed view with several sections of outputs
+
+* Expected Deviance Residuals (Discussed more in the next Chapter)
+* Prior and Maximum Likelihood Estimates with Standard Deviations
+* Bayesian Estimates Based on iid draws from the posterior (in this case 1000 draws)
+* Distribution Percentiles (Credible Interval type information)
+* DIC related information (Discussed more in the next chapter)
+* Information related to the number of candidates per iid draw (discussed more in one of our Appendix chapters)
+
+We discuss several of these after the print view of the output from the call to the summary function.
+
+```{r Summary Logit}
+summary(glmb.out1)
+```
+
+*Interpreting the "Prior and Maximum Likelihood Estimates with Standard Deviations" table*
+
+This table gives a side-by-side comparison of the prior and the data driven maximum likelihood estimates (that should match the ouput from the glm function for the same model). In addition to revealing any differences in the estimates themselves, the relative magnitude of the standard deviations give insight into how "strong" the prior specification is relative to the information contained in the data.  The unstandardized weights on the prior and data respectively are in most cases likely to be close to *(1/sd_prior)^2* and *(1/sd_data)^2* respectively. The fact that the prior standard deviations are much larger in this case tells us that the posterior mean estimates are likely to be much closer to the maximum likelihood estimates than to the prior estimates.
+
+*Interpreting the "Bayesian Estimates Based on 1000 iid draws table*
+
+This table gives more information related to the estimates seen in the print output. We now have a view of both the posterior mode and posterior mean. If these were substantially different, it would indicate that the posterior density had substantial asymmetry.  The posterior standard deviation will generally be smaller than both the prior and the likelihood standard deviations.  In this case, the posterior standard deviation for the *intercept* appears to be nearly the same as the likelihood standard deviation while the posterior standard deviation for *Age2* is substantially smaller (suggesting some weight on the prior). 
+
+The tail probability gives the probability (under the posterior density) of the true coefficient being at least as far away from the center as the prior point estimate.  In this case, there is ~44% probability of the intercept being greater than 0 but only a ~0.01% chance that the Age2 coefficient is smaller than the prior point estimate of 1.098.  The latter is flagged as highly significant suggesting that the true slope coefficient is substantially larger than the prior point estimate. 
+
+The MC error column gives a sense of any error in the estimates driven by the fact that we are using monte carlo simulation to generate our estimates.  In this case, we used 1000 draws which appears to have been enough to make this error small. The user can experiment with this to see how the errors increase if we base the estimates on a smaller number of draws. In general, it is not recommended to interpret model output based on small number of draws. On the other hand, the fact that estimates are iid draws as opposed to Markov Chain Monte Carlo outputs eliminates any need for convergence diagnostics and burn-in phases.
+
+*Interpreting the "Distribution Percentile" table*
+
+This table providence credible interval information at several significance levels for the model.  It gives the user insight into the range of most of the support for the posterior density and how it compares to both the prior and maximum likelihood point estimates. In this case, we can see that the prior point estimate for the intercept is close to the center of the density while the prior point estimate is far away from it. 
+
+*Brief discussion of Findings from model*
+
+As we noted above, the posterior estimates for the intercept appear broadly consistent with the prior specification, so in a sense our prior beliefs are "validated" for the 13 year old girls. As the slope is substantially larger than in our prior specification, however, it seems like we underestimated the % of girls at age 15 who had already had their first period.  The percentage is apparently substantially higher than the 90% we specificed using our prior and if we are Bayesians we should hence update our beliefs substantially based on the data. To understand exactly how much requires us to look at the model predictions(in particular predictions on the inverse link scale). We will do so in a later chapter.
+
+# Concluding Discussion
+
+In this note, we walked through an example illustrating a process for setting of the prior in the case of the *Age of Menarche* model based on the data in [@VenablesRipley2002]. There are several approaches taken here the we believe analysts can find useful in setting reasonable priors. These include:
+
+* Centering variables so that the intercept can be given a meaningful prior and so that meaningful priors for the other variables can be formulated based on sensitivity in the support of data
+* Incorporating external information if available (like our information regarding the average age of Menarche in the UK)
+* Making reasonable assumptions based on other knowledge/insight (e.g., our prior point estimate at age 15)
+
+In the next section, we will take a take a look at how the analysts can check whether the data seems consistent with the specified prior.

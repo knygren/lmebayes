@@ -4,6 +4,10 @@
   with 'bayesplot' (now listed under `Imports`): builds `yrep` via
   `simulate()` and dispatches through `bayesplot::pp_check()`.
 
+* **'opencltools' package:** Host/runtime OpenCL diagnostics (`detect_*`, PATH helpers, etc.)
+  are provided by the **'opencltools'** dependency; **glmbayes** keeps local
+  `has_opencl()` and `diagnose_glmbayes()` (compile-time status for this package).
+
 * _Further release notes to be completed before CRAN submission._
 
 # glmbayes 0.9.5

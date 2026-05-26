@@ -65,13 +65,13 @@ returned by `Prior_Setup()` and for the conjugate Normal--Gamma Gaussian model
 used by `dNormal_Gamma()`. The goal is to connect implementation quantities
 (`mu`, `Sigma`, `Sigma_0`, `dispersion`, `shape`, `rate`, and related settings)
 to the **weighted likelihood notation** and **$S_{\mathrm{marg}}$** machinery in
-Chapter 11 (especially Section 3.2 and Appendix A3), with steps spelled out
+Chapter 15 (especially Section 3.2 and Appendix A3), with steps spelled out
 rather than only stated.
 
 This chapter is a companion to the main vignettes: it emphasizes **theory**,
 mapping to `pfamily` constructors, and how defaults encode prior strength.
 
-**Roadmap.** Chapter 11 fixes notation for weighted Gaussian regression
+**Roadmap.** Chapter 15 fixes notation for weighted Gaussian regression
 ($n_w$, $G = X^{\mathsf T} W X$, precision $\tau = 1/\phi$, and the conjugate
 Normal--Gamma structure). Appendix A3 there gives closed-form posterior moments
 for $\beta$ under the Zellner-type prior implied by scalar `pwt`. Chapter A02

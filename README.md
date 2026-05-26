@@ -42,8 +42,8 @@ Prebuilt binaries from CRAN (0.9.5) and R-Universe are built **without OpenCL GP
 support**. For the CRAN release, OpenCL requires installing **from source** on a
 system with OpenCL development files available. To set up GPU acceleration, follow
 
-**Chapter 12 - Large Models: GPU Acceleration using OpenCL**
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-12.html
+**Chapter 16 — Large models: GPU acceleration using OpenCL**
+https://knygren.r-universe.dev/articles/glmbayes/Chapter-16.html
 
 ## Minimal Working Example
 
@@ -246,24 +246,24 @@ https://knygren.r-universe.dev/articles/glmbayes/Chapter-09.html
 
 ### Part 4: Advanced Topics
 These chapters explore more complex modeling scenarios and computational strategies, such as
-informative priors, two-block Gibbs sampling, hierarchical linear and generalized linear models,
+informative priors, two-block Gibbs sampling, linear and generalized linear mixed-effects models,
 models with unknown dispersion parameters, and large-scale model fitting using GPU acceleration
 using OpenCL.
 
-- **Chapter 10 - Informative Priors: Centering and priors with differential prior weights**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-10.html
-
-- **Chapter 11 - Estimating Models with unknown dispersion parameters**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-11.html
-
-- **Chapter 12 - Large Models: GPU Acceleration using OpenCL**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-12.html
-
-- **Chapter 13 - Hierarchical Linear Models**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-13.html
-
-- **Chapter 14 - Hierarchical Generalized Linear Models**  
+- **Chapter 14 — Informative priors — centering and differential prior weights**  
 https://knygren.r-universe.dev/articles/glmbayes/Chapter-14.html
+
+- **Chapter 15 — Estimating models with unknown dispersion parameters**  
+https://knygren.r-universe.dev/articles/glmbayes/Chapter-15.html
+
+- **Chapter 16 — Large models: GPU acceleration using OpenCL**  
+https://knygren.r-universe.dev/articles/glmbayes/Chapter-16.html
+
+- **Chapter 17 — Linear mixed-effects models**  
+https://knygren.r-universe.dev/articles/glmbayes/Chapter-17.html
+
+- **Chapter 18 — Generalized linear mixed-effects models**  
+https://knygren.r-universe.dev/articles/glmbayes/Chapter-18.html
 
 ### Part 5: Simulation Methods and Technical Implementation
 This part documents the mathematical and algorithmic foundations of the package. Topics include

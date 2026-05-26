@@ -1,4 +1,4 @@
-# Precompute two-block Gibbs output for vignettes/Chapter-11.Rmd (Section 4.2,
+# Precompute two-block Gibbs output for vignettes/Chapter-15.Rmd (Section 4.2,
 # Carinsca Gamma regression): 1000 burn-in iterations, then 1000 stored draws.
 # Matches vignette chunk `Block_Gibbs_gamma_Regression` (kept in the vignette with eval = FALSE).
 #

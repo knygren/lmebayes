@@ -7,8 +7,8 @@
 .opencl_runtime_sniff <- function() {
   tryCatch(
     {
-      info <- detect_environment_and_gpus()
-      rt_list <- detect_compute_runtimes(info)
+      info <- opencltools::detect_environment_and_gpus()
+      rt_list <- opencltools::detect_compute_runtimes(info)
       gpu <- isTRUE(info$nvidia$present) ||
         isTRUE(info$amd$present) ||
         isTRUE(info$intel$present)
@@ -51,7 +51,7 @@
     "Note: glmbayes provides full CPU capability in this session ",
     "(e.g. glmb(), lmb(), Prior_Setup()). GPU acceleration is recommended ",
     "for bigger models and appears available. Reinstall glmbayes from source ",
-    "with OpenCL at compile time to enable it; see vignette(\"Chapter-12\", ",
+    "with OpenCL at compile time to enable it; see vignette(\"Chapter-16\", ",
     "\"glmbayes\") for install instructions."
   )
   invisible()

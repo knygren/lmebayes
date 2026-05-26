@@ -188,7 +188,7 @@ This produces:
 - prior means aligned with the null model  
 - prior variances scaled relative to the likelihood curvature  
 
-You may override these defaults for more informative priors (see Chapter 10).
+You may override these defaults for more informative priors (see Chapter 14).
 
 ---
 

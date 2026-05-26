@@ -2,7 +2,8 @@
 #'
 #' @description
 #' Thin wrapper around [bayesplot::pp_check()] for objects of class \code{glmb}:
-#' builds posterior predictive replications with [simulate.glmb()] and passes
+#' builds posterior predictive replications with \code{\link[=simulate.glmb]{simulate.glmb}()}
+#' and passes
 #' \code{y} and \code{yrep} to the default \code{pp_check} method in \pkg{bayesplot}.
 #'
 #' @param object A fitted model of class \code{glmb}.
@@ -17,7 +18,7 @@
 #' @details
 #' For binomial models with a two-column matrix response \code{cbind(successes,
 #' failures)}, both \code{y} and \code{yrep} are expressed on the **proportion**
-#' scale so they match [simulate.glmb()].
+#' scale so they match \code{\link[=simulate.glmb]{simulate.glmb}()}.
 #'
 #' Call this function as `bayesplot::pp_check(object, ...)` (or attach
 #' \pkg{bayesplot} first) so the S3 generic is visible.
@@ -25,7 +26,9 @@
 #' @return
 #' A \pkg{ggplot2} object (from the \pkg{bayesplot} \code{ppc_*} function used).
 #'
-#' @seealso [simulate.glmb()], [predict.glmb()], [bayesplot::pp_check()].
+#' @seealso \code{\link[=simulate.glmb]{simulate.glmb}},
+#' \code{\link[=predict.glmb]{predict.glmb}},
+#' \code{\link[bayesplot:pp_check]{bayesplot::pp_check}}
 #' @importFrom bayesplot pp_check
 #' @method pp_check glmb
 #' @export
