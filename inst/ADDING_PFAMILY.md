@@ -233,7 +233,7 @@ Add at least one test file covering:
 ## Quick cross-reference: where each prior name appears
 
 When you name a new prior `dXxx`, search for every occurrence of
-`dGamma_Conjugate` (or the nearest analogue) in the files below and create
+`dBeta` or `dGamma(Inv_Dispersion=FALSE)` (or the nearest analogue) in the files below and create
 the corresponding `dXxx` entry:
 
 | File | What to add |

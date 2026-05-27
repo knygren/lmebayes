@@ -19,6 +19,8 @@ dGamma(
   shape,
   rate,
   beta,
+  Inv_Dispersion = TRUE,
+  lik_shape = 1,
   max_disp_perc = 0.99,
   disp_lower = NULL,
   disp_upper = NULL
@@ -78,6 +80,24 @@ when that field is non-\code{NULL} (see Details).}
 \item{beta}{Initial coefficient matrix (1 \eqn{\times} 1); typically set to the prior mean
 \code{shape1/(shape1+shape2)}.}
 
+\item{Inv_Dispersion}{Logical (default \code{TRUE}).  Controls which of the two Gamma prior
+roles \code{dGamma()} plays:
+\itemize{
+\item \code{TRUE} (default) — prior on the \emph{inverse dispersion} (precision / shape
+parameter \eqn{k = 1/\phi}).  This is the classical path used for dispersion estimation
+in Gaussian and \code{Gamma(log)} regression (\code{simfun = rGamma_reg}).
+\item \code{FALSE} — conjugate prior on the Gamma or Poisson \emph{rate} \eqn{\beta}
+directly (intercept-only, identity link).  The posterior is a closed-form Gamma draw
+(\code{simfun = rGamma_Conjugate_reg}).
+}}
+
+\item{lik_shape}{Known shape parameter \eqn{k > 0} of the Gamma likelihood.  Only used when
+\code{Inv_Dispersion = FALSE} and \code{family = Gamma(link = "identity")}.  The intercept
+coefficient is then the Gamma \emph{rate} \eqn{\beta}, and the conjugate posterior is
+\eqn{\beta \mid y \sim \mathrm{Gamma}(\alpha_0 + n k,\; \beta_0 + \sum y_i)}.
+Defaults to \code{1} (exponential distribution). Ignored for Poisson families and whenever
+\code{Inv_Dispersion = TRUE}.}
+
 \item{max_disp_perc}{Specifies the percentile used to truncate the posterior dispersion
 distribution when constructing the envelope for accept-reject sampling. This determines
 the lower and upper bounds for the dispersion (\eqn{\sigma^2}) used in the simulation. A value of 0.99
@@ -88,12 +108,6 @@ rates, while larger values allow broader dispersion support but may increase env
 \item{disp_lower}{lower bound truncation for dispersion}
 
 \item{disp_upper}{upper bound truncation for dispersion}
-
-\item{lik_shape}{Known shape parameter \eqn{k > 0} of the Gamma likelihood, used only by
-\code{dGamma_Conjugate()} with \code{Gamma(link = "identity")}. The intercept coefficient
-is then the Gamma \emph{rate} \eqn{\beta}, and the conjugate posterior is
-\eqn{\beta \mid y \sim \mathrm{Gamma}(\alpha_0 + n k,\; \beta_0 + \sum y_i)}.
-Defaults to \code{1} (exponential distribution). Ignored for Poisson families.}
 
 \item{shape1}{First shape parameter \eqn{\alpha > 0} of the Beta prior (prior successes + 1).}
 
@@ -138,8 +152,8 @@ used by functions such as \code{\link{glmb}}. See the documentations for \code{\
 \code{\link{glmb}}, \code{\link{glmb}}, and \code{\link{rglmb}} for the details of how such model fitting
 takes place.
 
-\code{mu} / \code{Sigma}: under R's Gamma(shape, rate), each marginal has mean \code{shape/rate} and
-variance \code{shape/(rate^2)}, taken independent across \code{nrow(mu)} coefficient rows matching \code{beta}.
+\code{dGamma_Conjugate()} is a deprecated alias for \code{dGamma(..., Inv_Dispersion = FALSE)}.
+Use \code{dGamma()} directly.
 
 Under a Beta(\code{shape1}, \code{shape2}) prior on the binomial probability \eqn{\theta}
 and a Binomial(\eqn{n_i}, \eqn{\theta}) likelihood with identity link (\eqn{\theta = \beta}

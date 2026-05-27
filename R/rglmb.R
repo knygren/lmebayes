@@ -134,14 +134,15 @@ rglmb<-function(n=1,y,x,family=gaussian(),pfamily,offset=NULL,
     print(family)
     stop("'family' not recognized")
   }
-  ## family = Poisson + prior from dGamma() -> conjugate Poisson–Gamma rate prior
+  ## family = Poisson + prior from dGamma(Inv_Dispersion=TRUE) -> auto-coerce to conjugate rate prior
   if (inherits(pfamily, "pfamily") && identical(pfamily$pfamily, "dGamma") &&
       identical(family$family, "poisson")) {
     pl <- pfamily$prior_list
-    pfamily <- dGamma_Conjugate(
+    pfamily <- dGamma(
       shape          = pl$shape,
       rate           = pl$rate,
       beta           = pl$beta,
+      Inv_Dispersion = FALSE,
       max_disp_perc  = pl$max_disp_perc,
       disp_lower     = pl$disp_lower,
       disp_upper     = pl$disp_upper
@@ -204,7 +205,7 @@ rglmb<-function(n=1,y,x,family=gaussian(),pfamily,offset=NULL,
   
   ## Check that the family is implemented for the pfamily
   ##
-  ## `dGamma_Conjugate()` keeps a narrow `okfamilies` in `pfamily.R` while `plinks()` still
+  ## `dGamma(Inv_Dispersion=FALSE)` keeps a narrow `okfamilies` in `pfamily.R` while `plinks()` still
   ## advertises conjugate-compatible links for Poisson / quasi-Poisson; allow those families here.
   family_ok <- family$family %in% okfamilies
   if (identical(pf, "dGamma_Conjugate") &&

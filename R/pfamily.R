@@ -30,11 +30,22 @@
 #' Needs to be provided when the Gamma prior is used for the dispersion. This
 #' specification is typically only used as part of Gibbs sampling where the beta and 
 #' dispersion parameters are updated separately.
-#' @param lik_shape Known shape parameter \eqn{k > 0} of the Gamma likelihood, used only by
-#'   \code{dGamma_Conjugate()} with \code{Gamma(link = "identity")}. The intercept coefficient
-#'   is then the Gamma \emph{rate} \eqn{\beta}, and the conjugate posterior is
+#' @param Inv_Dispersion Logical (default \code{TRUE}).  Controls which of the two Gamma prior
+#'   roles \code{dGamma()} plays:
+#'   \itemize{
+#'     \item \code{TRUE} (default) — prior on the \emph{inverse dispersion} (precision / shape
+#'       parameter \eqn{k = 1/\phi}).  This is the classical path used for dispersion estimation
+#'       in Gaussian and \code{Gamma(log)} regression (\code{simfun = rGamma_reg}).
+#'     \item \code{FALSE} — conjugate prior on the Gamma or Poisson \emph{rate} \eqn{\beta}
+#'       directly (intercept-only, identity link).  The posterior is a closed-form Gamma draw
+#'       (\code{simfun = rGamma_Conjugate_reg}).
+#'   }
+#' @param lik_shape Known shape parameter \eqn{k > 0} of the Gamma likelihood.  Only used when
+#'   \code{Inv_Dispersion = FALSE} and \code{family = Gamma(link = "identity")}.  The intercept
+#'   coefficient is then the Gamma \emph{rate} \eqn{\beta}, and the conjugate posterior is
 #'   \eqn{\beta \mid y \sim \mathrm{Gamma}(\alpha_0 + n k,\; \beta_0 + \sum y_i)}.
-#'   Defaults to \code{1} (exponential distribution). Ignored for Poisson families.
+#'   Defaults to \code{1} (exponential distribution). Ignored for Poisson families and whenever
+#'   \code{Inv_Dispersion = TRUE}.
 #' @param max_disp_perc Specifies the percentile used to truncate the posterior dispersion 
 #' distribution when constructing the envelope for accept-reject sampling. This determines 
 #' the lower and upper bounds for the dispersion (\eqn{\sigma^2}) used in the simulation. A value of 0.99
@@ -262,114 +273,140 @@ dNormal<-function(mu,Sigma,dispersion=NULL){
 #' @rdname pfamily
 #' @order 3
 
-dGamma<-function(shape,rate,beta,max_disp_perc = 0.99,disp_lower=NULL,disp_upper=NULL){
+dGamma <- function(shape, rate, beta,
+                   Inv_Dispersion = TRUE,
+                   lik_shape      = 1,
+                   max_disp_perc  = 0.99,
+                   disp_lower     = NULL,
+                   disp_upper     = NULL) {
 
-  if(is.numeric(shape)==FALSE||is.numeric(rate)==FALSE||is.numeric(beta)==FALSE) stop("non-numeric argument to numeric function")
-  
-  if(length(shape)>1) stop("shape is not of length 1")
-  if(length(shape)>1) stop("rate is not of length 1")
-  if(shape<=0) stop("shape must be>0")
-  if(rate<=0) stop("rate must be>0")
-  
-  beta=as.matrix(beta,ncol=1)
-  
-  okfamilies <- c("gaussian","Gamma")
-  
-  plinks<-function(family){
-    if(family$family=="gaussian") oklinks<-c("identity")
-    if(family$family=="poisson"||family$family=="quasipoisson") oklinks<-NULL		
-    if(family$family=="binomial"||family$family=="quasibinomial") oklinks<-NULL		
-    if(family$family=="Gamma") oklinks<-c("log")	
-    return(oklinks)
+  if (!is.numeric(shape) || !is.numeric(rate) || !is.numeric(beta))
+    stop("non-numeric argument to numeric function")
+  if (length(shape) > 1) stop("shape is not of length 1")
+  if (length(rate)  > 1) stop("rate is not of length 1")
+  if (shape <= 0) stop("shape must be > 0")
+  if (rate  <= 0) stop("rate must be > 0")
+
+  beta <- as.matrix(beta, ncol = 1L)
+
+  ## -------------------------------------------------------------------------
+  ## Inv_Dispersion = TRUE  →  prior on precision/shape (inverse dispersion).
+  ## Supports Gaussian(identity) and Gamma(log); uses rGamma_reg sampler.
+  ## -------------------------------------------------------------------------
+  if (Inv_Dispersion) {
+
+    okfamilies <- c("gaussian", "Gamma")
+
+    plinks <- function(family) {
+      if (family$family == "gaussian")                          oklinks <- c("identity")
+      if (family$family %in% c("poisson", "quasipoisson"))     oklinks <- NULL
+      if (family$family %in% c("binomial", "quasibinomial"))   oklinks <- NULL
+      if (family$family == "Gamma")                            oklinks <- c("log")
+      return(oklinks)
+    }
+
+    prior_list <- list(
+      shape          = shape,
+      rate           = rate,
+      beta           = beta,
+      Inv_Dispersion = TRUE,
+      max_disp_perc  = max_disp_perc,
+      disp_lower     = disp_lower,
+      disp_upper     = disp_upper
+    )
+    attr(prior_list, "Prior Type") <- "dGamma"
+    outlist <- list(pfamily    = "dGamma",
+                    prior_list = prior_list,
+                    okfamilies = okfamilies,
+                    plinks     = plinks,
+                    simfun     = rGamma_reg)
+    attr(outlist, "Prior Type") <- "dGamma"
+
+  ## -------------------------------------------------------------------------
+  ## Inv_Dispersion = FALSE  →  conjugate prior on the rate β directly.
+  ## Supports Poisson(identity) and Gamma(identity); uses rGamma_Conjugate_reg.
+  ## mu / Sigma: Gamma(shape, rate) moments; mean = shape/rate, var = shape/rate^2.
+  ## -------------------------------------------------------------------------
+  } else {
+
+    if (!is.numeric(lik_shape) || length(lik_shape) != 1L ||
+        !is.finite(lik_shape) || lik_shape <= 0)
+      stop("lik_shape must be a single positive finite number (the known Gamma likelihood shape parameter; default 1 for exponential)")
+
+    sh <- as.numeric(shape)[[1L]]
+    rt <- as.numeric(rate)[[1L]]
+    mu <- beta * 0 + sh / rt
+    p  <- nrow(mu)
+    sigma_sq <- sh / (rt * rt)
+    Sigma <- diag(rep.int(sigma_sq, times = p), nrow = p, ncol = p)
+    coef_nm <- rownames(beta)
+    if (is.null(coef_nm)) coef_nm <- colnames(beta)
+    if (!is.null(coef_nm) && length(coef_nm) == p) {
+      rownames(mu) <- coef_nm
+      if (!is.null(colnames(beta))) colnames(mu) <- colnames(beta)
+      dimnames(Sigma) <- list(coef_nm, coef_nm)
+    }
+
+    okfamilies <- c("poisson", "Gamma")
+
+    plinks <- function(family) {
+      oklinks <- NULL
+      if (family$family %in% c("poisson", "quasipoisson")) oklinks <- c("identity")
+      if (family$family == "Gamma")                        oklinks <- c("identity")
+      oklinks
+    }
+
+    prior_list <- list(
+      shape          = shape,
+      rate           = rate,
+      beta           = beta,
+      lik_shape      = lik_shape,
+      Inv_Dispersion = FALSE,
+      mu             = mu,
+      Sigma          = Sigma,
+      max_disp_perc  = max_disp_perc,
+      disp_lower     = disp_lower,
+      disp_upper     = disp_upper
+    )
+    attr(prior_list, "Prior Type") <- "dGamma_Conjugate"
+    outlist <- list(pfamily    = "dGamma_Conjugate",
+                    prior_list = prior_list,
+                    okfamilies = okfamilies,
+                    plinks     = plinks,
+                    simfun     = rGamma_Conjugate_reg)
+    attr(outlist, "Prior Type") <- "dGamma_Conjugate"
   }
-  
-  prior_list=list(shape=shape,rate=rate,beta=beta,max_disp_perc = max_disp_perc,disp_lower=disp_lower,disp_upper=disp_upper)
-  attr(prior_list,"Prior Type")="dGamma"  
-  outlist=list(pfamily="dGamma",prior_list=prior_list,okfamilies=okfamilies,
-               plinks=plinks,             
-               simfun=rGamma_reg)
-               
-  attr(outlist,"Prior Type")="dGamma"
-  class(outlist)="pfamily"
-  outlist$call<-match.call()
-  
-  return(outlist)
 
+  class(outlist) <- "pfamily"
+  outlist$call   <- match.call()
+  return(outlist)
 }
 
-#' Conjugate Gamma prior family (\code{dGamma_Conjugate}: closed-form IID updates for scalar-rate / intercept-only settings).
-#'
-#' \code{mu} / \code{Sigma}: under R's Gamma(shape, rate), each marginal has mean \code{shape/rate} and
-#' variance \code{shape/(rate^2)}, taken independent across \code{nrow(mu)} coefficient rows matching \code{beta}.
+
+#' @description
+#' \code{dGamma_Conjugate()} is a deprecated alias for \code{dGamma(..., Inv_Dispersion = FALSE)}.
+#' Use \code{dGamma()} directly.
 #'
 #' @export
 #' @rdname pfamily
 #' @order 4
 
-dGamma_Conjugate<-function(shape,rate,beta,lik_shape=1,max_disp_perc = 0.99,disp_lower=NULL,disp_upper=NULL){
-
-  if(is.numeric(shape)==FALSE||is.numeric(rate)==FALSE||is.numeric(beta)==FALSE) stop("non-numeric argument to numeric function")
-
-  if(length(shape)>1) stop("shape is not of length 1")
-  if(length(rate)>1) stop("rate is not of length 1")
-  if(shape<=0) stop("shape must be>0")
-  if(rate<=0) stop("rate must be>0")
-
-  if (!is.numeric(lik_shape) || length(lik_shape) != 1L || !is.finite(lik_shape) || lik_shape <= 0)
-    stop("lik_shape must be a single positive finite number (the known Gamma likelihood shape parameter; default 1 for exponential)")
-
-  beta <- as.matrix(beta, ncol = 1L)
-
-  ## Normal-style surrogate for `glmb()` pre-simulation (`mu`, `Sigma`, `chol`) and downstream `Prior$mean`/`Variance`.
-  ## STATS Gamma(shape, rate): E = shape/rate, Var = shape/rate^2; replicated diagonals if length(beta) > 1.
-  sh <- as.numeric(shape)[[1L]]
-  rt <- as.numeric(rate)[[1L]]
-  mu <- beta * 0 + sh / rt
-  p <- nrow(mu)
-  sigma_sq <- sh / (rt * rt)
-  Sigma <- diag(rep.int(sigma_sq, times = p), nrow = p, ncol = p)
-  coef_nm <- rownames(beta)
-  if (is.null(coef_nm)) coef_nm <- colnames(beta)
-  if (!is.null(coef_nm) && length(coef_nm) == p) {
-    rownames(mu) <- coef_nm
-    if (!is.null(colnames(beta))) colnames(mu) <- colnames(beta)
-    dimnames(Sigma) <- list(coef_nm, coef_nm)
-  }
-
-  okfamilies <- c("poisson", "Gamma")
-
-  ## rglmb() calls pfamily$plinks(family); return allowed links by family (conjugate / identity scale).
-  plinks <- function(family) {
-    oklinks <- NULL
-    if (family$family %in% c("poisson", "quasipoisson")) oklinks <- c("identity")
-    if (family$family == "Gamma") oklinks <- c("identity")
-    if (family$family %in% c("binomial", "quasibinomial")) oklinks <- NULL
-    ## gaussian / other families: oklinks stays NULL until supported here
-    oklinks
-  }
-
-  prior_list <- list(
-    shape = shape,
-    rate = rate,
-    beta = beta,
-    lik_shape = lik_shape,
-    mu = mu,
-    Sigma = Sigma,
-    max_disp_perc = max_disp_perc,
-    disp_lower = disp_lower,
-    disp_upper = disp_upper
+dGamma_Conjugate <- function(shape, rate, beta, lik_shape = 1,
+                              max_disp_perc = 0.99,
+                              disp_lower    = NULL,
+                              disp_upper    = NULL) {
+  .Deprecated(
+    new = "dGamma",
+    msg = paste0(
+      "dGamma_Conjugate() is deprecated.\n",
+      "Use dGamma(..., Inv_Dispersion = FALSE) instead."
+    )
   )
-  attr(prior_list,"Prior Type")="dGamma_Conjugate"  
-  outlist=list(pfamily="dGamma_Conjugate",prior_list=prior_list,okfamilies=okfamilies,
-               plinks=plinks,             
-               simfun=rGamma_Conjugate_reg)
-
-  attr(outlist,"Prior Type")="dGamma_Conjugate"
-  class(outlist)="pfamily"
-  outlist$call<-match.call()
-
-  return(outlist)
-
+  dGamma(shape = shape, rate = rate, beta = beta,
+         Inv_Dispersion = FALSE, lik_shape = lik_shape,
+         max_disp_perc  = max_disp_perc,
+         disp_lower     = disp_lower,
+         disp_upper     = disp_upper)
 }
 
 

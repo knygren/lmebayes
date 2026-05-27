@@ -229,7 +229,7 @@ glmbfamfunc<-function(family, lik_shape = 1){
   }
 
   ## Poisson / quasi-Poisson with identity link: lambda = Xb (no exp transformation).
-  ## Used by dGamma_Conjugate + Poisson(identity) for DIC and logLik post-processing.
+  ## Used by dGamma(Inv_Dispersion=FALSE) + Poisson(identity) for DIC and logLik post-processing.
   ## Closures differ from the log-link versions in three ways:
   ##   f1/f2: lambda = alpha + x %*% b  (linear, not exp)
   ##   f3:    gradient = X'(wt*(1 - y/lambda)) + P(b-mu)

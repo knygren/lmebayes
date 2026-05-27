@@ -272,7 +272,7 @@ again a weighted average of the prior mean \(\alpha/\beta\) and the data mean \(
 
 The closed form is unchanged when you move from a bare rate \(\lambda\) to an intercept-only **Poisson(link = identity)** **`glmb()`**: the single regression coefficient **is** \(\lambda\) on the identity scale.
 
-### 3.1 Bayes Rules! illustration and **`glmb()`** with **`dGamma_Conjugate()`**
+### 3.1 Bayes Rules! illustration and **`glmb()`** with **`dGamma()`**
 
 The **Bayes Rules!** textbook [@JohnsonLauEtAl2022] works through a concrete example: you observe \(n = 9\) binary outcomes (did a rare event happen on this day?) and record three 1s and six 0s, giving \(\sum y = 3\).  The prior is **\(\Gamma(3, 4)\)**, which has mean 3/4 = 0.75.  (Even though the data are 0s and 1s, the Poisson model with an identity link is applied to them here — each observation is treated as a Poisson count that happens to be 0 or 1.)
 
@@ -321,7 +321,7 @@ Notice how the posterior is narrower than the prior — data reduce uncertainty 
 
 #### Fitting the same model with **`glmb()`**
 
-The closed-form posterior above is exact, but **`glmb()`** achieves the same result by drawing IID samples from the posterior using the conjugate prior passed through `dGamma_Conjugate()`.  This simulation-based approach generalizes to settings where no closed form exists.
+The closed-form posterior above is exact, but **`glmb()`** achieves the same result by drawing IID samples from the posterior using the conjugate prior passed through `dGamma(Inv_Dispersion = FALSE)`.  This simulation-based approach generalizes to settings where no closed form exists.
 
 ```{r gamma-poisson-br-glmb}
 library(glmbayes)
@@ -331,7 +331,7 @@ br_beta <- matrix(br_shape / br_rate, nrow = 1, ncol = 1)
 colnames(br_beta) <- "(Intercept)"
 
 ## Wrap the Gamma prior in the pfamily object glmb() expects
-br_pf <- dGamma_Conjugate(shape = br_shape, rate = br_rate, beta = br_beta)
+br_pf <- dGamma(shape = br_shape, rate = br_rate, beta = br_beta, Inv_Dispersion = FALSE)
 
 set.seed(2026)
 fit_br <- glmb(
@@ -346,7 +346,7 @@ summary(fit_br)
 
 **Reading the summary.**  The `summary()` output reports posterior statistics for the single coefficient `(Intercept)`, which on the identity link is directly the rate \(\lambda\).  The posterior mean should be close to \(6/13 \approx 0.46\), and the posterior standard deviation should agree with \(\sqrt{6}/13 \approx 0.19\).  Small Monte Carlo noise from 20 000 draws means the match is very close but not exact.
 
-The simulation approach and the analytic formula should agree because `dGamma_Conjugate()` implements the exact conjugate family — `glmb()` draws directly from the Gamma posterior, not from an approximation.
+The simulation approach and the analytic formula should agree because `dGamma(Inv_Dispersion = FALSE)` implements the exact conjugate family — `glmb()` draws directly from the Gamma posterior, not from an approximation.
 
 ### 3.2 Same data with **`Prior_Setup()`** conjugate calibration
 
@@ -360,7 +360,7 @@ In practice you often do not have a specific \(\Gamma(3, 4)\) prior in mind.  In
 
 where \(n_{\text{prior}}\) is an effective number of "prior observations" and \(n_{\text{eff}}\) measures the information in your actual data.  A small `pwt` (e.g. 0.01) means the prior carries very little weight — the posterior will be almost entirely determined by the data.  A large `pwt` (e.g. 0.5) means the prior is as strong as half the dataset.
 
-The resulting **`conj_poisson`** element of the `Prior_Setup()` output contains the shape and rate of the Gamma prior calibrated to these specifications.  You then pass those values to `dGamma_Conjugate()` exactly as before.
+The resulting **`conj_poisson`** element of the `Prior_Setup()` output contains the shape and rate of the Gamma prior calibrated to these specifications.  You then pass those values to `dGamma(Inv_Dispersion = FALSE)` exactly as before.
 
 **Important distinction.**  The `Prior_Setup()` prior is **not** the same as \(\Gamma(3, 4)\) unless by coincidence.  Here, the calibrated prior will be centered at \(\bar y = 3/9 \approx 0.33\) (the sample mean), not at 0.75.  The `pwt = 0.01` means it is also very diffuse — the data will dominate almost entirely.
 
@@ -374,7 +374,7 @@ ps <- Prior_Setup(
 
 ## Extract the calibrated Gamma parameters
 cp    <- ps$conj_poisson
-pf_ps <- dGamma_Conjugate(shape = cp$shape, rate = cp$rate, beta = cp$beta)
+pf_ps <- dGamma(shape = cp$shape, rate = cp$rate, beta = cp$beta, Inv_Dispersion = FALSE)
 
 set.seed(2026)
 fit_ps <- glmb(
@@ -409,7 +409,7 @@ where \(k > 0\) is the **known shape** of the response distribution and \(\beta 
 
 **The special case \(k = 1\)** is the **Exponential distribution**: waiting times between events, inter-arrival times, or survival times with a constant hazard.  The rate \(\beta = 1/\mu\) is the reciprocal of the mean.
 
-**The "identity" link.**  When you pass `family = Gamma(link = "identity")` to **`glmb()`**, the regression coefficient is the **rate** \(\beta\) directly — not the mean and not \(\log(\beta)\).  This matches the parameterization of the conjugate update and is what `dGamma_Conjugate()` expects.
+**The "identity" link.**  When you pass `family = Gamma(link = "identity")` to **`glmb()`**, the regression coefficient is the **rate** \(\beta\) directly — not the mean and not \(\log(\beta)\).  This matches the parameterization of the conjugate update and is what `dGamma(Inv_Dispersion = FALSE)` expects.
 
 ### 4.2 Choosing a prior: Gamma on the rate
 
@@ -421,7 +421,7 @@ Because \(\beta > 0\), the Gamma distribution is again the natural prior:
 
 with prior mean \(\alpha_0 / b_0\) and variance \(\alpha_0 / b_0^2\).  The interpretation is the same as in Section 3: think of \(\alpha_0 - 1\) as a "prior total weighted count" and \(b_0\) as "prior sum of observations".  The prior mean \(\alpha_0/b_0\) is your best guess for the rate before collecting data.
 
-**Relationship to the dispersion.**  In GLM terms the dispersion of the Gamma family is \(\phi = 1/k\), so the shape \(k\) is the **precision** \(1/\phi\).  Specifying `lik_shape = k` in `dGamma_Conjugate()` is equivalent to specifying a known dispersion \(\phi = 1/k\).
+**Relationship to the dispersion.**  In GLM terms the dispersion of the Gamma family is \(\phi = 1/k\), so the shape \(k\) is the **precision** \(1/\phi\).  Specifying `lik_shape = k` in `dGamma(Inv_Dispersion = FALSE)` is equivalent to specifying a known dispersion \(\phi = 1/k\).
 
 ### 4.3 Deriving the posterior
 
@@ -499,7 +499,7 @@ qgamma(c(0.05, 0.95), shape_post_gg, rate_post_gg)
 - The posterior mean **response** (mean waiting time) is close to 2.
 - The 90% credible interval for the rate \(\beta\) is a direct probability statement: there is a 90% posterior probability that the true rate lies in that interval.
 
-### 4.5 Fitting with **`glmb()`** using **`dGamma_Conjugate()`**
+### 4.5 Fitting with **`glmb()`** using **`dGamma()`**
 
 ```{r gamma-gamma-glmb}
 library(glmbayes)
@@ -508,12 +508,13 @@ library(glmbayes)
 gg_beta <- matrix(alpha0_gg / b0_gg, nrow = 1, ncol = 1)
 colnames(gg_beta) <- "(Intercept)"
 
-## dGamma_Conjugate with lik_shape = 1 (exponential / Gamma shape k = 1)
-gg_pf <- dGamma_Conjugate(
-  shape     = alpha0_gg,
-  rate      = b0_gg,
-  beta      = gg_beta,
-  lik_shape = 1           ## k = 1: exponential likelihood
+## dGamma with Inv_Dispersion = FALSE: conjugate rate prior, lik_shape = 1 (exponential)
+gg_pf <- dGamma(
+  shape          = alpha0_gg,
+  rate           = b0_gg,
+  beta           = gg_beta,
+  Inv_Dispersion = FALSE,
+  lik_shape      = 1           ## k = 1: exponential likelihood
 )
 
 data_gg <- data.frame(y = y_gg)
@@ -528,7 +529,7 @@ fit_gg <- glmb(
 summary(fit_gg)
 ```
 
-**Reading the summary.**  The `(Intercept)` coefficient is the Gamma **rate** \(\beta\).  The posterior mean should be close to the analytic value \((\alpha_0 + n)/( b_0 + \sum y)\) computed above, and the posterior SD should match \(\sqrt{\alpha_0 + n}/(b_0 + \sum y)\).  Because `dGamma_Conjugate()` implements the exact conjugate family, the 20 000 draws agree with the analytic posterior up to small Monte Carlo noise.
+**Reading the summary.**  The `(Intercept)` coefficient is the Gamma **rate** \(\beta\).  The posterior mean should be close to the analytic value \((\alpha_0 + n)/( b_0 + \sum y)\) computed above, and the posterior SD should match \(\sqrt{\alpha_0 + n}/(b_0 + \sum y)\).  Because `dGamma(Inv_Dispersion = FALSE)` implements the exact conjugate family, the 20 000 draws agree with the analytic posterior up to small Monte Carlo noise.
 
 **Verifying the match.**
 
@@ -543,7 +544,7 @@ c(glmb_mean     = mean(smp_gg),
 
 ### 4.6 Connection to glmbayes
 
-The scalar Gamma–Gamma model is the conjugate prototype for **Gamma `glmb()` with `family = Gamma(link = "identity")`**.  In that setting the single coefficient is the rate \(\beta\), the prior is `dGamma_Conjugate(shape, rate, beta, lik_shape = k)`, and the posterior update is exactly the closed form above.
+The scalar Gamma–Gamma model is the conjugate prototype for **Gamma `glmb()` with `family = Gamma(link = "identity")`**.  In that setting the single coefficient is the rate \(\beta\), the prior is `dGamma(shape, rate, beta, Inv_Dispersion = FALSE, lik_shape = k)`, and the posterior update is exactly the closed form above.
 
 When the shape \(k\) is **unknown**, the Gamma prior on \(k\) is no longer conjugate and a rejection sampler is needed.  That more general case is handled by **`Gamma(link = "log")`** with `dNormal()` priors on the regression coefficients plus **`glmbdisp()`** for the dispersion \(\phi = 1/k\).
 
@@ -664,7 +665,7 @@ Before moving on, it is worth pausing to appreciate what these three examples sh
 |---------------------|--------------------------------------|
 | Beta–Binomial | Binomial **`glmb()`** with normal priors on regression coefficients (Chapters 7–9) |
 | Gamma–Poisson | Conjugate \(\Gamma\) rate prior + **`glmb()`** (§3.1–§3.2); general Poisson regression (Chapter 10) |
-| Gamma–Gamma | **`glmb()`** with `Gamma(link="identity")` and `dGamma_Conjugate(lik_shape=k)` (§4); non-conjugate Gamma regression with `Gamma(log)` (Chapter 10) |
+| Gamma–Gamma | **`glmb()`** with `Gamma(link="identity")` and `dGamma(Inv_Dispersion=FALSE, lik_shape=k)` (§4); non-conjugate Gamma regression with `Gamma(log)` (Chapter 10) |
 | Normal–Normal | **`lmb()`** for multivariate Gaussian regression (Chapter 3) |
 
 When conjugacy is lost or when you want **IID draws** with flexible priors, **glmbayes** uses envelope-based accept–reject sampling [@Nygren2006].

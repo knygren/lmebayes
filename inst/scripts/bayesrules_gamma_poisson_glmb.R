@@ -12,7 +12,7 @@
 ## **`summary()`** (**`summary.glmb`**).
 ##
 ## **Part 2** — Uses real daily rental counts `bayesrules::bikes$rides` (first week) together with the
-## same `bayesrules::plot_gamma_poisson()` and `glmbayes::dGamma_Conjugate()` + `glmbayes::rglmb()`
+## same `bayesrules::plot_gamma_poisson()` and `glmbayes::dGamma(Inv_Dispersion=FALSE)` + `glmbayes::rglmb()`
 ## sampler as a second illustration (still intercept-only Lambda; pedagogical shorthand only).
 ##
 ## Suggested packages: `bayesrules`, `ggplot2` (already listed under Suggests in `glmbayes`).
@@ -71,7 +71,7 @@ colnames(xa) <- "(Intercept)"
 beta_a <- matrix(shape_a / rate_a, nrow = 1L, ncol = 1L)
 colnames(beta_a) <- "(Intercept)"
 
-pf_a <- dGamma_Conjugate(shape = shape_a, rate = rate_a, beta = beta_a)
+pf_a <- dGamma(shape = shape_a, rate = rate_a, beta = beta_a, Inv_Dispersion = FALSE)
 
 set.seed(2026)
 fit_a <- rglmb(
@@ -173,7 +173,7 @@ colnames(xb) <- "(Intercept)"
 beta_b <- matrix(shape_b / rate_b, nrow = 1L, ncol = 1L)
 colnames(beta_b) <- "(Intercept)"
 
-pf_b <- dGamma_Conjugate(shape = shape_b, rate = rate_b, beta = beta_b)
+pf_b <- dGamma(shape = shape_b, rate = rate_b, beta = beta_b, Inv_Dispersion = FALSE)
 
 set.seed(7)
 fit_b <- rglmb(

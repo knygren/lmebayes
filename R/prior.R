@@ -1197,7 +1197,7 @@ print.PriorSetup <- function(x, ...) {
 
   if (!is.null(x$conj_poisson)) {
     cp <- x$conj_poisson
-    cat("Poisson rate prior (Gamma conjugate; pass to dGamma_Conjugate()):\n")
+    cat("Poisson rate prior (Gamma conjugate; pass to dGamma(Inv_Dispersion=FALSE)):\n")
     cat(
       "  shape = ",
       round(as.numeric(cp$shape), 6),

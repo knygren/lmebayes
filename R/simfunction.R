@@ -525,7 +525,7 @@ print.rGamma_reg<-function (x, digits = max(3, getOption("digits") - 3), ...)
   if (length(wt) == nrow(xf) && nrow(xf) > 1L && (max(as.numeric(wt)) - min(as.numeric(wt)) > 1e-12 * max(1, mean(as.numeric(wt))))) {
     stop(
       gettextf(
-        "%snon-constant observation `weights` are not implemented for scalar dGamma_Conjugate (family %s).",
+        "%snon-constant observation `weights` are not implemented for scalar dGamma conjugate (family %s).",
         if (nzchar(ctx)) paste0(ctx, ": ") else "",
         family_label
       ),

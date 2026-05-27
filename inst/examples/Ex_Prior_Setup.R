@@ -144,7 +144,7 @@ out.rGamma_reg <- rGamma_reg(
 )
 
 ## -------------------------------------------------------------------------
-## Poisson(link = "identity"), intercept-only: `conj_poisson` + dGamma_Conjugate
+## Poisson(link = "identity"), intercept-only: `conj_poisson` + dGamma(Inv_Dispersion=FALSE)
 ## -------------------------------------------------------------------------
 y_p <- c(rep(1L, 3L), rep(0L, 6L))
 df_p <- data.frame(y = y_p)
@@ -156,7 +156,7 @@ ps_p <- Prior_Setup(
 )
 if (!is.null(ps_p$conj_poisson)) {
   cp <- ps_p$conj_poisson
-  pf_conj <- dGamma_Conjugate(shape = cp$shape, rate = cp$rate, beta = cp$beta)
+  pf_conj <- dGamma(shape = cp$shape, rate = cp$rate, beta = cp$beta, Inv_Dispersion = FALSE)
   ## glmb(n = 500, formula = y ~ 1, data = df_p,
   ##      family = poisson(link = "identity"), pfamily = pf_conj)
 }

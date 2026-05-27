@@ -13,7 +13,7 @@
 ##   β | y ~ Gamma(α₀ + n, β₀ + Σyᵢ).
 ##
 ## **Interpretation of the "identity" link here**
-##   dGamma_Conjugate() with family = Gamma(link = "identity") treats the
+##   dGamma(Inv_Dispersion=FALSE) with family = Gamma(link = "identity") treats the
 ##   intercept coefficient as the *rate* β directly (not the mean μ = k/β).
 ##   This matches the conjugate table: "Gamma with known shape | rate →
 ##   Gamma conjugate prior on rate".
@@ -84,11 +84,12 @@ cat(sprintf("  90%% credible interval for β: [%.4f, %.4f]\n\n",
 beta_init_A <- matrix(alpha0_A / beta0_A, nrow = 1L, ncol = 1L)
 colnames(beta_init_A) <- "(Intercept)"
 
-pf_A <- dGamma_Conjugate(
-  shape     = alpha0_A,
-  rate      = beta0_A,
-  beta      = beta_init_A,
-  lik_shape = 1          ## k = 1  (exponential)
+pf_A <- dGamma(
+  shape          = alpha0_A,
+  rate           = beta0_A,
+  beta           = beta_init_A,
+  Inv_Dispersion = FALSE,
+  lik_shape      = 1          ## k = 1  (exponential)
 )
 
 ## Fit with glmb() — family = Gamma(link = "identity"), coefficient = rate β
@@ -186,11 +187,12 @@ if (has_br) {
   beta_init_B <- matrix(alpha0_B / beta0_B, nrow = 1L, ncol = 1L)
   colnames(beta_init_B) <- "(Intercept)"
 
-  pf_B <- dGamma_Conjugate(
-    shape     = alpha0_B,
-    rate      = beta0_B,
-    beta      = beta_init_B,
-    lik_shape = k_est_B    ## fixed Gamma shape from method-of-moments
+  pf_B <- dGamma(
+    shape          = alpha0_B,
+    rate           = beta0_B,
+    beta           = beta_init_B,
+    Inv_Dispersion = FALSE,
+    lik_shape      = k_est_B    ## fixed Gamma shape from method-of-moments
   )
 
   data_B <- data.frame(y = y_B)
