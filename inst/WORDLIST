@@ -3,11 +3,13 @@ AMI
 ASTIN
 Agresti
 Amitriptyline
+bayesrules
 bayesplot
 bayesplot's
 bayestestR
 Bigg
 Bigl
+binom
 Bigr
 BikeSharing
 Boundedness
@@ -25,6 +27,7 @@ Dataflow
 Dobson
 Dobson's
 Dobson’s
+easystats
 EnvelopeBuild
 EnvelopeDispersionBuild
 EnvelopeOpt
@@ -320,6 +323,7 @@ normall
 num
 nvar
 olddata
+overbrace
 opencl
 openclport
 opencltools
@@ -328,6 +332,7 @@ orchestrator
 ouput
 pD
 pDirectional
+ppc
 pacman
 parallelization
 params
@@ -414,6 +419,7 @@ tangencies
 tangency
 testfunc
 testthat
+textstyle
 texttt
 tfrac
 thetabarconst

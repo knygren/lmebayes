@@ -151,6 +151,13 @@ otherwise it falls back to the full-model GLM coefficients.}
 \item{PriorSettings}{A list containing prior configuration details, including
 \code{pwt}, \code{n_prior}, \code{n_effective}, \code{n_likelihood},
 \code{intercept_source}, and \code{effects_source}.}
+\item{conj_poisson}{\code{NULL} unless \code{family = poisson(link = "identity")} with a
+single-column design (intercept-only), scalar \code{pwt}, finite positive scalar
+\code{n_prior}, and negligible \code{offset}.  Then a named list with conjugate
+\code{Gamma(shape, rate)} hyperparameters on the Poisson rate, with \eqn{\texttt{shape} =
+  n_{\mathrm{prior}}\,\bar{y}_w}, \eqn{\texttt{rate} = n_{\mathrm{prior}}}, and \code{beta}
+centered at the weighted sample mean \eqn{\bar{y}_w}; pass to \code{\link{dGamma_Conjugate}}.
+See Details.}
 }
 \description{
 Helper function to facilitate the Setup of Prior Distributions for glm models.
@@ -207,6 +214,21 @@ is:
   \end{cases}
 }
 where \eqn{\circ} denotes elementwise multiplication.
+
+\strong{Intercept-only Poisson(link = "identity") conjugate prior on the rate}
+
+When the design is a single column (intercept only), \code{family = poisson()},
+\code{link = "identity"}, scalar \code{pwt}, and offsets are zero, the effective
+conjugate prior observation count \eqn{n_{\mathrm{prior}}} already satisfies
+\eqn{n_{\mathrm{prior}} / (n_{\mathrm{prior}} + n_{\mathrm{effective}}) = \mathrm{pwt}}
+(otherwise \code{conj_poisson} remains \code{NULL} with a warning).  Writing the
+weighted mean \eqn{\bar{y}_w = \sum_i w_i y_i / \sum_i w_i}, the output list
+component \code{conj_poisson} stores
+\eqn{\texttt{shape} = n_{\mathrm{prior}} \bar{y}_w} and \eqn{\texttt{rate} =
+n_{\mathrm{prior}}}, so the prior mean for the rate matches \eqn{\bar{y}_w}.
+Omitting optional \code{mu} resets the surrogate Normal summaries \code{mu} and the
+sole diagonal element of \code{Sigma} to these Gamma moments (\code{Sigma_{11}} =
+\eqn{\bar{y}_w / n_{\mathrm{prior}}}).
 
 For Gaussian families, \code{Prior_Setup()} also constructs the dispersion-free
 covariance
@@ -462,6 +484,24 @@ out.rGamma_reg <- rGamma_reg(
   weights = wt,
   family = gaussian()
 )
+
+## -------------------------------------------------------------------------
+## Poisson(link = "identity"), intercept-only: `conj_poisson` + dGamma_Conjugate
+## -------------------------------------------------------------------------
+y_p <- c(rep(1L, 3L), rep(0L, 6L))
+df_p <- data.frame(y = y_p)
+ps_p <- Prior_Setup(
+  y ~ 1,
+  family = poisson(link = "identity"),
+  data = df_p,
+  pwt = 0.4
+)
+if (!is.null(ps_p$conj_poisson)) {
+  cp <- ps_p$conj_poisson
+  pf_conj <- dGamma_Conjugate(shape = cp$shape, rate = cp$rate, beta = cp$beta)
+  ## glmb(n = 500, formula = y ~ 1, data = df_p,
+  ##      family = poisson(link = "identity"), pfamily = pf_conj)
+}
 }
 \references{
 \insertAllCited{}
@@ -469,7 +509,7 @@ out.rGamma_reg <- rGamma_reg(
 \seealso{
 \code{\link{pfamily}} for prior-family objects and the constructors
 \code{\link{dNormal}}, \code{\link{dNormal_Gamma}}, \code{\link{dGamma}},
-and \code{\link{dIndependent_Normal_Gamma}}.
+\code{\link{dGamma_Conjugate}}, and \code{\link{dIndependent_Normal_Gamma}}.
 
 \code{\link{glmb}}, \code{\link{lmb}} for formula-based fits with a
 \code{pfamily} built from \code{Prior_Setup()} output; \code{\link{rglmb}},

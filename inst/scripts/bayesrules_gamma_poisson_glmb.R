@@ -7,6 +7,10 @@
 ## sum_y = 3, n = 9)`).  Any nonnegative integer outcome vector `y` of length 9 summing to 3 induces
 ## the same conjugate update.
 ##
+## **Part 1b** — Same likelihood, prior, and data as **`rglmb()`** above via the formula interface:
+## **`glmb(y ~ 1, data = ..., family = poisson(link = "identity"), pfamily = pf_a)`** and
+## **`summary()`** (**`summary.glmb`**).
+##
 ## **Part 2** — Uses real daily rental counts `bayesrules::bikes$rides` (first week) together with the
 ## same `bayesrules::plot_gamma_poisson()` and `glmbayes::dGamma_Conjugate()` + `glmbayes::rglmb()`
 ## sampler as a second illustration (still intercept-only Lambda; pedagogical shorthand only).
@@ -79,6 +83,8 @@ fit_a <- rglmb(
   weights = rep(1, n_a)
 )
 
+summary(fit_a)
+
 smp_a <- fit_a$coefficients[, 1L]
 post_row_a <- summarize_gamma_poisson(shape = shape_a, rate = rate_a, sum_y = sum(y_a), n = n_a)
 post_row_a <- post_row_a[post_row_a$model == "posterior", ]
@@ -88,6 +94,32 @@ message(sprintf(
   post_row_a$mean,
   mean(smp_a)
 ))
+
+data_a_df <- data.frame(y = as.numeric(y_a))
+
+set.seed(2026)
+fit_glmb_a <- glmb(
+  n = 20000,
+  y ~ 1,
+  data = data_a_df,
+  family = poisson(link = "identity"),
+  pfamily = pf_a,
+  weights = rep(1L, n_a)
+)
+
+summary(fit_glmb_a)
+
+cat("\n=== Same model via glmb(): summary.glmb (Example A) ===\n\n")
+print(summary(fit_glmb_a))
+
+
+glm(
+  y ~ 1,
+  data = data_a_df,
+  family = poisson(link = "identity"),
+  weights = rep(1L, n_a)
+)
+
 
 grid_a <- seq(1e-4, stats::qgamma(0.999, shape_a + sum(y_a), rate_a + n_a), length.out = 400)
 
@@ -162,6 +194,21 @@ message(sprintf(
   post_row_b$mean,
   mean(smp_b)
 ))
+
+data_b_df <- data.frame(y = as.numeric(y_b))
+
+set.seed(7)
+fit_glmb_b <- glmb(
+  n = 20000,
+  y ~ 1,
+  data = data_b_df,
+  family = poisson(link = "identity"),
+  pfamily = pf_b,
+  weights = rep(1L, n_b)
+)
+
+cat("\n=== Same model via glmb(): summary.glmb (Example B) ===\n\n")
+print(summary(fit_glmb_b))
 
 grid_b <- seq(1e-4, stats::qgamma(0.999, shape_b + sum(y_b), rate_b + n_b), length.out = 400)
 

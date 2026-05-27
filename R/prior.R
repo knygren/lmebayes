@@ -89,6 +89,21 @@
 #' }
 #' where \eqn{\circ} denotes elementwise multiplication.
 #'
+#' \strong{Intercept-only Poisson(link = "identity") conjugate prior on the rate}
+#'
+#' When the design is a single column (intercept only), \code{family = poisson()},
+#' \code{link = "identity"}, scalar \code{pwt}, and offsets are zero, the effective
+#' conjugate prior observation count \eqn{n_{\mathrm{prior}}} already satisfies
+#' \eqn{n_{\mathrm{prior}} / (n_{\mathrm{prior}} + n_{\mathrm{effective}}) = \mathrm{pwt}}
+#' (otherwise \code{conj_poisson} remains \code{NULL} with a warning).  Writing the
+#' weighted mean \eqn{\bar{y}_w = \sum_i w_i y_i / \sum_i w_i}, the output list
+#' component \code{conj_poisson} stores
+#' \eqn{\texttt{shape} = n_{\mathrm{prior}} \bar{y}_w} and \eqn{\texttt{rate} =
+#' n_{\mathrm{prior}}}, so the prior mean for the rate matches \eqn{\bar{y}_w}.
+#' Omitting optional \code{mu} resets the surrogate Normal summaries \code{mu} and the
+#' sole diagonal element of \code{Sigma} to these Gamma moments (\code{Sigma_{11}} =
+#' \eqn{\bar{y}_w / n_{\mathrm{prior}}}).
+#'
 #' For Gaussian families, `Prior_Setup()` also constructs the dispersion-free
 #' covariance
 #' \deqn{
@@ -229,12 +244,19 @@
 #' \item{PriorSettings}{A list containing prior configuration details, including
 #'   \code{pwt}, \code{n_prior}, \code{n_effective}, \code{n_likelihood},
 #'   \code{intercept_source}, and \code{effects_source}.}
+#' \item{conj_poisson}{\code{NULL} unless \code{family = poisson(link = "identity")} with a
+#'   single-column design (intercept-only), scalar \code{pwt}, finite positive scalar
+#'   \code{n_prior}, and negligible \code{offset}.  Then a named list with conjugate
+#'   \code{Gamma(shape, rate)} hyperparameters on the Poisson rate, with \eqn{\texttt{shape} =
+#'   n_{\mathrm{prior}}\,\bar{y}_w}, \eqn{\texttt{rate} = n_{\mathrm{prior}}}, and \code{beta}
+#'   centered at the weighted sample mean \eqn{\bar{y}_w}; pass to \code{\link{dGamma_Conjugate}}.
+#'   See Details.}
 #'
 #' @family prior
 #' @seealso
 #' \code{\link{pfamily}} for prior-family objects and the constructors
 #' \code{\link{dNormal}}, \code{\link{dNormal_Gamma}}, \code{\link{dGamma}},
-#' and \code{\link{dIndependent_Normal_Gamma}}.
+#' \code{\link{dGamma_Conjugate}}, and \code{\link{dIndependent_Normal_Gamma}}.
 #'
 #' \code{\link{glmb}}, \code{\link{lmb}} for formula-based fits with a
 #' \code{pfamily} built from \code{Prior_Setup()} output; \code{\link{rglmb}},
@@ -832,7 +854,90 @@ if (!is.null(sd)) {
       colnames(Sigma_0_out) <- var_names
     }
   }
-  
+
+  ## ---------------------------------------------------------------------------
+  ## Step 10b: Gamma–Poisson conjugate λ prior (intercept-only Poisson(link = "identity"))
+  ##
+  ## Effective prior observation count links to scalar pwt via
+  ##   n_prior / (n_prior + n_eff) = pwt  <=>  n_prior = (pwt / (1 - pwt)) * n_eff
+  ## Weighted arithmetic mean λ̄_w = Σ w_i y_i / Σ w_i.  Choosing
+  ##   λ ~ Gamma(shape = n_prior λ̄_w, rate = n_prior),
+  ## gives E[λ] = λ̄_w so the conjugate Poisson posterior mean remains λ̄_w.
+  ## ---------------------------------------------------------------------------
+
+  conj_poisson <- NULL
+  mu_arg_missing <- missing(mu)
+
+  gamma_poisson_conj_ok <- (
+    identical(family$family, "poisson") &&
+      identical(family$link, "identity") &&
+      ncol(x) == 1L &&
+      length(pwt) == 1L
+  )
+
+  if (gamma_poisson_conj_ok && !is.null(offset)) {
+    of <- suppressWarnings(as.numeric(offset))
+    if (length(of) != n_obs || any(!is.finite(of)) ||
+        max(abs(of), na.rm = TRUE) > sqrt(.Machine$double.eps)) {
+      gamma_poisson_conj_ok <- FALSE
+    }
+  }
+
+  if (gamma_poisson_conj_ok) {
+    ww <- glm_full$prior.weights
+    if (is.null(ww) || length(ww) != n_obs) ww <- rep(1, n_obs)
+
+    ## Nonnegative Poisson observations
+    if (any(as.numeric(Y) < 0, na.rm = TRUE)) {
+      stop(
+        "`Prior_Setup()` Poisson conjugate calibration requires nonnegative responses.", call. = FALSE
+      )
+    }
+
+    ybar <- sum(as.numeric(Y) * as.numeric(ww)) / sum(as.numeric(ww))
+    if (!(is.finite(ybar) && ybar > 0)) {
+      stop(
+        "`Prior_Setup()` Poisson(link='identity'), intercept-only conjugate calibration requires ",
+        "positive weighted mean counts (Gamma prior requires a positive Poisson rate); weighted mean ",
+        "= ", paste0("`", prettyNum(ybar), "`."), call. = FALSE
+      )
+    }
+
+    if (is.null(n_prior) || length(n_prior) != 1L || !is.finite(n_prior) || n_prior <= 0) {
+      warning(
+        "Poisson(link='identity') intercept-only: skipping `conj_poisson` Gamma rate prior ",
+        "calibration because scalar `n_prior` is unavailable or non-positive; supply finite positive ",
+        "`pwt` or `n_prior`.",
+        call. = FALSE
+      )
+    } else {
+      np <- as.numeric(n_prior)
+      ## Prior mean E[lambda] matches weighted data mean; conjugate Gamma(shape,rate) hyperparameters:
+      conj_shape <- np * ybar
+      conj_rate <- np
+
+      bm <- matrix(as.numeric(ybar), nrow = 1L, ncol = 1L,
+                   dimnames = list(NULL, var_names))
+
+      conj_poisson <- list(
+        shape = conj_shape,
+        rate = conj_rate,
+        beta = bm,
+        weighted_mean_rate = ybar,
+        n_prior_eff = np
+      )
+
+      ## Moment-matched surrogate Normal summaries for `\u03bc`/`Sigma` (single intercept only):
+      if (mu_arg_missing && nvar == 1L && is.finite(ybar) && is.finite(np) && np > 0) {
+        mu[1, 1] <- as.numeric(ybar)
+        Sigma[1, 1] <- as.numeric(ybar / np)
+        rownames(mu) <- var_names
+        colnames(mu) <- "mu"
+        rownames(Sigma) <- colnames(Sigma) <- var_names
+      }
+    }
+  }
+
   ## ---------------------------------------------------------------------------
   ## Step 11: Assemble and return PriorSetup object.
   ## ---------------------------------------------------------------------------
@@ -846,6 +951,7 @@ if (!is.null(sd)) {
     rate = rate,
     rate_gamma = rate_gamma,
     coefficients = coefficients,
+    conj_poisson = conj_poisson,
     model = mf,
     x = x,
     y = Y,
@@ -1006,7 +1112,24 @@ print.PriorSetup <- function(x, ...) {
     cat("  Applicable to gaussian models with compound pfamilies (e.g., dNormal_Gamma, dIndependent_Normal_Gamma),\n")
     cat("  as well as for Gamma regression, quasipoisson, and quasibinomial models.\n\n")
   }
-  
+
+  if (!is.null(x$conj_poisson)) {
+    cp <- x$conj_poisson
+    cat("Poisson rate prior (Gamma conjugate; pass to dGamma_Conjugate()):\n")
+    cat(
+      "  shape = ",
+      round(as.numeric(cp$shape), 6),
+      "; rate = ",
+      round(as.numeric(cp$rate), 6),
+      " (prior mean lambda = ",
+      round(as.numeric(cp$weighted_mean_rate), 6),
+      "; n_prior = ",
+      round(as.numeric(cp$n_prior_eff), 6),
+      ")\n\n",
+      sep = ""
+    )
+  }
+
   if (is.null(x$shape) && is.null(x$rate) && !is.null(x$dispersion)) {
     cat("Note: Gaussian family detected, but shape/rate parameters were not computed.\n")
     cat("This may occur if n_prior is not scalar.\n\n")

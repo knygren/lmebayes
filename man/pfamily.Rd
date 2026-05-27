@@ -125,6 +125,9 @@ Prior family objects provide a convenient way to specify the details of the prio
 used by functions such as \code{\link{glmb}}. See the documentations for \code{\link{lmb}},
 \code{\link{glmb}}, \code{\link{glmb}}, and \code{\link{rglmb}} for the details of how such model fitting
 takes place.
+
+\code{mu} / \code{Sigma}: under R's Gamma(shape, rate), each marginal has mean \code{shape/rate} and
+variance \code{shape/(rate^2)}, taken independent across \code{nrow(mu)} coefficient rows matching \code{beta}.
 }
 \details{
 \code{pfamily} is a generic with methods for fitted objects such as \code{\link{glmb}} and

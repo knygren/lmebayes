@@ -292,7 +292,10 @@ dGamma<-function(shape,rate,beta,max_disp_perc = 0.99,disp_lower=NULL,disp_upper
 
 }
 
-#' Conjugate Gamma prior family (stub; cloned from \code{\link{dGamma}} pending specialization).
+#' Conjugate Gamma prior family (\code{dGamma_Conjugate}: closed-form IID updates for scalar-rate / intercept-only settings).
+#'
+#' \code{mu} / \code{Sigma}: under R's Gamma(shape, rate), each marginal has mean \code{shape/rate} and
+#' variance \code{shape/(rate^2)}, taken independent across \code{nrow(mu)} coefficient rows matching \code{beta}.
 #'
 #' @export
 #' @rdname pfamily
@@ -303,11 +306,27 @@ dGamma_Conjugate<-function(shape,rate,beta,max_disp_perc = 0.99,disp_lower=NULL,
   if(is.numeric(shape)==FALSE||is.numeric(rate)==FALSE||is.numeric(beta)==FALSE) stop("non-numeric argument to numeric function")
 
   if(length(shape)>1) stop("shape is not of length 1")
-  if(length(shape)>1) stop("rate is not of length 1")
+  if(length(rate)>1) stop("rate is not of length 1")
   if(shape<=0) stop("shape must be>0")
   if(rate<=0) stop("rate must be>0")
 
-  beta=as.matrix(beta,ncol=1)
+  beta <- as.matrix(beta, ncol = 1L)
+
+  ## Normal-style surrogate for `glmb()` pre-simulation (`mu`, `Sigma`, `chol`) and downstream `Prior$mean`/`Variance`.
+  ## STATS Gamma(shape, rate): E = shape/rate, Var = shape/rate^2; replicated diagonals if length(beta) > 1.
+  sh <- as.numeric(shape)[[1L]]
+  rt <- as.numeric(rate)[[1L]]
+  mu <- beta * 0 + sh / rt
+  p <- nrow(mu)
+  sigma_sq <- sh / (rt * rt)
+  Sigma <- diag(rep.int(sigma_sq, times = p), nrow = p, ncol = p)
+  coef_nm <- rownames(beta)
+  if (is.null(coef_nm)) coef_nm <- colnames(beta)
+  if (!is.null(coef_nm) && length(coef_nm) == p) {
+    rownames(mu) <- coef_nm
+    if (!is.null(colnames(beta))) colnames(mu) <- colnames(beta)
+    dimnames(Sigma) <- list(coef_nm, coef_nm)
+  }
 
   okfamilies <- c("poisson", "Gamma")
 
@@ -321,7 +340,16 @@ dGamma_Conjugate<-function(shape,rate,beta,max_disp_perc = 0.99,disp_lower=NULL,
     oklinks
   }
 
-  prior_list=list(shape=shape,rate=rate,beta=beta,max_disp_perc = max_disp_perc,disp_lower=disp_lower,disp_upper=disp_upper)
+  prior_list <- list(
+    shape = shape,
+    rate = rate,
+    beta = beta,
+    mu = mu,
+    Sigma = Sigma,
+    max_disp_perc = max_disp_perc,
+    disp_lower = disp_lower,
+    disp_upper = disp_upper
+  )
   attr(prior_list,"Prior Type")="dGamma_Conjugate"  
   outlist=list(pfamily="dGamma_Conjugate",prior_list=prior_list,okfamilies=okfamilies,
                plinks=plinks,             

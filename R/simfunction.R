@@ -816,11 +816,33 @@ rGamma_Conjugate_reg <- function(
   ## Poisson / quasi-Poisson: each row is an IID λ draw (`identity` link ⇒ intercept equals λ);
   ## dispersion holds nominal φ (not a conjugate dispersion draw here).
 
+  sh <- as.numeric(shape)[[1L]]
+  rt <- as.numeric(rate)[[1L]]
+  if (!is.finite(sh) || !is.finite(rt) || sh <= 0 || rt <= 0) {
+    stop("`rGamma_Conjugate_reg()`: prior `shape` and `rate` must be finite and positive.", call. = FALSE)
+  }
+  ## Moments for Gamma(shape, rate) (stats parameterization): mean = sh/rt, variance = sh/rt^2,
+  ## precision = rt^2/sh.  `summary.rglmb()` expects `Prior$mean` and `Prior$Precision` compatible
+  ## with `ncol(x)` coefficient columns (intercept-only scalar conjugate repeats the same marginal).
+  cn_x <- colnames(x)
+  if (is.null(cn_x)) {
+    cn_x <- paste0("V", seq_len(ncol(x)))
+  }
+  prior_mean <- stats::setNames(rep(sh / rt, length.out = ncol(x)), cn_x)
+  prior_prec_diag <- rep((rt * rt) / sh, length.out = ncol(x))
+  prior_precision <- diag(prior_prec_diag, nrow = ncol(x), ncol = ncol(x))
+  dimnames(prior_precision) <- list(cn_x, cn_x)
+
   outlist <- list(
     coefficients   = coef_out,
     coef.mode      = coef_mode_out,
     dispersion     = disp_out,
-    Prior          = list(shape = shape, rate = rate),
+    Prior          = list(
+      shape      = shape,
+      rate       = rate,
+      mean       = prior_mean,
+      Precision  = prior_precision
+    ),
     prior.weights  = wt,
     y              = y,
     x              = x,
