@@ -3,9 +3,10 @@
 // we only include RcppArmadillo.h which pulls Rcpp.h in for us
 #include "RcppArmadillo.h"
 #include <RcppParallel.h>
-#define MATHLIB_STANDALONE
-#include "nmath_local.h"
-#include "dpq_local.h"
+#include <Rmath.h>   // libR Mathlib: Rf_dgamma (replaces vendored src/dgamma.c for this file)
+//#define MATHLIB_STANDALONE
+//#include "nmath_local.h"
+//#include "dpq_local.h"
 #include "famfuncs.h"
 #include "progress_utils.h"
 
@@ -34,8 +35,10 @@ void neg_dgamma_glmb_rmat(const RVector<double>& x,           // observations
     double k     = shape[i];
     double theta = scale[i];
     
-    res[i] = -dgamma_local(value, k, theta, lg);  // call to mathlib version
-//    res[i] = -R::dgamma(value, k, theta, lg);  // current R call
+    // Replaced dgamma_local (src/dgamma.c) with libR Mathlib Rf_dgamma (<Rmath.h>).
+    //res[i] = -dgamma_local(value, k, theta, lg);
+    //res[i] = -R::dgamma(value, k, theta, lg);
+    res[i] = -::Rf_dgamma(value, k, theta, lg);
 
       }
 }
@@ -45,7 +48,9 @@ void neg_dgamma_glmb_rmat(const RVector<double>& x,           // observations
 NumericVector dgamma_glmb( NumericVector x, NumericVector shape, NumericVector scale, int lg){
     int n = x.size() ;
     NumericVector res(n) ;
-    for( int i=0; i<n; i++) res[i] = R::dgamma( x[i], shape[i],scale[i], lg ) ;
+    // Replaced R::dgamma with libR Mathlib Rf_dgamma (<Rmath.h>).
+  //for( int i=0; i<n; i++) res[i] = R::dgamma( x[i], shape[i], scale[i], lg );
+  for( int i=0; i<n; i++) res[i] = ::Rf_dgamma( x[i], shape[i], scale[i], lg );
     return res ;
 }
 

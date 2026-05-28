@@ -1,18 +1,12 @@
 // -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*-
 
-// Include <random> before nmath_local.h: that header defines calloc/free as R_chk_*
-// macros (R mathlib). If libc++ pulls in <stdlib.h> after those macros, Clang
-// sees mismatched declarations vs R_chk_calloc/R_chk_free (clang-asan / libc++).
+// Include <random> before R headers when a private nmath header redefines calloc/free.
 #include <random>
 
-#include "nmath_local.h"
-#include "dpq_local.h"
+#include <Rmath.h>   // libR Mathlib: Rf_pgamma, Rf_qgamma (replaces src/pgamma.c, qgamma.c)
+//#include "nmath_local.h"
+//#include "dpq_local.h"
 #include "rng_utils.h"
-
-// nmath_local.h defines calloc/free as R_chk_*; libc++ may include <stdlib.h> again later
-// in this TU (Clang + libc++, e.g. clang-asan). Undef so system declarations match.
-#undef calloc
-#undef free
 
 // Thread-local RNG and distribution
 thread_local std::mt19937 safe_rng_engine(std::random_device{}());
@@ -29,8 +23,9 @@ double log_p_inv_gamma_safe(double dispersion,
                             double rate) {
   double y = 1.0 / dispersion;
   
-  // pgamma_local(x, shape, scale, lower_tail, log_p)
-  return pgamma_local(y,
+  // Replaced pgamma_local (src/pgamma.c) with libR Rf_pgamma (<Rmath.h>).
+  //return pgamma_local(y, shape, 1.0 / rate, /*lower_tail=*/0, /*log_p=*/1);
+  return ::Rf_pgamma(y,
                       shape,
                       1.0 / rate,
                       /*lower_tail=*/0,
@@ -38,7 +33,7 @@ double log_p_inv_gamma_safe(double dispersion,
 }
 
 
-// Safe inverse-gamma CDF using nmath/rmath pgamma
+// Safe inverse-gamma CDF using libR Mathlib (Rf_pgamma)
 double p_inv_gamma_safe(double dispersion,
                         double shape,
                         double rate) {
@@ -46,9 +41,9 @@ double p_inv_gamma_safe(double dispersion,
   // So P(X <= d) = P(Y >= 1/d) = 1 - F_Y(1/d)
   double y = 1.0 / dispersion;
   
-  // Call the ported pgamma (not R::pgamma)
-  // Arguments: x, shape, scale, lower_tail, log_p
-  double Fy = pgamma_local(y, shape, 1.0 / rate, /*lower_tail=*/1, /*log_p=*/0);
+  // Replaced pgamma_local with libR Rf_pgamma (<Rmath.h>).
+  //double Fy = pgamma_local(y, shape, 1.0 / rate, /*lower_tail=*/1, /*log_p=*/0);
+  double Fy = ::Rf_pgamma(y, shape, 1.0 / rate, /*lower_tail=*/1, /*log_p=*/0);
   
   return 1.0 - Fy;
 }
@@ -67,8 +62,8 @@ double p_inv_gamma_safe(double dispersion,
 //   double p1 = p_low + p * (p_upp - p_low);
 //   double p2 = 1.0 - p1;
 //   
-//   // Invert via safe qgamma (ported from nmath/rmath)
-//   return 1.0 / qgamma_local(p2, shape, 1.0 / rate, /*lower_tail=*/1, /*log_p=*/0);
+//   // Invert via Rf_qgamma (libR Mathlib)
+//   return 1.0 / ::Rf_qgamma(p2, shape, 1.0 / rate, /*lower_tail=*/1, /*log_p=*/0);
 // }
 
 
@@ -107,18 +102,19 @@ double q_inv_gamma_safe(double u,
   // log p2 = log(1 - exp(lg_p1))
   double lg_p2 = std::log1p(-std::exp(lg_p1));
   
-  // Invert Gamma CDF in log-p mode
-  double y = qgamma_local(lg_p2,
-                          shape,
-                          1.0 / rate,
-                          /*lower_tail=*/1,
-                          /*log_p=*/1);
-                          
-                          if (!std::isfinite(y) || y <= 0.0) {
-                            return disp_upper;  // safe fallback, never 0
-                          }
-                          
-                          return 1.0 / y;
+  // Replaced qgamma_local (src/qgamma.c) with libR Rf_qgamma (<Rmath.h>).
+  //double y = qgamma_local(lg_p2, shape, 1.0 / rate, /*lower_tail=*/1, /*log_p=*/1);
+  double y = ::Rf_qgamma(lg_p2,
+                         shape,
+                         1.0 / rate,
+                         /*lower_tail=*/1,
+                         /*log_p=*/1);
+
+  if (!std::isfinite(y) || y <= 0.0) {
+    return disp_upper;  // safe fallback, never 0
+  }
+
+  return 1.0 / y;
 }
 
 

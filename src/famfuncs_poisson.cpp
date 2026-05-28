@@ -18,6 +18,7 @@ using namespace glmbayes::progress;
 // f3 is gradient for log-posterior
 
 
+// Log Poisson PMF via lgamma(x+1): allows non-integer x; not Rf_dpois (which forceints counts).
 double dpois2(double x,double lambda,int lg){
   
   //test=max(abs(round(x)-x))

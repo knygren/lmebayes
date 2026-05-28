@@ -8,7 +8,7 @@
 ##   θ ~ Beta(α, β)                                              (prior)
 ##   θ | y ~ Beta(α + total_successes, β + total_failures)      (posterior)
 ##
-## This is the same update as the Beta-Binomial scalar example in Chapter 02,
+## This is the same update as the Beta-Binomial scalar example in Chapter 02-S03,
 ## but here we fit it via glmb() + dBeta() and verify the draws match the
 ## analytic posterior exactly.
 

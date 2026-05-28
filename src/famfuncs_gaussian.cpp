@@ -2,8 +2,9 @@
 #include <RcppParallel.h>
 
 #include <Rcpp.h>
-#include "nmath_local.h"
-#include "dpq_local.h"
+#include <Rmath.h>   // libR Mathlib: Rf_dnorm4 (replaces vendored src/dnorm.c for this file)
+//#include "nmath_local.h"
+//#include "dpq_local.h"
 #include "famfuncs.h"
 #include "progress_utils.h"
 
@@ -30,8 +31,9 @@ void neg_dnorm_glmb_rmat(const RcppParallel::RVector<double>& x,         // obse
   for (std::size_t i = 0; i < n; ++i) {
     double mu    = means[i];   // mean parameter
     double sigma = sds[i];     // standard deviation
-    //res[i] = -R::dnorm(x[i], mu, sigma, lg);  // R-native normal density
-    res[i] = -dnorm4_local(x[i], mu, sigma, lg);  // Mathlib-native normal density
+    // Replaced dnorm4_local (src/dnorm.c) with libR Mathlib Rf_dnorm4 (<Rmath.h>).
+    //res[i] = -dnorm4_local(x[i], mu, sigma, lg);
+    res[i] = -::Rf_dnorm4(x[i], mu, sigma, lg);
     
   }
 }
@@ -44,7 +46,7 @@ NumericVector dnorm_glmb( NumericVector x, NumericVector means, NumericVector sd
   
   int n = x.size() ;
   NumericVector res(n) ;
-  for( int i=0; i<n; i++) res[i] = R::dnorm( x[i], means[i], sds[i],lg ) ;
+  for( int i=0; i<n; i++) res[i] = ::Rf_dnorm4( x[i], means[i], sds[i], lg );
 
   return res ;
 }

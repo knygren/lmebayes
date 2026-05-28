@@ -33,3 +33,4 @@
 ^CRAN-SUBMISSION$
 ^rds_check\.txt$
 ^Rplots\.pdf$
+^legacy_c_code$

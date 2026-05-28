@@ -1,14 +1,48 @@
 # glmbayes 0.9.6
 
-* **Posterior predictive checks:** New S3 method `pp_check.glmb()` integrates
-  with 'bayesplot' (now listed under `Imports`): builds `yrep` via
-  `simulate()` and dispatches through `bayesplot::pp_check()`.
+## Highlights
 
-* **'opencltools' package:** Host/runtime OpenCL diagnostics (`detect_*`, PATH helpers, etc.)
-  are provided by the **'opencltools'** dependency; **glmbayes** keeps local
-  `has_opencl()` and `diagnose_glmbayes()` (compile-time status for this package).
+* **Conjugate GLM priors (Poisson, binomial, Gamma):** New closed-form IID
+  sampling paths for intercept-only models with identity links. **`dBeta()`**
+  with **`rBeta_reg()`** supports Beta–Binomial(identity) conjugate updates;
+  **`dGamma(Inv_Dispersion = FALSE)`** with **`rGamma_Conjugate_reg()`**
+  supports Gamma–Poisson(identity) and Gamma–Gamma(identity) rate priors.
+  **`Prior_Setup()`** can calibrate conjugate hyperparameters for these
+  families (weighted Poisson rate and binomial probability defaults). See
+  **`?dBeta`**, **`?dGamma`**, and the Chapter 02 / Chapter 07–11 vignettes.
 
-* _Further release notes to be completed before CRAN submission._
+* **Vignette structure:** Reworked **Chapter 00** as a roadmap across five
+  main parts plus technical appendices. **Chapter 02** is now a conceptual
+  introduction to single-parameter conjugacy; worked examples move to
+  **Chapter 02-S01** through **Chapter 02-S05** (Beta–Binomial, Normal–Normal,
+  Gamma–Poisson, exposure-weighted Poisson, and related topics). A **Companion
+  textbooks** section in Chapter 00 indexes optional Bayes Rules! and LearnBayes
+  appendices tied to the main GLM chapters.
+
+* **`opencltools` import:** Core host/runtime OpenCL discovery and diagnostics
+  (`detect_*`, PATH helpers, environment checks) now live in the **`opencltools`**
+  package (`Imports`, >= 0.8.0). **glmbayes** keeps package-specific entry
+  points (`has_opencl()`, `diagnose_glmbayes()`) that report compile-time
+  OpenCL status for this build while delegating shared GPU/runtime checks—reducing
+  duplicated maintenance in **glmbayes**.
+
+* **Bayes Rules! companion examples:** Optional vignette appendices reproduce
+  book datasets and published posterior summaries using **`lmb()`**, **`glmb()`**,
+  **`Prior_Setup()`**, and **`dNormal()`** (suggested package **`bayesrules`** for
+  data only). Coverage includes **`bikes`** (Ch. 03), **`weather_perth`** (Ch. 08–09),
+  **`equality_index`** (Ch. 10), Gamma–Poisson conjugacy (Ch. 02-S04), and a
+  scope note for Gamma regression (Ch. 11). Comparison tables use **printed book
+  values**, not live **`rstanarm`** fits. See **Chapter 00** § Companion textbooks.
+
+* **LearnBayes examples:** **Chapter 02-S04**, Appendix A, maps the
+  **`hearttransplants`** example from Albert (2009) / **LearnBayes** (exposure-weighted
+  Gamma–Poisson conjugacy) to **`glmb()`** with analytic Albert posteriors for
+  verification (suggested package **`LearnBayes`**).
+
+## Other changes
+
+* Expanded **testthat** coverage for **`dBeta()`** / binomial(identity) conjugate
+  paths and related **`glmb()`** integration.
 
 # glmbayes 0.9.5
 
