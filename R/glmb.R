@@ -462,7 +462,7 @@ glmb<-function (formula, family = binomial,pfamily=dNormal(mu,Sigma,dispersion=1
   
   outlist$call<-match.call()
   
-  if (pfamily$pfamily == "dGamma") {
+  if (pfamily$pfamily == "dGamma" && isTRUE(pfamily$prior_list$Inv_Dispersion)) {
     class(outlist) <- c("rGamma_reg", outlist$class, "glmb", "glm", "lm")
   } else {
     class(outlist) <- c(outlist$class, "glmb", "glm", "lm")
