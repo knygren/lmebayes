@@ -1,7 +1,11 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>/404.html</loc></url>
 <url><loc>/articles/chapter-01.html</loc></url>
-<url><loc>/articles/Chapter-02.html</loc></url>
+<url><loc>/articles/Chapter-02-S01.html</loc></url>
+<url><loc>/articles/Chapter-02-S02.html</loc></url>
+<url><loc>/articles/Chapter-02-S03.html</loc></url>
+<url><loc>/articles/Chapter-02-S04.html</loc></url>
+<url><loc>/articles/Chapter-02-S05.html</loc></url>
 <url><loc>/articles/Chapter-03.html</loc></url>
 <url><loc>/articles/Chapter-04.html</loc></url>
 <url><loc>/articles/Chapter-05.html</loc></url>

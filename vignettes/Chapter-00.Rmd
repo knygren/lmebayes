@@ -39,9 +39,18 @@ These chapters provide a high-level overview of the package, its design philosop
   Install and load `glmbayes`, fit your first Bayesian GLM using `glmb()`, and interpret posterior summaries (means, credible intervals) via an interface that mirrors base `glm()`.  
   <https://knygren.r-universe.dev/articles/glmbayes/Chapter-01.html>
 
-- **Chapter 02 — Simple Bayesian models — conjugate inference for single parameters**  
-  Work through Beta–Binomial, Gamma–Poisson, and Normal–Normal conjugate updating in closed form—useful intuition before multivariate regression with `lmb()` and `glmb()`.  
-  <https://knygren.r-universe.dev/articles/glmbayes/Chapter-02.html>
+- **Chapter 02 — Conjugate inference for single parameters** (series)  
+  Conceptual introduction and worked conjugate updates before multivariate regression with `lmb()` and `glmb()`:
+  - **Chapter 02-S01** — Introduction and overview  
+    <https://knygren.r-universe.dev/articles/glmbayes/Chapter-02-S01.html>
+  - **Chapter 02-S02** — Normal–Normal conjugacy for one mean  
+    <https://knygren.r-universe.dev/articles/glmbayes/Chapter-02-S02.html>
+  - **Chapter 02-S03** — Beta–Binomial conjugacy for one proportion  
+    <https://knygren.r-universe.dev/articles/glmbayes/Chapter-02-S03.html>
+  - **Chapter 02-S04** — Gamma–Poisson conjugacy for one count rate  
+    <https://knygren.r-universe.dev/articles/glmbayes/Chapter-02-S04.html>
+  - **Chapter 02-S05** — Gamma–Gamma conjugacy for one response rate  
+    <https://knygren.r-universe.dev/articles/glmbayes/Chapter-02-S05.html>
 
 ## Part 2: Bayesian regression models
 

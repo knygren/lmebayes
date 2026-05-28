@@ -4,7 +4,11 @@ pkgdown_sha: ~
 articles:
   Chapter-00: Chapter-00.html
   Chapter-01: Chapter-01.html
-  Chapter-02: Chapter-02.html
+  Chapter-02-S01: Chapter-02-S01.html
+  Chapter-02-S02: Chapter-02-S02.html
+  Chapter-02-S03: Chapter-02-S03.html
+  Chapter-02-S04: Chapter-02-S04.html
+  Chapter-02-S05: Chapter-02-S05.html
   Chapter-03: Chapter-03.html
   Chapter-04: Chapter-04.html
   Chapter-05: Chapter-05.html

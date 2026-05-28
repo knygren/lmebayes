@@ -225,8 +225,9 @@ Add at least one test file covering:
 
 - Add a minimal example to `inst/examples/Ex_dXxx.R` (for `@example` in
   roxygen).
-- Add a subsection to `vignettes/Chapter-02.Rmd` following the pattern of
-  the Beta–Binomial (§2) or Gamma–Gamma (§4) sections.
+- Add a subsection to the appropriate **Chapter 02-S*** vignette (e.g.
+  `Chapter-02-S03.Rmd` for Beta–Binomial, `Chapter-02-S05.Rmd` for Gamma–Gamma)
+  following the pattern of the existing conjugate sections.
 
 ---
 
@@ -245,4 +246,4 @@ the corresponding `dXxx` entry:
 | `inst/WORDLIST` | Any new technical terms flagged by spell check |
 | `tests/testthat/` | `test-dXxx.R` |
 | `inst/examples/` | `Ex_dXxx.R` |
-| `vignettes/Chapter-02.Rmd` | New section |
+| `vignettes/Chapter-02-S*.Rmd` | New section in matching conjugate vignette |
