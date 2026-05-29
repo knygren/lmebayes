@@ -237,3 +237,45 @@ normalize_prior_for_blocks <- function(prior_list,
   one <- base_pl(prior_list)
   rep(list(one), k)
 }
+
+#' @noRd
+.prior_payload_for_rNormalGLMBlocks_cpp <- function(prior_block, l1, k) {
+  pb1 <- prior_block[[1L]]
+  disp_v <- vapply(
+    prior_block,
+    function(pb) {
+      if (is.null(pb$dispersion)) {
+        1
+      } else {
+        as.numeric(pb$dispersion)[1L]
+      }
+    },
+    numeric(1)
+  )
+  differs <- function(a, b) {
+    !isTRUE(all.equal(a$mu, b$mu)) ||
+      !isTRUE(all.equal(a$P, b$P)) ||
+      !isTRUE(all.equal(a$dispersion, b$dispersion, check.attributes = FALSE))
+  }
+  prior_by_block <- any(vapply(
+    prior_block[-1L],
+    function(pb) differs(pb, pb1),
+    logical(1L)
+  ))
+
+  if (!prior_by_block) {
+    return(list(
+      mu = matrix(pb1$mu, nrow = l1, ncol = 1L),
+      P_blocks = list(pb1$P),
+      dispersion = disp_v[1L],
+      prior_by_block = FALSE
+    ))
+  }
+
+  list(
+    mu = do.call(cbind, lapply(prior_block, `[[`, "mu")),
+    P_blocks = lapply(prior_block, `[[`, "P"),
+    dispersion = disp_v,
+    prior_by_block = TRUE
+  )
+}

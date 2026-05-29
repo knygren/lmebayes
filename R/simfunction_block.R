@@ -3,8 +3,9 @@
 #' @description
 #' Draw from blockwise full conditionals when the posterior factorizes across
 #' observation blocks. Each block is sampled with a single draw (\code{n = 1})
-#' via [rNormal_reg()] (binomial, Poisson, Gamma, and quasi variants through
-#' the \code{rNormalGLM} path). Intended for block Gibbs and similar workflows;
+#' via \code{.rNormalGLMBlocks_cpp()} (each block calls \code{rNormalGLM}).
+#' Phase-1 R loop via [rNormal_reg()] is retained below as \code{if (FALSE)} for
+#' reference. Intended for block Gibbs and similar workflows;
 #' convergence of the outer chain is the user's responsibility.
 #'
 #' @details
@@ -123,51 +124,102 @@ rNormalGLM_reg_block <- function(n,
     l1 = l1
   )
 
-  coef_draw <- matrix(NA_real_, nrow = k, ncol = l1)
-  coef_mode <- matrix(NA_real_, nrow = k, ncol = l1)
-  block_results <- vector("list", k)
-  dispersion_block <- numeric(k)
-
-  for (b in seq_len(k)) {
-    rows_b <- block_info$rows[[b]]
-    out_b <- rNormal_reg(
-      n = 1L,
-      y = y[rows_b],
-      x = x[rows_b, , drop = FALSE],
-      prior_list = prior_block[[b]],
-      offset = offset2[rows_b],
-      weights = wt[rows_b],
-      family = family,
-      Gridtype = Gridtype,
-      n_envopt = if (is.null(n_envopt)) 1L else n_envopt,
-      use_parallel = use_parallel,
-      use_opencl = use_opencl,
-      verbose = verbose,
-      progbar = progbar
+  oklinks <- switch(
+    family$family,
+    poisson = "log",
+    quasipoisson = "log",
+    binomial = c("logit", "probit", "cloglog"),
+    quasibinomial = c("logit", "probit", "cloglog"),
+    Gamma = "log",
+    character(0)
+  )
+  if (!family$link %in% oklinks) {
+    stop(
+      "link \"", family$link, "\" not available for family \"",
+      family$family, "\".",
+      call. = FALSE
     )
-    block_results[[b]] <- out_b
-    cb <- out_b$coefficients
-    if (is.matrix(cb)) {
-      cb <- cb[1L, , drop = TRUE]
-    } else {
-      cb <- as.numeric(cb)
+  }
+
+  famfunc <- glmbfamfunc(family)
+  prior_cpp <- .prior_payload_for_rNormalGLMBlocks_cpp(prior_block, l1, k)
+  n_envopt_use <- if (is.null(n_envopt)) 1L else as.integer(n_envopt)
+
+  cpp_out <- .rNormalGLMBlocks_cpp(
+    n = n,
+    y = y,
+    x = x,
+    offset = offset2,
+    wt = wt,
+    dispersion = prior_cpp$dispersion,
+    mu = prior_cpp$mu,
+    P_blocks = prior_cpp$P_blocks,
+    prior_by_block = prior_cpp$prior_by_block,
+    row_blocks = block_info$rows,
+    f2 = famfunc$f2,
+    f3 = famfunc$f3,
+    family = family$family,
+    link = family$link,
+    Gridtype = as.integer(Gridtype),
+    n_envopt = n_envopt_use,
+    use_parallel = use_parallel,
+    use_opencl = use_opencl,
+    verbose = verbose
+  )
+
+  coef_draw <- cpp_out$coefficients
+  coef_mode <- cpp_out$coef.mode
+  dispersion_block <- as.numeric(cpp_out$dispersion)
+  block_results <- cpp_out$block_results
+
+  # Phase-1 R path (rNormal_reg per block); kept for reference / fallback.
+  if (FALSE) {
+    coef_draw <- matrix(NA_real_, nrow = k, ncol = l1)
+    coef_mode <- matrix(NA_real_, nrow = k, ncol = l1)
+    block_results <- vector("list", k)
+    dispersion_block <- numeric(k)
+
+    for (b in seq_len(k)) {
+      rows_b <- block_info$rows[[b]]
+      out_b <- rNormal_reg(
+        n = 1L,
+        y = y[rows_b],
+        x = x[rows_b, , drop = FALSE],
+        prior_list = prior_block[[b]],
+        offset = offset2[rows_b],
+        weights = wt[rows_b],
+        family = family,
+        Gridtype = Gridtype,
+        n_envopt = n_envopt_use,
+        use_parallel = use_parallel,
+        use_opencl = use_opencl,
+        verbose = verbose,
+        progbar = progbar
+      )
+      block_results[[b]] <- out_b
+      cb <- out_b$coefficients
+      if (is.matrix(cb)) {
+        cb <- cb[1L, , drop = TRUE]
+      } else {
+        cb <- as.numeric(cb)
+      }
+      if (length(cb) != l1) {
+        stop("Block ", b, ": expected ", l1, " coefficients, got ", length(cb), ".",
+             call. = FALSE)
+      }
+      coef_draw[b, ] <- cb
+      cm <- out_b$coef.mode
+      if (is.matrix(cm)) {
+        cm <- as.vector(cm)
+      } else {
+        cm <- as.numeric(cm)
+      }
+      if (length(cm) != l1) {
+        stop("Block ", b, ": coef.mode length mismatch.", call. = FALSE)
+      }
+      coef_mode[b, ] <- cm
+      dispersion_block[b] <- as.numeric(out_b$dispersion)[1L]
     }
-    if (length(cb) != l1) {
-      stop("Block ", b, ": expected ", l1, " coefficients, got ", length(cb), ".",
-           call. = FALSE)
-    }
-    coef_draw[b, ] <- cb
-    cm <- out_b$coef.mode
-    if (is.matrix(cm)) {
-      cm <- as.vector(cm)
-    } else {
-      cm <- as.numeric(cm)
-    }
-    if (length(cm) != l1) {
-      stop("Block ", b, ": coef.mode length mismatch.", call. = FALSE)
-    }
-    coef_mode[b, ] <- cm
-    dispersion_block[b] <- as.numeric(out_b$dispersion)[1L]
   }
 
   cn <- colnames(x)

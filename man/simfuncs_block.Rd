@@ -62,8 +62,9 @@ A list with class \code{"rNormalGLM_reg_block"} including:
 \description{
 Draw from blockwise full conditionals when the posterior factorizes across
 observation blocks. Each block is sampled with a single draw (\code{n = 1})
-via \code{\link[=rNormal_reg]{rNormal_reg()}} (binomial, Poisson, Gamma, and quasi variants through
-the \code{rNormalGLM} path). Intended for block Gibbs and similar workflows;
+via \code{.rNormalGLMBlocks_cpp()} (each block calls \code{rNormalGLM}).
+Phase-1 R loop via \code{\link[=rNormal_reg]{rNormal_reg()}} is retained below as \code{if (FALSE)} for
+reference. Intended for block Gibbs and similar workflows;
 convergence of the outer chain is the user's responsibility.
 }
 \details{
