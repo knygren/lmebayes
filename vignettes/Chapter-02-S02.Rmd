@@ -94,7 +94,7 @@ The posterior mean \(\mu_n\) is a **precision-weighted average** of the prior me
 
 ---
 
-## 2. BayesRules! illustration
+## 2. `bayesrules` illustration
 
 The **`bayesrules`** package provides `plot_normal_normal()` and `summarize_normal_normal()` for quickly visualizing and summarizing the Normal–Normal update.
 

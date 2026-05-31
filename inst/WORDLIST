@@ -3,6 +3,9 @@ AMI
 ASTIN
 Agresti
 Amitriptyline
+autoscale
+autoscaling
+BayesRules
 bayesrules
 bayesplot
 bayesplot's
@@ -11,7 +14,9 @@ Bigg
 Bigl
 binom
 Bigr
+Bechdel
 BikeSharing
+blockwise
 Boundedness
 Btilde
 CBB
@@ -55,6 +60,7 @@ Ihaka
 InvGamma
 Jupyter
 Khronos
+LearnBayes
 LD
 LLconst
 LM
@@ -66,6 +72,7 @@ Longleftrightarrow
 Longrightarrow
 MGF
 MVN
+Multivariable
 Makevars
 Menarche
 NG
@@ -87,6 +94,7 @@ Precomputation
 Precompute
 PriorSetup
 QRS
+RCT
 Quasibinomial
 Quasipoisson
 READM
@@ -250,6 +258,7 @@ groupinstall
 hatvalues
 helmert
 heteroskedasticity
+hotline
 homoscedasticity
 http
 hyperplanes
@@ -306,6 +315,7 @@ minimizer
 miscentering
 modelfuns
 modelling
+mrglmb
 monte
 msys
 mtcars
@@ -377,6 +387,7 @@ recv
 reindexing
 reparameterization
 reparameterize
+responders
 rfloor
 rgamma
 rglm
@@ -451,4 +462,5 @@ IID
 oneAPI
 doi
 resubmission
+roadmap
 

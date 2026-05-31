@@ -95,7 +95,7 @@ The **`bayesrules`** package does not currently include a `plot_gamma_gamma()` h
 
 **Scenario.**  You record the waiting time between calls to a customer service hotline.  Exponential waiting times (\(k = 1\)) are a standard model.  You place a **\(\Gamma(2, 4)\)** prior on the call rate \(\beta\) (prior mean = 0.5 calls/minute).  You then observe \(n = 20\) inter-arrival times with sum \(\sum y = 35\) minutes.
 
-```{r gg-illustration-setup}
+```{r ggamma-illustration-setup}
 alpha0 <- 2;  b0 <- 4         ## Gamma(2, 4) prior: mean = 0.5
 k      <- 1                   ## known shape (exponential)
 n_obs  <- 20L;  sum_y <- 35   ## data: 20 observations, sum = 35
@@ -103,7 +103,7 @@ n_obs  <- 20L;  sum_y <- 35   ## data: 20 observations, sum = 35
 post_shape <- alpha0 + n_obs * k
 post_rate  <- b0    + sum_y
 
-gg_analytic <- data.frame(
+ggamma_analytic <- data.frame(
   Example = "Call inter-arrivals (illustration)",
   n = n_obs,
   `sum(y)` = sum_y,
@@ -112,11 +112,11 @@ gg_analytic <- data.frame(
   `SD (rate)`   = sqrt(post_shape) / post_rate,
   check.names = FALSE
 )
-knitr::kable(gg_analytic, digits = 4,
+knitr::kable(ggamma_analytic, digits = 4,
   caption = "Conjugate Gamma--Gamma posterior for rate beta")
 ```
 
-```{r gg-illustration-plot, fig.width = 6, fig.height = 4}
+```{r ggamma-illustration-plot, fig.width = 6, fig.height = 4}
 beta_grid <- seq(0.01, 1.5, length.out = 500)
 
 ## Normalized likelihood: Gamma(n*k + 1, sum_y) shape, treated as density

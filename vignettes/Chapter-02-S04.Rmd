@@ -94,7 +94,7 @@ again a weighted average of the prior mean and the data mean.
 
 ---
 
-## 2. BayesRules! illustration
+## 2. `bayesrules` illustration
 
 The **`bayesrules`** package [@JohnsonLauEtAl2022] provides `plot_gamma_poisson()` and `summarize_gamma_poisson()` for visualizing the Gamma–Poisson update.  The same scenario appears in the Bayes Rules! conjugate vignette and in Chapter 12 of the book.
 

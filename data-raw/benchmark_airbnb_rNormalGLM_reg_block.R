@@ -1,16 +1,23 @@
-# Benchmark the BikeSharing two-block Gibbs sampler (Chapter 18 / Ex_09).
-# Block 1: rglmb on population (theta ~ X_train).
-# Block 2: rNormalGLM_reg_block() (new) or per-observation rglmb loop (legacy).
+# Benchmark rNormalGLM_reg_block on bayesrules::airbnb (Bayes Rules Ch. 18 style).
+# Listing-level scalar random effects (x_one intercept per listing).
+# For neighborhood-level multivariate coef vectors, see:
+#   benchmark_airbnb_neighborhood_rNormalGLM_reg_block.R
 #
-#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_block.R
-#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_block.R quick
-#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_block.R legacy
-#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_block.R quick legacy
+# Default: Block 2 uses rNormalGLM_reg_block() (C++ block path). No per-observation
+# R loops unless you append `legacy` for cross-checks afterward.
 #
-# Default: n_burn = 200, n_sim = 1000 (same as demo("Ex_09_BikeSharingPoisson")).
-# Append `quick` for n_burn = 5, n_sim = 10 (smoke test only).
+#   (1) Listing-level two-block Gibbs (population theta ~ rating + room_type).
+#   (2) Grouped neighborhoods: one multivariate Block-2 update (l1 > 1, l2_b > 1).
+#   (3) LEGACY only with `legacy`: rglmb loop (listing Gibbs) and/or
+#       rNormal_reg loop per neighborhood (grouped check).
 #
-# Does not modify inst/extdata/BikeSharing_ch14_gibbs.rds.
+#   Rscript data-raw/benchmark_airbnb_rNormalGLM_reg_block.R
+#   Rscript data-raw/benchmark_airbnb_rNormalGLM_reg_block.R quick
+#   Rscript data-raw/benchmark_airbnb_rNormalGLM_reg_block.R legacy
+#
+# Default: n_burn = 200, n_sim = 1000. Append `quick` for smoke test only.
+#
+# Requires: pkgload, bayesrules (Suggests), optional coda for Gibbs summaries.
 
 args <- commandArgs(trailingOnly = TRUE)
 run_legacy <- any(tolower(args) %in% c("legacy", "--legacy", "-l"))
@@ -30,6 +37,9 @@ on.exit(setwd(owd), add = TRUE)
 
 if (!requireNamespace("pkgload", quietly = TRUE)) {
   stop("Install pkgload, e.g. install.packages('pkgload')")
+}
+if (!requireNamespace("bayesrules", quietly = TRUE)) {
+  stop("Install bayesrules, e.g. install.packages('bayesrules')")
 }
 
 pkgload::load_all(export_all = FALSE)
@@ -71,131 +81,99 @@ fmt_hms <- function(secs) {
   sprintf("%d h %d min %.2f s", h, m, s)
 }
 
-make_mcmc_main <- function(beta_out, sigma_out, beta_names) {
-  if (!requireNamespace("coda", quietly = TRUE)) {
-    stop("Install coda for coefficient summaries, e.g. install.packages('coda')")
-  }
-  mcmc <- coda::mcmc(cbind(beta_out, sigma_theta = sigma_out))
-  colnames(mcmc) <- c(beta_names, "sigma_theta")
-  mcmc
-}
-
-summarize_gibbs_coefficients <- function(beta_out, sigma_out, beta_names, label = "") {
-  mcmc_main <- make_mcmc_main(beta_out, sigma_out, beta_names)
-  if (nzchar(label)) {
-    message("\n--- CODA summary (", label, ") ---")
-  } else {
-    message("\n--- CODA summary (beta + sigma_theta) ---")
-  }
-  print(summary(mcmc_main))
-  message("\n--- posterior means ---")
-  print(colMeans(as.matrix(mcmc_main)))
-  if (nrow(beta_out) >= 50L) {
-    es <- coda::effectiveSize(mcmc_main)
-    message("\n--- effective sample size ---")
-    print(es)
-  } else {
-    message("(skipped effectiveSize: n_sim < 50)")
-  }
-  invisible(mcmc_main)
-}
-
-compare_coefficients_to_vignette <- function(beta_out, sigma_out, beta_names) {
-  ch14_path <- file.path(root, "inst", "extdata", "BikeSharing_ch14_gibbs.rds")
-  if (!file.exists(ch14_path)) {
-    ch14_path <- system.file("extdata", "BikeSharing_ch14_gibbs.rds", package = "glmbayes")
-  }
-  if (!nzchar(ch14_path) || !file.exists(ch14_path)) {
-    message("Vignette reference BikeSharing_ch14_gibbs.rds not found; skip comparison.")
-    return(invisible(NULL))
-  }
-  ch14 <- readRDS(ch14_path)
-  mcmc_new <- make_mcmc_main(beta_out, sigma_out, beta_names)
-  mcmc_vig <- ch14$mcmc_main
-  stopifnot(identical(colnames(mcmc_new), colnames(mcmc_vig)))
-
-  mean_new <- colMeans(as.matrix(mcmc_new))
-  mean_vig <- colMeans(as.matrix(mcmc_vig))
-  diff_mean <- mean_new - mean_vig
-
-  message("\n--- compare posterior means vs vignette (legacy rglmb Block 2) ---")
-  cmp <- data.frame(
-    parameter = names(diff_mean),
-    mean_new = mean_new,
-    mean_vignette = mean_vig,
-    diff = diff_mean,
-    row.names = NULL
-  )
-  print(cmp, digits = 4, row.names = FALSE)
-  message("max |diff| in posterior means: ", signif(max(abs(diff_mean)), 4))
-
-  q_new <- apply(as.matrix(mcmc_new), 2, quantile, probs = c(0.025, 0.5, 0.975))
-  q_vig <- apply(as.matrix(mcmc_vig), 2, quantile, probs = c(0.025, 0.5, 0.975))
-  message("max |diff| in 2.5% / 50% / 97.5% quantiles: ",
-          signif(max(abs(q_new - q_vig)), 4))
-
-  invisible(list(compare_means = cmp, mcmc_new = mcmc_new, mcmc_vignette = mcmc_vig))
-}
-
 n_burn <- if (run_quick) 5L else 200L
 n_sim  <- if (run_quick) 10L else 1000L
 n_gibbs <- n_burn + n_sim
+pct_listings_gibbs <- if (run_quick) 0.15 else 1
 
-## --- Data / priors (same as demo Ex_09 and Chapter-18) -----------------------
-data("BikeSharing", package = "glmbayes")
+## --- Data (Bayes Rules: reviews ~ rating + room_type) ------------------------
+data("airbnb", package = "bayesrules")
 
-cont_vars <- c(
-  "temp", "atemp", "hum", "windspeed",
-  "hr_sin", "hr_cos", "mon_sin", "mon_cos"
+airbnb_dat <- airbnb
+airbnb_dat$rating_c <- airbnb_dat$rating - mean(airbnb_dat$rating)
+airbnb_dat$room_type <- factor(airbnb_dat$room_type)
+airbnb_dat <- airbnb_dat[complete.cases(airbnb_dat[, c("reviews", "rating_c", "room_type", "neighborhood")]), ]
+
+form_x <- reviews ~ rating_c + room_type
+X_full <- model.matrix(form_x, data = airbnb_dat)
+y_full <- airbnb_dat$reviews
+block_full <- factor(airbnb_dat$neighborhood)
+l2 <- length(y_full)
+l1 <- ncol(X_full)
+k <- nlevels(block_full)
+
+block_info <- glmbayes:::normalize_block(block_full, l2)
+stopifnot(block_info$k == k)
+
+message("airbnb: n = ", l2, ", neighborhoods k = ", k,
+        ", l1 = ", l1, " (", paste(colnames(X_full), collapse = ", "), ")")
+message("listings per neighborhood: min = ", min(block_info$l2_blocks),
+        ", median = ", median(block_info$l2_blocks),
+        ", max = ", max(block_info$l2_blocks))
+message("Block Gibbs: n_burn = ", n_burn, ", n_sim = ", n_sim,
+        " (", n_gibbs, " full iterations); Block 2 = rNormalGLM_reg_block")
+if (run_quick) {
+  message("Quick mode: listing subset pct = ", pct_listings_gibbs)
+}
+if (!run_legacy) {
+  message("Legacy R-loop cross-checks skipped (append 'legacy').")
+}
+
+airbnb_dat$eta_proxy <- log(y_full + 1)
+ps_glm <- Prior_Setup(
+  eta_proxy ~ rating_c + room_type,
+  family = gaussian(),
+  data = airbnb_dat
 )
-BikeSharing_c <- BikeSharing
-BikeSharing_c[cont_vars] <- scale(BikeSharing[cont_vars], center = TRUE, scale = FALSE)
+prior_template <- list(
+  mu = as.numeric(ps_glm$mu),
+  Sigma = ps_glm$Sigma,
+  dispersion = 1,
+  ddef = FALSE
+)
 
-form2 <- cnt ~ part_of_day + quarter + holiday + workingday + weathersit +
-  hr_sin + hr_cos + mon_sin + mon_cos
+fam <- poisson()
 
-pct_train <- 0.01
+# =============================================================================
+# (1) Listing-level two-block Gibbs — Block 2: rNormalGLM_reg_block
+# =============================================================================
+
+message("\n========== (1) Listing-level Gibbs (Block 2: rNormalGLM_reg_block) ==========")
+
 set.seed(42)
-n <- nrow(BikeSharing_c)
-idx_train <- sample(n, size = round(pct_train * n))
+n_gibbs_idx <- max(50L, round(pct_listings_gibbs * l2))
+idx_gibbs <- if (pct_listings_gibbs < 1) {
+  sample(l2, size = n_gibbs_idx)
+} else {
+  seq_len(l2)
+}
+n_gibbs_idx <- length(idx_gibbs)
 
-Bike_train <- BikeSharing_c[idx_train, ]
-X_train <- model.matrix(form2, data = Bike_train)
-y_train <- Bike_train$cnt
+Bike_gibbs <- airbnb_dat[idx_gibbs, , drop = FALSE]
+y_train <- y_full[idx_gibbs]
+X_train <- X_full[idx_gibbs, , drop = FALSE]
 n_train <- length(y_train)
 p <- ncol(X_train)
 
-theta <- log(y_train + 0.5)
-data_pop <- data.frame(theta = theta, Bike_train)
-form_pop <- theta ~ part_of_day + quarter + holiday + workingday + weathersit +
-  hr_sin + hr_cos + mon_sin + mon_cos
+theta <- log(y_train + 1)
+data_pop <- data.frame(theta = theta, Bike_gibbs)
+form_pop <- theta ~ rating_c + room_type
 ps_pop <- Prior_Setup(form_pop, family = gaussian(), data = data_pop)
-
-x_one <- matrix(1, n_train, 1)
-colnames(x_one) <- "(Intercept)"
-
 pfamily_pop <- dNormal_Gamma(
   ps_pop$mu, Sigma_0 = ps_pop$Sigma_0,
   ps_pop$shape, ps_pop$rate
 )
 
-message("BikeSharing train n = ", n_train, ", p = ", p)
-message("Block Gibbs: n_burn = ", n_burn, ", n_sim = ", n_sim,
-        " (", n_gibbs, " full iterations)")
-if (run_quick) {
-  message("Quick mode: not comparable to Chapter-18 / Ex_09 timings.")
-}
-if (!run_legacy) {
-  message("Legacy full-Gibbs cross-check skipped (append 'legacy').")
-}
+x_one <- matrix(1, n_train, 1)
+colnames(x_one) <- "(Intercept)"
 
 block2_theta_rglmb_loop <- function(mu_all, sigma_theta_sq, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
-  theta <- numeric(n_train)
+  theta_new <- numeric(n_train)
   for (i in seq_len(n_train)) {
-    theta[i] <- rglmb(
+    theta_new[i] <- rglmb(
       1L, y = y_train[i], x = matrix(1, 1, 1),
-      family = poisson(),
+      family = fam,
       pfamily = dNormal(mu = mu_all[i], Sigma = sigma_theta_sq),
       Gridtype = 2L,
       use_parallel = FALSE,
@@ -203,7 +181,7 @@ block2_theta_rglmb_loop <- function(mu_all, sigma_theta_sq, seed = NULL) {
       verbose = FALSE
     )$coefficients[1, 1]
   }
-  theta
+  theta_new
 }
 
 gibbs_report_interval <- function(n) {
@@ -221,7 +199,6 @@ gibbs_message_first_iter_estimates <- function(tag, sec_per_iter, n_burn, n_sim)
 run_block_gibbs <- function(store = FALSE, label = "") {
   beta_out <- if (store) matrix(0, nrow = n_sim, ncol = p) else NULL
   sigma_out <- if (store) numeric(n_sim) else NULL
-  theta_out <- if (store) matrix(0, nrow = n_sim, ncol = n_train) else NULL
   theta_loc <- theta
   tag <- if (nzchar(label)) paste0("[", label, "] ") else ""
   t_chain_start <- Sys.time()
@@ -242,7 +219,7 @@ run_block_gibbs <- function(store = FALSE, label = "") {
         y = y_train,
         x = x_one,
         block = seq_len(n_train),
-        family = poisson(),
+        family = fam,
         Gridtype = 2L,
         n_envopt = 1L,
         use_parallel = FALSE,
@@ -277,11 +254,23 @@ run_block_gibbs <- function(store = FALSE, label = "") {
         use_parallel = FALSE,
         verbose = FALSE
       )
-      theta_loc <- block2_fun(b1$mu_all, b1$sigma_theta_sq)
+      theta_loc <- rNormalGLM_reg_block_update(
+        mu_all = b1$mu_all,
+        sigma_theta_sq = b1$sigma_theta_sq,
+        y = y_train,
+        x = x_one,
+        block = seq_len(n_train),
+        family = fam,
+        Gridtype = 2L,
+        n_envopt = 1L,
+        use_parallel = FALSE,
+        use_opencl = FALSE,
+        verbose = FALSE,
+        progbar = FALSE
+      )$theta
       if (store) {
         beta_out[iter, ] <- b1$beta
         sigma_out[iter] <- b1$sigma_theta
-        theta_out[iter, ] <- theta_loc
       }
       if (iter == 1L) {
         sec_main <- as.numeric(difftime(Sys.time(), t_main_start, units = "secs"))
@@ -310,16 +299,12 @@ run_block_gibbs <- function(store = FALSE, label = "") {
     sim_time = sim_time,
     beta_out = beta_out,
     sigma_out = sigma_out,
-    theta_out = theta_out,
     theta_final = theta_loc
   )
 }
 
-# =============================================================================
-# (1) Full two-block Gibbs — Block 2 via rNormalGLM_reg_block
-# =============================================================================
-
-message("\n========== two-block Gibbs (Block 2: rNormalGLM_reg_block) ==========")
+message("Listing subset n = ", n_train, ", p = ", p,
+        "; Block 2 blocks k = n, l1 = 1 per listing")
 message("Started: ", format(Sys.time(), usetz = TRUE))
 
 set.seed(123)
@@ -328,76 +313,100 @@ gibbs_blk <- run_block_gibbs(store = TRUE)
 t_burn <- as.numeric(gibbs_blk$burn_time["elapsed"])
 t_sim  <- as.numeric(gibbs_blk$sim_time["elapsed"])
 t_total <- t_burn + t_sim
-t_per_iter <- t_total / n_gibbs
 
-message("\n--- timing: full Block Gibbs sampler ---")
-message("burn-in (", n_burn, " iterations): ", fmt_hms(t_burn),
-        " (", signif(t_burn, 4), " s)")
-message("main (", n_sim, " iterations):     ", fmt_hms(t_sim),
-        " (", signif(t_sim, 4), " s)")
-message("TOTAL (", n_gibbs, " iterations):   ", fmt_hms(t_total),
-        " (", signif(t_total, 4), " s)")
-message("mean seconds per full Gibbs iteration: ", signif(t_per_iter, 4))
-
-if (!run_quick) {
-  message("\n--- final theta (after chain) ---")
-  message("mean(theta) = ", signif(mean(gibbs_blk$theta_final), 4),
-          ", sd(theta) = ", signif(sd(gibbs_blk$theta_final), 4))
-}
-
-beta_names <- colnames(X_train)
-mcmc_blk <- summarize_gibbs_coefficients(
-  gibbs_blk$beta_out,
-  gibbs_blk$sigma_out,
-  beta_names,
-  label = "Block 2: rNormalGLM_reg_block"
-)
-cmp_vig <- compare_coefficients_to_vignette(
-  gibbs_blk$beta_out,
-  gibbs_blk$sigma_out,
-  beta_names
-)
+message("\n--- timing: listing-level Block Gibbs ---")
+message("burn-in (", n_burn, "): ", fmt_hms(t_burn), " (", signif(t_burn, 4), " s)")
+message("main (", n_sim, "):     ", fmt_hms(t_sim), " (", signif(t_sim, 4), " s)")
+message("TOTAL (", n_gibbs, "):   ", fmt_hms(t_total), " (", signif(t_total, 4), " s)")
+message("mean seconds per iteration: ", signif(t_total / n_gibbs, 4))
 
 benchmark <- list(
-  n_train = n_train,
-  p = p,
-  n_burn = n_burn,
-  n_sim = n_sim,
-  gibbs_iterations = n_gibbs,
+  dataset = "bayesrules::airbnb",
+  outcome = "reviews",
+  n_full = l2,
+  k_neighborhoods = k,
+  l1_grouped = l1,
   quick_mode = run_quick,
-  timing_seconds = list(
-    burn_in = t_burn,
-    main = t_sim,
-    total = t_total,
-    per_iteration_mean = t_per_iter
-  ),
   block2_method = "rNormalGLM_reg_block",
-  beta_names = beta_names,
-  posterior_mean = colMeans(as.matrix(mcmc_blk)),
-  compare_vignette_max_abs_mean_diff = if (!is.null(cmp_vig)) {
-    max(abs(cmp_vig$compare_means$diff))
-  } else {
-    NA_real_
-  },
+  listing_gibbs = list(
+    n_train = n_train,
+    p = p,
+    n_burn = n_burn,
+    n_sim = n_sim,
+    timing_seconds = list(
+      burn_in = t_burn,
+      main = t_sim,
+      total = t_total,
+      per_iteration_mean = t_total / n_gibbs
+    ),
+    population_formula = deparse(form_pop, width.cutoff = 500L),
+    posterior_mean_beta = colMeans(gibbs_blk$beta_out),
+    posterior_mean_sigma_theta = mean(gibbs_blk$sigma_out)
+  ),
   timestamp = Sys.time()
 )
 
+if (requireNamespace("coda", quietly = TRUE) && n_sim >= 20L) {
+  beta_names <- colnames(X_train)
+  mcmc_gibbs <- coda::mcmc(cbind(gibbs_blk$beta_out, sigma_theta = gibbs_blk$sigma_out))
+  colnames(mcmc_gibbs) <- c(beta_names, "sigma_theta")
+  message("\n--- CODA summary (listing-level population block) ---")
+  print(summary(mcmc_gibbs))
+  benchmark$listing_gibbs$effective_size <- as.list(coda::effectiveSize(mcmc_gibbs))
+}
+
 # =============================================================================
-# (2) LEGACY: full Gibbs with vignette rglmb loop (+ optional checks)
+# (2) Grouped neighborhoods — one Block-2 update (multivariate blocks)
+# =============================================================================
+
+message("\n========== (2) Grouped blocks: one rNormalGLM_reg_block update ==========")
+message("Started: ", format(Sys.time(), usetz = TRUE))
+
+set.seed(2026)
+n_time_grp <- if (run_quick) 2L else 3L
+time_blk_grp <- numeric(n_time_grp)
+for (t in seq_len(n_time_grp)) {
+  time_blk_grp[t] <- system.time({
+    out_grp <- rNormalGLM_reg_block(
+      n = 1L,
+      y = y_full,
+      x = X_full,
+      block = block_full,
+      prior_list = prior_template,
+      family = fam,
+      Gridtype = 2L,
+      n_envopt = 1L,
+      use_parallel = FALSE,
+      use_opencl = FALSE,
+      verbose = FALSE,
+      progbar = FALSE
+    )
+  })["elapsed"]
+}
+s_blk_grp <- summ_time(time_blk_grp)
+message("rNormalGLM_reg_block (k = ", k, ", l1 = ", l1, "):")
+print(round(s_blk_grp, 3))
+
+benchmark$grouped_one_update <- list(
+  timing_seconds = list(rNormalGLM_reg_block = s_blk_grp),
+  coef_mode = out_grp$coef.mode
+)
+
+# =============================================================================
+# (3) LEGACY: R-loop cross-checks only (append `legacy` on command line)
 # =============================================================================
 
 if (run_legacy) {
-  message("\n========== two-block Gibbs (Block 2: rglmb loop, legacy) ==========")
-  message("Started: ", format(Sys.time(), usetz = TRUE))
+  message("\n========== (3) LEGACY cross-checks (R loops) ==========")
 
+  message("\n--- (3a) Listing Gibbs: Block 2 via per-listing rglmb loop ---")
+  message("Started: ", format(Sys.time(), usetz = TRUE))
   set.seed(123)
   run_block_gibbs_legacy <- function(store = FALSE, label = "legacy") {
     beta_out <- if (store) matrix(0, nrow = n_sim, ncol = p) else NULL
     sigma_out <- if (store) numeric(n_sim) else NULL
-    theta_out <- if (store) matrix(0, nrow = n_sim, ncol = n_train) else NULL
     theta_loc <- theta
     tag <- if (nzchar(label)) paste0("[", label, "] ") else ""
-    t_chain_start <- Sys.time()
     burn_time <- system.time({
       for (iter in seq_len(n_burn)) {
         b1 <- rglmb_update(
@@ -417,14 +426,13 @@ if (run_legacy) {
         if (store) {
           beta_out[iter, ] <- b1$beta
           sigma_out[iter] <- b1$sigma_theta
-          theta_out[iter, ] <- theta_loc
         }
       }
     })
     list(
       burn_time = burn_time, sim_time = sim_time,
       beta_out = beta_out, sigma_out = sigma_out,
-      theta_out = theta_out, theta_final = theta_loc
+      theta_final = theta_loc
     )
   }
 
@@ -434,14 +442,13 @@ if (run_legacy) {
   t_sim_l  <- as.numeric(gibbs_rglmb$sim_time["elapsed"])
   t_total_l <- t_burn_l + t_sim_l
 
-  message("\n--- timing: legacy full Block Gibbs ---")
   message("burn-in: ", fmt_hms(t_burn_l), " (", signif(t_burn_l, 4), " s)")
   message("main:    ", fmt_hms(t_sim_l), " (", signif(t_sim_l, 4), " s)")
   message("TOTAL:   ", fmt_hms(t_total_l), " (", signif(t_total_l, 4), " s)")
   message("speedup block vs legacy (total): ",
           signif(t_total_l / t_total, 3), "x")
 
-  message("\n--- one Block-2 update (not full Gibbs), for reference ---")
+  message("\n--- one Block-2 update (listing level), for reference ---")
   b1_ref <- rglmb_update(
     y = gibbs_blk$theta_final,
     x = X_train,
@@ -450,18 +457,18 @@ if (run_legacy) {
     use_parallel = FALSE,
     verbose = FALSE
   )
-  n_time <- 3L
-  time_blk <- numeric(n_time)
-  time_rglmb <- numeric(n_time)
-  for (t in seq_len(n_time)) {
-    time_blk[t] <- system.time({
+  n_time_b2 <- if (run_quick) 2L else 3L
+  time_blk2 <- numeric(n_time_b2)
+  time_rglmb2 <- numeric(n_time_b2)
+  for (t in seq_len(n_time_b2)) {
+    time_blk2[t] <- system.time({
       rNormalGLM_reg_block_update(
         mu_all = b1_ref$mu_all,
         sigma_theta_sq = b1_ref$sigma_theta_sq,
         y = y_train,
         x = x_one,
         block = seq_len(n_train),
-        family = poisson(),
+        family = fam,
         Gridtype = 2L,
         n_envopt = 1L,
         use_parallel = FALSE,
@@ -470,18 +477,18 @@ if (run_legacy) {
         progbar = FALSE
       )
     })["elapsed"]
-    time_rglmb[t] <- system.time({
+    time_rglmb2[t] <- system.time({
       block2_theta_rglmb_loop(b1_ref$mu_all, b1_ref$sigma_theta_sq)
     })["elapsed"]
   }
-  s_blk2 <- summ_time(time_blk)
-  s_rglmb2 <- summ_time(time_rglmb)
+  s_blk2 <- summ_time(time_blk2)
+  s_rglmb2 <- summ_time(time_rglmb2)
   message("rNormalGLM_reg_block (one Block-2 step):")
   print(round(s_blk2, 3))
   message("rglmb loop (one Block-2 step):")
   print(round(s_rglmb2, 3))
 
-  benchmark$legacy <- list(
+  benchmark$legacy_listing_gibbs <- list(
     block2_method = "rglmb_loop",
     timing_seconds = list(
       burn_in = t_burn_l,
@@ -493,9 +500,54 @@ if (run_legacy) {
     ),
     speedup_total_block_vs_legacy = t_total_l / t_total
   )
+
+  message("\n--- (3b) Grouped: rNormal_reg loop over neighborhoods ---")
+  prior_block <- glmbayes:::normalize_prior_for_blocks(
+    prior_list = prior_template,
+    prior_lists = NULL,
+    block_info = block_info,
+    l1 = l1
+  )
+  time_rnr_grp <- numeric(n_time_grp)
+  for (t in seq_len(n_time_grp)) {
+    time_rnr_grp[t] <- system.time({
+      coef_rnr <- matrix(NA_real_, nrow = k, ncol = l1)
+      for (b in seq_len(k)) {
+        rows_b <- block_info$rows[[b]]
+        out_b <- rNormal_reg(
+          n = 1L,
+          y = y_full[rows_b],
+          x = X_full[rows_b, , drop = FALSE],
+          prior_list = prior_block[[b]],
+          family = fam,
+          Gridtype = 2L,
+          n_envopt = 1L,
+          use_parallel = FALSE,
+          use_opencl = FALSE,
+          verbose = FALSE,
+          progbar = FALSE
+        )
+        cb <- out_b$coefficients
+        coef_rnr[b, ] <- if (is.matrix(cb)) cb[1L, ] else as.numeric(cb)
+      }
+    })["elapsed"]
+  }
+  s_rnr_grp <- summ_time(time_rnr_grp)
+  message("rNormal_reg per neighborhood:")
+  print(round(s_rnr_grp, 3))
+  message("speedup grouped block vs legacy loop (mean): ",
+          signif(s_rnr_grp["mean"] / s_blk_grp["mean"], 3), "x")
+  max_mode_diff <- max(abs(coef_rnr - out_grp$coef.mode))
+  message("max |mode_rNormal_reg_loop - mode_block| = ", signif(max_mode_diff, 6))
+
+  benchmark$legacy_grouped <- list(
+    timing_seconds = list(rNormal_reg_loop = s_rnr_grp),
+    speedup_block_vs_loop = s_rnr_grp["mean"] / s_blk_grp["mean"],
+    max_mode_abs_diff = max_mode_diff
+  )
 }
 
-out_path <- file.path(root, "data-raw", "BikeSharing_block_reg_benchmark.rds")
+out_path <- file.path(root, "data-raw", "Airbnb_block_reg_benchmark.rds")
 saveRDS(benchmark, out_path)
 message("\nWrote summary: ", out_path)
 message("Done.")

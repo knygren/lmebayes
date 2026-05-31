@@ -92,11 +92,11 @@ The update rule is simple:
   \frac{n}{a+b+n}\cdot\frac{y}{n}.
 \]
 
-This is a weighted average of the prior mean \(a/(a+b)\) and the data frequency \(y/n\), with weights proportional to the "prior sample size" \(a+b\) and the actual sample size \(n\).  When \(n \gg a + b\) the data dominate; when \(n\) is small the prior pulls the estimate toward its own mean.
+This is a weighted average of the prior mean \(a/(a+b)\) and the data frequency \(y/n\), with weights proportional to the "prior sample size" \(a+b\) and the actual sample size \(n\).  When \(n\) is much larger than \(a + b\) the data dominate; when \(n\) is small the prior pulls the estimate toward its own mean.
 
 ---
 
-## 2. BayesRules! illustration
+## 2. `bayesrules` illustration
 
 The **`bayesrules`** package provides `plot_beta_binomial()` and `summarize_beta_binomial()` for quick visualization and tabular summaries of the Beta–Binomial update [@JohnsonLauEtAl2022].
 

@@ -334,7 +334,7 @@ In later chapters, we extend these ideas to:
 **Book:** [@JohnsonLauEtAl2022], Chapter 12 — *Poisson regression*  
 **Data:** `bayesrules::equality_index` (California removed, as in the book)  
 **Model:** `laws ~ percent_urban + historical` (log link)  
-**Priors in this appendix:** **`Prior_Setup()`** defaults only.  The book uses an informative intercept prior plus weak / autoscaling priors on slopes (partially informative specification); we do not mix in the book intercept prior here.
+**Priors in this appendix:** **`Prior_Setup()`** defaults only.  The book uses an informative intercept prior plus weak / `autoscaling` priors on slopes (partially informative specification); we do not mix in the book intercept prior here.
 
 > Requires **`bayesrules`**.  The table below compares **book** posterior summaries (`tidy(equality_model)`, Ch. 12) to **`glmb()`** under **glmbayes** default priors.
 

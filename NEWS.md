@@ -16,7 +16,7 @@
   introduction to single-parameter conjugacy; worked examples move to
   **Chapter 02-S01** through **Chapter 02-S05** (Beta–Binomial, Normal–Normal,
   Gamma–Poisson, exposure-weighted Poisson, and related topics). A **Companion
-  textbooks** section in Chapter 00 indexes optional Bayes Rules! and LearnBayes
+  textbooks** section in Chapter 00 indexes optional Bayes Rules! and `LearnBayes`
   appendices tied to the main GLM chapters.
 
 * **`opencltools` import:** Core host/runtime OpenCL discovery and diagnostics
@@ -34,8 +34,8 @@
   scope note for Gamma regression (Ch. 11). Comparison tables use **printed book
   values**, not live **`rstanarm`** fits. See **Chapter 00** § Companion textbooks.
 
-* **LearnBayes examples:** **Chapter 02-S04**, Appendix A, maps the
-  **`hearttransplants`** example from Albert (2009) / **LearnBayes** (exposure-weighted
+* **`LearnBayes` examples:** **Chapter 02-S04**, Appendix A, maps the
+  **`hearttransplants`** example from Albert (2009) / `LearnBayes` (exposure-weighted
   Gamma–Poisson conjugacy) to **`glmb()`** with analytic Albert posteriors for
   verification (suggested package **`LearnBayes`**).
 
