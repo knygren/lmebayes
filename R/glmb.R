@@ -472,29 +472,6 @@ glmb<-function (formula, family = binomial,pfamily=dNormal(mu,Sigma,dispersion=1
 
 
 
-#' @rdname glmb
-#' @method print glmb
-#' @export
-
-print.glmb<-function (x, digits = max(3, getOption("digits") - 3), ...) 
-{
-  
-  cat("\nCall:  ", paste(deparse(x$call), sep = "\n", collapse = "\n"), 
-      "\n\n", sep = "")
-  if (length(coef(x))) {
-    cat("Posterior Mean Coefficients")
-    cat(":\n")
-    print.default(format(x$coef.means, digits = digits), 
-                  print.gap = 2, quote = FALSE)
-  }
-  else cat("No coefficients\n\n")
-  cat("\nEffective Number of Parameters:",x$pD,"\n")
-  cat("Expected Residual Deviance:",mean(x$deviance),"\n")
-  cat("DIC:",x$DIC,"\n\n")
-}
-
-
-
 # Helpers --------------------------------------------------------------------
 #
 # 1) DIC_Info

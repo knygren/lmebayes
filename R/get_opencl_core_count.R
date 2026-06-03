@@ -4,7 +4,8 @@
 #' OpenCL device. This can be useful for diagnostics or performance tuning.
 #'
 #' @return Integer count of compute units.
-#' @export
+#' @keywords internal
+#' @noRd
 get_opencl_core_count <- function() {
   .get_opencl_core_count_cpp()
 }

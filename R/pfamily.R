@@ -191,22 +191,6 @@ pfamily.default <- function(object, ...){
 }
 
 
-#' @export
-#' @method print pfamily
-#' @rdname pfamily
-#' @order 7
-
-print.pfamily <- function(x, ...)
-{
-  cat("\nCall:  ", paste(deparse(x$call), sep = "\n", collapse = "\n"), 
-      "\n\n", sep = "")
-  cat("Prior Family:", x$pfamily, "\n\n")
-  cat("Prior List:\n\n")
-  print(x$prior_list)
-  
-  invisible(x)
-}
-
 #' @export 
 #' @rdname pfamily
 #' @order 2

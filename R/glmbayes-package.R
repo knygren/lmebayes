@@ -75,11 +75,10 @@
 #' @author
 #' Kjell Nygren
 #'
-#' @import stats Rcpp
+#' @import stats Rcpp glmbayes
 #' @importFrom Rcpp evalCpp
 #' @importFrom MASS mvrnorm
 #' @importFrom Rdpack reprompt
 #' @importFrom RcppParallel RcppParallelLibs
-#' @import opencltools
-#' @useDynLib glmbayes, .registration = TRUE
+#' @useDynLib lmebayes, .registration = TRUE
 "_PACKAGE"

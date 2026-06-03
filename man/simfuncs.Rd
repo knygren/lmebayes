@@ -7,8 +7,6 @@
 \alias{rNormalGamma_reg}
 \alias{rindepNormalGamma_reg}
 \alias{rGamma_reg}
-\alias{print.rGamma_reg}
-\alias{print.simfunction}
 \alias{rGamma_Conjugate_reg}
 \alias{rBeta_reg}
 \title{Simulation Functions for Bayesian Generalized Linear Models}
@@ -31,10 +29,6 @@ rindepNormalGamma_reg(n, y, x, prior_list, offset = NULL, weights = 1,
 rGamma_reg(n, y, x, prior_list, offset = NULL, weights = 1, family = gaussian(),
            Gridtype = 2,n_envopt = NULL,
             use_parallel = TRUE, use_opencl = FALSE, verbose = FALSE,progbar=FALSE)
-
-\method{print}{rGamma_reg}(x, digits = max(3, getOption("digits") - 3), ...)
-
-\method{print}{simfunction}(x, ...)
 
 rGamma_Conjugate_reg(n, y, x, prior_list, offset = NULL, weights = 1, family = gaussian(),
            Gridtype = 2,n_envopt = NULL,

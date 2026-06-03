@@ -31,8 +31,6 @@ glmb(
   contrasts = NULL,
   ...
 )
-
-\method{print}{glmb}(x, digits = max(3, getOption("digits") - 3), ...)
 }
 \arguments{
 \item{formula}{an object of class \code{"\link[stats]{formula}"} (or one that

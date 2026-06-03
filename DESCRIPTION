@@ -1,8 +1,8 @@
-Package: glmbayes
+Package: lmebayes
 Type: Package
-Title: Bayesian Generalized Linear Models (IID Samples)
-Version: 0.9.6
-Date: 2026-05-18
+Title: Bayesian Linear Mixed-Effects Models via Two-Block Gibbs Sampling
+Version: 0.1.0
+Date: 2026-06-01
 Authors@R: c(
     person("Kjell", "Nygren", role = c("aut", "cre"),
            email = "kjell.a.nygren@gmail.com"),
@@ -21,20 +21,18 @@ Authors@R: c(
     person("Martin", "Maechler", role = "ctb",
            comment = "Portions of R Mathlib")
     )
-Description: Provides Bayesian linear and generalized linear model fitting
-    with independent and identically distributed (iid) posterior samples. The
-    main functions mirror R's lm() and glm() interfaces while adding prior
-    family specifications for Gaussian, Poisson, binomial, and Gamma models
-    with log-concave likelihoods. Sampling for supported non-conjugate models
-    uses accept-reject methods based on likelihood subgradients as in Nygren
-    and Nygren (2006) <doi:10.1198/016214506000000357>. The package also
-    includes tools for prior setup, posterior summaries, prediction,
-    diagnostics, simulation, vignettes, and optional 'OpenCL' acceleration for
-    larger models.
+Description: Two-block Gibbs samplers for Bayesian linear and generalized
+    linear mixed-effects models, following lme4 notation (X/beta for fixed
+    effects, Z/b for random effects, D for the random-effects covariance).
+    Burn-in and thinning bounds are derived from eigenvalues of the
+    mixed-model precision matrix rather than from heuristic convergence
+    diagnostics. Gibbs sampling engines are provided by the 'glmbayes'
+    package.
 License: GPL-2
-URL: https://CRAN.R-project.org/package=glmbayes, https://github.com/knygren/glmbayes, https://knygren.r-universe.dev/glmbayes
-BugReports: https://github.com/knygren/glmbayes/issues
+URL: https://github.com/knygren/lmebayes
+BugReports: https://github.com/knygren/lmebayes/issues
 Imports:
+    glmbayes,
     stats,
     coda,
     Rcpp (>= 1.1.1),

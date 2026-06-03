@@ -10,8 +10,8 @@
 #' This is the formula / \code{data} interface counterpart to
 #' \code{\link{multi_rlmb}} (matrix \code{y}, \code{x}). Each response column
 #' uses its own \code{pfamily_list[[j]]}. Use \code{\link{multi_prior_setup}}
-#' to build aligned priors, then \code{\link{summary.mlmb}} or
-#' \code{\link{print.mlmb}} for output styled like \code{\link[stats]{mlm}}.
+#' to build aligned priors, then \code{\link[glmbayes]{summary.mlmb}} or
+#' \code{\link[glmbayes]{print.mlmb}} for output styled like \code{\link[stats]{mlm}}.
 #'
 #' @param formula A \code{\link{formula}} with a matrix response on the left-hand
 #'   side (typically \code{cbind(...)}).
@@ -25,7 +25,7 @@
 #'   \code{formula}, \code{coef_names}, \code{pred_names}, and
 #'   \code{pfamily_lists}.
 #' @seealso \code{\link{lmb}}, \code{\link{multi_rlmb}}, \code{\link{multi_prior_setup}},
-#'   \code{\link{summary.mlmb}}, \code{\link{print.mlmb}},
+#'   \code{\link[glmbayes]{summary.mlmb}}, \code{\link[glmbayes]{print.mlmb}},
 #'   \code{\link[stats]{lm}} with \code{cbind} responses.
 #' @family modelfuns
 #' @example inst/examples/Ex_multi_lmb.R
@@ -222,33 +222,4 @@ multi_lmb <- function(
   }
   class(outlist) <- "mlmb"
   outlist
-}
-
-#' @keywords internal
-.mlmb_coef_means_matrix <- function(object) {
-  nm <- names(object)
-  if (length(nm) < 1L) {
-    return(NULL)
-  }
-  cm <- do.call(cbind, lapply(object, function(fit) fit$coef.means))
-  rn <- names(object[[1L]]$coef.means)
-  if (is.null(rn)) {
-    rn <- colnames(object[[1L]]$x)
-  }
-  if (!is.null(rn) && nrow(cm) == length(rn)) {
-    rownames(cm) <- rn
-  }
-  colnames(cm) <- nm
-  cm
-}
-
-#' @keywords internal
-.mlmb_dic_table <- function(object) {
-  nm <- names(object)
-  if (length(nm) < 1L) {
-    return(NULL)
-  }
-  pD <- vapply(object, function(fit) fit$pD, numeric(1))
-  dic <- vapply(object, function(fit) fit$DIC, numeric(1))
-  cbind(pD = pD, DIC = dic)
 }

@@ -5,7 +5,6 @@
 \alias{dNormal}
 \alias{dGamma}
 \alias{dBeta}
-\alias{print.pfamily}
 \alias{dNormal_Gamma}
 \alias{dIndependent_Normal_Gamma}
 \title{Prior Family Objects for Bayesian Models}
@@ -26,8 +25,6 @@ dGamma(
 )
 
 dBeta(shape1, shape2, beta)
-
-\method{print}{pfamily}(x, ...)
 
 dNormal_Gamma(mu, Sigma_0, shape, rate)
 
@@ -102,11 +99,11 @@ rates, while larger values allow broader dispersion support but may increase env
 
 \item{shape2}{Second shape parameter \eqn{\beta > 0} of the Beta prior (prior failures + 1).}
 
-\item{x}{an object, a pfamily function that is to be printed}
-
 \item{Sigma_0}{prior variance-covariance on the precision-weighted coefficient scale for
 \code{dNormal_Gamma()} only (Gaussian). Stored in \code{prior_list$Sigma} for compatibility
 with downstream samplers.}
+
+\item{x}{an object, a pfamily function that is to be printed}
 
 \item{\ldots}{additional argument(s) for methods.}
 }

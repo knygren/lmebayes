@@ -413,22 +413,3 @@ lmb <- function (
   outlist
 }
 
-#' @rdname lmb
-#' @method print lmb
-#' @export
-
-
-print.lmb<-function (x, digits = max(3, getOption("digits") - 3), ...) 
-{
-  
-  cat("\nCall:  \n", paste(deparse(x$call), sep = "\n", collapse = "\n"), 
-      "\n\n", sep = "")
-  if (length(coef(x))) {
-    cat("Posterior Mean Coefficients")
-    cat(":\n")
-    print.default(format(x$coef.means, digits = digits), 
-                  print.gap = 2, quote = FALSE)
-  }
-  else cat("No coefficients\n\n")
-}
-

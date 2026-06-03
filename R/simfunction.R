@@ -212,64 +212,6 @@ simfunction.default <- function(object, ...) {
   )
 }
 
-#' @export
-#' @method print simfunction
-#' @rdname simfuncs
-#' @order 9
- 
-print.simfunction <- function(x, ...) {
-  cat("\nCall to Simulation Function:\n")
-  if (!is.null(x$call)) {
-    print(x$call)
-  } else {
-    cat("  [call not recorded]\n")
-  }
-  
-  cat("\nSimulation Function Name:", x$name, "\n")
-  
-  if (!is.null(x$args) && length(x$args) > 0) {
-    cat("\nArguments Passed:\n\n")
-    for (argname in names(x$args)) {
-      val <- x$args[[argname]]
-      
-      if (is.null(val)) {
-        cat("  ", argname, ": [NULL]\n", sep = "")
-      } else if (argname == "family") {
-        cat("  ", argname, ":\n", sep = "")
-        print(val)
-      } else if (argname == "prior_list" && is.list(val)) {
-        cat("  prior_list:\n")
-        for (pname in names(val)) {
-          pval <- val[[pname]]
-          cat("    ", pname, ":\n", sep = "")
-          if (is.null(pval)) {
-            cat("      [NULL]\n")
-          } else if (is.atomic(pval) || is.matrix(pval)) {
-            print(pval)
-          } else {
-            cat("      [", class(pval), " with length ", length(pval), "]\n", sep = "")
-          }
-        }
-      } else {
-        cat("  ", argname, ":\n", sep = "")
-        if (is.atomic(val) || is.matrix(val)) {
-          print(val)
-        } else {
-          cat("    [", class(val), " with length ", length(val), "]\n", sep = "")
-        }
-      }
-    }
-  } else {
-    cat("\nArguments Passed: [none recorded]\n")
-  }
-  
-  invisible(x)
-}
-
-
-
-
-
 
 
 #' @family simfuncs
@@ -453,27 +395,6 @@ rGamma_reg <- function(
   
   return(outlist)
 }
-
-
-#' @export
-#' @rdname simfuncs
-#' @order 6
-#' @method print rGamma_reg
-
-print.rGamma_reg<-function (x, digits = max(3, getOption("digits") - 3), ...) 
-{
-  
-  cat("\nCall:  ", paste(deparse(x$call), sep = "\n", collapse = "\n"), 
-      "\n\n", sep = "")
-  if (length(coef(x))) {
-    cat("Simulated Dispersion")
-    cat(":\n")
-    print.default(format(x$dispersion, digits = digits), 
-                  print.gap = 2, quote = FALSE)
-  }
-  else cat("No coefficients\n\n")
-}
-
 
 
 ## Internal: intercept-only likelihood + ancillary restrictions for scalar closed-form conjugate updates

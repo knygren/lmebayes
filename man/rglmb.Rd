@@ -2,7 +2,6 @@
 % Please edit documentation in R/rglmb.R
 \name{rglmb}
 \alias{rglmb}
-\alias{print.rglmb}
 \title{The Bayesian Generalized Linear Model Distribution}
 \usage{
 rglmb(
@@ -19,8 +18,6 @@ rglmb(
   use_opencl = FALSE,
   verbose = FALSE
 )
-
-\method{print}{rglmb}(x, digits = max(3, getOption("digits") - 3), ...)
 }
 \arguments{
 \item{n}{number of draws to generate. If \code{length(n) > 1}, the length is taken to be the number required.}
@@ -59,15 +56,6 @@ envelopes.}
 \item{use_opencl}{Logical. Whether to use OpenCL acceleration during Envelope construction.}
 
 \item{verbose}{Logical. Whether to print progress messages.}
-
-\item{digits}{the number of significant digits to use when printing.}
-
-\item{...}{
-    For \code{glm}: arguments to be used to form the default
-    \code{control} argument if it is not supplied directly.
-
-    For \code{weights}: further arguments passed to or from other methods.
-  }
 }
 \value{
 \code{rglmb} returns a object of class \code{"rglmb"}.  The function \code{summary}

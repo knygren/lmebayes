@@ -1,1 +1,1 @@
-utils::globalVariables(c("_glmbayes_gpu_names"))
+utils::globalVariables(c("_lmebayes_gpu_names"))

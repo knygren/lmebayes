@@ -199,8 +199,12 @@ not change the posterior mean of \eqn{\sigma^2} or the covariance of \eqn{\beta}
 heavy-tailed. Not yet used in calibration; passed through to \code{\link{compute_gaussian_prior}}
 for future use.}
 
-\item{...}{For \code{lm()}: additional arguments to be passed to the low level
-    regression fitting functions (see below).}
+\item{...}{
+    For \code{glm}: arguments to be used to form the default
+    \code{control} argument if it is not supplied directly.
+
+    For \code{weights}: further arguments passed to or from other methods.
+  }
 }
 \value{
 A named list of class \code{"mrglmb"}. Metadata (\code{call}, \code{y},

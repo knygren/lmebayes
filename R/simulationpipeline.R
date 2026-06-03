@@ -586,29 +586,6 @@ glmbfamfunc<-function(family, lik_shape = 1){
 }
 
 
-#' @rdname glmbfamfunc
-#' @order 2
-#' @method print glmbfamfunc
-#' @export
-
-
-print.glmbfamfunc<-function(x,...)
-{
-  cat("Call:\n")
-  print(x$call)
-  cat("\nNegative Log-Likelihood Function:\nf1<-")
-  print(x$f1)
-  cat("\n(Negative Log-Posterior Function:\nf2<-")
-  print(x$f2)
-  cat("\nNegative Log-Posterior Gradient Function:\nf3<-")
-  print(x$f3)
-  cat("\nDeviance Function:\nf4<-")
-  print(x$f4)
-  
-  
-}
-
-
 #' Standardize A Non-Gaussian Model
 #'
 #' Standardizes a Non-Gaussian Model prior to Envelope Creation

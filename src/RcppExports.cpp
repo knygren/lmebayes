@@ -13,7 +13,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // rNormalGLM_cpp_export
 Rcpp::List rNormalGLM_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericVector& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& offset, const Rcpp::NumericVector& wt, double dispersion, const Rcpp::Function& f2, const Rcpp::Function& f3, const Rcpp::NumericVector& start, const std::string& family, const std::string& link, int Gridtype, int n_envopt, bool use_parallel, bool use_opencl, bool verbose);
-RcppExport SEXP _glmbayes_rNormalGLM_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP dispersionSEXP, SEXP f2SEXP, SEXP f3SEXP, SEXP startSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP GridtypeSEXP, SEXP n_envoptSEXP, SEXP use_parallelSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_rNormalGLM_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP dispersionSEXP, SEXP f2SEXP, SEXP f3SEXP, SEXP startSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP GridtypeSEXP, SEXP n_envoptSEXP, SEXP use_parallelSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -41,7 +41,7 @@ END_RCPP
 }
 // rNormalGLMBlocks_cpp_export
 Rcpp::List rNormalGLMBlocks_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericVector& offset, const Rcpp::NumericVector& wt, const Rcpp::NumericVector& dispersion, const Rcpp::NumericMatrix& mu, const Rcpp::List& P_blocks, bool prior_by_block, const Rcpp::List& row_blocks, const Rcpp::Function& f2, const Rcpp::Function& f3, const std::string& family, const std::string& link, int Gridtype, int n_envopt, bool use_parallel, bool use_opencl, bool verbose);
-RcppExport SEXP _glmbayes_rNormalGLMBlocks_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP dispersionSEXP, SEXP muSEXP, SEXP P_blocksSEXP, SEXP prior_by_blockSEXP, SEXP row_blocksSEXP, SEXP f2SEXP, SEXP f3SEXP, SEXP familySEXP, SEXP linkSEXP, SEXP GridtypeSEXP, SEXP n_envoptSEXP, SEXP use_parallelSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_rNormalGLMBlocks_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP dispersionSEXP, SEXP muSEXP, SEXP P_blocksSEXP, SEXP prior_by_blockSEXP, SEXP row_blocksSEXP, SEXP f2SEXP, SEXP f3SEXP, SEXP familySEXP, SEXP linkSEXP, SEXP GridtypeSEXP, SEXP n_envoptSEXP, SEXP use_parallelSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -70,7 +70,7 @@ END_RCPP
 }
 // rNormalReg_cpp_export
 Rcpp::List rNormalReg_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericVector& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& offset, const Rcpp::NumericVector& wt, double dispersion, const Rcpp::Function& f2, const Rcpp::Function& f3, const Rcpp::NumericVector& start, const std::string& family, const std::string& link, int Gridtype);
-RcppExport SEXP _glmbayes_rNormalReg_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP dispersionSEXP, SEXP f2SEXP, SEXP f3SEXP, SEXP startSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP GridtypeSEXP) {
+RcppExport SEXP _lmebayes_rNormalReg_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP dispersionSEXP, SEXP f2SEXP, SEXP f3SEXP, SEXP startSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP GridtypeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -94,7 +94,7 @@ END_RCPP
 }
 // rIndepNormalGammaReg_cpp_export
 Rcpp::List rIndepNormalGammaReg_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericVector& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& offset, const Rcpp::NumericVector& wt, double shape, double rate, double max_disp_perc, Rcpp::Nullable<Rcpp::NumericVector> disp_lower, Rcpp::Nullable<Rcpp::NumericVector> disp_upper, int Gridtype, int n_envopt, bool use_parallel, bool use_opencl, bool verbose, bool progbar);
-RcppExport SEXP _glmbayes_rIndepNormalGammaReg_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP GridtypeSEXP, SEXP n_envoptSEXP, SEXP use_parallelSEXP, SEXP use_openclSEXP, SEXP verboseSEXP, SEXP progbarSEXP) {
+RcppExport SEXP _lmebayes_rIndepNormalGammaReg_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP GridtypeSEXP, SEXP n_envoptSEXP, SEXP use_parallelSEXP, SEXP use_openclSEXP, SEXP verboseSEXP, SEXP progbarSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -122,7 +122,7 @@ END_RCPP
 }
 // rNormalGammaReg_cpp_export
 Rcpp::List rNormalGammaReg_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericVector& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& offset, const Rcpp::NumericVector& wt, double shape, double rate, Rcpp::Nullable<double> max_disp_perc, Rcpp::Nullable<double> disp_lower, Rcpp::Nullable<double> disp_upper, bool verbose);
-RcppExport SEXP _glmbayes_rNormalGammaReg_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_rNormalGammaReg_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -145,7 +145,7 @@ END_RCPP
 }
 // rGammaGaussian_cpp_export
 Rcpp::List rGammaGaussian_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericVector& beta, const Rcpp::NumericVector& wt, const Rcpp::NumericVector& alpha, double shape, double rate, Rcpp::Nullable<double> disp_lower, Rcpp::Nullable<double> disp_upper, bool verbose);
-RcppExport SEXP _glmbayes_rGammaGaussian_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP betaSEXP, SEXP wtSEXP, SEXP alphaSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_rGammaGaussian_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP betaSEXP, SEXP wtSEXP, SEXP alphaSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -166,7 +166,7 @@ END_RCPP
 }
 // rGammaGamma_cpp_export
 Rcpp::List rGammaGamma_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericVector& beta, const Rcpp::NumericVector& wt, const Rcpp::NumericVector& alpha, double shape, double rate, double max_disp_perc, Rcpp::Nullable<double> disp_lower, Rcpp::Nullable<double> disp_upper, bool verbose);
-RcppExport SEXP _glmbayes_rGammaGamma_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP betaSEXP, SEXP wtSEXP, SEXP alphaSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_rGammaGamma_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP betaSEXP, SEXP wtSEXP, SEXP alphaSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -188,7 +188,7 @@ END_RCPP
 }
 // rNormalGLM_std_cpp_export
 Rcpp::List rNormalGLM_std_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericMatrix& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& alpha, const Rcpp::NumericVector& wt, const Rcpp::Function& f2, const Rcpp::List& Envelope, const Rcpp::CharacterVector& family, const Rcpp::CharacterVector& link, int progbar, bool verbose);
-RcppExport SEXP _glmbayes_rNormalGLM_std_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP f2SEXP, SEXP EnvelopeSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP progbarSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_rNormalGLM_std_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP f2SEXP, SEXP EnvelopeSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP progbarSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -211,7 +211,7 @@ END_RCPP
 }
 // EnvelopeSize_cpp_export
 Rcpp::List EnvelopeSize_cpp_export(const arma::vec& a, const Rcpp::NumericMatrix& G1, int Gridtype, int n, int n_envopt, bool use_opencl, bool verbose);
-RcppExport SEXP _glmbayes_EnvelopeSize_cpp_export(SEXP aSEXP, SEXP G1SEXP, SEXP GridtypeSEXP, SEXP nSEXP, SEXP n_envoptSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_EnvelopeSize_cpp_export(SEXP aSEXP, SEXP G1SEXP, SEXP GridtypeSEXP, SEXP nSEXP, SEXP n_envoptSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -228,7 +228,7 @@ END_RCPP
 }
 // EnvelopeBuild_cpp_export
 Rcpp::List EnvelopeBuild_cpp_export(Rcpp::NumericVector bStar, Rcpp::NumericMatrix A, Rcpp::NumericVector y, Rcpp::NumericMatrix x, Rcpp::NumericMatrix mu, Rcpp::NumericMatrix P, Rcpp::NumericVector alpha, Rcpp::NumericVector wt, std::string family, std::string link, int Gridtype, int n, int n_envopt, bool sortgrid, bool use_opencl, bool verbose);
-RcppExport SEXP _glmbayes_EnvelopeBuild_cpp_export(SEXP bStarSEXP, SEXP ASEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP GridtypeSEXP, SEXP nSEXP, SEXP n_envoptSEXP, SEXP sortgridSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_EnvelopeBuild_cpp_export(SEXP bStarSEXP, SEXP ASEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP GridtypeSEXP, SEXP nSEXP, SEXP n_envoptSEXP, SEXP sortgridSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -254,7 +254,7 @@ END_RCPP
 }
 // EnvelopeBuild_Ind_Normal_Gamma_cpp_export
 Rcpp::List EnvelopeBuild_Ind_Normal_Gamma_cpp_export(const Rcpp::NumericVector& bStar, const Rcpp::NumericMatrix& A, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericMatrix& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& alpha, const Rcpp::NumericVector& wt, const std::string& family, const std::string& link, int Gridtype, int n, int n_envopt, bool sortgrid, bool use_opencl, bool verbose);
-RcppExport SEXP _glmbayes_EnvelopeBuild_Ind_Normal_Gamma_cpp_export(SEXP bStarSEXP, SEXP ASEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP GridtypeSEXP, SEXP nSEXP, SEXP n_envoptSEXP, SEXP sortgridSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_EnvelopeBuild_Ind_Normal_Gamma_cpp_export(SEXP bStarSEXP, SEXP ASEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP GridtypeSEXP, SEXP nSEXP, SEXP n_envoptSEXP, SEXP sortgridSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -280,7 +280,7 @@ END_RCPP
 }
 // EnvelopeEval_cpp_export
 Rcpp::List EnvelopeEval_cpp_export(const Rcpp::NumericMatrix& G4, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericMatrix& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& alpha, const Rcpp::NumericVector& wt, const std::string& family, const std::string& link, bool use_opencl, bool verbose);
-RcppExport SEXP _glmbayes_EnvelopeEval_cpp_export(SEXP G4SEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_EnvelopeEval_cpp_export(SEXP G4SEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -301,7 +301,7 @@ END_RCPP
 }
 // EnvelopeDispersionBuild_cpp_export
 Rcpp::List EnvelopeDispersionBuild_cpp_export(const Rcpp::List& Env, double Shape, double Rate, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericVector& alpha, int n_obs, double RSS_post, double RSS_ML, const Rcpp::NumericMatrix& mu, const Rcpp::NumericVector& wt, double max_disp_perc, Rcpp::Nullable<double> disp_lower, Rcpp::Nullable<double> disp_upper, bool verbose, bool use_parallel);
-RcppExport SEXP _glmbayes_EnvelopeDispersionBuild_cpp_export(SEXP EnvSEXP, SEXP ShapeSEXP, SEXP RateSEXP, SEXP PSEXP, SEXP ySEXP, SEXP xSEXP, SEXP alphaSEXP, SEXP n_obsSEXP, SEXP RSS_postSEXP, SEXP RSS_MLSEXP, SEXP muSEXP, SEXP wtSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP verboseSEXP, SEXP use_parallelSEXP) {
+RcppExport SEXP _lmebayes_EnvelopeDispersionBuild_cpp_export(SEXP EnvSEXP, SEXP ShapeSEXP, SEXP RateSEXP, SEXP PSEXP, SEXP ySEXP, SEXP xSEXP, SEXP alphaSEXP, SEXP n_obsSEXP, SEXP RSS_postSEXP, SEXP RSS_MLSEXP, SEXP muSEXP, SEXP wtSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP verboseSEXP, SEXP use_parallelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -328,7 +328,7 @@ END_RCPP
 }
 // EnvelopeOrchestrator_cpp_export
 Rcpp::List EnvelopeOrchestrator_cpp_export(const Rcpp::NumericVector& bstar2, const Rcpp::NumericMatrix& A, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x2, const Rcpp::NumericMatrix& mu2, const Rcpp::NumericMatrix& P2, const Rcpp::NumericVector& alpha, const Rcpp::NumericVector& wt, int n, int Gridtype, Rcpp::Nullable<int> n_envopt, double shape, double rate, double RSS_Post2, double RSS_ML, double max_disp_perc, Rcpp::Nullable<double> disp_lower, Rcpp::Nullable<double> disp_upper, bool use_parallel, bool use_opencl, bool verbose);
-RcppExport SEXP _glmbayes_EnvelopeOrchestrator_cpp_export(SEXP bstar2SEXP, SEXP ASEXP, SEXP ySEXP, SEXP x2SEXP, SEXP mu2SEXP, SEXP P2SEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP nSEXP, SEXP GridtypeSEXP, SEXP n_envoptSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP RSS_Post2SEXP, SEXP RSS_MLSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP use_parallelSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_EnvelopeOrchestrator_cpp_export(SEXP bstar2SEXP, SEXP ASEXP, SEXP ySEXP, SEXP x2SEXP, SEXP mu2SEXP, SEXP P2SEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP nSEXP, SEXP GridtypeSEXP, SEXP n_envoptSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP RSS_Post2SEXP, SEXP RSS_MLSEXP, SEXP max_disp_percSEXP, SEXP disp_lowerSEXP, SEXP disp_upperSEXP, SEXP use_parallelSEXP, SEXP use_openclSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -359,7 +359,7 @@ END_RCPP
 }
 // EnvelopeCentering_cpp_export
 Rcpp::List EnvelopeCentering_cpp_export(const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericVector& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& offset, const Rcpp::NumericVector& wt, double shape, double rate, int Gridtype, bool verbose);
-RcppExport SEXP _glmbayes_EnvelopeCentering_cpp_export(SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP GridtypeSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_EnvelopeCentering_cpp_export(SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP offsetSEXP, SEXP wtSEXP, SEXP shapeSEXP, SEXP rateSEXP, SEXP GridtypeSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -379,7 +379,7 @@ END_RCPP
 }
 // EnvelopeSet_Grid_cpp_export
 Rcpp::List EnvelopeSet_Grid_cpp_export(const Rcpp::NumericMatrix& GIndex, const Rcpp::NumericMatrix& cbars, const Rcpp::NumericMatrix& Lint);
-RcppExport SEXP _glmbayes_EnvelopeSet_Grid_cpp_export(SEXP GIndexSEXP, SEXP cbarsSEXP, SEXP LintSEXP) {
+RcppExport SEXP _lmebayes_EnvelopeSet_Grid_cpp_export(SEXP GIndexSEXP, SEXP cbarsSEXP, SEXP LintSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -392,7 +392,7 @@ END_RCPP
 }
 // EnvelopeSet_LogP_cpp_export
 Rcpp::List EnvelopeSet_LogP_cpp_export(const Rcpp::NumericMatrix& logP, const Rcpp::NumericVector& NegLL, const Rcpp::NumericMatrix& cbars, const Rcpp::NumericMatrix& G3);
-RcppExport SEXP _glmbayes_EnvelopeSet_LogP_cpp_export(SEXP logPSEXP, SEXP NegLLSEXP, SEXP cbarsSEXP, SEXP G3SEXP) {
+RcppExport SEXP _lmebayes_EnvelopeSet_LogP_cpp_export(SEXP logPSEXP, SEXP NegLLSEXP, SEXP cbarsSEXP, SEXP G3SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -406,7 +406,7 @@ END_RCPP
 }
 // rIndepNormalGammaReg_std_cpp_export
 Rcpp::List rIndepNormalGammaReg_std_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericMatrix& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& alpha, const Rcpp::NumericVector& wt, const Rcpp::Function& f2, const Rcpp::List& Envelope, const Rcpp::List& gamma_list, const Rcpp::List& UB_list, const Rcpp::CharacterVector& family, const Rcpp::CharacterVector& link, bool progbar, bool verbose);
-RcppExport SEXP _glmbayes_rIndepNormalGammaReg_std_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP f2SEXP, SEXP EnvelopeSEXP, SEXP gamma_listSEXP, SEXP UB_listSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP progbarSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_rIndepNormalGammaReg_std_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP f2SEXP, SEXP EnvelopeSEXP, SEXP gamma_listSEXP, SEXP UB_listSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP progbarSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -431,7 +431,7 @@ END_RCPP
 }
 // rIndepNormalGammaReg_std_parallel_cpp_export
 Rcpp::List rIndepNormalGammaReg_std_parallel_cpp_export(int n, const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericMatrix& mu, const Rcpp::NumericMatrix& P, const Rcpp::NumericVector& alpha, const Rcpp::NumericVector& wt, const Rcpp::Function& f2, const Rcpp::List& Envelope, const Rcpp::List& gamma_list, const Rcpp::List& UB_list, const Rcpp::CharacterVector& family, const Rcpp::CharacterVector& link, bool progbar, bool verbose);
-RcppExport SEXP _glmbayes_rIndepNormalGammaReg_std_parallel_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP f2SEXP, SEXP EnvelopeSEXP, SEXP gamma_listSEXP, SEXP UB_listSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP progbarSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_rIndepNormalGammaReg_std_parallel_cpp_export(SEXP nSEXP, SEXP ySEXP, SEXP xSEXP, SEXP muSEXP, SEXP PSEXP, SEXP alphaSEXP, SEXP wtSEXP, SEXP f2SEXP, SEXP EnvelopeSEXP, SEXP gamma_listSEXP, SEXP UB_listSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP progbarSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -456,7 +456,7 @@ END_RCPP
 }
 // glmb_Standardize_Model_cpp_export
 Rcpp::List glmb_Standardize_Model_cpp_export(const Rcpp::NumericVector& y, const Rcpp::NumericMatrix& x, const Rcpp::NumericMatrix& P, const Rcpp::NumericMatrix& bstar, const Rcpp::NumericMatrix& A1);
-RcppExport SEXP _glmbayes_glmb_Standardize_Model_cpp_export(SEXP ySEXP, SEXP xSEXP, SEXP PSEXP, SEXP bstarSEXP, SEXP A1SEXP) {
+RcppExport SEXP _lmebayes_glmb_Standardize_Model_cpp_export(SEXP ySEXP, SEXP xSEXP, SEXP PSEXP, SEXP bstarSEXP, SEXP A1SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -471,7 +471,7 @@ END_RCPP
 }
 // load_kernel_source_wrapper_cpp_export
 std::string load_kernel_source_wrapper_cpp_export(const std::string& relative_path, const std::string& package);
-RcppExport SEXP _glmbayes_load_kernel_source_wrapper_cpp_export(SEXP relative_pathSEXP, SEXP packageSEXP) {
+RcppExport SEXP _lmebayes_load_kernel_source_wrapper_cpp_export(SEXP relative_pathSEXP, SEXP packageSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -483,7 +483,7 @@ END_RCPP
 }
 // load_kernel_library_wrapper_cpp_export
 std::string load_kernel_library_wrapper_cpp_export(const std::string& subdir, const std::string& package, bool verbose);
-RcppExport SEXP _glmbayes_load_kernel_library_wrapper_cpp_export(SEXP subdirSEXP, SEXP packageSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _lmebayes_load_kernel_library_wrapper_cpp_export(SEXP subdirSEXP, SEXP packageSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -496,7 +496,7 @@ END_RCPP
 }
 // has_opencl_cpp_export
 bool has_opencl_cpp_export();
-RcppExport SEXP _glmbayes_has_opencl_cpp_export() {
+RcppExport SEXP _lmebayes_has_opencl_cpp_export() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -506,7 +506,7 @@ END_RCPP
 }
 // get_opencl_core_count_cpp_export
 int get_opencl_core_count_cpp_export();
-RcppExport SEXP _glmbayes_get_opencl_core_count_cpp_export() {
+RcppExport SEXP _lmebayes_get_opencl_core_count_cpp_export() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -516,7 +516,7 @@ END_RCPP
 }
 // gpu_names_cpp_export
 Rcpp::CharacterVector gpu_names_cpp_export();
-RcppExport SEXP _glmbayes_gpu_names_cpp_export() {
+RcppExport SEXP _lmebayes_gpu_names_cpp_export() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -526,35 +526,35 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_glmbayes_rNormalGLM_cpp_export", (DL_FUNC) &_glmbayes_rNormalGLM_cpp_export, 18},
-    {"_glmbayes_rNormalGLMBlocks_cpp_export", (DL_FUNC) &_glmbayes_rNormalGLMBlocks_cpp_export, 19},
-    {"_glmbayes_rNormalReg_cpp_export", (DL_FUNC) &_glmbayes_rNormalReg_cpp_export, 14},
-    {"_glmbayes_rIndepNormalGammaReg_cpp_export", (DL_FUNC) &_glmbayes_rIndepNormalGammaReg_cpp_export, 18},
-    {"_glmbayes_rNormalGammaReg_cpp_export", (DL_FUNC) &_glmbayes_rNormalGammaReg_cpp_export, 13},
-    {"_glmbayes_rGammaGaussian_cpp_export", (DL_FUNC) &_glmbayes_rGammaGaussian_cpp_export, 11},
-    {"_glmbayes_rGammaGamma_cpp_export", (DL_FUNC) &_glmbayes_rGammaGamma_cpp_export, 12},
-    {"_glmbayes_rNormalGLM_std_cpp_export", (DL_FUNC) &_glmbayes_rNormalGLM_std_cpp_export, 13},
-    {"_glmbayes_EnvelopeSize_cpp_export", (DL_FUNC) &_glmbayes_EnvelopeSize_cpp_export, 7},
-    {"_glmbayes_EnvelopeBuild_cpp_export", (DL_FUNC) &_glmbayes_EnvelopeBuild_cpp_export, 16},
-    {"_glmbayes_EnvelopeBuild_Ind_Normal_Gamma_cpp_export", (DL_FUNC) &_glmbayes_EnvelopeBuild_Ind_Normal_Gamma_cpp_export, 16},
-    {"_glmbayes_EnvelopeEval_cpp_export", (DL_FUNC) &_glmbayes_EnvelopeEval_cpp_export, 11},
-    {"_glmbayes_EnvelopeDispersionBuild_cpp_export", (DL_FUNC) &_glmbayes_EnvelopeDispersionBuild_cpp_export, 17},
-    {"_glmbayes_EnvelopeOrchestrator_cpp_export", (DL_FUNC) &_glmbayes_EnvelopeOrchestrator_cpp_export, 21},
-    {"_glmbayes_EnvelopeCentering_cpp_export", (DL_FUNC) &_glmbayes_EnvelopeCentering_cpp_export, 10},
-    {"_glmbayes_EnvelopeSet_Grid_cpp_export", (DL_FUNC) &_glmbayes_EnvelopeSet_Grid_cpp_export, 3},
-    {"_glmbayes_EnvelopeSet_LogP_cpp_export", (DL_FUNC) &_glmbayes_EnvelopeSet_LogP_cpp_export, 4},
-    {"_glmbayes_rIndepNormalGammaReg_std_cpp_export", (DL_FUNC) &_glmbayes_rIndepNormalGammaReg_std_cpp_export, 15},
-    {"_glmbayes_rIndepNormalGammaReg_std_parallel_cpp_export", (DL_FUNC) &_glmbayes_rIndepNormalGammaReg_std_parallel_cpp_export, 15},
-    {"_glmbayes_glmb_Standardize_Model_cpp_export", (DL_FUNC) &_glmbayes_glmb_Standardize_Model_cpp_export, 5},
-    {"_glmbayes_load_kernel_source_wrapper_cpp_export", (DL_FUNC) &_glmbayes_load_kernel_source_wrapper_cpp_export, 2},
-    {"_glmbayes_load_kernel_library_wrapper_cpp_export", (DL_FUNC) &_glmbayes_load_kernel_library_wrapper_cpp_export, 3},
-    {"_glmbayes_has_opencl_cpp_export", (DL_FUNC) &_glmbayes_has_opencl_cpp_export, 0},
-    {"_glmbayes_get_opencl_core_count_cpp_export", (DL_FUNC) &_glmbayes_get_opencl_core_count_cpp_export, 0},
-    {"_glmbayes_gpu_names_cpp_export", (DL_FUNC) &_glmbayes_gpu_names_cpp_export, 0},
+    {"_lmebayes_rNormalGLM_cpp_export", (DL_FUNC) &_lmebayes_rNormalGLM_cpp_export, 18},
+    {"_lmebayes_rNormalGLMBlocks_cpp_export", (DL_FUNC) &_lmebayes_rNormalGLMBlocks_cpp_export, 19},
+    {"_lmebayes_rNormalReg_cpp_export", (DL_FUNC) &_lmebayes_rNormalReg_cpp_export, 14},
+    {"_lmebayes_rIndepNormalGammaReg_cpp_export", (DL_FUNC) &_lmebayes_rIndepNormalGammaReg_cpp_export, 18},
+    {"_lmebayes_rNormalGammaReg_cpp_export", (DL_FUNC) &_lmebayes_rNormalGammaReg_cpp_export, 13},
+    {"_lmebayes_rGammaGaussian_cpp_export", (DL_FUNC) &_lmebayes_rGammaGaussian_cpp_export, 11},
+    {"_lmebayes_rGammaGamma_cpp_export", (DL_FUNC) &_lmebayes_rGammaGamma_cpp_export, 12},
+    {"_lmebayes_rNormalGLM_std_cpp_export", (DL_FUNC) &_lmebayes_rNormalGLM_std_cpp_export, 13},
+    {"_lmebayes_EnvelopeSize_cpp_export", (DL_FUNC) &_lmebayes_EnvelopeSize_cpp_export, 7},
+    {"_lmebayes_EnvelopeBuild_cpp_export", (DL_FUNC) &_lmebayes_EnvelopeBuild_cpp_export, 16},
+    {"_lmebayes_EnvelopeBuild_Ind_Normal_Gamma_cpp_export", (DL_FUNC) &_lmebayes_EnvelopeBuild_Ind_Normal_Gamma_cpp_export, 16},
+    {"_lmebayes_EnvelopeEval_cpp_export", (DL_FUNC) &_lmebayes_EnvelopeEval_cpp_export, 11},
+    {"_lmebayes_EnvelopeDispersionBuild_cpp_export", (DL_FUNC) &_lmebayes_EnvelopeDispersionBuild_cpp_export, 17},
+    {"_lmebayes_EnvelopeOrchestrator_cpp_export", (DL_FUNC) &_lmebayes_EnvelopeOrchestrator_cpp_export, 21},
+    {"_lmebayes_EnvelopeCentering_cpp_export", (DL_FUNC) &_lmebayes_EnvelopeCentering_cpp_export, 10},
+    {"_lmebayes_EnvelopeSet_Grid_cpp_export", (DL_FUNC) &_lmebayes_EnvelopeSet_Grid_cpp_export, 3},
+    {"_lmebayes_EnvelopeSet_LogP_cpp_export", (DL_FUNC) &_lmebayes_EnvelopeSet_LogP_cpp_export, 4},
+    {"_lmebayes_rIndepNormalGammaReg_std_cpp_export", (DL_FUNC) &_lmebayes_rIndepNormalGammaReg_std_cpp_export, 15},
+    {"_lmebayes_rIndepNormalGammaReg_std_parallel_cpp_export", (DL_FUNC) &_lmebayes_rIndepNormalGammaReg_std_parallel_cpp_export, 15},
+    {"_lmebayes_glmb_Standardize_Model_cpp_export", (DL_FUNC) &_lmebayes_glmb_Standardize_Model_cpp_export, 5},
+    {"_lmebayes_load_kernel_source_wrapper_cpp_export", (DL_FUNC) &_lmebayes_load_kernel_source_wrapper_cpp_export, 2},
+    {"_lmebayes_load_kernel_library_wrapper_cpp_export", (DL_FUNC) &_lmebayes_load_kernel_library_wrapper_cpp_export, 3},
+    {"_lmebayes_has_opencl_cpp_export", (DL_FUNC) &_lmebayes_has_opencl_cpp_export, 0},
+    {"_lmebayes_get_opencl_core_count_cpp_export", (DL_FUNC) &_lmebayes_get_opencl_core_count_cpp_export, 0},
+    {"_lmebayes_gpu_names_cpp_export", (DL_FUNC) &_lmebayes_gpu_names_cpp_export, 0},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_glmbayes(DllInfo *dll) {
+RcppExport void R_init_lmebayes(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

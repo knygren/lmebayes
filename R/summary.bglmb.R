@@ -3,7 +3,7 @@
 #' @description
 #' Methods for row-block \code{\link{glmb}} fits (class \code{"bglmb"}).
 #' \code{summary.bglmb} applies \code{\link{summary.glmb}} to each block;
-#' printing follows \code{\link{summary.mlmb}} / \code{\link{summary.blmb}} with
+#' printing follows \code{\link[glmbayes]{summary.mlmb}} / \code{\link{summary.blmb}} with
 #' per-block sections.
 #'
 #' @param object An object of class \code{"bglmb"} from \code{\link{block_glmb}}.
@@ -13,7 +13,7 @@
 #' @return \code{summary.bglmb} returns a named list of \code{"summary.glmb"}
 #'   objects with class \code{"summary.bglmb"}.
 #' @seealso \code{\link{block_glmb}}, \code{\link{block_lmb}},
-#'   \code{\link{summary.mlmb}}, \code{\link{summary.blmb}},
+#'   \code{\link[glmbayes]{summary.mlmb}}, \code{\link{summary.blmb}},
 #'   \code{\link{summary.glmb}}
 #' @name summary.bglmb
 #' @aliases summary.bglmb print.bglmb print.summary.bglmb

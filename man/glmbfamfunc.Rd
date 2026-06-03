@@ -6,8 +6,6 @@
 \title{Return family functions used during simulation and post processing}
 \usage{
 glmbfamfunc(family, lik_shape = 1)
-
-\method{print}{glmbfamfunc}(x, ...)
 }
 \arguments{
 \item{family}{an object of class \code{\link{family}}}

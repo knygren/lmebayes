@@ -19,8 +19,6 @@ rlmb(
   verbose = FALSE,
   progbar = FALSE
 )
-
-\method{print}{rlmb}(x, digits = max(3, getOption("digits") - 3), ...)
 }
 \arguments{
 \item{n}{number of draws to generate. If \code{length(n) > 1}, the length is taken to be the number required.}
@@ -61,9 +59,6 @@ envelopes.}
 \item{progbar}{Logical. Whether to display a progress base during simulation.}
 
 \item{digits}{the number of significant digits to use when printing.}
-
-\item{...}{For \code{lm()}: additional arguments to be passed to the low level
-    regression fitting functions (see below).}
 }
 \value{
 \code{rlmb} returns a object of class \code{"rlmb"}.  The function \code{summary}
