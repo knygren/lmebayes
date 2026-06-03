@@ -1,4 +1,4 @@
-# Precompute Eight Schools two-block Gibbs outputs for vignettes/Chapter-17.Rmd:
+# Precompute Eight Schools two-block Gibbs outputs (formerly for glmbayes vignette Chapter-17):
 #   (1) Population block: dNormal_Gamma (Gibbs-suitable)
 #   (2) Population block: dIndependent_Normal_Gamma (slower)
 # Same seeds, burn-in, and stored iterations as the vignette.

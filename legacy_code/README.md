@@ -14,6 +14,6 @@ To use locally:
 2. `source("legacy_code/pp_check.glmb.R")` from the package root (after `library(glmbayes)`)
 3. Call `bayesplot::pp_check(fit, ...)` or register the method by sourcing the file
 
-Vignette chunks that previously called this method are commented out; see
-`vignettes/Chapter-05.Rmd`, `Chapter-06.Rmd`, `Chapter-12.Rmd`, and
+Vignette chunks that previously called this method are commented out in the
+**glmbayes** package (`vignette("Chapter-05", package = "glmbayes")`, etc.) and in
 `inst/examples/Ex_residuals.glmb.R`.

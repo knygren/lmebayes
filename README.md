@@ -14,8 +14,9 @@ methods based on likelihood subgradients (Nygren and Nygren, 2006). For Gaussian
 lmb(), a Bayesian counterpart to R's lm().
 
 The package includes a rich set of supporting tools for prior specification, model diagnostics, and method functions
-that mirror those for lm() and glm(). Most functions are extensively documented, and a comprehensive set of vignettes
-are available to guide users through the package's capabilities.
+that mirror those for lm() and glm(). Most functions are extensively documented.
+Background vignettes for the underlying samplers live in the **glmbayes** package (`browseVignettes("glmbayes")`).
+**lmebayes** vignettes are planned separately.
 
 This repository is **0.9.6** in development. The current **CRAN release is version 0.9.5**
 ([CRAN](https://CRAN.R-project.org/package=glmbayes)).
@@ -98,7 +99,7 @@ The returned list includes default settings for the following:
   - `shape_ING` and `rate` for use with `dIndependent_Normal_Gamma()` prior 
   - `shape`, `rate_gamma` and `coefficients` for use with the `dGamma()` prior  
 
-Optional arguments adjust prior weight, centering, and related settings (see the function help and vignette Chapter 04).
+Optional arguments adjust prior weight, centering, and related settings (see the function help and `vignette("Chapter-04", package = "glmbayes")`).
 
 ### Typical Prior_Setup wiring
 
@@ -122,7 +123,7 @@ Assuming `ps <- Prior_Setup(...)`:
   `dGamma(shape = ps$shape, rate = rate_dg, beta = ps$coefficients)`.
 
 The default priors have limiting behaviors that produce estimates resembling classical estimates as priors get weak 
-(see documentation and vignettes for details).
+(see documentation and **glmbayes** vignettes for details).
 
 All supported models have log‑concave likelihoods, enabling efficient iid sampling via enveloping functions
 and subgradient‑based accept–reject algorithms, especially for models lacking standard iid samplers. 
@@ -169,10 +170,10 @@ Use `example()` and `demo()` to explore built-in examples and demos for supporte
     ## Hierarchical generalized linear model (Poisson BikeSharing) via rglmb
     demo("Ex_09_BikeSharingPoisson")
 
-    ## Detailed simulation pipeline for rNormalGLM models (JASA 2006; Vignette Chapter A05)
+    ## Detailed simulation pipeline for rNormalGLM models (JASA 2006; glmbayes Chapter A05)
     example("rNormalGLM_std")
 
-    ## Detailed simulation pipeline for rIndepNormalGammaReg models (Vignette Chapter A07)
+    ## Detailed simulation pipeline for rIndepNormalGammaReg models (glmbayes Chapter A07)
     example("rIndepNormalGammaReg_std")
 
 ## Methodology
@@ -180,7 +181,7 @@ Use `example()` and `demo()` to explore built-in examples and demos for supporte
 For generalized linear models where well known sampling methods are unavailable, sampling follows the
 framework from Nygren and Nygren (2006), using likelihood subgradients to construct enveloping functions for
 the posterior distribution. When the posterior is approximately normal, the expected number of draws per
-acceptance is bounded as per that paper and as discussed in our vignettes.
+acceptance is bounded as per that paper and as discussed in the **glmbayes** vignettes.
 Dispersion can be sampled via `rGamma_reg()` (standalone) or jointly with coefficients via
 `rNormalGamma_reg()` and `rindepNormalGamma_reg()`.
 
@@ -189,138 +190,14 @@ Dispersion can be sampled via `rGamma_reg()` (standalone) or jointly with coeffi
 The implemented algorithms tend to have acceptable performance on CPUs up to around 10-14 dimensions.
 For larger models, the envelope construction is embarrassingly parallel. To accelerate envelope construction
 in such cases, the package provides optional GPU acceleration using OpenCL. This requires that users have
-GPU enabled machines and an OpenCL installation. These features are discussed in more detail in two of
-our vignettes.
+GPU enabled machines and an OpenCL installation. See `vignette("Chapter-16", package = "glmbayes")`
+and `vignette("Chapter-A10", package = "glmbayes")` in **glmbayes**.
 
-## Vignettes
+## Documentation
 
-The glmbayes package includes a comprehensive set of vignettes organized into five major parts.
-These vignettes guide users from introductory material through applied modeling, advanced topics,
-and the underlying simulation methods that support the package.
-
-### Part 1: An Introduction
-
-Overview of the package, its design philosophy, single-parameter conjugate models, and the basic workflow for fitting Bayesian linear and generalized linear models.
-
-- **Chapter 00 - Introduction**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-00.html
-
-- **Chapter 01 - Getting Started with glmbayes**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-01.html
-
-- **Chapter 02 — Conjugate inference for single parameters** (S01–S05)  
-  Start with [Chapter 02-S01](https://knygren.r-universe.dev/articles/glmbayes/Chapter-02-S01.html); then S02 (Normal–Normal), S03 (Beta–Binomial), S04 (Gamma–Poisson), S05 (Gamma–Gamma).
-
-### Part 2: Bayesian regression models
-
-These chapters focus on Bayesian **linear** regression (Gaussian family). Topics include **`lmb()`** fitting, **`Prior_Setup()`**, posterior predictive checks (**bayesplot**), deviance residuals and model summaries, **bayestestR**-style summaries, and the bridge to Bayesian GLMs in Part 3.
-
-- **Chapter 03 — Estimating Bayesian linear models**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-03.html
-
-- **Chapter 04 — Tailoring priors — leveraging the Prior_Setup function**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-04.html
-
-- **Chapter 05 — Model predictions and posterior predictive checks (+ bayesplot `ppc_*`)**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-05.html
-
-- **Chapter 06 — Deviance residuals, model statistics and posterior inference (+ bayestestR)**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-06.html
-
-### Part 3: Generalized Linear Models
-This part presents Bayesian GLMs across the major likelihood families, including binomial,
-quasi-binomial, Poisson, quasi-Poisson, and Gamma models. It covers model specification,
-link functions, log-concavity, diagnostics, interpretation of posterior results, and tooling
-(**bayesplot**, **bayestestR**) for visualization and summaries.
-
-- **Chapter 07 — Foundations of GLMs — families, links, and log-concave likelihoods**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-07.html
-
-- **Chapter 08 — Estimating Bayesian generalized linear models**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-08.html
-
-- **Chapter 09 — Models for the Binomial family**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-09.html
-
-- **Chapter 10 — Models for the Poisson family**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-10.html
-
-- **Chapter 11 — Models for the Gamma family**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-11.html
-
-- **Chapter 12 — Visualizing posteriors with bayesplot**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-12.html
-
-- **Chapter 13 — Bayesian inference and decision making with bayestestR**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-13.html
-
-### Part 4: Advanced Topics
-These chapters explore more complex modeling scenarios and computational strategies, such as
-informative priors, two-block Gibbs sampling, linear and generalized linear mixed-effects models,
-models with unknown dispersion parameters, and large-scale model fitting using GPU acceleration
-using OpenCL.
-
-- **Chapter 14 — Informative priors — centering and differential prior weights**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-14.html
-
-- **Chapter 15 — Estimating models with unknown dispersion parameters**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-15.html
-
-- **Chapter 16 — Large models: GPU acceleration using OpenCL**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-16.html
-
-- **Chapter 17 — Linear mixed-effects models**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-17.html
-
-- **Chapter 18 — Generalized linear mixed-effects models**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-18.html
-
-### Part 5: Simulation Methods and Technical Implementation
-This part documents the mathematical and algorithmic foundations of the package. Topics include
-estimation procedures, likelihood subgradient densities, envelope construction, accept-reject
-sampling, and technical reports on sampler design including implementation aspects for GPU acceleration using
-OpenCL.
-
-- **Chapter A01 - A detailed overview of the glmbayes package**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A01.html
-
-- **Chapter A02 - Overview of Estimation Procedures**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A02.html
-
-- **Chapter A03 - Methods Available in glmbayes**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A03.html
-
-- **Chapter A04 - Directional Tail Diagnostics for Prior-Posterior Disagreement**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A04.html
-
-- **Chapter A05 - Simulation Methods - Likelihood Subgradient Densities**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A05.html
-
-- **Chapter A06 - Accept-Reject Sampling for Dispersion in Gamma Regression**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A06.html
-
-- **Chapter A07 - Accept-Reject Sampling for gaussian Regression models with independent normal-gamma priors**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A07.html
-
-- **Chapter A08 - Overview of Envelope Related Functions**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A08.html
-
-- **Chapter A09 - Parallel Sampling Implementation using RcppParallel**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A09.html
-
-- **Chapter A10 - Accelerated EnvelopeBuild Implementation using OpenCL**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A10.html
-
-- **Chapter A11 - Implementation Companion for Independent Normal-Gamma**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A11.html
-
-- **Chapter A12 - Technical Derivations for Priors Returned by `Prior_Setup()`**  
-https://knygren.r-universe.dev/articles/glmbayes/Chapter-A12.html
-
-
-Together, these vignettes form a comprehensive reference that supports users at all levels, 
-from first-time Bayesian GLM users to researchers interested in the mathematical and computational
-details behind the samplers.
+**lmebayes** does not ship vignettes yet; use `?lmebayes` and function help pages here.
+For GLM/Gibbs sampler background and tutorials, see **glmbayes**: `browseVignettes("glmbayes")`
+or https://knygren.r-universe.dev/articles/glmbayes/index.html .
 
 ## Feature Highlights
 
@@ -328,7 +205,7 @@ details behind the samplers.
 - Posterior predictive checks via `pp_check()` from the 'bayesplot' package for fitted `glmb` objects
 - Accept-reject sampling for log-concave likelihoods
 - Samplers for both fixed and variable dispersion
-- Extensive vignettes to guide users through the package's capabilities
+- Reuses **glmbayes** samplers and vignetted methodology (mixed-model vignettes planned for **lmebayes**)
 - Modular prior setup function
 
 ## Limitations

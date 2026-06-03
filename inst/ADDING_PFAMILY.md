@@ -246,4 +246,4 @@ the corresponding `dXxx` entry:
 | `inst/WORDLIST` | Any new technical terms flagged by spell check |
 | `tests/testthat/` | `test-dXxx.R` |
 | `inst/examples/` | `Ex_dXxx.R` |
-| `vignettes/Chapter-02-S*.Rmd` | New section in matching conjugate vignette |
+| **glmbayes** conjugate vignettes (`Chapter-02-S*.Rmd`) | New section when documenting in **glmbayes** |

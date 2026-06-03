@@ -1,4 +1,4 @@
-# Precompute outputs for vignettes/Chapter-15.Rmd (Section 3.3):
+# Precompute outputs (formerly for glmbayes vignette Chapter-15, Section 3.3):
 #   (1) lmb with dIndependent_Normal_Gamma, n = 10000
 #   (2) Two-block Gibbs (1000 burn-in, 10000 stored iterations), set.seed(180)
 #

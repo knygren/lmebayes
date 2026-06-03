@@ -56,7 +56,7 @@ when \code{has_opencl()} is \code{FALSE} (typical for CRAN binaries) but a
 GPU or OpenCL stack appears available on the host. OpenCL modelling paths
 require a source install of \pkg{glmbayes} with OpenCL at compile time;
 \code{has_opencl()} then reports whether that build succeeded. The note
-confirms full CPU use and points to \code{vignette("Chapter-16")}. Machines
+confirms full CPU use and points to \code{vignette("Chapter-16", package = "glmbayes")}. Machines
 without a detectable GPU stack stay silent.
 Set \code{options(glmbayes.quiet_opencl_startup = TRUE)} to suppress attach
 notes (recommended for CI and \command{R CMD check}).
