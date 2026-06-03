@@ -337,16 +337,13 @@ out_ing <- do.call(
 summary(out_ing)
 }
 \seealso{
-\code{\link{summary.mrglmb}}, \code{\link{multi_lmb}}, \code{\link{Prior_Setup}},
+\code{\link{summary.mrglmb}}, \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link{Prior_Setup}},
 \code{\link{rlmb}}, \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}},
 \code{\link{rindepNormalGamma_reg}}
 
 glmbayes Modeling Functions
 \code{\link{block_glmb}()},
 \code{\link{block_lmb}()},
-\code{\link{glmb}()},
-\code{\link{lmb}()},
-\code{\link{multi_lmb}()},
 \code{\link{rglmb}()},
 \code{\link{rlmb}()}
 

@@ -40,7 +40,7 @@ Prior_Check(
     family functions.)}
 
 \item{pfamily}{a description of the prior distribution and associated constants to be used in the model. This
-should be a pfamily function (see \code{\link{pfamily}} for details of pfamily functions).}
+should be a pfamily function (see \code{\link[glmbayes]{pfamily}} for details of pfamily functions).}
 
 \item{level}{the confidence level at which the Prior-data conflict should be checked.}
 
@@ -143,7 +143,7 @@ Prior_Check(counts ~ outcome + treatment,family = poisson(),
 \insertAllCited{}
 }
 \seealso{
-\code{\link{Prior_Setup}}, \code{\link{glmb}}; see \insertCite{glmbayesChapter03}{glmbayes} for prior tailoring;
+\code{\link{Prior_Setup}}, \code{\link[glmbayes]{glmb}}; see \insertCite{glmbayesChapter03}{glmbayes} for prior tailoring;
 \insertCite{glmbayesChapterA12}{glmbayes} for full derivations.
 
 Other prior: 

@@ -58,7 +58,8 @@
 #' @example inst/examples/Ex_glmbayes-package.R
 #'
 #' @seealso
-#' Main interfaces: \code{\link{glmb}}, \code{\link{lmb}},
+#' Main interfaces (in **glmbayes**): \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{lmb}};
+#' mixed-effects: \code{\link{block_lmb}}, \code{\link{block_glmb}},
 #' \code{\link{rglmb}}, \code{\link{rlmb}}; low-level simulation API
 #' \code{\link{simfuncs}}; envelope construction \code{\link{EnvelopeBuild}}.
 #'

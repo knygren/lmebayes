@@ -90,25 +90,22 @@ envelopes.}
   }
 }
 \value{
-A named list of class \code{"bglmb"} (list of \code{"glmb"} fits).
+A named list of class \code{"bglmb"} (list of \code{"glmb"} fits from \strong{glmbayes}).
 }
 \description{
-Fits one \code{\link{glmb}} per observation block. Same row partition as
+Fits one \code{\link[glmbayes]{glmb}} per observation block. Same row partition as
 \code{\link{block_lmb}}, but supports GLM \code{\link{family}} objects.
 Counterpart to \code{\link{block_lmb}}; see \code{\link{summary.bglmb}} for
 print/summary methods and \code{\link{block_rNormalGLM}} for Gibbs sampling.
 }
 \section{Functions}{
 \itemize{
-\item \code{block_glmb()}: \code{\link{glmb}} fit per row block.
+\item \code{block_glmb()}: \code{\link[glmbayes]{glmb}} fit per row block.
 
 }}
 \seealso{
 glmbayes Modeling Functions
 \code{\link{block_lmb}()},
-\code{\link{glmb}()},
-\code{\link{lmb}()},
-\code{\link{multi_lmb}()},
 \code{\link{multi_rlmb}()},
 \code{\link{rglmb}()},
 \code{\link{rlmb}()}

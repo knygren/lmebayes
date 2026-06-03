@@ -1,4 +1,4 @@
-# Sequential multi-response lmb (iris) — prototype for multi_lmb / mlmb
+# Sequential multi-response lmb (iris) — compare to glmbayes::lmb with cbind LHS / mlmb
 #
 #   Rscript data-raw/test_multi_lmb_sequential.R
 

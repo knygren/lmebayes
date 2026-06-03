@@ -105,14 +105,14 @@ envelopes.}
 A named list of class \code{"blmb"} (list of \code{"lmb"} fits).
 }
 \description{
-Fits one \code{\link{lmb}} per observation block (SAS \code{BY}-style split on
+Fits one \code{\link[glmbayes]{lmb}} per observation block (SAS \code{BY}-style split on
 rows), sharing the same formula on each subset. Contrast with
-\code{\link{multi_lmb}} (several response columns) and
+\code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
 \code{\link{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
 }
 \section{Functions}{
 \itemize{
-\item \code{block_lmb()}: Gaussian \code{\link{lmb}} fit per row block.
+\item \code{block_lmb()}: Gaussian \code{\link[glmbayes]{lmb}} fit per row block.
 
 }}
 \examples{
@@ -149,9 +149,6 @@ summary(out_blmb)
 \seealso{
 glmbayes Modeling Functions
 \code{\link{block_glmb}()},
-\code{\link{glmb}()},
-\code{\link{lmb}()},
-\code{\link{multi_lmb}()},
 \code{\link{multi_rlmb}()},
 \code{\link{rglmb}()},
 \code{\link{rlmb}()}

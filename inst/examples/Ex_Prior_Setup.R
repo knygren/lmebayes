@@ -8,13 +8,6 @@ print(d.AD <- data.frame(treatment, outcome, counts))
 ps <- Prior_Setup(counts ~ outcome + treatment, family = poisson())
 ps
 
-## Normal prior for glmb
-glmb.D93 <- glmb(
-  counts ~ outcome + treatment,
-  family = poisson(),
-  pfamily = dNormal(mu = ps$mu, Sigma = ps$Sigma)
-)
-
 ## Annette Dobson (1990) "An Introduction to Generalized Linear Models".
 ## Page 9: Plant Weight Data.
 ctl <- c(4.17, 5.58, 5.18, 6.11, 4.50, 4.61, 5.17, 4.53, 5.33, 5.14)
@@ -25,34 +18,6 @@ weight <- c(ctl, trt)
 ## Set up prior for gaussian model
 ps2 <- Prior_Setup(weight ~ group, family = gaussian())
 ps2
-
-## Conjugate Normal Prior (fixed dispersion)
-lmb.D9 <- lmb(
-  weight ~ group,
-  pfamily = dNormal(mu = ps2$mu, ps2$Sigma, dispersion = ps2$dispersion)
-)
-
-## Conjugate Normal_Gamma Prior
-lmb.D9_v2 <- lmb(
-  weight ~ group,
-  pfamily = dNormal_Gamma(
-    ps2$mu,
-    Sigma_0 = ps2$Sigma_0,
-    shape = ps2$shape,
-    rate = ps2$rate
-  )
-)
-
-## Independent_Normal_Gamma_Prior
-lmb.D9_v3 <- lmb(
-  weight ~ group,
-  dIndependent_Normal_Gamma(
-    ps2$mu,
-    ps2$Sigma,
-    shape = ps2$shape_ING,
-    rate = ps2$rate
-  )
-)
 
 ## -------------------------------------------------------------------------
 ## Matrix-input bridge: use Prior_Setup outputs with rglmb() and rlmb()
@@ -115,22 +80,8 @@ prior_list_rGamma <- list(
   rate = rate_dg
 )
 
-## Note: for a full dGamma run across rGamma_reg/rglmb/rlmb/glmb/lmb, see:
+## Note: for a full dGamma run across rGamma_reg/rglmb/rlmb, see:
 ## example("summary.rGamma_reg")
-
-## -------------------------------------------------------------------------
-## dGamma prior illustration: Prior_Setup(shape, rate_gamma or rate) + fixed beta
-## -------------------------------------------------------------------------
-## For gaussian models, Prior_Setup() provides Gamma hyperparameters for the
-## precision: tau = 1/dispersion ~ Gamma(shape, rate). The lmb() / rGamma_reg()
-## constructors consume these via dGamma(pfamily) and rGamma_reg(prior_list),
-## respectively.
-
-## dGamma via pfamily for lmb()
-lmb.D9_dGamma <- lmb(
-  weight ~ group,
-  pfamily = dGamma(shape = ps2$shape, rate = rate_dg, beta = ps2$coefficients)
-)
 
 ## dGamma via prior_list for rGamma_reg()
 out.rGamma_reg <- rGamma_reg(
@@ -157,6 +108,4 @@ ps_p <- Prior_Setup(
 if (!is.null(ps_p$conj_poisson)) {
   cp <- ps_p$conj_poisson
   pf_conj <- dGamma(shape = cp$shape, rate = cp$rate, beta = cp$beta, Inv_Dispersion = FALSE)
-  ## glmb(n = 500, formula = y ~ 1, data = df_p,
-  ##      family = poisson(link = "identity"), pfamily = pf_conj)
 }

@@ -44,7 +44,7 @@
 #' \code{attr(..., "pfamily_lists")} for \code{multi_rlmb}.
 #'
 #' @seealso
-#' \code{\link{summary.mrglmb}}, \code{\link{multi_lmb}}, \code{\link{Prior_Setup}},
+#' \code{\link{summary.mrglmb}}, \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link{Prior_Setup}},
 #' \code{\link{rlmb}}, \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}},
 #' \code{\link{rindepNormalGamma_reg}}
 #'

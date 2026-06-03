@@ -71,15 +71,6 @@ cat("\nEffective sample size (dispersion):\n")
 print(coda::effectiveSize(mcmc_two_block)["dispersion"])
 
 
-## Same model using the lmb function
-
-lmb.D9 <- lmb(n= 1000,weight  ~ group,
-  pfamily = dIndependent_Normal_Gamma(ps$mu, ps$Sigma, shape = ps$shape_ING, rate  = ps$rate))
-
-## lmb summary
-summary(lmb.D9)
-
-
 ## rlmb with dGamma prior (dispersion-only; coefficients fixed)
 out_rlmb_dGamma <- rlmb(n = 100, y = y, x = x,
   pfamily = dGamma(shape = shape, rate = rate_dg, beta = ps$coefficients),

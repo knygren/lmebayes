@@ -258,7 +258,7 @@
 #' \code{\link{dNormal}}, \code{\link{dNormal_Gamma}}, \code{\link{dGamma}},
 #' and \code{\link{dIndependent_Normal_Gamma}}.
 #'
-#' \code{\link{glmb}}, \code{\link{lmb}} for formula-based fits with a
+#' \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{lmb}} for formula-based fits with a
 #' \code{pfamily} built from \code{Prior_Setup()} output; \code{\link{rglmb}},
 #' \code{\link{rlmb}} for matrix-based sampling that consumes the same prior
 #' structure; \code{\link{simfuncs}} for functions that take a \code{prior_list}
@@ -266,7 +266,7 @@
 #' \code{\link{rindepNormalGamma_reg}} for
 #' \code{\link{dIndependent_Normal_Gamma}()}).
 #' \code{\link{multi_prior_setup}} for a matrix/cbind response with Gaussian;
-#' use with \code{\link{multi_lmb}} or \code{\link{multi_rlmb}}
+#' use with \code{\link[glmbayes]{lmb}} (\code{cbind} responses) or \code{\link{multi_rlmb}}
 #' \code{Prior_Setup} per column. 
 #'
 #' \insertCite{zellner1986gprior}{glmbayes};
@@ -1097,11 +1097,11 @@ if (!is.null(sd)) {
 #' prior-data conflict checks \insertCite{EvansMoshonov2006}{glmbayes}.
 #'
 #' @param level the confidence level at which the Prior-data conflict should be checked.
-#' @inheritParams glmb
+#' @inheritParams glmbayes::glmb
 #' @return A vector where each item provided the ratio of the absolue value for the difference between the 
 #' prior and maximum likelihood estimate divided by the length of the sum of half of the two intervals 
 #' (where normality is assumed)
-#' @seealso \code{\link{Prior_Setup}}, \code{\link{glmb}}; see \insertCite{glmbayesChapter03}{glmbayes} for prior tailoring;
+#' @seealso \code{\link{Prior_Setup}}, \code{\link[glmbayes]{glmb}}; see \insertCite{glmbayesChapter03}{glmbayes} for prior tailoring;
 #' \insertCite{glmbayesChapterA12}{glmbayes} for full derivations.
 #' @references
 #' \insertAllCited{}

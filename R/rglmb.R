@@ -7,7 +7,7 @@
 #' @name rglmb
 #' @param y a vector of observations of length \code{m}.
 #' @param x for \code{rglmb} a design matrix of dimension \code{m * p} and for \code{print.rglmb} the object to be printed. 
-#' @inheritParams glmb
+#' @inheritParams glmbayes::glmb
 #' @param n_envopt Effective sample size passed to EnvelopeOpt for grid
 #'   construction. Defaults to match `n`. Larger values encourage tighter
 #'   envelopes.
@@ -40,7 +40,7 @@
 #' @details
 #' The function \code{rglmb} is a minimalistic engine for Bayesian generalized linear model simulation. 
 #' It is designed to generate independent draws from the posterior distribution of a GLM, given a design matrix, 
-#' response vector, likelihood family, and prior specification. Unlike \code{\link{glmb}}, which wraps formula parsing, 
+#' response vector, likelihood family, and prior specification. Unlike \code{\link[glmbayes]{glmb}}, which wraps formula parsing, 
 #' model setup, and method dispatch, \code{rglmb} operates directly on numeric inputs and is optimized for speed, 
 #' transparency, and integration into simulation workflows.
 #'
@@ -72,7 +72,7 @@
 #' By default, \code{rglmb} draws \code{n = 1} sample, uses parallel CPU simulation, and-if \code{use_opencl = TRUE}-
 #' GPU-accelerated envelope building. The function returns a list containing posterior samples, prior specifications, 
 #' dispersion estimates, and the envelope used during sampling. It does not return a full model object, and does not 
-#' support formula-based modeling or method dispatch. Instead, it is called internally by \code{\link{glmb}} and 
+#' support formula-based modeling or method dispatch. Instead, it is called internally by \code{\link[glmbayes]{glmb}} and 
 #'and may be useful for Gibbs sampling implementations or other workflows where full model 
 #' reconstruction is unnecessary.
 #'  
@@ -82,7 +82,7 @@
 #' like \code{\link{rnorm}} and hence the \code{r} prefix. 
 #' 
 #' @family modelfuns
-#' @seealso \code{\link{glmb}} for the formula interface; \code{\link[stats]{lm}} and
+#' @seealso \code{\link[glmbayes]{glmb}} for the formula interface; \code{\link[stats]{lm}} and
 #' \code{\link[stats]{glm}} for classical modeling functions.
 #'
 #' \code{\link{EnvelopeBuild}}, \code{\link{EnvelopeSize}}, \code{\link{EnvelopeEval}}

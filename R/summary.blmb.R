@@ -1,7 +1,7 @@
 #' Summarize and print blmb fits
 #'
 #' @description
-#' Methods for row-block \code{\link{lmb}} fits (class \code{"blmb"}).
+#' Methods for row-block \code{\link[glmbayes]{lmb}} fits (class \code{"blmb"}).
 #'
 #' @param object An object of class \code{"blmb"} from \code{\link{block_lmb}}.
 #' @param x An object of class \code{"summary.blmb"}.

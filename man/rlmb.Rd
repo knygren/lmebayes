@@ -120,7 +120,7 @@ While \code{rlmb} does not return a full model object or support generic methods
 \code{summary}, it is designed for efficient posterior simulation in Gaussian models where full model
 reconstruction is unnecessary.
 
-The \code{\link{rlmb}} function called from within \code{\link{lmb}}.
+The \code{\link{rlmb}} function called from within \code{\link[glmbayes]{lmb}}.
 It is intended for simulation-heavy workflows such as Gibbs sampling or posterior
 predictive checks where minimal overhead is preferred.
 }
@@ -198,15 +198,6 @@ cat("\nEffective sample size (dispersion):\n")
 print(coda::effectiveSize(mcmc_two_block)["dispersion"])
 
 
-## Same model using the lmb function
-
-lmb.D9 <- lmb(n= 1000,weight  ~ group,
-  pfamily = dIndependent_Normal_Gamma(ps$mu, ps$Sigma, shape = ps$shape_ING, rate  = ps$rate))
-
-## lmb summary
-summary(lmb.D9)
-
-
 ## rlmb with dGamma prior (dispersion-only; coefficients fixed)
 out_rlmb_dGamma <- rlmb(n = 100, y = y, x = x,
   pfamily = dGamma(shape = shape, rate = rate_dg, beta = ps$coefficients),
@@ -220,7 +211,7 @@ summary(out_rlmb_dGamma)
 \seealso{
 The classical modeling functions \code{\link[stats]{lm}} and \code{\link[stats]{glm}}.
 
-\code{\link{lmb}}, \code{\link{glmb}}, \code{\link{rglmb}}, \code{\link{multi_rlmb}}
+\code{\link[glmbayes]{lmb}}, \code{\link[glmbayes]{glmb}}, \code{\link{rglmb}}, \code{\link{multi_rlmb}}
 for related interfaces;
 \code{\link{EnvelopeBuild}}, \code{\link{EnvelopeOrchestrator}} for envelope stages
 used in non-conjugate Gaussian sampling.
@@ -240,9 +231,6 @@ inherited from class \code{glmb} and the methods and generic functions for class
 glmbayes Modeling Functions
 \code{\link{block_glmb}()},
 \code{\link{block_lmb}()},
-\code{\link{glmb}()},
-\code{\link{lmb}()},
-\code{\link{multi_lmb}()},
 \code{\link{multi_rlmb}()},
 \code{\link{rglmb}()}
 }

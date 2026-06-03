@@ -34,7 +34,7 @@ rglmb(
     family functions.)}
 
 \item{pfamily}{a description of the prior distribution and associated constants to be used in the model. This
-should be a pfamily function (see \code{\link{pfamily}} for details of pfamily functions).}
+should be a pfamily function (see \code{\link[glmbayes]{pfamily}} for details of pfamily functions).}
 
 \item{offset}{this can be used to specify an \emph{a priori} known component to be included in the linear
 predictor during fitting. This should be \code{NULL} or a numeric vector of length equal to the number of
@@ -90,7 +90,7 @@ prior distribution).
 \details{
 The function \code{rglmb} is a minimalistic engine for Bayesian generalized linear model simulation.
 It is designed to generate independent draws from the posterior distribution of a GLM, given a design matrix,
-response vector, likelihood family, and prior specification. Unlike \code{\link{glmb}}, which wraps formula parsing,
+response vector, likelihood family, and prior specification. Unlike \code{\link[glmbayes]{glmb}}, which wraps formula parsing,
 model setup, and method dispatch, \code{rglmb} operates directly on numeric inputs and is optimized for speed,
 transparency, and integration into simulation workflows.
 
@@ -122,7 +122,7 @@ counts before acceptance.
 By default, \code{rglmb} draws \code{n = 1} sample, uses parallel CPU simulation, and-if \code{use_opencl = TRUE}-
 GPU-accelerated envelope building. The function returns a list containing posterior samples, prior specifications,
 dispersion estimates, and the envelope used during sampling. It does not return a full model object, and does not
-support formula-based modeling or method dispatch. Instead, it is called internally by \code{\link{glmb}} and
+support formula-based modeling or method dispatch. Instead, it is called internally by \code{\link[glmbayes]{glmb}} and
 and may be useful for Gibbs sampling implementations or other workflows where full model
 reconstruction is unnecessary.
 }
@@ -138,7 +138,7 @@ print(d.AD <- data.frame(treatment, outcome, counts))
 glm.D93 <- glm(counts ~ outcome + treatment, family = poisson(link = log))
 summary(glm.D93)
 
-## Poisson prior and rglmb (same prior as \code{\link{glmb}} with \code{\link{Prior_Setup}})
+## Poisson prior and rglmb (same prior as \code{\link[glmbayes]{glmb}} with \code{\link{Prior_Setup}})
 ps <- Prior_Setup(counts ~ outcome + treatment, family = poisson(), data = d.AD)
 rglmb.D93 <- rglmb(
   n = 1000,
@@ -151,9 +151,9 @@ rglmb.D93 <- rglmb(
 summary(rglmb.D93)
 
 
-## Menarche model with informative prior. See \code{\link{glmb}} and \code{\link{Prior_Setup}}
+## Menarche model with informative prior. See \code{\link[glmbayes]{glmb}} and \code{\link{Prior_Setup}}
 ## for default g-priors; for data and fitted curves using \code{predict.glmb}, see the
-## menarche block in \code{\link{glmb}};
+## menarche block in \code{\link[glmbayes]{glmb}};
 ## see \code{vignette("Chapter-05", package = "glmbayes")}
 ## and \code{vignette("Chapter-06", package = "glmbayes")}.
 data(menarche, package = "MASS")
@@ -211,7 +211,7 @@ summary(out_dGamma)
 \insertAllCited{}
 }
 \seealso{
-\code{\link{glmb}} for the formula interface; \code{\link[stats]{lm}} and
+\code{\link[glmbayes]{glmb}} for the formula interface; \code{\link[stats]{lm}} and
 \code{\link[stats]{glm}} for classical modeling functions.
 
 \code{\link{EnvelopeBuild}}, \code{\link{EnvelopeSize}}, \code{\link{EnvelopeEval}}
@@ -233,9 +233,6 @@ and the methods and generic functions for classes \code{glm} and \code{lm} from 
 glmbayes Modeling Functions
 \code{\link{block_glmb}()},
 \code{\link{block_lmb}()},
-\code{\link{glmb}()},
-\code{\link{lmb}()},
-\code{\link{multi_lmb}()},
 \code{\link{multi_rlmb}()},
 \code{\link{rlmb}()}
 }

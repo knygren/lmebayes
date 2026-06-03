@@ -2,7 +2,7 @@
 % Please edit documentation in R/block_lmb.R
 \name{block_prior_setup}
 \alias{block_prior_setup}
-\title{Prior setup for row-block \code{lmb} / \code{block_glmb}}
+\title{Prior setup for row-block \code{\link[glmbayes]{lmb}} / \code{block_glmb}}
 \usage{
 block_prior_setup(
   formula,

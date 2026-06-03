@@ -15,8 +15,8 @@
 #' should be a pfamily function (see \code{\link{pfamily}} for details of pfamily functions.)
 #' @param digits the number of significant digits to use when printing.
 #' @param progbar Logical. Whether to display a progress base during simulation.
-#' @inheritParams lmb
-#' @inheritParams glmb
+#' @inheritParams glmbayes::lmb
+#' @inheritParams glmbayes::glmb
 #' @return \code{rlmb} returns a object of class \code{"rlmb"}.  The function \code{summary} 
 #' (i.e., \code{\link{summary.rglmb}}) can be used to obtain or print a summary of the results.
 #' The generic accessor functions \code{\link{coefficients}}, \code{\link{fitted.values}},
@@ -71,7 +71,7 @@
 #' \code{summary}, it is designed for efficient posterior simulation in Gaussian models where full model 
 #' reconstruction is unnecessary.
 #'
-#' The \code{\link{rlmb}} function called from within \code{\link{lmb}}. 
+#' The \code{\link{rlmb}} function called from within \code{\link[glmbayes]{lmb}}. 
 #' It is intended for simulation-heavy workflows such as Gibbs sampling or posterior 
 #' predictive checks where minimal overhead is preferred.
 #'  
@@ -79,7 +79,7 @@
 #' @family modelfuns
 #' @seealso The classical modeling functions \code{\link[stats]{lm}} and \code{\link[stats]{glm}}.
 #'
-#' \code{\link{lmb}}, \code{\link{glmb}}, \code{\link{rglmb}}, \code{\link{multi_rlmb}}
+#' \code{\link[glmbayes]{lmb}}, \code{\link[glmbayes]{glmb}}, \code{\link{rglmb}}, \code{\link{multi_rlmb}}
 #'   for related interfaces;
 #' \code{\link{EnvelopeBuild}}, \code{\link{EnvelopeOrchestrator}} for envelope stages
 #' used in non-conjugate Gaussian sampling.

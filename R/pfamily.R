@@ -1,8 +1,8 @@
 #' Prior Family Objects for Bayesian Models
 #'
 #' Prior family objects provide a convenient way to specify the details of the priors 
-#' used by functions such as \code{\link{glmb}}. See the documentations for \code{\link{lmb}},
-#' \code{\link{glmb}}, \code{\link{glmb}}, and \code{\link{rglmb}} for the details of how such model fitting 
+#' used by functions such as \code{\link[glmbayes]{glmb}}. See the documentations for \code{\link[glmbayes]{lmb}},
+#' \code{\link[glmbayes]{glmb}}, and \code{\link{rglmb}} for the details of how such model fitting 
 #' takes place.
 #' @name pfamily
 #' @param object the function \code{pfamily} accesses the \code{pfamily} objects which
@@ -57,8 +57,8 @@
 #' @param x an object, a pfamily function that is to be printed
 #' @param \ldots additional argument(s) for methods.
 #' @details
-#' \code{pfamily} is a generic with methods for fitted objects such as \code{\link{glmb}} and
-#' \code{\link{lmb}}. Many \code{glmb} models currently only implement the \code{dNormal()}
+#' \code{pfamily} is a generic with methods for fitted objects such as \code{\link[glmbayes]{glmb}} and
+#' \code{\link[glmbayes]{lmb}}. Many \code{glmb} models currently only implement the \code{dNormal()}
 #' prior family. The \code{Gamma()} response family works with \code{dGamma()}; the
 #' \code{gaussian()} family works with \code{dGamma()} and \code{dNormal_Gamma()}.
 #'
@@ -153,12 +153,12 @@
 #'   for standard use these produce i.i.d.\ posterior samples for the implemented settings.}
 #' 
 #' @author The design of the \code{pfamily} set of functions was developed by Kjell Nygren and was 
-#' inspired by the family used by the \code{\link{glmb}} function to specify the likelihood 
+#' inspired by the family used by the \code{\link[glmbayes]{glmb}} function to specify the likelihood 
 #' function. That design in turn was inspired by S functions of the same names from
 #' the statistical modeling literature.
 #'
 #' @seealso
-#' \code{\link{glmb}}, \code{\link{rlmb}}, \code{\link{lmb}}, \code{\link{rglmb}} for modeling functions that consume \code{pfamily} objects.
+#' \code{\link[glmbayes]{glmb}}, \code{\link{rlmb}}, \code{\link[glmbayes]{lmb}}, \code{\link{rglmb}} for modeling functions that consume \code{pfamily} objects.
 #'
 #' \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}}, \code{\link{rGamma_reg}}, \code{\link{rGamma_Conjugate_reg}}, \code{\link{rindepNormalGamma_reg}} for lower-level sampling functions used by \code{pfamily} constructors.
 #'

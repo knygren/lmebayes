@@ -1,7 +1,7 @@
 #' Row-block (BY-style) Bayesian GLM fits
 #'
 #' @description
-#' Fits one \code{\link{glmb}} per observation block. Same row partition as
+#' Fits one \code{\link[glmbayes]{glmb}} per observation block. Same row partition as
 #' \code{\link{block_lmb}}, but supports GLM \code{\link{family}} objects.
 #' Counterpart to \code{\link{block_lmb}}; see \code{\link{summary.bglmb}} for
 #' print/summary methods and \code{\link{block_rNormalGLM}} for Gibbs sampling.
@@ -10,12 +10,12 @@
 #' @family modelfuns
 NULL
 
-#' @describeIn block_glmb \code{\link{glmb}} fit per row block.
+#' @describeIn block_glmb \code{\link[glmbayes]{glmb}} fit per row block.
 #' @param pfamily Recycled to all blocks, or use \code{pfamily_list} of length \code{k}.
 #' @param pfamily_list Optional list of \code{pfamily} objects, one per block.
-#' @inheritParams glmb
+#' @inheritParams glmbayes::glmb
 #' @inheritParams block_lmb
-#' @return A named list of class \code{"bglmb"} (list of \code{"glmb"} fits).
+#' @return A named list of class \code{"bglmb"} (list of \code{"glmb"} fits from **glmbayes**).
 #' @export
 block_glmb <- function(
     formula,

@@ -134,8 +134,8 @@ for standard use these produce i.i.d.\ posterior samples for the implemented set
 }
 \description{
 Prior family objects provide a convenient way to specify the details of the priors
-used by functions such as \code{\link{glmb}}. See the documentations for \code{\link{lmb}},
-\code{\link{glmb}}, \code{\link{glmb}}, and \code{\link{rglmb}} for the details of how such model fitting
+used by functions such as \code{\link[glmbayes]{glmb}}. See the documentations for \code{\link[glmbayes]{lmb}},
+\code{\link[glmbayes]{glmb}}, and \code{\link{rglmb}} for the details of how such model fitting
 takes place.
 
 Under a Beta(\code{shape1}, \code{shape2}) prior on the binomial probability \eqn{\theta}
@@ -145,8 +145,8 @@ directly), the posterior is:
   \texttt{shape2} + \sum n_i (1 - y_i)).}
 }
 \details{
-\code{pfamily} is a generic with methods for fitted objects such as \code{\link{glmb}} and
-\code{\link{lmb}}. Many \code{glmb} models currently only implement the \code{dNormal()}
+\code{pfamily} is a generic with methods for fitted objects such as \code{\link[glmbayes]{glmb}} and
+\code{\link[glmbayes]{lmb}}. Many \code{glmb} models currently only implement the \code{dNormal()}
 prior family. The \code{Gamma()} response family works with \code{dGamma()}; the
 \code{gaussian()} family works with \code{dGamma()} and \code{dNormal_Gamma()}.
 
@@ -226,67 +226,56 @@ outcome   <- gl(3, 1, 9)
 treatment <- gl(3, 3)
 print(d.AD <- data.frame(treatment, outcome, counts))
 
-## Set up Prior for Poisson Model
 ps <- Prior_Setup(counts ~ outcome + treatment, family = poisson())
 ps
 
-## Normal prior for glmb
-glmb.D93 <- glmb(
-  counts ~ outcome + treatment,
-  family  = poisson(),
-  pfamily = dNormal(mu = ps$mu, Sigma = ps$Sigma)
+rglmb.D93 <- rglmb(
+  n = 200,
+  y = ps$y,
+  x = as.matrix(ps$x),
+  pfamily = dNormal(mu = ps$mu, Sigma = ps$Sigma),
+  family = poisson(),
+  weights = rep(1, nrow(ps$x))
 )
+pfamily(rglmb.D93)
 
-## Extract pfamily and pfamily settings for call to glmb
-pfamily(glmb.D93)
-
-## Annette Dobson (1990) "An Introduction to Generalized Linear Models".
-## Page 9: Plant Weight Data.
+## Plant weight data (Gaussian)
 ctl <- c(4.17, 5.58, 5.18, 6.11, 4.50, 4.61, 5.17, 4.53, 5.33, 5.14)
 trt <- c(4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69)
 group  <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
 weight <- c(ctl, trt)
 
-## Set up prior for gaussian model
 ps2 <- Prior_Setup(weight ~ group, family = gaussian())
 ps2
 
-## Conjugate Normal Prior (fixed dispersion)
-lmb.D9 <- lmb(
-  weight ~ group,
-  pfamily = dNormal(mu = ps2$mu, ps2$Sigma, dispersion = ps2$dispersion)
+pf_norm <- dNormal(mu = ps2$mu, ps2$Sigma, dispersion = ps2$dispersion)
+pf_ng <- dNormal_Gamma(
+  ps2$mu,
+  Sigma_0 = ps2$Sigma_0,
+  shape = ps2$shape,
+  rate = ps2$rate
 )
-pfamily(lmb.D9)
+pf_ing <- dIndependent_Normal_Gamma(
+  ps2$mu,
+  ps2$Sigma,
+  shape = ps2$shape_ING,
+  rate = ps2$rate
+)
 
-## Conjugate Normal_Gamma Prior
-lmb.D9_v2 <- lmb(
-  weight ~ group,
-  pfamily = dNormal_Gamma(
-    ps2$mu,
-    Sigma_0 = ps2$Sigma_0,
-    shape = ps2$shape,
-    rate  = ps2$rate
-  )
+rlmb.D9 <- rlmb(
+  n = 200,
+  y = ps2$y,
+  x = as.matrix(ps2$x),
+  pfamily = pf_ing,
+  weights = rep(1, length(ps2$y))
 )
-pfamily(lmb.D9_v2)
-
-## Independent_Normal_Gamma_Prior
-lmb.D9_v3 <- lmb(
-  weight ~ group,
-  dIndependent_Normal_Gamma(
-    ps2$mu,
-    ps2$Sigma,
-    shape = ps2$shape_ING,
-    rate  = ps2$rate
-  )
-)
-pfamily(lmb.D9_v3)
+pfamily(rlmb.D9)
 }
 \references{
 \insertAllCited{}
 }
 \seealso{
-\code{\link{glmb}}, \code{\link{rlmb}}, \code{\link{lmb}}, \code{\link{rglmb}} for modeling functions that consume \code{pfamily} objects.
+\code{\link[glmbayes]{glmb}}, \code{\link{rlmb}}, \code{\link[glmbayes]{lmb}}, \code{\link{rglmb}} for modeling functions that consume \code{pfamily} objects.
 
 \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}}, \code{\link{rGamma_reg}}, \code{\link{rGamma_Conjugate_reg}}, \code{\link{rindepNormalGamma_reg}} for lower-level sampling functions used by \code{pfamily} constructors.
 
@@ -298,7 +287,7 @@ See also \insertCite{Hastie1992}{glmbayes} for the original S modeling framework
 }
 \author{
 The design of the \code{pfamily} set of functions was developed by Kjell Nygren and was
-inspired by the family used by the \code{\link{glmb}} function to specify the likelihood
+inspired by the family used by the \code{\link[glmbayes]{glmb}} function to specify the likelihood
 function. That design in turn was inspired by S functions of the same names from
 the statistical modeling literature.
 }

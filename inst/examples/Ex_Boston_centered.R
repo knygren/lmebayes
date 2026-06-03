@@ -15,51 +15,6 @@ form <- medv ~
 lm.boston <- lm(form, data = Boston_centered, x = TRUE, y = TRUE)
 summary(lm.boston)
 
-ps <- Prior_Setup(form, gaussian(), data = Boston_centered)
-
-lmb.boston <- lmb(
-  form,
-  data = Boston_centered,
-  pfamily = dNormal(
-    mu = ps$mu,
-    Sigma = ps$Sigma,
-    dispersion = ps$dispersion
-  )
-)
-summary(lmb.boston)
-
-lmb.boston_v2 <- lmb(
-  form,
-  data = Boston_centered,
-  pfamily = dNormal_Gamma(
-    mu = ps$mu,
-    Sigma_0 = ps$Sigma_0,
-    shape = ps$shape,
-    rate = ps$rate
-  )
-)
-summary(lmb.boston_v2)
-
-## Independent Normal-Gamma (OpenCL path when available)
-\donttest{
-  if (has_opencl()) {
-    lmb.boston_v3 <- lmb(
-      n = 1000L,
-      form,
-      data = Boston_centered,
-      pfamily = dIndependent_Normal_Gamma(
-        ps$mu,
-        ps$Sigma,
-        shape = ps$shape_ING,
-        rate = ps$rate
-      ),
-      use_parallel = TRUE,
-      use_opencl = TRUE,
-      verbose = FALSE
-    )
-    summary(lmb.boston_v3)
-  }
-}
 ###############################################################################
 ## End of Boston_centered dataset example
 ###############################################################################

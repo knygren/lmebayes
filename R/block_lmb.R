@@ -1,16 +1,16 @@
 #' Row-block (BY-style) Bayesian linear models
 #'
 #' @description
-#' Fits one \code{\link{lmb}} per observation block (SAS \code{BY}-style split on
+#' Fits one \code{\link[glmbayes]{lmb}} per observation block (SAS \code{BY}-style split on
 #' rows), sharing the same formula on each subset. Contrast with
-#' \code{\link{multi_lmb}} (several response columns) and
+#' \code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
 #' \code{\link{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
 #'
 #' @name block_lmb
 #' @family modelfuns
 NULL
 
-#' Prior setup for row-block \code{lmb} / \code{block_glmb}
+#' Prior setup for row-block \code{\link[glmbayes]{lmb}} / \code{block_glmb}
 #'
 #' Runs \code{\link{Prior_Setup}} on each block subset of the data.
 #'
@@ -119,11 +119,11 @@ block_prior_setup <- function(
   setups
 }
 
-#' @describeIn block_lmb Gaussian \code{\link{lmb}} fit per row block.
+#' @describeIn block_lmb Gaussian \code{\link[glmbayes]{lmb}} fit per row block.
 #' @param pfamily A single \code{\link{pfamily}} recycled to every block, or
 #'   use \code{pfamily_list} of length \code{k} (number of blocks).
 #' @param pfamily_list Optional list of \code{pfamily} objects, one per block.
-#' @inheritParams lmb
+#' @inheritParams glmbayes::lmb
 #' @return A named list of class \code{"blmb"} (list of \code{"lmb"} fits).
 #' @example inst/examples/Ex_block_lmb.R
 #' @export

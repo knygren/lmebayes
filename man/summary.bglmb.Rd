@@ -26,7 +26,7 @@
 objects with class \code{"summary.bglmb"}.
 }
 \description{
-Methods for row-block \code{\link{glmb}} fits (class \code{"bglmb"}).
+Methods for row-block \code{\link[glmbayes]{glmb}} fits (class \code{"bglmb"}).
 \code{summary.bglmb} applies \code{\link{summary.glmb}} to each block;
 printing follows \code{\link[glmbayes]{summary.mlmb}} / \code{\link{summary.blmb}} with
 per-block sections.

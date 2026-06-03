@@ -99,7 +99,7 @@ treatment <- gl(3, 3)
 ps <- Prior_Setup(counts ~ outcome + treatment, family = poisson())
 mu <- ps$mu
 V0 <- ps$Sigma
-glmb.D93 <- glmb(
+glmb.D93 <- glmbayes::glmb(
   counts ~ outcome + treatment,
   family = poisson(),
   pfamily = dNormal(mu = mu, Sigma = V0)
@@ -123,7 +123,7 @@ print(glmb.D93$coef.mode)
 ### Now try a strong prior with poorly chosen intercept
 mu1 <- 0 * mu
 V1 <- 0.1 * V0
-glmb2.D93 <- glmb(
+glmb2.D93 <- glmbayes::glmb(
   counts ~ outcome + treatment,
   family = poisson(),
   pfamily = dNormal(mu = mu1, Sigma = V1)

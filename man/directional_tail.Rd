@@ -67,19 +67,20 @@ mu_null     <- ps_null$mu
 V_null      <- ps_null$Sigma
 disp_ML_null <- ps_null$dispersion
 
-lmb.D9_null <- lmb(
+lmb.D9_null <- glmbayes::lmb(
   weight ~ group,
   dNormal(mu_null, V_null, dispersion = disp_ML_null),
   data = dat2,
-  n = 10000
+  n = 500
 )
 summary(lmb.D9_null)
 
-glmb.D9_default <- glmb(
+glmb.D9_default <- glmbayes::glmb(
   weight ~ group,
   family  = gaussian(),
   pfamily = dNormal(mu_null, V_null, dispersion = disp_ML_null),
-  data    = dat2
+  data    = dat2,
+  n = 500
 )
 summary(glmb.D9_default)
 

@@ -1,4 +1,4 @@
-# Smoke test: multi_lmb on iris (matches test_multi_lmb_sequential.R)
+# Smoke test: multi-response lmb on iris (glmbayes::lmb with cbind LHS)
 
 if (!requireNamespace("pkgload", quietly = TRUE)) stop("Install pkgload.")
 pkgload::load_all(export_all = FALSE)
@@ -19,9 +19,9 @@ pfamily_list <- lapply(ps_multi, function(ps) {
   )
 })
 
-out <- multi_lmb(
+out <- lmb(
   form_multi,
-  pfamily_list = pfamily_list,
+  pfamily = pfamily_list,
   data = iris,
   n = n_draw,
   use_parallel = FALSE
@@ -40,4 +40,4 @@ s <- summary(out)
 stopifnot(inherits(s, "summary.mlmb"), length(s) == 4L)
 print(s)
 
-cat("multi_lmb (iris): OK\n")
+cat("multi-response lmb (iris): OK\n")
