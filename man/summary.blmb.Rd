@@ -22,5 +22,5 @@
 \item{\ldots}{Passed to \code{\link{summary.glmb}} or print methods.}
 }
 \description{
-Methods for row-block \code{\link{lmb}} fits (class \code{"blmb"}).
+Methods for row-block \code{\link[glmbayes]{lmb}} fits (class \code{"blmb"}).
 }
