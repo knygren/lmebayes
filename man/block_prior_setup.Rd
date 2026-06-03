@@ -103,7 +103,7 @@ where \eqn{p} is the number of coefficients (columns of the model matrix). \code
 controls the tail behavior and effective degrees of freedom of the variance prior. It does
 not change the posterior mean of \eqn{\sigma^2} or the covariance of \eqn{\beta}, but larger
 \code{k} makes the prior and posterior for \eqn{\sigma^2} more concentrated and less
-heavy-tailed. Not yet used in calibration; passed through to \code{\link{compute_gaussian_prior}}
+heavy-tailed. Not yet used in calibration; passed through to \code{\link[glmbayes]{compute_gaussian_prior}}
 for future use.}
 
 \item{...}{
@@ -115,18 +115,13 @@ for future use.}
 }
 \value{
 A named list of class \code{"block_PriorSetup"}. Each element is a
-\code{\link{Prior_Setup}} result for one block.
+\code{\link[glmbayes]{Prior_Setup}} result for one block.
 }
 \description{
-Runs \code{\link{Prior_Setup}} on each block subset of the data.
+Runs \code{\link[glmbayes]{Prior_Setup}} on each block subset of the data.
 }
 \seealso{
-\code{\link{block_lmb}}, \code{\link{multi_prior_setup}},
+\code{\link{block_lmb}}, \code{\link[glmbayes]{multi_prior_setup}},
 \code{\link{normalize_block}}
-
-Other prior: 
-\code{\link{Prior_Check}()},
-\code{\link{Prior_Setup}()},
-\code{\link{multi_rlmb}()}
 }
 \concept{prior}

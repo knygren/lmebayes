@@ -12,17 +12,17 @@ NULL
 
 #' Prior setup for row-block \code{\link[glmbayes]{lmb}} / \code{block_glmb}
 #'
-#' Runs \code{\link{Prior_Setup}} on each block subset of the data.
+#' Runs \code{\link[glmbayes]{Prior_Setup}} on each block subset of the data.
 #'
 #' @param formula A \code{\link{formula}} with a single response.
 #' @param block Block partition: \code{factor} or vector of length \code{nrow(data)}
 #'   (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
 #'   counts, or a list of row index vectors (see \code{\link{normalize_block}}).
-#' @inheritParams Prior_Setup
+#' @inheritParams glmbayes::Prior_Setup
 #' @return A named list of class \code{"block_PriorSetup"}. Each element is a
-#'   \code{\link{Prior_Setup}} result for one block.
+#'   \code{\link[glmbayes]{Prior_Setup}} result for one block.
 #' @family prior
-#' @seealso \code{\link{block_lmb}}, \code{\link{multi_prior_setup}},
+#' @seealso \code{\link{block_lmb}}, \code{\link[glmbayes]{multi_prior_setup}},
 #'   \code{\link{normalize_block}}
 #' @export
 block_prior_setup <- function(
@@ -101,7 +101,7 @@ block_prior_setup <- function(
       meta$block_info$rows[[b]], meta$mf, data
     )
     setups[[b]] <- do.call(
-      Prior_Setup,
+      glmbayes::Prior_Setup,
       c(
         list(formula = formula, subset = rows_b),
         ps_args,
@@ -120,7 +120,7 @@ block_prior_setup <- function(
 }
 
 #' @describeIn block_lmb Gaussian \code{\link[glmbayes]{lmb}} fit per row block.
-#' @param pfamily A single \code{\link{pfamily}} recycled to every block, or
+#' @param pfamily A single \code{\link[glmbayes]{pfamily}} recycled to every block, or
 #'   use \code{pfamily_list} of length \code{k} (number of blocks).
 #' @param pfamily_list Optional list of \code{pfamily} objects, one per block.
 #' @inheritParams glmbayes::lmb
@@ -380,7 +380,7 @@ block_lmb <- function(
 #' @description
 #' For each block in \code{block}, builds the \code{\link{model.matrix}} on that
 #' block's \code{model.frame} rows and marks blocks with \code{qr(x)$rank == ncol(x)}.
-#' Saturated blocks (\code{n = p}) need \code{dispersion} in \code{\link{Prior_Setup}}.
+#' Saturated blocks (\code{n = p}) need \code{dispersion} in \code{\link[glmbayes]{Prior_Setup}}.
 #'
 #' @param formula Model formula shared across blocks.
 #' @inheritParams block_lmb
@@ -527,12 +527,12 @@ block_check_identifiability_xy <- function(
 
   if (length(drop)) {
     message(
-      "block_check_identifiability_xy: Level 1 — ",
+      "block_check_identifiability_xy: Level 1 -- ",
       length(drop), " of ", k, " block(s) are rank-deficient:\n  ",
       paste(drop, collapse = ", ")
     )
   } else {
-    message("block_check_identifiability_xy: Level 1 — all ", k, " blocks are full rank.")
+    message("block_check_identifiability_xy: Level 1 -- all ", k, " blocks are full rank.")
   }
 
   if (is.null(X_nbhd)) {
@@ -565,7 +565,7 @@ block_check_identifiability_xy <- function(
   action <- if (l2_ok) "proceed" else on_failure
   if (!l2_ok) {
     msg <- paste0(
-      "block_check_identifiability_xy: Level 2 FAILED — rank of X_nbhd ",
+      "block_check_identifiability_xy: Level 2 FAILED -- rank of X_nbhd ",
       "restricted to Level-1 blocks is ", l2_rank, " (need ", q, "). ",
       "mu is not identified; the Gibbs chain will be null recurrent in ",
       q - l2_rank, " direction(s)."
@@ -573,7 +573,7 @@ block_check_identifiability_xy <- function(
     if (on_failure == "stop") stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
   } else {
     message(
-      "block_check_identifiability_xy: Level 2 — mu identified (rank ",
+      "block_check_identifiability_xy: Level 2 -- mu identified (rank ",
       l2_rank, " == q = ", q, " from ", length(keep), " data-bearing blocks)."
     )
   }
@@ -675,13 +675,13 @@ block_check_identifiability <- function(
 
   if (length(drop)) {
     message(
-      "block_check_identifiability: Level 1 — ",
+      "block_check_identifiability: Level 1 -- ",
       length(drop), " of ", k, " block(s) are rank-deficient and cannot",
       " identify their coefficients from the data:\n  ",
       paste(drop, collapse = ", ")
     )
   } else {
-    message("block_check_identifiability: Level 1 — all ", k, " blocks are full rank.")
+    message("block_check_identifiability: Level 1 -- all ", k, " blocks are full rank.")
   }
 
   if (is.null(X_nbhd)) {
@@ -722,7 +722,7 @@ block_check_identifiability <- function(
 
   if (!l2_ok) {
     msg <- paste0(
-      "block_check_identifiability: Level 2 FAILED — ",
+      "block_check_identifiability: Level 2 FAILED -- ",
       "rank of X_nbhd restricted to Level-1-identified blocks is ",
       l2_rank, " (need ", q, "). ",
       "The population parameter mu is not identified by the data-bearing blocks; ",
@@ -732,7 +732,7 @@ block_check_identifiability <- function(
     if (on_failure == "stop") stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
   } else {
     message(
-      "block_check_identifiability: Level 2 — mu identified (rank ",
+      "block_check_identifiability: Level 2 -- mu identified (rank ",
       l2_rank, " == q = ", q, " from ", length(keep), " data-bearing blocks). ",
       "Proceed with full model."
     )

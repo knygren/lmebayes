@@ -9,20 +9,20 @@ print(d.AD <- data.frame(treatment, outcome, counts))
 glm.D93 <- glm(counts ~ outcome + treatment, family = poisson(link = log))
 summary(glm.D93)
 
-## Poisson prior and rglmb (same prior as \code{\link[glmbayes]{glmb}} with \code{\link{Prior_Setup}})
-ps <- Prior_Setup(counts ~ outcome + treatment, family = poisson(), data = d.AD)
+## Poisson prior and rglmb (same prior as \code{\link[glmbayes]{glmb}} with \code{\link[glmbayes]{Prior_Setup}})
+ps <- glmbayes::Prior_Setup(counts ~ outcome + treatment, family = poisson(), data = d.AD)
 rglmb.D93 <- rglmb(
   n = 1000,
   y = ps$y,
   x = as.matrix(ps$x),
-  pfamily = dNormal(mu = ps$mu, Sigma = ps$Sigma),
+  pfamily = glmbayes::dNormal(mu = ps$mu, Sigma = ps$Sigma),
   family = poisson(),
   weights = rep(1, nrow(ps$x))
 )
 summary(rglmb.D93)
 
 
-## Menarche model with informative prior. See \code{\link[glmbayes]{glmb}} and \code{\link{Prior_Setup}}
+## Menarche model with informative prior. See \code{\link[glmbayes]{glmb}} and \code{\link[glmbayes]{Prior_Setup}}
 ## for default g-priors; for data and fitted curves using \code{predict.glmb}, see the
 ## menarche block in \code{\link[glmbayes]{glmb}};
 ## see \code{vignette("Chapter-05", package = "glmbayes")}
@@ -59,7 +59,7 @@ rownames(V1) <- coef_names
 colnames(V1) <- coef_names
 
 out <- rglmb(
-  n = 1000, y = y, x = x, pfamily = dNormal(mu = mu, Sigma = V1), weights = wt,
+  n = 1000, y = y, x = x, pfamily = glmbayes::dNormal(mu = mu, Sigma = V1), weights = wt,
   family = binomial(logit)
 )
 summary(out)
@@ -69,11 +69,11 @@ ctl <- c(4.17, 5.58, 5.18, 6.11, 4.50, 4.61, 5.17, 4.53, 5.33, 5.14)
 trt <- c(4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69)
 group <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
 weight <- c(ctl, trt)
-ps_dg <- Prior_Setup(weight ~ group, family = gaussian())
+ps_dg <- glmbayes::Prior_Setup(weight ~ group, family = gaussian())
 rate_dg <- if (!is.null(ps_dg$rate_gamma)) ps_dg$rate_gamma else ps_dg$rate
 out_dGamma <- rglmb(
   n = 100, y = ps_dg$y, x = as.matrix(ps_dg$x),
-  pfamily = dGamma(shape = ps_dg$shape, rate = rate_dg, beta = ps_dg$coefficients),
+  pfamily = glmbayes::dGamma(shape = ps_dg$shape, rate = rate_dg, beta = ps_dg$coefficients),
   weights = rep(1, length(ps_dg$y)), family = gaussian()
 )
 summary(out_dGamma)

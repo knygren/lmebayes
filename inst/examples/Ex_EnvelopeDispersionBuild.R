@@ -16,7 +16,7 @@ trt <- c(4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69)
 group <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
 weight <- c(ctl, trt)
 
-ps <- Prior_Setup(weight ~ group, gaussian())
+ps <- glmbayes::Prior_Setup(weight ~ group, gaussian())
 
 x <- as.matrix(ps$x)
 y <- as.vector(ps$y)

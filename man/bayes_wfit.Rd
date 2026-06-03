@@ -96,13 +96,13 @@ counts <- c(18, 17, 15, 20, 10, 20, 25, 13, 12)
 outcome <- gl(3, 1, 9)
 treatment <- gl(3, 3)
 
-ps <- Prior_Setup(counts ~ outcome + treatment, family = poisson())
+ps <- glmbayes::Prior_Setup(counts ~ outcome + treatment, family = poisson())
 mu <- ps$mu
 V0 <- ps$Sigma
 glmb.D93 <- glmbayes::glmb(
   counts ~ outcome + treatment,
   family = poisson(),
-  pfamily = dNormal(mu = mu, Sigma = V0)
+  pfamily = glmbayes::dNormal(mu = mu, Sigma = V0)
 )
 
 ## Start setup here [First output from earlier optim optimization]
@@ -126,7 +126,7 @@ V1 <- 0.1 * V0
 glmb2.D93 <- glmbayes::glmb(
   counts ~ outcome + treatment,
   family = poisson(),
-  pfamily = dNormal(mu = mu1, Sigma = V1)
+  pfamily = glmbayes::dNormal(mu = mu1, Sigma = V1)
 )
 
 Bbar2 <- mu1 # Prior mean

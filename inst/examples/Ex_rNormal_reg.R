@@ -8,7 +8,7 @@ treatment <- gl(3, 3)
 print(d.AD <- data.frame(treatment, outcome, counts))
 
 ## Poisson Prior and rNormal_reg call (using Prior_Setup for x, y, and prior values)
-ps <- Prior_Setup(counts ~ outcome + treatment, family = poisson(), data = d.AD)
+ps <- glmbayes::Prior_Setup(counts ~ outcome + treatment, family = poisson(), data = d.AD)
 
 out_pois <- rNormal_reg(
   n = 1000,
@@ -26,7 +26,7 @@ data(menarche, package = "MASS")
 menarche$Age2 <- menarche$Age - 13
 
 ## Logit Prior and rNormal_reg call (use proportion + trial weights)
-ps1 <- Prior_Setup(
+ps1 <- glmbayes::Prior_Setup(
   Menarche / Total ~ Age2,
   family = binomial(logit),
   data = menarche,
@@ -44,7 +44,7 @@ out_logit <- rNormal_reg(
 summary(out_logit)
 
 ## Probit Prior and rNormal_reg call
-ps2 <- Prior_Setup(
+ps2 <- glmbayes::Prior_Setup(
   Menarche / Total ~ Age2,
   family = binomial(probit),
   data = menarche,
@@ -62,7 +62,7 @@ out_probit <- rNormal_reg(
 summary(out_probit)
 
 ## clog-log Prior and rNormal_reg call
-ps3 <- Prior_Setup(
+ps3 <- glmbayes::Prior_Setup(
   Menarche / Total ~ Age2,
   family = binomial(cloglog),
   data = menarche,
@@ -86,7 +86,7 @@ carinsca$Merit <- ordered(carinsca$Merit)
 carinsca$Class <- factor(carinsca$Class)
 oldopt <- options(contrasts = c("contr.treatment", "contr.treatment"))
 
-psg <- Prior_Setup(
+psg <- glmbayes::Prior_Setup(
   Cost / Claims ~ Merit + Class,
   family = Gamma(link = "log"),
   data = carinsca,

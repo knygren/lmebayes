@@ -12,7 +12,7 @@
 #' @param x for \code{rlmb} a design matrix of dimension \code{m * p} and for 
 #' \code{print.rlmb} the object to be printed. 
 #' @param pfamily a description of the prior distribution and associated constants to be used in the model. This
-#' should be a pfamily function (see \code{\link{pfamily}} for details of pfamily functions.)
+#' should be a pfamily function (see \code{\link[glmbayes]{pfamily}} for details of pfamily functions.)
 #' @param digits the number of significant digits to use when printing.
 #' @param progbar Logical. Whether to display a progress base during simulation.
 #' @inheritParams glmbayes::lmb
@@ -44,7 +44,7 @@
 #' @details
 #' The function \code{rlmb} is a minimalistic Bayesian simulation engine for Gaussian linear models. 
 #' It bypasses classical model fitting and formula parsing, operating directly on numeric inputs such as 
-#' the design matrix, response vector, and prior specification via the \code{\link{pfamily}} argument. 
+#' the design matrix, response vector, and prior specification via the \code{\link[glmbayes]{pfamily}} argument. 
 #' Internally, \code{rlmb} generates independent draws from the posterior distribution using multivariate 
 #' normal simulation when conjugate priors are specified.
 #'
@@ -52,10 +52,10 @@
 #' \insertCite{Chambers1992}{glmbayes}, Zellner's g-prior \insertCite{zellner1986gprior}{glmbayes}, and 
 #' the conjugate prior formulation of Raiffa and Schlaifer \insertCite{Raiffa1961}{glmbayes}.
 #'
-#' Prior specification is handled via the \code{\link{pfamily}} argument, which defines the prior mean, 
+#' Prior specification is handled via the \code{\link[glmbayes]{pfamily}} argument, which defines the prior mean, 
 #' covariance, and dispersion. The design of the \code{pfamily} family of functions was created by Kjell Nygren 
 #' and is modeled on how \code{\link{glm}} uses \code{family} to specify the likelihood. A helper function, 
-#' \code{\link{Prior_Setup}}, assists users in choosing prior parameters. It ships with sensible defaults but 
+#' \code{\link[glmbayes]{Prior_Setup}}, assists users in choosing prior parameters. It ships with sensible defaults but 
 #' also allows full customization. Available priors include the  \code{dNormal}, \code{dNormalGamma} and 
 #' \code{dIndependent_Normal_Gamma} priors. The last of these allows for more flexible prior structures 
 #' including independent priors on variance components.
@@ -84,9 +84,9 @@
 #' \code{\link{EnvelopeBuild}}, \code{\link{EnvelopeOrchestrator}} for envelope stages
 #' used in non-conjugate Gaussian sampling.
 #' 
-#' \code{\link{pfamily}} for documentation of pfamily functions used to specify priors.
+#' \code{\link[glmbayes]{pfamily}} for documentation of pfamily functions used to specify priors.
 #' 
-#' \code{\link{Prior_Setup}}, \code{\link{Prior_Check}} for functions used to initialize and to check priors,  
+#' \code{\link[glmbayes]{Prior_Setup}}, \code{\link[glmbayes]{Prior_Check}} for functions used to initialize and to check priors,  
 #'
 #' Further reading: \insertCite{Nygren2006}{glmbayes};
 #' \insertCite{glmbayesSimmethods,glmbayesChapterA08,glmbayesIndNormGammaVignette}{glmbayes}.

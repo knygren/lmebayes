@@ -5,7 +5,6 @@
 \alias{multi_rNormalGamma_reg}
 \alias{multi_rNormal_reg}
 \alias{multi_rindepNormalGamma_reg}
-\alias{multi_prior_setup}
 \title{Multi-response Bayesian regression and simulation}
 \usage{
 multi_rlmb(
@@ -70,28 +69,6 @@ multi_rindepNormalGamma_reg(
   verbose = FALSE,
   progbar = TRUE
 )
-
-multi_prior_setup(
-  formula,
-  family = gaussian(),
-  data = NULL,
-  weights = NULL,
-  subset = NULL,
-  na.action = na.fail,
-  offset = NULL,
-  contrasts = NULL,
-  pwt = NULL,
-  pwt_default_low = 0.01,
-  pwt_default_high = 0.05,
-  n_prior = NULL,
-  sd = NULL,
-  dispersion = NULL,
-  intercept_source = c("null_model", "full_model"),
-  effects_source = c("null_effects", "full_model"),
-  mu = NULL,
-  k = 1,
-  ...
-)
 }
 \arguments{
 \item{n}{number of draws to generate. If \code{length(n) > 1}, the length is taken to be the number required.}
@@ -133,88 +110,12 @@ envelopes.}
 \item{prior_list}{List of length \code{ncol(y)} of per-column prior lists.}
 
 \item{family}{A description of the error distribution and link function (see \code{\link{family}}).}
-
-\item{formula}{an object of class \code{"\link[stats]{formula}"} (or one that
-    can be coerced to that class): a symbolic description of the
-    model to be fitted.  The details of model specification are given
-    under \sQuote{Details}.}
-
-\item{data}{an optional data frame, list or environment (or object
-    coercible by \code{\link{as.data.frame}} to a data frame) containing
-    the variables in the model.  If not found in \code{data}, the
-    variables are taken from \code{environment(formula)},
-    typically the environment from which \code{glm} is called.}
-
-\item{subset}{an optional vector specifying a subset of observations
-    to be used in the fitting process.  (See additional details about how
-    this argument interacts with data-dependent bases in the
-    \sQuote{Details} below.)}
-
-\item{na.action}{how \code{NAs} are treated. The default is first, any \code{\link{na.action}} attribute of
-data, second a \code{na.action} setting of \link{options}, and third \code{na.fail} if that is unset.
-The \code{factory-fresh} default is \code{na.omit}. Another possible value is \code{NULL}.}
-
-\item{contrasts}{an optional list. See the \code{contrasts.arg}
-    of \code{model.matrix.default}.}
-
-\item{pwt}{Weight on the prior relative to the likelihood function at the maximum likelihood
-estimate. If supplied, this value is used directly (scalar or one value per coefficient).
-If \code{n_prior} is provided and \code{pwt} is still a \strong{scalar} and \code{sd} was \strong{not}
-supplied, \code{pwt} is set to \code{n_prior / (n_prior + n_effective)}. If \code{length(pwt) > 1}
-(including from \code{sd}) or \code{sd} was supplied, \code{n_prior} does \strong{not} overwrite
-\code{pwt}; it is used only as a scalar for Gamma / S_marg steps. If \code{sd} is provided,
-\code{pwt} is computed from the prior standard deviations. If none of these are supplied,
-\code{pwt} defaults to \code{pwt_default_low} for models with fewer than 14 coefficients, and
-\code{pwt_default_high} otherwise.}
-
-\item{pwt_default_low}{Default prior weight used when \code{pwt} is not supplied and the model
-dimension is below 14. Defaults to 0.01.}
-
-\item{pwt_default_high}{Default prior weight used when \code{pwt} is not supplied and the model
-dimension is 14 or greater. Defaults to 0.05.}
-
-\item{n_prior}{Optional scalar effective prior sample size (on the \code{n_effective} scale).
-If provided with scalar \code{pwt} and without \code{sd}, \code{pwt} is recomputed from
-\code{n_prior}. With vector \code{pwt} or with \code{sd}, \code{pwt} is left unchanged and
-\code{n_prior} is used for the Gamma prior on precision and related Gaussian calibration only.
-If missing and \code{pwt} is scalar, \code{n_prior = (pwt/(1-pwt))*n_effective}.}
-
-\item{sd}{Optional vector argument with the prior standard deviations for the coefficients}
-
-\item{dispersion}{Optional scalar dispersion override (default \code{NULL}).
-For now, this is documented as an optional argument used to scale the
-\code{Sigma} (variance-covariance) matrix; see Details for additional context.}
-
-\item{intercept_source}{Specifies the method through which the prior mean for the intercept term is set. Options are based on the null intercept only model (null_model) or full_models. The default is the null model which is safer if variables are not centered.}
-
-\item{effects_source}{Specifies the method through which the prior means for the effects terms are set. Options are null_effects (prior means set to zero) or full_model (effect means set to match maximum likelihood estimates).}
-
-\item{mu}{Optional vector argument with the prior means for the coefficients}
-
-\item{k}{Scalar (default \code{1}), non-negative (\eqn{k \geq 0}), with \eqn{k + p \geq 2}
-where \eqn{p} is the number of coefficients (columns of the model matrix). \code{k}
-controls the tail behavior and effective degrees of freedom of the variance prior. It does
-not change the posterior mean of \eqn{\sigma^2} or the covariance of \eqn{\beta}, but larger
-\code{k} makes the prior and posterior for \eqn{\sigma^2} more concentrated and less
-heavy-tailed. Not yet used in calibration; passed through to \code{\link{compute_gaussian_prior}}
-for future use.}
-
-\item{...}{
-    For \code{glm}: arguments to be used to form the default
-    \code{control} argument if it is not supplied directly.
-
-    For \code{weights}: further arguments passed to or from other methods.
-  }
 }
 \value{
 A named list of class \code{"mrglmb"}. Metadata (\code{call}, \code{y},
 \code{x}, \code{l1}, \code{p}, \code{coef_names}, \code{pred_names}) are
 attributes; per-column priors are in \code{attr(..., "prior_lists")} or
 \code{attr(..., "pfamily_lists")} for \code{multi_rlmb}.
-
-A named list of class \code{"multi_PriorSetup"}. Each element is a
-\code{\link{Prior_Setup}} result for one column of the response (names from
-\code{colnames(y)} or \code{Y1}, \code{Y2}, \ldots).
 }
 \description{
 These functions run the corresponding single-response sampler once per column
@@ -245,11 +146,10 @@ Same arguments as \code{\link{rindepNormalGamma_reg}} except \code{prior_list}
 is a list of per-column prior lists (\code{mu}, \code{Sigma}, \code{shape},
 \code{rate}, optional dispersion bounds).
 }
-\item{\code{multi_prior_setup}}{
-Same arguments as \code{\link{Prior_Setup}}, but the formula left-hand side
-may be several responses (\code{cbind(...)} or a matrix column in
-\code{data}). Returns a named list of \code{"PriorSetup"} objects (one per
-response column). Currently requires \code{family = gaussian()}.
+\item{\code{\link[glmbayes]{multi_prior_setup}}}{
+In \pkg{glmbayes}: same arguments as \code{\link[glmbayes]{Prior_Setup}}, but the
+formula left-hand side may be several responses (\code{cbind(...)}). Returns a
+named list of \code{"PriorSetup"} objects (one per response column).
 }
 }
 }
@@ -262,8 +162,6 @@ response column). Currently requires \code{family = gaussian()}.
 \item \code{multi_rNormalGamma_reg()}: Normal--Gamma regression with multiple responses.
 
 \item \code{multi_rindepNormalGamma_reg()}: Independent Normal--Gamma regression with multiple responses.
-
-\item \code{multi_prior_setup()}: Prior setup for multiple Gaussian responses.
 
 }}
 \examples{
@@ -280,7 +178,7 @@ common <- list(
   progbar = FALSE
 )
 
-ps_multi <- multi_prior_setup(
+ps_multi <- glmbayes::multi_prior_setup(
   cbind(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width) ~ Species,
   data = iris,
   family = gaussian()
@@ -292,7 +190,7 @@ colnames(y) <- names(ps_multi)
 
 ## --- multi_rlmb (pfamily_list) ---------------------------------------------
 pfamily_list <- lapply(ps_multi, function(ps) {
-  dNormal_Gamma(
+  glmbayes::dNormal_Gamma(
     mu = ps$mu, Sigma_0 = ps$Sigma_0, shape = ps$shape, rate = ps$rate
   )
 })
@@ -337,7 +235,7 @@ out_ing <- do.call(
 summary(out_ing)
 }
 \seealso{
-\code{\link{summary.mrglmb}}, \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link{Prior_Setup}},
+\code{\link{summary.mrglmb}}, \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link[glmbayes]{Prior_Setup}},
 \code{\link{rlmb}}, \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}},
 \code{\link{rindepNormalGamma_reg}}
 
@@ -355,12 +253,6 @@ glmbayes Simulation Functions
 
 glmbayes Simulation Functions
 \code{\link{simfuncs}}
-
-Other prior: 
-\code{\link{Prior_Check}()},
-\code{\link{Prior_Setup}()},
-\code{\link{block_prior_setup}()}
 }
 \concept{modelfuns}
-\concept{prior}
 \concept{simfuncs}

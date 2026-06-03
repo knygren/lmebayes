@@ -211,7 +211,7 @@ treatment <- gl(3, 3)
 print(d.AD <- data.frame(treatment, outcome, counts))
 
 ## Poisson Prior and rNormal_reg call (using Prior_Setup for x, y, and prior values)
-ps <- Prior_Setup(counts ~ outcome + treatment, family = poisson(), data = d.AD)
+ps <- glmbayes::Prior_Setup(counts ~ outcome + treatment, family = poisson(), data = d.AD)
 
 out_pois <- rNormal_reg(
   n = 1000,
@@ -229,7 +229,7 @@ data(menarche, package = "MASS")
 menarche$Age2 <- menarche$Age - 13
 
 ## Logit Prior and rNormal_reg call (use proportion + trial weights)
-ps1 <- Prior_Setup(
+ps1 <- glmbayes::Prior_Setup(
   Menarche / Total ~ Age2,
   family = binomial(logit),
   data = menarche,
@@ -247,7 +247,7 @@ out_logit <- rNormal_reg(
 summary(out_logit)
 
 ## Probit Prior and rNormal_reg call
-ps2 <- Prior_Setup(
+ps2 <- glmbayes::Prior_Setup(
   Menarche / Total ~ Age2,
   family = binomial(probit),
   data = menarche,
@@ -265,7 +265,7 @@ out_probit <- rNormal_reg(
 summary(out_probit)
 
 ## clog-log Prior and rNormal_reg call
-ps3 <- Prior_Setup(
+ps3 <- glmbayes::Prior_Setup(
   Menarche / Total ~ Age2,
   family = binomial(cloglog),
   data = menarche,
@@ -289,7 +289,7 @@ carinsca$Merit <- ordered(carinsca$Merit)
 carinsca$Class <- factor(carinsca$Class)
 oldopt <- options(contrasts = c("contr.treatment", "contr.treatment"))
 
-psg <- Prior_Setup(
+psg <- glmbayes::Prior_Setup(
   Cost / Claims ~ Merit + Class,
   family = Gamma(link = "log"),
   data = carinsca,
@@ -314,7 +314,7 @@ trt <- c(4.81,4.17,4.41,3.59,5.87,3.83,6.03,4.89,4.32,4.69)
 group <- gl(2, 10, 20, labels = c("Ctl","Trt"))
 weight <- c(ctl, trt)
 
-ps=Prior_Setup(weight ~ group)
+ps=glmbayes::Prior_Setup(weight ~ group)
 mu <- ps$mu
 shape <- ps$shape
 rate <- ps$rate
@@ -333,7 +333,7 @@ ctl <- c(4.17,5.58,5.18,6.11,4.50,4.61,5.17,4.53,5.33,5.14)
 trt <- c(4.81,4.17,4.41,3.59,5.87,3.83,6.03,4.89,4.32,4.69)
 group <- gl(2, 10, 20, labels = c("Ctl","Trt"))
 weight <- c(ctl, trt)
-p_setup <- Prior_Setup(weight ~ group, family = gaussian())
+p_setup <- glmbayes::Prior_Setup(weight ~ group, family = gaussian())
 
 mu <- p_setup$mu
 Sigma_prior <- p_setup$Sigma
@@ -372,7 +372,7 @@ group <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
 weight <- c(ctl, trt)
 
 ## Set up prior hyperparameters (shape/rate) and model matrix via Prior_Setup
-ps <- Prior_Setup(weight ~ group, family = gaussian())
+ps <- glmbayes::Prior_Setup(weight ~ group, family = gaussian())
 y <- ps$y
 x <- as.matrix(ps$x)
 
@@ -387,7 +387,7 @@ summary(out)
 \insertAllCited{}
 }
 \seealso{
-\code{\link{pfamily}}, \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{lmb}}, \code{\link{rglmb}}, \code{\link{rlmb}}
+\code{\link[glmbayes]{pfamily}}, \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{lmb}}, \code{\link{rglmb}}, \code{\link{rlmb}}
 for modeling functions that consume simulation functions.
 
 \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}}, \code{\link{rGamma_reg}} for individual simulation functions.

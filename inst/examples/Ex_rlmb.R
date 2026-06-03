@@ -9,7 +9,7 @@ trt <- c(4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69)
 group  <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
 weight <- c(ctl, trt)
 
-ps <- Prior_Setup(weight ~ group)
+ps <- glmbayes::Prior_Setup(weight ~ group)
 x  <- ps$x
 mu <- ps$mu
 V  <- ps$Sigma
@@ -33,11 +33,11 @@ dispersion2 <- ps$dispersion
 for (i in 1:n_burnin) {
   ## Update block for regression coefficients
   out1 <- rlmb( n = 1, y = y, x = x,
-    pfamily = dNormal(mu = mu, Sigma = V, dispersion = dispersion2) )
+    pfamily = glmbayes::dNormal(mu = mu, Sigma = V, dispersion = dispersion2) )
   
   ## Update block for dispersion
   out2 <- rlmb(n = 1, y = y, x = x,
-    pfamily = dGamma(shape = shape, rate = rate_dg, beta = out1$coefficients[1, ]))
+    pfamily = glmbayes::dGamma(shape = shape, rate = rate_dg, beta = out1$coefficients[1, ]))
   dispersion2 <- out2$dispersion
 }
 
@@ -48,11 +48,11 @@ disp_out <- rep(0, n_samples)
 for (i in 1:n_samples) {
   ## Update block for regression coefficients
   out1 <- rlmb( n = 1, y = y, x = x,
-                pfamily = dNormal(mu = mu, Sigma = V, dispersion = dispersion2) )
+                pfamily = glmbayes::dNormal(mu = mu, Sigma = V, dispersion = dispersion2) )
 
   ## Update block for dispersion
   out2 <- rlmb(n = 1, y = y, x = x,
-               pfamily = dGamma(shape = shape, rate = rate_dg, beta = out1$coefficients[1, ]))
+               pfamily = glmbayes::dGamma(shape = shape, rate = rate_dg, beta = out1$coefficients[1, ]))
   dispersion2 <- out2$dispersion
   
   ## Store output
@@ -73,7 +73,7 @@ print(coda::effectiveSize(mcmc_two_block)["dispersion"])
 
 ## rlmb with dGamma prior (dispersion-only; coefficients fixed)
 out_rlmb_dGamma <- rlmb(n = 100, y = y, x = x,
-  pfamily = dGamma(shape = shape, rate = rate_dg, beta = ps$coefficients),
+  pfamily = glmbayes::dGamma(shape = shape, rate = rate_dg, beta = ps$coefficients),
   weights = rep(1, length(y)))
 summary(out_rlmb_dGamma)
 

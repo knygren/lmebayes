@@ -36,7 +36,7 @@ block_lmb(
     model to be fitted.  The details of model specification are given
     under \sQuote{Details}.}
 
-\item{pfamily}{A single \code{\link{pfamily}} recycled to every block, or
+\item{pfamily}{A single \code{\link[glmbayes]{pfamily}} recycled to every block, or
 use \code{pfamily_list} of length \code{k} (number of blocks).}
 
 \item{pfamily_list}{Optional list of \code{pfamily} objects, one per block.}
@@ -129,7 +129,7 @@ ps_block <- block_prior_setup(
 )
 
 pfamily_list <- lapply(ps_block, function(ps) {
-  dNormal_Gamma(
+  glmbayes::dNormal_Gamma(
     mu = ps$mu, Sigma_0 = ps$Sigma_0, shape = ps$shape, rate = ps$rate
   )
 })

@@ -7,7 +7,7 @@ group <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
 weight <- c(ctl, trt)
 
 ## Set up prior hyperparameters (shape/rate) and model matrix via Prior_Setup
-ps <- Prior_Setup(weight ~ group, family = gaussian())
+ps <- glmbayes::Prior_Setup(weight ~ group, family = gaussian())
 y <- ps$y
 x <- as.matrix(ps$x)
 

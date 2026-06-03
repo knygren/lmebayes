@@ -53,7 +53,7 @@
 #' \code{glm} uses \code{family} to specify the likelihood. For any implemented combination of family, link, and 
 #' \code{pfamily}, \code{rglmb} generates independent draws from the posterior density-no MCMC chains are required.
 #'
-#' A helper, \code{\link{Prior_Setup}}, assists users in choosing prior parameters. It ships with sensible defaults 
+#' A helper, \code{\link[glmbayes]{Prior_Setup}}, assists users in choosing prior parameters. It ships with sensible defaults 
 #' but also allows full customization. In particular, the default for \code{dNormal} is a reparameterization of 
 #' Zellner's g-prior \insertCite{zellner1986gprior}{glmbayes}.
 #'
@@ -89,9 +89,9 @@
 #' for envelope construction and grid evaluation used in non-conjugate sampling.
 #' 
 #' \code{\link{family}} for documentation of family functions used to specify priors.
-#' \code{\link{pfamily}} for documentation of pfamily functions used to specify priors.
+#' \code{\link[glmbayes]{pfamily}} for documentation of pfamily functions used to specify priors.
 #' 
-#' \code{\link{Prior_Setup}}, \code{\link{Prior_Check}} for functions used to initialize and to check priors,  
+#' \code{\link[glmbayes]{Prior_Setup}}, \code{\link[glmbayes]{Prior_Check}} for functions used to initialize and to check priors,  
 #'
 #' Further reading: \insertCite{Nygren2006}{glmbayes};
 #' \insertCite{glmbayesSimmethods,glmbayesChapterA08}{glmbayes};
@@ -138,7 +138,7 @@ rglmb<-function(n=1,y,x,family=gaussian(),pfamily,offset=NULL,
   if (inherits(pfamily, "pfamily") && identical(pfamily$pfamily, "dGamma") &&
       identical(family$family, "poisson")) {
     pl <- pfamily$prior_list
-    pfamily <- dGamma(
+    pfamily <- glmbayes::dGamma(
       shape          = pl$shape,
       rate           = pl$rate,
       beta           = pl$beta,

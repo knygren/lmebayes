@@ -56,6 +56,6 @@ A list with \code{keep} and \code{drop} (block id character vectors),
 \description{
 For each block in \code{block}, builds the \code{\link{model.matrix}} on that
 block's \code{model.frame} rows and marks blocks with \code{qr(x)$rank == ncol(x)}.
-Saturated blocks (\code{n = p}) need \code{dispersion} in \code{\link{Prior_Setup}}.
+Saturated blocks (\code{n = p}) need \code{dispersion} in \code{\link[glmbayes]{Prior_Setup}}.
 }
 \keyword{internal}
