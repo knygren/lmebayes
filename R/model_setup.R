@@ -7,6 +7,10 @@
 #' same \code{||} or \code{|} random structure as \code{formula}, without
 #' cross-level fixed interactions (so RE moderation is not double-coded).
 #'
+#' @details
+#' The example uses \code{big_word_club} from the Suggested package
+#' \pkg{bayesrules} (see \code{?bayesrules::big_word_club}).
+#'
 #' @param formula Mixed-model formula for design extraction and \code{lmer_fit}
 #'   (fixed effects / hyper calibration).
 #' @param vcov_formula Optional formula for the \code{lmer} fit used to extract
@@ -27,6 +31,8 @@
 #' @seealso \code{\link{extract_re_hyper_matrices}},
 #'   \code{\link{lmerb_default_vcov_formula}},
 #'   \code{\link{extract_lmer_variance_components}}
+#' @examplesIf requireNamespace("bayesrules", quietly = TRUE)
+#' @example inst/examples/Ex_model_setup_big_word_club.R
 #' @export
 model_setup <- function(
     formula,
