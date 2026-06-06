@@ -16,7 +16,7 @@ inst/doc
 *.Rout
 !tests/*.Rout.save
 *.Rcheck/
-glmbayes.Rcheck/
+lmebayes.Rcheck/
 .Rproj.user
 *.Rproj
 *.tar
