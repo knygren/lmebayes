@@ -206,7 +206,7 @@ Validation (R): PD checks on `P`, dim match `ncol(x)`, symmetric `P`,
 | Layer | Purpose |
 |-------|---------|
 | **`rglmb_block()`**, **`rlmb_block()`** | Convenience: formula / `block` / multi-block sweep — only if a clear API is needed; separate from **`rglmb`/`rlmb`**. |
-| **`lmerb()`**, **`glmerb()`** | Bayesian **`lmer`/`glmer`-style** entry points — **deferred** until reliable convergence theory and diagnostics (e.g. geometric ergodicity, computable TV bound to target) are available. |
+| **`model_setup()`**, **`glmerb()`** | Bayesian **`lmer`/`glmer`-style** entry points — **deferred** until reliable convergence theory and diagnostics (e.g. geometric ergodicity, computable TV bound to target) are available. |
 
 Until then, document in **`?rNormalGLM_reg_block`**: *one block full conditional, not a complete MCMC scheme.*
 
@@ -382,4 +382,4 @@ samplers live in **`simfunction_block.R`** only (Section 4b).
 | Date | Note |
 |------|------|
 | 2026-05-28 | Initial design; R: `rNormalGLM_reg_block`; C++: `rNormalGLMBlocks` (loop → `rNormalGLM`). |
-| 2026-05-28 | R files: `simfunction_block.R`, `simfunction_block_utils.R`; integration policy (no `rglmb`/`rlmb` v1); future `rglmb_block` / `lmerb` noted. |
+| 2026-05-28 | R files: `simfunction_block.R`, `simfunction_block_utils.R`; integration policy (no `rglmb`/`rlmb` v1); future `rglmb_block` / `model_setup` noted. |

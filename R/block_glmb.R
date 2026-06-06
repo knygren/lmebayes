@@ -6,6 +6,7 @@
 #' Counterpart to \code{\link{block_lmb}}; see \code{\link{summary.bglmb}} for
 #' print/summary methods and \code{\link{block_rNormalGLM}} for Gibbs sampling.
 #'
+#' @inheritParams block_lmb
 #' @name block_glmb
 #' @family modelfuns
 NULL

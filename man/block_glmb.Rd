@@ -31,6 +31,10 @@ block_glmb(
     model to be fitted.  The details of model specification are given
     under \sQuote{Details}.}
 
+\item{block}{Block partition: \code{factor} or vector of length \code{nrow(data)}
+(after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
+counts, or a list of row index vectors (see \code{\link{normalize_block}}).}
+
 \item{family}{a description of the error distribution and link
     function to be used in the model.  For \code{glm} this can be a
     character string naming a family function, a family function or the
@@ -48,12 +52,15 @@ block_glmb(
     coercible by \code{\link{as.data.frame}} to a data frame) containing
     the variables in the model.  If not found in \code{data}, the
     variables are taken from \code{environment(formula)},
-    typically the environment from which \code{glm} is called.}
+    typically the environment from which \code{lm} is called.}
 
 \item{subset}{an optional vector specifying a subset of observations to be used in the fitting process.}
 
-\item{weights}{an optional vector of \sQuote{prior weights} to be used
-    in the fitting process.  Should be \code{NULL} or a numeric vector.}
+\item{weights}{an optional vector of weights to be used in the fitting
+    process.  Should be \code{NULL} or a numeric vector.
+    If non-NULL, weighted least squares is used with weights
+    \code{weights} (that is, minimizing \code{sum(w*e^2)}); otherwise
+    ordinary least squares is used.  See also \sQuote{Details},}
 
 \item{na.action}{a function which indicates what should happen when the data contain \code{NA}s.  The default is set by
 the \code{na.action} setting of \code{\link{options}}, and is \code{\link[stats]{na.fail}}
@@ -61,14 +68,15 @@ if that is unset.  The \sQuote{factory-fresh} default is \code{stats{na.omit}}.
 Another possible value is \code{NULL}, no action.  Value \code{stats{na.exclude}}
 can be useful.}
 
-\item{offset}{this can be used to specify an \emph{a priori} known component to be included in the linear
-predictor during fitting. This should be \code{NULL} or a numeric vector of length equal to the number of
-cases.  One or more \code{\link[stats]{offset}} terms can be included in the formula instead or as well, and
-if more than one is specified their sum is used.  See documentation for \code{model.offset} at
-\code{\link[stats]{model.extract}}.}
+\item{offset}{this can be used to specify an a priori known component to be
+included in the linear predictor during fitting. This should be \code{NULL} or a numeric
+vector or matrix of extents
+matching those of the response.  One or more \code{offset} terms can be
+included in the formula instead or as well, and if more than one are specified their
+sum is used.  See \code{model.offset}.}
 
-\item{contrasts}{an optional list. See the \code{contrasts.arg}
-    of \code{model.matrix.default}.}
+\item{contrasts}{an optional list. See the \code{contrasts.arg} of
+\code{model.matrix.default}.}
 
 \item{Gridtype}{an optional argument specifying the method used to determine the number of tangent points used to construct the enveloping function.}
 
@@ -82,12 +90,8 @@ envelopes.}
 
 \item{verbose}{Logical. Whether to print progress messages.}
 
-\item{...}{
-    For \code{glm}: arguments to be used to form the default
-    \code{control} argument if it is not supplied directly.
-
-    For \code{weights}: further arguments passed to or from other methods.
-  }
+\item{...}{For \code{lm()}: additional arguments to be passed to the low level
+    regression fitting functions (see below).}
 }
 \value{
 A named list of class \code{"bglmb"} (list of \code{"glmb"} fits from \strong{glmbayes}).
@@ -106,8 +110,6 @@ print/summary methods and \code{\link{block_rNormalGLM}} for Gibbs sampling.
 \seealso{
 glmbayes Modeling Functions
 \code{\link{block_lmb}()},
-\code{\link{multi_rlmb}()},
-\code{\link{rglmb}()},
-\code{\link{rlmb}()}
+\code{\link{multi_rlmb}()}
 }
 \concept{modelfuns}

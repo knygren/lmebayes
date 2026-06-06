@@ -38,3 +38,6 @@ stamp-h1
 
 # Editor / autoconf backup files
 *~
+
+# Local development references (copied from Package_Marketing; not for distribution)
+/references/

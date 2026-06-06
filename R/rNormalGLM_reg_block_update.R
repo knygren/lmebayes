@@ -15,12 +15,6 @@
 #'   \code{prior_list} is supplied.
 #' @param sigma_theta_sq Shared prior variance for scalar blocks when building
 #'   \code{prior_lists} from \code{mu_all}.
-#' @param y,x,block,family Passed to \code{\link{block_rNormalGLM}}.
-#' @param prior_list,prior_lists Optional; passed through when supplied.
-#' @param offset,weights Passed to \code{\link{block_rNormalGLM}}.
-#' @param Gridtype,use_parallel,use_opencl,verbose,progbar Passed to
-#'   \code{\link{block_rNormalGLM}}.
-#' @param n_envopt Passed to \code{\link{block_rNormalGLM}}; defaults to \code{1}.
 #' @param seed Optional; passed to \code{\link{set.seed}} before sampling.
 #' @param theta_coef_col Column index of \code{coefficients} to return as
 #'   \code{theta} (default \code{1} for scalar intercept blocks).
@@ -31,7 +25,6 @@
 #'     \item{block_rNormalGLM}{Full block sampler output.}
 #'   }
 #' @seealso \code{\link{block_rNormalGLM}}, \code{\link{block_lmb}}
-#' @name block_simfuncs
 #' @rdname block_simfuncs
 #' @export
 #' @examples

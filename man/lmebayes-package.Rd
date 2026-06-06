@@ -15,7 +15,7 @@ Poisson, Binomial, and Gamma models with log-concave likelihoods.
 \details{
 The main user-facing interface is \code{glmb()}, which mirrors the structure of
 \code{glm()} and supports prior specification through \code{pfamily} objects. Lower-level
-functions such as \code{rglmb()} and \code{rGamma_reg()} provide direct access to the
+functions such as \code{\link[glmbayes]{rglmb}()} and \code{\link{rGamma_reg}()} provide direct access to the
 underlying samplers and can be used in block Gibbs sampling or hierarchical
 model implementations.
 
@@ -74,7 +74,7 @@ glm.D93 <- glm(counts ~ outcome + treatment, family = poisson())
 
 ps <- glmbayes::Prior_Setup(counts ~ outcome + treatment, family = poisson())
 
-rglmb.D93 <- rglmb(
+rglmb.D93 <- glmbayes::rglmb(
   n = 200,
   y = ps$y,
   x = as.matrix(ps$x),
@@ -91,7 +91,7 @@ summary(rglmb.D93)
 \seealso{
 Main interfaces (in \strong{glmbayes}): \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{lmb}};
 mixed-effects: \code{\link{block_lmb}}, \code{\link{block_glmb}},
-\code{\link{rglmb}}, \code{\link{rlmb}}; low-level simulation API
+\code{\link[glmbayes]{rglmb}}, \code{\link[glmbayes]{rlmb}}; low-level simulation API
 \code{\link{simfuncs}}; envelope construction \code{\link{EnvelopeBuild}}.
 
 Useful links:

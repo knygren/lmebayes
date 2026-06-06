@@ -6,7 +6,7 @@
 #' @param object An object of class \code{"blmb"} from \code{\link{block_lmb}}.
 #' @param x An object of class \code{"summary.blmb"}.
 #' @param digits Number of significant digits for printing.
-#' @param \ldots Passed to \code{\link{summary.glmb}} or print methods.
+#' @param \ldots Passed to \code{\link[glmbayes]{summary.glmb}} or print methods.
 #' @name summary.blmb
 #' @aliases summary.blmb print.blmb print.summary.blmb
 NULL

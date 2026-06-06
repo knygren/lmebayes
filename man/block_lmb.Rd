@@ -36,6 +36,10 @@ block_lmb(
     model to be fitted.  The details of model specification are given
     under \sQuote{Details}.}
 
+\item{block}{Block partition: \code{factor} or vector of length \code{nrow(data)}
+(after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
+counts, or a list of row index vectors (see \code{\link{normalize_block}}).}
+
 \item{pfamily}{A single \code{\link[glmbayes]{pfamily}} recycled to every block, or
 use \code{pfamily_list} of length \code{k} (number of blocks).}
 
@@ -149,8 +153,6 @@ summary(out_blmb)
 \seealso{
 glmbayes Modeling Functions
 \code{\link{block_glmb}()},
-\code{\link{multi_rlmb}()},
-\code{\link{rglmb}()},
-\code{\link{rlmb}()}
+\code{\link{multi_rlmb}()}
 }
 \concept{modelfuns}

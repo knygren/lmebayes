@@ -91,17 +91,14 @@ Use `example()` and `demo()` to explore built-in examples and demos for supporte
     ## Deviance residuals and simulate() for posterior predictive checks (menarche)
     example("residuals.glmb")
 
-    ## Two-block Gibbs sampler compared with iid sampling (linear model)
-    example("rlmb")
-
     ## Default prior specification (glmbayes)
     example("Prior_Setup", package = "glmbayes")
 
-    ## Matrix-input GLM example with an informative prior
-    example("rglmb")
+    ## Matrix-input GLM / LM samplers (glmbayes)
+    example("rglmb", package = "glmbayes")
+    example("rlmb", package = "glmbayes")
 
-    ## Two-step Boston example: estimates and summarizes models with unknown
-    ## dispersion using dGamma priors via rGamma_reg, rglmb, rlmb, glmb, and lmb
+    ## Two-step Boston example: dGamma priors via rGamma_reg (lmebayes) and glmbayes samplers
     example("summary.rGamma_reg")
 
     ## High-dimensional Gaussian model (14 predictors) with GPU acceleration (requires OpenCL)
@@ -110,10 +107,8 @@ Use `example()` and `demo()` to explore built-in examples and demos for supporte
     ## High-dimensional binomial model (14 predictors) with GPU acceleration (requires OpenCL)
     example("Cleveland")
 
-    ## Hierarchical linear model (Rubin/Gelman 8-schools) via rlmb
+    ## Hierarchical models (demos; use glmbayes::rglmb / rlmb inside)
     demo("Ex_07_Schools")
-
-    ## Hierarchical generalized linear model (Poisson BikeSharing) via rglmb
     demo("Ex_09_BikeSharingPoisson")
 
     ## Detailed simulation pipeline for rNormalGLM models (JASA 2006; glmbayes Chapter A05)

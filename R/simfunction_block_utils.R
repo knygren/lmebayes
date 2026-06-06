@@ -1,7 +1,15 @@
 # Internal utilities for conditionally independent block simulation.
 # See inst/DESIGN_RGLM_BLOCKS.md.
 
-#' @keywords internal
+#' Normalize a row-block partition for BY-style fits
+#'
+#' @param block Block partition: \code{factor} or integer vector of length
+#'   \code{l2}, \code{l2_blocks} counts summing to \code{l2}, or a list of
+#'   disjoint row-index vectors covering \code{1:l2}.
+#' @param l2 Number of observations (rows) after \code{model.frame}.
+#' @return List with \code{k}, \code{ids}, \code{l2_blocks}, \code{starts},
+#'   and \code{rows} (per-block row indices).
+#' @export
 normalize_block <- function(block, l2) {
   l2 <- as.integer(l2)
   if (length(l2) != 1L || l2 < 1L) {

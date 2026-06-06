@@ -2,7 +2,6 @@
 % Please edit documentation in R/simulationpipeline.R
 \name{glmbfamfunc}
 \alias{glmbfamfunc}
-\alias{print.glmbfamfunc}
 \title{Return family functions used during simulation and post processing}
 \usage{
 glmbfamfunc(family, lik_shape = 1)
@@ -14,10 +13,6 @@ glmbfamfunc(family, lik_shape = 1)
 \code{Gamma(link = "identity")} branch where the regression coefficient is the
 Gamma \emph{rate}.  Ignored for all other family/link combinations.
 Defaults to \code{1} (i.e.\ exponential likelihood).}
-
-\item{x}{an object of class \code{"glmbfamfunc"} for which a printed output is desired.}
-
-\item{\ldots}{additional optional arguments}
 }
 \value{
 A list (class \code{"glmbfamfunc"}) whose first four components are \strong{always}
@@ -42,7 +37,7 @@ C++-aligned likelihood/posterior routines and remain commented out in the implem
 \description{
 This function takes as input a \code{\link{family}} object and returns a
 set of functions that are used during simulation and summarization of models
-using the \code{\link[glmbayes]{glmb}}, and \code{\link{rglmb}} functions.
+using the \code{\link[glmbayes]{glmb}}, and \code{\link[glmbayes]{rglmb}} functions.
 }
 \details{
 \code{glmbfamfunc} is the canonical R closure bundle for likelihood, posterior, gradient, and
@@ -79,7 +74,7 @@ and \code{f7} use the correct parameterization (coefficient = Gamma rate \eqn{\b
 been fully or partially migrated to \code{*.cpp} routines, which receive their own
 objective functions directly.  For those paths \code{glmbfamfunc} may not be called at all
 during sampling.  However, the R-side post-processing functions
-(\code{\link{logLik.glmb}}, \code{\link{summary.rglmb}}, \code{\link{directional_tail}})
+(\code{\link[glmbayes]{logLik.glmb}}, \code{\link[glmbayes]{summary.rglmb}}, \code{\link{directional_tail}})
 always use \code{famfunc\$f1}, \code{famfunc\$f4}, and \code{famfunc\$f7} respectively, so a
 registered branch is still required for those outputs even when the sampler itself has moved
 to C++.

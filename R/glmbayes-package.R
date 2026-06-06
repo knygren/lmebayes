@@ -11,7 +11,7 @@
 #' @details
 #' The main user-facing interface is `glmb()`, which mirrors the structure of
 #' `glm()` and supports prior specification through `pfamily` objects. Lower-level
-#' functions such as `rglmb()` and `rGamma_reg()` provide direct access to the
+#' functions such as \code{\link[glmbayes]{rglmb}()} and \code{\link{rGamma_reg}()} provide direct access to the
 #' underlying samplers and can be used in block Gibbs sampling or hierarchical
 #' model implementations.
 #'
@@ -60,7 +60,7 @@
 #' @seealso
 #' Main interfaces (in **glmbayes**): \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{lmb}};
 #' mixed-effects: \code{\link{block_lmb}}, \code{\link{block_glmb}},
-#' \code{\link{rglmb}}, \code{\link{rlmb}}; low-level simulation API
+#' \code{\link[glmbayes]{rglmb}}, \code{\link[glmbayes]{rlmb}}; low-level simulation API
 #' \code{\link{simfuncs}}; envelope construction \code{\link{EnvelopeBuild}}.
 #'
 #' Useful links:

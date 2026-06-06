@@ -10,7 +10,7 @@
 #' @details
 #' \describe{
 #'   \item{\code{multi_rlmb}}{
-#'     Same arguments as \code{\link{rlmb}} except \code{pfamily} is replaced by
+#'     Same arguments as \code{\link[glmbayes]{rlmb}} except \code{pfamily} is replaced by
 #'     \code{pfamily_list} (length \code{ncol(y)} of \code{pfamily} objects).
 #'     Each element is class \code{"rlmb"} (and \code{"rglmb"}).
 #'   }
@@ -44,7 +44,7 @@
 #'
 #' @seealso
 #' \code{\link{summary.mrglmb}}, \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link[glmbayes]{Prior_Setup}},
-#' \code{\link{rlmb}}, \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}},
+#' \code{\link[glmbayes]{rlmb}}, \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}},
 #' \code{\link{rindepNormalGamma_reg}}
 #'
 #' @name multi_rlmb
@@ -53,8 +53,8 @@
 #' @example inst/examples/Ex_multi_rlmb.R
 NULL
 
-#' @describeIn multi_rlmb Gaussian \code{\link{rlmb}} simulation with multiple responses.
-#' @inheritParams rlmb
+#' @describeIn multi_rlmb Gaussian \code{\link[glmbayes]{rlmb}} simulation with multiple responses.
+#' @inheritParams glmbayes::rlmb
 #' @param pfamily_list List of length \code{ncol(y)} of \code{pfamily} objects.
 #' @family modelfuns
 #' @export
@@ -79,7 +79,7 @@ multi_rlmb <- function(n = 1,
 
   block_results <- vector("list", inp$l1)
   for (j in seq_len(inp$l1)) {
-    block_results[[j]] <- rlmb(
+    block_results[[j]] <- glmbayes::rlmb(
       n = n_draw,
       y = inp$y_mat[, j],
       x = inp$x,

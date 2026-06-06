@@ -2,7 +2,7 @@
 #'
 #' @description
 #' A detailed overview of the low-level simulation pipeline used by
-#' \code{rglmb()} and related functions. These routines implement the
+#' \code{\link[glmbayes]{rglmb}()} and related functions. These routines implement the
 #' optimization -> standardization -> envelope sizing -> envelope construction ->
 #' sampling -> back-transformation workflow described in \insertCite{Nygren2006}{glmbayes}.
 #'
@@ -24,19 +24,15 @@ NULL
 #'
 #' This function takes as input a \code{\link{family}} object and returns a 
 #' set of functions that are used during simulation and summarization of models 
-#' using the \code{\link[glmbayes]{glmb}}, and \code{\link{rglmb}} functions.
+#' using the \code{\link[glmbayes]{glmb}}, and \code{\link[glmbayes]{rglmb}} functions.
 #' 
 #' @name glmbfamfunc
-#' @aliases
-#' glmbfamfunc
-#' print.glmbfamfunc
+#' @aliases glmbfamfunc
 #' @param family an object of class \code{\link{family}}
 #' @param lik_shape Known shape parameter of the Gamma likelihood; used only for the
 #'   \code{Gamma(link = "identity")} branch where the regression coefficient is the
 #'   Gamma \emph{rate}.  Ignored for all other family/link combinations.
 #'   Defaults to \code{1} (i.e.\ exponential likelihood).
-#' @param x an object of class \code{"glmbfamfunc"} for which a printed output is desired.
-#' @param \ldots additional optional arguments
 #' @return A list (class \code{"glmbfamfunc"}) whose first four components are **always**
 #'   present for every supported \code{family} and \code{link}. The names \code{f1}--\code{f4}
 #'   are stable: they mean the same roles across families (only the internal formulas change).
@@ -90,7 +86,7 @@ NULL
 #'   been fully or partially migrated to \code{*.cpp} routines, which receive their own
 #'   objective functions directly.  For those paths \code{glmbfamfunc} may not be called at all
 #'   during sampling.  However, the R-side post-processing functions
-#'   (\code{\link{logLik.glmb}}, \code{\link{summary.rglmb}}, \code{\link{directional_tail}})
+#'   (\code{\link[glmbayes]{logLik.glmb}}, \code{\link[glmbayes]{summary.rglmb}}, \code{\link{directional_tail}})
 #'   always use \code{famfunc\$f1}, \code{famfunc\$f4}, and \code{famfunc\$f7} respectively, so a
 #'   registered branch is still required for those outputs even when the sampler itself has moved
 #'   to C++.
@@ -737,7 +733,7 @@ glmb_Standardize_Model<-function(y, x, P, bstar, A1){
 #' }
 #'
 #' @seealso \code{\link{EnvelopeBuild}}, \code{\link{EnvelopeEval}}, \code{\link{EnvelopeSort}};
-#' \code{\link{rNormal_reg}}, \code{\link{rglmb}} for user-facing sampling that uses these grids.
+#' \code{\link{rNormal_reg}}, \code{\link[glmbayes]{rglmb}} for user-facing sampling that uses these grids.
 #' Vignettes: \insertCite{glmbayesSimmethods,glmbayesChapterA08}{glmbayes}.
 #'
 #' @references
@@ -1175,7 +1171,7 @@ EnvelopeOpt<-function(a1,n,core_cnt=1L){
 #' }
 #'
 #' @seealso \code{\link{EnvelopeSize}}, \code{\link{EnvelopeEval}}, \code{\link{EnvelopeSort}},
-#' \code{\link{glmb_Standardize_Model}}; \code{\link{rNormal_reg}}, \code{\link{rglmb}}, \code{\link[glmbayes]{glmb}}.
+#' \code{\link{glmb_Standardize_Model}}; \code{\link{rNormal_reg}}, \code{\link[glmbayes]{rglmb}}, \code{\link[glmbayes]{glmb}}.
 #' Theory and vignettes: \insertCite{Nygren2006}{glmbayes};
 #' \insertCite{glmbayesChapterA08,glmbayesSimmethods,glmbayesChapterA10,glmbayesChapter12}{glmbayes}.
 #'
@@ -1385,7 +1381,7 @@ EnvelopeSetLogP <- function(logP, NegLL, cbars, G3) {
 #' from the true posterior \eqn{\pi(\theta \mid y)}.
 #'
 #' @seealso \code{\link{EnvelopeBuild}}, \code{\link{EnvelopeSize}}, \code{\link{EnvelopeSort}};
-#' \code{\link{rNormal_reg}}, \code{\link{rglmb}}. Vignettes:
+#' \code{\link{rNormal_reg}}, \code{\link[glmbayes]{rglmb}}. Vignettes:
 #' \insertCite{glmbayesSimmethods,glmbayesChapterA08,glmbayesChapterA10,glmbayesChapter12}{glmbayes}.
 #'
 #' @references
@@ -1617,7 +1613,7 @@ EnvelopeEval <- function(G4, y, x, mu, P, alpha, wt,
 #' procedure is valid and unbiased.
 #' @seealso \code{\link{EnvelopeBuild}}, \code{\link{EnvelopeOrchestrator}},
 #'   \code{\link{EnvelopeCentering}} (for obtaining \code{RSS_post} and anchored dispersion),
-#'   \code{\link{rindepNormalGamma_reg}}, \code{\link{rlmb}};
+#'   \code{\link{rindepNormalGamma_reg}}, \code{\link[glmbayes]{rlmb}};
 #'   \code{\link[glmbayes]{glmb}}, \code{\link{glmbfamfunc}}.
 #' @references
 #' \insertAllCited{}
@@ -1684,7 +1680,7 @@ EnvelopeDispersionBuild <- function(Env, Shape, Rate, P, y, x, alpha, n_obs, RSS
 #' Used after \code{\link{EnvelopeBuild}} and (for Normal--Gamma models)
 #' \code{\link{EnvelopeDispersionBuild}}; see \insertCite{Nygren2006,glmbayesChapterA08}{glmbayes}.
 #' @seealso \code{\link{EnvelopeBuild}}, \code{\link{EnvelopeOrchestrator}},
-#'   \code{\link{EnvelopeDispersionBuild}}, \code{\link{rNormal_reg}}, \code{\link{rglmb}}.
+#'   \code{\link{EnvelopeDispersionBuild}}, \code{\link{rNormal_reg}}, \code{\link[glmbayes]{rglmb}}.
 #' @references
 #' \insertAllCited{}
 #' @example inst/examples/Ex_EnvelopeSort.R

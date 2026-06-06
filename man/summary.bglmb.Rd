@@ -19,7 +19,7 @@
 
 \item{digits}{Number of significant digits for printing.}
 
-\item{\ldots}{Passed to \code{\link{summary.glmb}} or print methods.}
+\item{\ldots}{Passed to \code{\link[glmbayes]{summary.glmb}} or print methods.}
 }
 \value{
 \code{summary.bglmb} returns a named list of \code{"summary.glmb"}
@@ -27,12 +27,12 @@ objects with class \code{"summary.bglmb"}.
 }
 \description{
 Methods for row-block \code{\link[glmbayes]{glmb}} fits (class \code{"bglmb"}).
-\code{summary.bglmb} applies \code{\link{summary.glmb}} to each block;
+\code{summary.bglmb} applies \code{\link[glmbayes]{summary.glmb}} to each block;
 printing follows \code{\link[glmbayes]{summary.mlmb}} / \code{\link{summary.blmb}} with
 per-block sections.
 }
 \seealso{
 \code{\link{block_glmb}}, \code{\link{block_lmb}},
 \code{\link[glmbayes]{summary.mlmb}}, \code{\link{summary.blmb}},
-\code{\link{summary.glmb}}
+\code{\link[glmbayes]{summary.glmb}}
 }

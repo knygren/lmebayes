@@ -127,7 +127,7 @@ with \code{cbind} responses). Each returns a named list of class
 \details{
 \describe{
 \item{\code{multi_rlmb}}{
-Same arguments as \code{\link{rlmb}} except \code{pfamily} is replaced by
+Same arguments as \code{\link[glmbayes]{rlmb}} except \code{pfamily} is replaced by
 \code{pfamily_list} (length \code{ncol(y)} of \code{pfamily} objects).
 Each element is class \code{"rlmb"} (and \code{"rglmb"}).
 }
@@ -155,7 +155,7 @@ named list of \code{"PriorSetup"} objects (one per response column).
 }
 \section{Functions}{
 \itemize{
-\item \code{multi_rlmb()}: Gaussian \code{\link{rlmb}} simulation with multiple responses.
+\item \code{multi_rlmb()}: Gaussian \code{\link[glmbayes]{rlmb}} simulation with multiple responses.
 
 \item \code{multi_rNormal_reg()}: Normal-prior regression with multiple responses.
 
@@ -236,14 +236,12 @@ summary(out_ing)
 }
 \seealso{
 \code{\link{summary.mrglmb}}, \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link[glmbayes]{Prior_Setup}},
-\code{\link{rlmb}}, \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}},
+\code{\link[glmbayes]{rlmb}}, \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}},
 \code{\link{rindepNormalGamma_reg}}
 
 glmbayes Modeling Functions
 \code{\link{block_glmb}()},
-\code{\link{block_lmb}()},
-\code{\link{rglmb}()},
-\code{\link{rlmb}()}
+\code{\link{block_lmb}()}
 
 glmbayes Simulation Functions
 \code{\link{simfuncs}}

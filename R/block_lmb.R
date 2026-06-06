@@ -6,6 +6,9 @@
 #' \code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
 #' \code{\link{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
 #'
+#' @param block Block partition: \code{factor} or vector of length \code{nrow(data)}
+#'   (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
+#'   counts, or a list of row index vectors (see \code{\link{normalize_block}}).
 #' @name block_lmb
 #' @family modelfuns
 NULL

@@ -2,16 +2,14 @@
 #'
 #' @description
 #' Simulation functions provide a unified interface for generating posterior samples from Bayesian GLMs.
-#' These functions are typically used within model fitting routines such as \code{\link{rglmb}} and \code{\link{rlmb}}, and
+#' These functions are typically used within model fitting routines such as \code{\link[glmbayes]{rglmb}} and \code{\link[glmbayes]{rlmb}}, and
 #' are also suitable for use in Block Gibbs sampling and other simulation-based inference techniques.
 #'
 #' @name simfuncs
 #' @param object A fitted model object containing a \code{pfamily} component. The generic function \code{simfunction()} accesses the simulation metadata stored within such objects.
-#' @param x An object of class \code{"simfunction"} or \code{"rGamma_reg"} to be printed.
 #' @param n Number of draws to generate. If \code{length(n) > 1}, the length is taken to be the number required.
 #' @param y A vector of observations of length \code{m}.
-#' @param x for the simulation functions a design matrix of dimension \code{m * p} and for 
-#' the print functions the object to be printed. 
+#' @param x Design matrix of dimension \code{m * p}.
 #' @param prior_list A list with prior parameters (e.g., shape, rate, beta) used in the simulation.
 #' @param offset Optional numeric vector of length \code{m} specifying known components of the linear predictor.
 #' @param weights Optional numeric vector of prior weights.
@@ -23,9 +21,8 @@
 #' @param use_parallel Logical. Whether to use parallel processing.
 #' @param use_opencl Logical. Whether to use OpenCL acceleration.
 #' @param verbose Logical. Whether to print progress messages.
-#' @param digits Number of significant digits to use for printed output.
 #' @param progbar Logical. Whether to display a progress base during simulation.
-#' @param \ldots Additional arguments passed to or from other methods.
+#' @param \ldots Additional arguments passed to \code{simfunction()} methods.
 #'
 #' @return
 #' \describe{
@@ -117,7 +114,7 @@
 #' @details The low-level simulation functions **\code{rNormal_reg()}**, **\code{rNormalGamma_reg()}**, 
 #' **\code{rindepNormalGamma_reg()}**, and **\code{rGamma_reg()}** generate iid samples from posterior 
 #' distributions for specific model components. These model functions are used internally by the functions
-#' **\code{rglmb()}** and **\code{rlmb()}** to generate samples.  
+#' **\code{\link[glmbayes]{rglmb}()}** and **\code{\link[glmbayes]{rlmb}()}** to generate samples.  
 #'  
 #' The \code{simfunction()} generic extracts metadata from simulation objects, including the function name, call, and arguments used. This is useful for introspection, reproducibility, and diagnostics.
 #'
@@ -156,7 +153,7 @@
 #' The simulation framework was developed by Kjell Nygren as part of the \pkg{glmbayes} package. It builds on the likelihood subgradient approach described in \insertCite{Nygren2006}{glmbayes}, and extends classical Bayesian GLM sampling techniques.
 #'
 #' @seealso
-#' \code{\link[glmbayes]{pfamily}}, \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{lmb}}, \code{\link{rglmb}}, \code{\link{rlmb}}
+#' \code{\link[glmbayes]{pfamily}}, \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{lmb}}, \code{\link[glmbayes]{rglmb}}, \code{\link[glmbayes]{rlmb}}
 #' for modeling functions that consume simulation functions.
 #'
 #' \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}}, \code{\link{rGamma_reg}} for individual simulation functions.

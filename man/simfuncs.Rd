@@ -46,8 +46,7 @@ rBeta_reg(n, y, x, prior_list, offset = NULL, weights = 1,
 
 \item{y}{A vector of observations of length \code{m}.}
 
-\item{x}{for the simulation functions a design matrix of dimension \code{m * p} and for
-the print functions the object to be printed.}
+\item{x}{Design matrix of dimension \code{m * p}.}
 
 \item{prior_list}{A list with prior parameters (e.g., shape, rate, beta) used in the simulation.}
 
@@ -71,9 +70,7 @@ envelopes.}
 
 \item{progbar}{Logical. Whether to display a progress base during simulation.}
 
-\item{digits}{Number of significant digits to use for printed output.}
-
-\item{\ldots}{Additional arguments passed to or from other methods.}
+\item{\ldots}{Additional arguments passed to \code{simfunction()} methods.}
 }
 \value{
 \describe{
@@ -163,14 +160,14 @@ Elements include:
 }
 \description{
 Simulation functions provide a unified interface for generating posterior samples from Bayesian GLMs.
-These functions are typically used within model fitting routines such as \code{\link{rglmb}} and \code{\link{rlmb}}, and
+These functions are typically used within model fitting routines such as \code{\link[glmbayes]{rglmb}} and \code{\link[glmbayes]{rlmb}}, and
 are also suitable for use in Block Gibbs sampling and other simulation-based inference techniques.
 }
 \details{
 The low-level simulation functions \strong{\code{rNormal_reg()}}, \strong{\code{rNormalGamma_reg()}},
 \strong{\code{rindepNormalGamma_reg()}}, and \strong{\code{rGamma_reg()}} generate iid samples from posterior
 distributions for specific model components. These model functions are used internally by the functions
-\strong{\code{rglmb()}} and \strong{\code{rlmb()}} to generate samples.
+\strong{\code{\link[glmbayes]{rglmb}()}} and \strong{\code{\link[glmbayes]{rlmb}()}} to generate samples.
 
 The \code{simfunction()} generic extracts metadata from simulation objects, including the function name, call, and arguments used. This is useful for introspection, reproducibility, and diagnostics.
 
@@ -387,7 +384,7 @@ summary(out)
 \insertAllCited{}
 }
 \seealso{
-\code{\link[glmbayes]{pfamily}}, \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{lmb}}, \code{\link{rglmb}}, \code{\link{rlmb}}
+\code{\link[glmbayes]{pfamily}}, \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{lmb}}, \code{\link[glmbayes]{rglmb}}, \code{\link[glmbayes]{rlmb}}
 for modeling functions that consume simulation functions.
 
 \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}}, \code{\link{rGamma_reg}} for individual simulation functions.

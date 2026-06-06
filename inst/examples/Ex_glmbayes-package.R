@@ -9,7 +9,7 @@ glm.D93 <- glm(counts ~ outcome + treatment, family = poisson())
 
 ps <- glmbayes::Prior_Setup(counts ~ outcome + treatment, family = poisson())
 
-rglmb.D93 <- rglmb(
+rglmb.D93 <- glmbayes::rglmb(
   n = 200,
   y = ps$y,
   x = as.matrix(ps$x),

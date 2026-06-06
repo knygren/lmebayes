@@ -28,7 +28,7 @@ out1 <- rGamma_reg(
 )
 summary(out1)
 
-out2 <- rglmb(
+out2 <- glmbayes::rglmb(
   n = 200,
   y = y,
   x = x,
@@ -38,7 +38,7 @@ out2 <- rglmb(
 )
 summary(out2)
 
-out3 <- rlmb(
+out3 <- glmbayes::rlmb(
   n = 200,
   y = y,
   x = x,

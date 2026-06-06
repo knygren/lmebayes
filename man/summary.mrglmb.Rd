@@ -18,7 +18,7 @@ output is desired.}
 \item{digits}{The number of significant digits to use when printing.}
 
 \item{\ldots}{Additional optional arguments passed to
-\code{\link{summary.rglmb}} or \code{\link{print.summary.rglmb}}.}
+\code{\link[glmbayes]{summary.rglmb}} or \code{\link[glmbayes]{print.summary.rglmb}}.}
 }
 \value{
 \code{summary.mrglmb} returns a named list of
@@ -33,12 +33,12 @@ These functions are \code{\link{methods}} for class \code{"mrglmb"} or
 }
 \details{
 Mirrors the behavior of \code{\link[stats]{summary.mlm}}: each response
-column is summarized independently using \code{\link{summary.rglmb}} and
+column is summarized independently using \code{\link[glmbayes]{summary.rglmb}} and
 printed with a \code{"Response <name> :"} header.
 }
 \seealso{
 \code{\link{multi_rlmb}}, \code{\link{multi_rNormalGamma_reg}},
 \code{\link{multi_rNormal_reg}}, \code{\link{multi_rindepNormalGamma_reg}},
-\code{\link{summary.rglmb}},
-\code{\link{print.summary.rglmb}}
+\code{\link[glmbayes]{summary.rglmb}},
+\code{\link[glmbayes]{print.summary.rglmb}}
 }

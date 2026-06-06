@@ -513,7 +513,7 @@ env_out
 \item \link[glmbayes]{EnvelopeCentering} – \code{RSS_Post2} and dispersion anchor
 \item \link[glmbayes]{glmb_Standardize_Model} – standardized inputs for the orchestrator
 \item \code{\link{rindepNormalGamma_reg}} – full Normal–Gamma workflow (R + C++)
-\item \code{\link{rlmb}}, \code{\link{rglmb}}, \code{\link{simfuncs}} – higher-level sampling entry points
+\item \code{\link[glmbayes]{rlmb}}, \code{\link[glmbayes]{rglmb}}, \code{\link{simfuncs}} – higher-level sampling entry points
 \item Vignettes \code{Chapter-A07}, \code{Chapter-A08}, \code{Chapter-A11}; cited as
 \insertCite{Nygren2006,glmbayesChapterA08,glmbayesIndNormGammaVignette}{glmbayes}
 }
