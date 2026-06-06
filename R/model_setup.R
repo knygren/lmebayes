@@ -27,7 +27,8 @@
 #' @return Object of class \code{"model_setup"}: \code{y}, \code{Z},
 #'   \code{groups}, \code{X_hyper}, \code{formula}, \code{vcov_formula},
 #'   \code{lmer_fit} (full formula), \code{lmer_vcov_fit}, \code{varcorr},
-#'   \code{vcov_re}, and \code{residual_var}.
+#'   \code{vcov_re}, \code{residual_var}, and \code{re_rank} (named logical
+#'   vector: \code{TRUE} if \code{Z_j} is full column rank for that group).
 #' @seealso \code{\link{extract_re_hyper_matrices}},
 #'   \code{\link{lmerb_default_vcov_formula}},
 #'   \code{\link{extract_lmer_variance_components}}
@@ -110,6 +111,20 @@ model_setup <- function(
   design$vcov_re <- vc$vcov_re
   design$residual_var <- vc$residual_var
 
+  # Per-group rank check: is Z_j full column rank for each factor level?
+  p_re  <- ncol(design$Z)
+  g_chr <- as.character(design$groups)
+  design$re_rank <- vapply(
+    levels(design$groups),
+    function(lev) {
+      rows <- which(g_chr == lev)
+      Z_j  <- design$Z[rows, , drop = FALSE]
+      nrow(Z_j) >= p_re &&
+        Matrix::rankMatrix(Z_j, method = "qr")[1L] == p_re
+    },
+    logical(1L)
+  )
+
   design
 }
 
@@ -132,7 +147,17 @@ print.model_setup <- function(x, ...) {
   cat(sprintf("  %s ~ %s\n\n", resp, paste(re_names, collapse = " + ")))
   cat(sprintf("  Observations : %d\n", n_obs))
   cat(sprintf("  RE predictors: %d\n", length(re_names)))
-  cat(sprintf("  Group        : %s  [%d levels]\n\n", grp, n_lev))
+  cat(sprintf("  Group        : %s  [%d levels]\n", grp, n_lev))
+  if (!is.null(x$re_rank)) {
+    n_full <- sum(x$re_rank)
+    cat(sprintf("  Full-rank Z_j: %d of %d groups\n", n_full, n_lev))
+    if (n_full < n_lev) {
+      deficient <- names(x$re_rank)[!x$re_rank]
+      cat(sprintf("    rank-deficient: %s\n",
+                  paste(deficient, collapse = ", ")))
+    }
+  }
+  cat("\n")
 
   # ---- Section 2: Random Effects Model --------------------------------------
   cat("--- Random Effects Model ---\n")

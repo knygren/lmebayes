@@ -1,9 +1,15 @@
 ## model_setup() on bayesrules::big_word_club (private-school moderation)
 ##
 ## Two-level structure:
-##   Level 1 (students):  y ~ b0[j] + b_age_c[j]*age_c
+##   Level 1 (students):  y ~ b0[j] + b_age_c[j]*age_c + b_dist[j]*distracted_a1
 ##   Level 2 (schools):   b0[j]      ~ private_school + title1 + free_reduced_lunch
 ##                        b_age_c[j] ~ 1
+##                        b_dist[j]  ~ 1
+##
+## Note: distracted_a1 is a binary flag (student was distracted at assessment 1).
+## It has zero within-school variation in 7 of 47 schools (all students in those
+## schools were undistracted), making Z_j rank-deficient for those groups.
+## lmer fits the model without warning; model_setup() identifies the 7 schools.
 
 if (!requireNamespace("bayesrules", quietly = TRUE)) {
   stop("Example requires the 'bayesrules' package.", call. = FALSE)
@@ -19,14 +25,14 @@ dat <- subset(
   !is.na(score_ppvt) &
     !is.na(invalid_ppvt) & invalid_ppvt == 0L &
     complete.cases(dat[, c(
-      "score_ppvt", "age_c",
+      "score_ppvt", "age_c", "distracted_a1",
       "private_school", "title1", "free_reduced_lunch", "school_id"
     )])
 )
 
 form_lmer <- score_ppvt ~
   private_school + title1 + free_reduced_lunch +
-  (1 + age_c || school_id)
+  (1 + age_c + distracted_a1 || school_id)
 
 ## ---------------------------------------------------------------------------
 ## 1. lmer fit: raw output
@@ -43,6 +49,10 @@ print(coef(fit))
 
 ## ---------------------------------------------------------------------------
 ## 2. model_setup: structured view of the same model
+##    Key output: "Full-rank Z_j: 40 of 47 groups" flags the 7 schools where
+##    all students were undistracted (distracted_a1 == 0 throughout), so the
+##    distracted_a1 column of Z_j is all zeros and the matrix is rank-deficient.
+##    lmer above gave no warning about this; model_setup() names the schools.
 ## ---------------------------------------------------------------------------
 design <- model_setup(form_lmer, data = dat)
 print(design)
@@ -102,7 +112,9 @@ for (nm in design$re_coef_names) {
 ## ---------------------------------------------------------------------------
 ## 5. Empirical SD/variance of per-school coefficients vs lmer VarCorr
 ##    For the intercept RE this is the between-school SD in mean scores.
-##    For slope REs this is the between-school SD in the age/female effects.
+##    For slope REs this is the between-school SD in the age_c/distracted_a1
+##    effects.  Note: the distracted_a1 empirical SD pools all 47 schools even
+##    though 7 have no within-school data for that slope.
 ## ---------------------------------------------------------------------------
 cat("--- Between-school SD of random coefficients vs lmer VarCorr ---\n")
 vc <- as.data.frame(lme4::VarCorr(design$lmer_fit))
