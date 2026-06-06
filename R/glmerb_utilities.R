@@ -305,18 +305,27 @@ classify_lme4_fixed_columns <- function(X_fixed, group_factor) {
 #'
 #' Identifies \code{lme4} fixed columns that vary within groups because they
 #' are products of a group-constant predictor and a random-slope coefficient
-#' (e.g. \code{private_school:female} when \code{female} is a random slope).
+#' (e.g. \code{private_school:age_c} when \code{age_c} is a random slope).
 #' Such terms are allowed in \code{\link{model_setup}} but are not returned in
 #' \code{X_fixed}; they are encoded in block priors via
 #' \code{mu_b[random_slope] = X_hyper[s, ] \%*\% gamma}.
+#'
+#' A main fixed effect whose name matches a random slope name (e.g. \code{age_c}
+#' alongside \code{(1 + age_c | group)}) is treated as the \emph{population
+#' mean slope} (gamma_10) and is also allowed. These are returned in
+#' \code{slope_mean_cols}; they do not change the \code{X_hyper} structure but
+#' the corresponding \code{fixef()} coefficient is the hyper-model intercept for
+#' that slope.
 #'
 #' @param level1_cols Character vector of level-1 fixed column names.
 #' @param level2_cols Character vector of group-constant fixed column names.
 #' @param re_coef_names Character vector of random-effects coefficient names
 #'   from \code{reTrms$cnms}.
 #' @return List with \code{re_slope_moderation} (data frame with columns
-#'   \code{interaction_col}, \code{moderator}, \code{random_slope}) and
-#'   \code{disallowed_level1_cols} (level-1 fixed not explained as RE moderation).
+#'   \code{interaction_col}, \code{moderator}, \code{random_slope}),
+#'   \code{slope_mean_cols} (main fixed effects that are random slope names,
+#'   i.e. population mean slope terms), and
+#'   \code{disallowed_level1_cols} (level-1 fixed not explained as either).
 #' @export
 classify_crosslevel_re_moderation <- function(
     level1_cols,
@@ -332,6 +341,7 @@ classify_crosslevel_re_moderation <- function(
   if (length(level1_cols) == 0L) {
     return(list(
       re_slope_moderation = empty_mod,
+      slope_mean_cols = character(0),
       disallowed_level1_cols = character(0)
     ))
   }
@@ -339,10 +349,16 @@ classify_crosslevel_re_moderation <- function(
   level2_preds <- setdiff(level2_cols, "(Intercept)")
   re_slopes <- setdiff(unique(as.character(re_coef_names)), "(Intercept)")
   moderation <- vector("list", length(level1_cols))
+  slope_means <- character(0)
   disallowed <- character(0)
   n_mod <- 0L
 
   for (col in level1_cols) {
+    # Population mean slope: main effect matches a random slope name
+    if (col %in% re_slopes) {
+      slope_means <- c(slope_means, col)
+      next
+    }
     if (!grepl(":", col, fixed = TRUE)) {
       disallowed <- c(disallowed, col)
       next
@@ -381,6 +397,7 @@ classify_crosslevel_re_moderation <- function(
     } else {
       empty_mod
     },
+    slope_mean_cols = slope_means,
     disallowed_level1_cols = disallowed
   )
 }
@@ -453,10 +470,14 @@ extract_re_hyper_matrices <- function(formula, data = NULL, ...) {
         re_coef_names = re_coef_names
       )
       re_slope_moderation <- cross_cls$re_slope_moderation
+      # slope_mean_cols (e.g. age_c alongside (1 + age_c | group)) are the
+      # population mean slopes gamma_10; they are level-2 parameters estimated
+      # as fixed effects and are allowed without changing X_hyper structure.
       if (length(cross_cls$disallowed_level1_cols) > 0L) {
         stop(
           "Fixed effects must be constant within ", group_name,
-          " (level-2) or cross-level RE moderation (moderator:random_slope); ",
+          " (level-2), a population mean slope (matching a random slope name),",
+          " or cross-level RE moderation (moderator:random_slope); ",
           "not allowed: ",
           paste(cross_cls$disallowed_level1_cols, collapse = ", "),
           call. = FALSE
@@ -566,6 +587,7 @@ lmerb_default_vcov_formula <- function(formula, data = NULL, ...) {
 
   fixed_form <- reformulas::nobars(formula)
   term_labels <- attr(terms(fixed_form), "term.labels")
+  # Drop only the cross-level interaction terms; keep slope_mean_cols (gamma_10)
   drop_terms <- cross_cls$re_slope_moderation$interaction_col
   terms_keep <- setdiff(term_labels, drop_terms)
 

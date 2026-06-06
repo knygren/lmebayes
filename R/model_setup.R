@@ -50,7 +50,9 @@ model_setup <- function(
     devFunOnly = FALSE,
     ...
 ) {
+  cl <- match.call()
   design <- extract_re_hyper_matrices(formula = formula, data = data, ...)
+  design$call    <- cl
   design$formula <- formula
 
   if (is.null(vcov_formula)) {
@@ -113,39 +115,39 @@ model_setup <- function(
 
 #' @export
 print.model_setup <- function(x, ...) {
-  cat("model setup (group =", x$group_name, ")\n")
-  cat("Random coefficients:", paste(x$re_coef_names, collapse = ", "), "\n")
-  cat("y: length ", length(x$y), "\n", sep = "")
-  cat("Z:", paste(dim(x$Z), collapse = " x "),
-      " (columns: ", paste(colnames(x$Z), collapse = ", "), ")\n", sep = "")
-  cat("groups: length ", length(x$groups), ", ",
-      nlevels(x$groups), " levels\n", sep = "")
 
-  for (coef in x$re_coef_names) {
-    Xj <- x$X_hyper[[coef]]
-    cat("\nX_hyper[[\"", coef, "\"]] ", paste(dim(Xj), collapse = " x "),
-        " ~ 1", sep = "")
+  resp     <- deparse(x$formula[[2L]])
+  re_names <- x$re_coef_names
+  grp      <- x$group_name
+  n_obs    <- length(x$y)
+  n_lev    <- nlevels(x$groups)
+
+  # ---- Call ------------------------------------------------------------------
+  if (!is.null(x$call)) {
+    cat("Call:\n  ", deparse1(x$call), "\n\n", sep = "")
+  }
+
+  # ---- Section 1: Measurement Model -----------------------------------------
+  cat("--- Measurement Model ---\n")
+  cat(sprintf("  %s ~ %s\n\n", resp, paste(re_names, collapse = " + ")))
+  cat(sprintf("  Observations : %d\n", n_obs))
+  cat(sprintf("  RE predictors: %d\n", length(re_names)))
+  cat(sprintf("  Group        : %s  [%d levels]\n\n", grp, n_lev))
+
+  # ---- Section 2: Random Effects Model --------------------------------------
+  cat("--- Random Effects Model ---\n")
+
+  w <- max(nchar(re_names))
+
+  for (nm in re_names) {
+    Xj    <- x$X_hyper[[nm]]
     other <- setdiff(colnames(Xj), "(Intercept)")
-    if (length(other) > 0L) {
-      cat(" + ", paste(other, collapse = " + "), sep = "")
-    }
-    cat("\n  columns: ", paste(colnames(Xj), collapse = ", "), "\n", sep = "")
-  }
 
-  if (nrow(x$re_slope_moderation) > 0L) {
-    cat("\nCross-level RE moderation:\n")
-    print(x$re_slope_moderation, row.names = FALSE)
-  }
+    hyper_rhs <- if (length(other) == 0L) "1" else paste(c("1", other), collapse = " + ")
 
-  if (!is.null(x$vcov_formula)) {
-    cat("\nvcov_formula:", deparse1(x$vcov_formula), "\n")
+    cat(sprintf("  %-*s ~ %s\n", w, nm, hyper_rhs))
   }
-
-  if (!is.null(x$vcov_re)) {
-    cat("\nVariance components (lmer_vcov_fit):\n")
-    print(x$vcov_re)
-    cat("residual_var:", x$residual_var, "\n")
-  }
+  cat("\n")
 
   invisible(x)
 }
