@@ -6,8 +6,9 @@
 \usage{
 lmerb(
   formula,
+  measurement_prior_list,
+  n = 1000L,
   data = NULL,
-  measurement_prior_list = NULL,
   REML = TRUE,
   control = lme4::lmerControl(),
   start = NULL,
@@ -18,49 +19,79 @@ lmerb(
   offset,
   contrasts = NULL,
   devFunOnly = FALSE,
+  fixef = NULL,
+  seed = NULL,
   ...
 )
 }
 \arguments{
-\item{formula}{Mixed-model formula (single grouping factor; same constraints
-as \code{\link{model_setup}}).}
+\item{formula}{Mixed-model formula. Must match
+\code{measurement_prior_list$formula} when both are supplied.}
 
-\item{data}{Optional data frame.}
+\item{measurement_prior_list}{Required object from
+\code{\link{Prior_Setup_lmebayes}}. Supplies \code{design},
+\code{dispersion_ranef}, \code{Sigma_ranef}, and iter-0 \code{fixef}
+means via \code{prior_list}. Not created inside \code{lmerb}; call
+\code{\link{Prior_Setup_lmebayes}} explicitly first.}
 
-\item{measurement_prior_list}{Optional prior specification for the
-measurement model (Block 1: residual variance and random-effect structure).
-Reserved for future use; currently ignored.}
+\item{n}{Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).}
 
-\item{REML}{Logical; passed to \code{\link[lme4]{lmer}} inside
-\code{\link{model_setup}}.}
+\item{data}{Optional data frame; must be consistent with
+\code{measurement_prior_list$design}.}
 
-\item{control}{\code{\link[lme4]{lmerControl}} settings.}
+\item{REML}{Logical; reserved for \code{lmer}-like API compatibility (ignored).}
 
-\item{start}{Optional starting values for the inner optimization.}
+\item{control}{\code{\link[lme4]{lmerControl}} settings; reserved (ignored).}
 
-\item{verbose}{Passed to \code{\link[lme4]{lmer}}.}
+\item{start}{Optional starting values; reserved (ignored).}
 
-\item{subset, weights, na.action, offset, contrasts}{Passed to
-\code{\link[lme4]{lmer}}.}
+\item{verbose}{Verbosity flag; reserved (ignored).}
 
-\item{devFunOnly}{If \code{TRUE}, return the deviance function only.}
+\item{subset}{Optional subset; reserved (ignored).}
 
-\item{...}{Passed to \code{\link{model_setup}}.}
+\item{weights}{Optional weights; reserved (ignored).}
+
+\item{na.action}{Missing-data handler; reserved (ignored).}
+
+\item{offset}{Optional offset; reserved (ignored).}
+
+\item{contrasts}{Optional contrasts; reserved (ignored).}
+
+\item{devFunOnly}{If \code{TRUE}, return deviance function only; reserved (ignored).}
+
+\item{fixef}{Optional named list of hyper-parameter vectors (Block 2 state).
+When \code{NULL} (default), iter-0 means are taken from
+\code{measurement_prior_list$prior_list$mu_fixef}.}
+
+\item{seed}{Optional; sets the RNG seed before sampling.}
+
+\item{...}{Reserved for future use.}
 }
 \value{
-Object of class \code{"model_setup"} (for now): design matrices,
-\code{lmer} fits, variance components, and rank diagnostics from
-\code{\link{model_setup}}.
+Object of class \code{"lmerb"}: a list of three components:
+\describe{
+\item{\code{model_setup}}{The \code{\link{model_setup}} object (from
+\code{measurement_prior_list$design}).}
+\item{\code{lmer}}{The \code{\link[lme4]{lmer}} fit on full-rank groups
+(from \code{measurement_prior_list$fit_fr}).}
+\item{\code{coefficients}}{\code{data.frame} with \code{n * J} rows and
+\code{2 + p_re} columns: \code{draw}, the grouping-factor column
+(\code{design$group_name}), and one column per random-effect variable
+(\code{design$re_coef_names}).}
+}
 }
 \description{
 Entry point for \pkg{lmebayes} models with an \code{lmer}-like interface,
-analogous to \code{\link[glmbayes]{lmb}} and \code{\link[glmbayes]{glmb}} for
-fixed-effects models. Initial implementation delegates to
-\code{\link{model_setup}}; sampling and prior integration will be added in
-later versions.
+analogous to \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects models.
+}
+\details{
+Current implementation performs Block 1 sampling: \code{n} iid draws of
+group-level random effects \eqn{b_j} conditional on the supplied measurement
+priors and iter-0 hyper means from \code{measurement_prior_list}.
+A full two-block Gibbs sampler is not yet implemented.
 }
 \seealso{
-\code{\link{model_setup}}, \code{\link{Prior_Setup_lmebayes}},
-\code{\link{build_mu_all}},,
-\code{\link[glmbayes]{lmb}}, \code{\link[glmbayes]{glmb}}
+\code{\link{Prior_Setup_lmebayes}}, \code{\link{build_mu_all}},
+\code{\link[glmbayesCore]{block_rNormalReg}},
+\code{\link{lmb}}, \code{\link{glmb}}
 }

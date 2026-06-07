@@ -30,8 +30,8 @@
 #' @seealso
 #' \code{\link{lmerb}}, \code{\link{model_setup}}, \code{\link{block_lmb}}, \code{\link{block_glmb}};
 #' \code{\link[glmbayesCore]{simfunction}}, \code{\link[glmbayesCore]{EnvelopeBuild}};
-#' \code{\link[glmbayes]{lmb}} and \code{\link[glmbayes]{glmb}} for fixed-effects-only Bayesian
-#' linear and generalized linear models (from \pkg{glmbayes});
+#' \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects-only Bayesian
+#' linear and generalized linear models;
 #' \code{\link[glmbayesCore]{rlmb}} and \code{\link[glmbayesCore]{rglmb}} for iid
 #' posterior draws.
 #'
@@ -51,7 +51,6 @@
 #' @importFrom MASS mvrnorm
 #' @importFrom Rdpack reprompt
 #' @importFrom RcppParallel RcppParallelLibs
-#' @importFrom glmbayes lmb glmb
 #' @importFrom glmbayes glmb.covratio glmb.dffits glmb.influence.measures
 #' @importFrom glmbayes extractDIC directional_tail
 #' @importFrom glmbayes has_opencl get_opencl_core_count

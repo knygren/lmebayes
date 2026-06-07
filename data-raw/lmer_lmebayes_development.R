@@ -1,12 +1,8 @@
 ## lmerb -- development script
 ##
-## Draft entry point for a naive / empirical-Bayes lmerb() fit on the
-## bayesrules::big_word_club school-based example (same model as
-## Prior_Setup_lmebayes_development.R).
-##
-## Current lmerb() implementation: call model_setup() and return its
-## output.  Later steps will wire in Prior_Setup_lmebayes(), Block 1
-## (block_rNormalReg), and Block 2 (rNormal_reg per RE coefficient).
+## Block 1 smoke test on bayesrules::big_word_club (school-based example).
+## Prior_Setup_lmebayes() must be called explicitly; lmerb() does not
+## construct priors internally.
 
 if (!requireNamespace("lme4", quietly = TRUE)) {
   stop("Install lme4: install.packages('lme4')")
@@ -17,7 +13,7 @@ if (!requireNamespace("bayesrules", quietly = TRUE)) {
 pkgload::load_all(export_all = FALSE)
 
 ## ===========================================================================
-## Development run: big_word_club with free_reduced_lunch x distracted_a1
+## Data and formula (same as Prior_Setup_lmebayes_development.R)
 ## ===========================================================================
 
 data(big_word_club, package = "bayesrules")
@@ -40,21 +36,50 @@ form_lmer <- score_ppvt ~
 
 ctrl_bobyqa <- lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 
-cat("=== lmerb (draft): model_setup only ===\n\n")
+## ===========================================================================
+## Step 1: explicit prior setup (required before lmerb)
+## ===========================================================================
+
+cat("=== Prior_Setup_lmebayes ===\n\n")
+ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
+
+## ===========================================================================
+## Step 2: lmerb Block 1 draw
+## ===========================================================================
+
+cat("\n=== lmerb: Block 1 random-effects draw ===\n\n")
 fit <- lmerb(
   form_lmer,
+  ps,
+  n = 1L,
   data = dat,
-  measurement_prior_list = NULL,
-  control = ctrl_bobyqa
+  seed = 42L
 )
-print(fit)
 
-cat("\n=== Reference: lmer on same formula ===\n\n")
+cat(sprintf("  class: %s\n", paste(class(fit), collapse = ", ")))
+cat(sprintf("  names: %s\n", paste(names(fit), collapse = ", ")))
+cat(sprintf("  coefficients: %d rows x %d cols\n",
+            nrow(fit$coefficients), ncol(fit$coefficients)))
+cat("  columns:", paste(names(fit$coefficients), collapse = ", "), "\n")
+cat("\n  first 5 rows:\n")
+print(head(fit$coefficients, 5L))
+
+## ===========================================================================
+## Checks
+## ===========================================================================
+
+stopifnot(inherits(fit, "lmerb"))
+stopifnot(identical(names(fit), c("model_setup", "lmer", "coefficients")))
+stopifnot(inherits(fit$model_setup, "model_setup"))
+stopifnot(inherits(fit$lmer, "lmerMod"))
+stopifnot(nrow(fit$coefficients) == nlevels(ps$design$groups))
+stopifnot(identical(
+  names(fit$coefficients),
+  c("draw", ps$design$group_name, ps$design$re_coef_names)
+))
+
+cat("\n=== Reference: lmer fixed effects (same formula) ===\n\n")
 fit_lmer <- lme4::lmer(form_lmer, data = dat, control = ctrl_bobyqa)
-print(summary(fit_lmer))
+print(lme4::fixef(fit_lmer))
 
-cat("\n=== Quick check: lmerb lmer fit matches standalone lmer ===\n")
-stopifnot(all.equal(lme4::fixef(fit$lmer_fit), lme4::fixef(fit_lmer), check.attributes = FALSE))
-stopifnot(all.equal(as.matrix(lme4::VarCorr(fit$lmer_fit)), as.matrix(lme4::VarCorr(fit_lmer)), tolerance = 1e-6))
-
-cat("\nlmerb development script: OK\n")
+cat("\nlmerb Block 1 development script: OK\n")
