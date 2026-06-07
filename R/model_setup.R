@@ -125,6 +125,36 @@ model_setup <- function(
     logical(1L)
   )
 
+  # Hyper-design rank check: for each RE coefficient, is the level-2 design
+  # matrix X_hyper[[nm]] full column rank when restricted to the full-rank
+  # groups?  Rank-deficient groups contribute a zero BLUP for the missing
+  # slope and are excluded here so the check reflects only groups that
+  # actually supply information about each RE.
+  full_rank_levs <- names(design$re_rank)[design$re_rank]
+  design$hyper_rank <- vapply(
+    design$re_coef_names,
+    function(nm) {
+      Xh <- design$X_hyper[[nm]][full_rank_levs, , drop = FALSE]
+      p  <- ncol(Xh)
+      nrow(Xh) >= p && Matrix::rankMatrix(Xh, method = "qr")[1L] == p
+    },
+    logical(1L)
+  )
+
+  # Convenience summaries:
+  #   hyper_deficient : named logical, TRUE = that RE's hyper-matrix is
+  #                     rank-deficient (inverse of hyper_rank)
+  #   rank_ok         : scalar TRUE only when every Z_j AND every hyper-matrix
+  #                     is full-rank -- a quick go/no-go indicator
+  design$hyper_deficient <- !design$hyper_rank
+
+  # rank_ok reflects only the hyper-design matrices (level-2 estimability):
+  # TRUE  = all X_hyper are full-rank after restricting to full-rank groups
+  #         => the random-effects model can be estimated
+  # FALSE = at least one X_hyper is rank-deficient => hyper parameters are
+  #         not identified; Z_j rank deficiency is reported separately above
+  design$rank_ok <- all(design$hyper_rank)
+
   design
 }
 
@@ -153,8 +183,11 @@ print.model_setup <- function(x, ...) {
     cat(sprintf("  Full-rank Z_j: %d of %d groups\n", n_full, n_lev))
     if (n_full < n_lev) {
       deficient <- names(x$re_rank)[!x$re_rank]
-      cat(sprintf("    rank-deficient: %s\n",
-                  paste(deficient, collapse = ", ")))
+      shown     <- deficient[seq_len(min(10L, length(deficient)))]
+      suffix    <- if (length(deficient) > 10L)
+        sprintf(", ... (%d more)", length(deficient) - 10L) else ""
+      cat(sprintf("    rank-deficient: %s%s\n",
+                  paste(shown, collapse = ", "), suffix))
     }
   }
   cat("\n")
@@ -173,6 +206,49 @@ print.model_setup <- function(x, ...) {
     cat(sprintf("  %-*s ~ %s\n", w, nm, hyper_rhs))
   }
   cat("\n")
+
+  # ---- Section 3: Hyper-design rank (full-rank groups only) -----------------
+  if (!is.null(x$hyper_rank) && !is.null(x$re_rank)) {
+    n_full_groups <- sum(x$re_rank)
+    cat("--- Random Effects Model: Hyper-Design Rank ---\n")
+    cat(sprintf("  (Restricted to %d full-rank %s)\n\n", n_full_groups, grp))
+    deficient_nms <- character(0)
+    for (nm in re_names) {
+      Xh      <- x$X_hyper[[nm]]
+      p_hyper <- ncol(Xh)
+      is_fr   <- if (nm %in% names(x$hyper_rank)) x$hyper_rank[[nm]] else NA
+      status  <- if (isTRUE(is_fr)) "full-rank" else if (isFALSE(is_fr)) "RANK-DEFICIENT" else "unknown"
+      cat(sprintf("  %-*s  groups=%-3d  predictors=%-2d  %s\n",
+                  w, nm, n_full_groups, p_hyper, status))
+      if (isFALSE(is_fr)) deficient_nms <- c(deficient_nms, nm)
+    }
+    # Per-RE deficient flags
+    cat("\n")
+    flag_strs <- ifelse(x$hyper_deficient[re_names], "TRUE (deficient)", "FALSE")
+    cat("  Rank-deficient flags:\n")
+    for (nm in re_names) {
+      cat(sprintf("    %-*s  %s\n", w, nm, flag_strs[nm]))
+    }
+
+    # Overall indicator
+    ok_label <- if (isTRUE(x$rank_ok)) "TRUE  -- model rank looks OK" else
+                  "FALSE -- rank issues detected (see above)"
+    cat(sprintf("\n  rank_ok: %s\n", ok_label))
+
+    if (length(deficient_nms) > 0L) {
+      cat("\n")
+      for (nm in deficient_nms) {
+        cat(sprintf(
+          "  NOTE: X_hyper for '%s' is rank-deficient after restricting to\n",
+          nm))
+        cat(sprintf(
+          "  %d full-rank %s. Consider removing predictors or merging\n",
+          n_full_groups, grp))
+        cat("  factor levels.\n")
+      }
+    }
+    cat("\n")
+  }
 
   invisible(x)
 }

@@ -1,10 +1,18 @@
-## model_setup() on bayesrules::big_word_club (private-school moderation)
+## model_setup() on bayesrules::big_word_club
 ##
 ## Two-level structure:
-##   Level 1 (students):  y ~ b0[j] + b_age_c[j]*age_c + b_dist[j]*distracted_a1
-##   Level 2 (schools):   b0[j]      ~ private_school + title1 + free_reduced_lunch
-##                        b_age_c[j] ~ 1
-##                        b_dist[j]  ~ 1
+##   Level 1 (students):  y[i] = b0[j] + b_age[j]*age_c + b_dist[j]*distracted_a1
+##
+##   Level 2 (schools):   b0[j]    = g00 + g01*private_school + g02*title1
+##                                        + g03*free_reduced_lunch + u0[j]
+##                        b_age[j] = g10                              + u1[j]
+##                        b_dist[j]= g10 + g11*free_reduced_lunch     + u2[j]
+##
+##   Cross-level interaction: free_reduced_lunch moderates the distracted_a1
+##   slope.  g10 is the distracted_a1 slope in schools where free_reduced_lunch
+##   = 0 (the reference); g11 captures how much that slope shifts per unit of
+##   free_reduced_lunch.  g10 is no longer a simple average of the per-school
+##   slopes -- it is the conditional mean at the reference level of the moderator.
 ##
 ## Note: distracted_a1 is a binary flag (student was distracted at assessment 1).
 ## It has zero within-school variation in 7 of 47 schools (all students in those
@@ -30,15 +38,23 @@ dat <- subset(
     )])
 )
 
+## distracted_a1 appears in fixed effects twice:
+##   distracted_a1                    -> g10 (population mean slope, frl = 0)
+##   free_reduced_lunch:distracted_a1 -> g11 (shift in slope per unit frl)
+## The cross-level interaction goes in the FIXED part; the random part only
+## declares that distracted_a1 has a school-specific deviation u2[j].
 form_lmer <- score_ppvt ~
   private_school + title1 + free_reduced_lunch +
+  distracted_a1 + free_reduced_lunch:distracted_a1 +
   (1 + age_c + distracted_a1 || school_id)
+
+ctrl_bobyqa <- lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 
 ## ---------------------------------------------------------------------------
 ## 1. lmer fit: raw output
 ## ---------------------------------------------------------------------------
 cat("--- lmer fit ---\n")
-fit <- lme4::lmer(form_lmer, data = dat)
+fit <- lme4::lmer(form_lmer, data = dat, control = ctrl_bobyqa)
 print(summary(fit))
 
 cat("\n--- fixef(fit): population-level (gamma) estimates ---\n")
@@ -54,7 +70,7 @@ print(coef(fit))
 ##    distracted_a1 column of Z_j is all zeros and the matrix is rank-deficient.
 ##    lmer above gave no warning about this; model_setup() names the schools.
 ## ---------------------------------------------------------------------------
-design <- model_setup(form_lmer, data = dat)
+design <- model_setup(form_lmer, data = dat, control = ctrl_bobyqa)
 print(design)
 
 ## ---------------------------------------------------------------------------
@@ -70,8 +86,15 @@ print(utils::head(re_df, 10))
 ##
 ##    Mapping:
 ##      intercept RE -- X_hyper column names map directly to fixef() names
-##      slope RE     -- (Intercept) col -> fe[nm]  (population mean slope gamma_10)
-##                      other cols      -> col:nm or nm:col interaction in fixef
+##      slope RE (no moderator):
+##        (Intercept) col -> fe[nm] if present, else mean of coef()[,nm]
+##      slope RE (with cross-level moderator, e.g. distracted_a1):
+##        (Intercept) col -> fe["distracted_a1"]       = g10
+##                          (slope when free_reduced_lunch = 0)
+##        moderator col   -> fe["free_reduced_lunch:distracted_a1"] = g11
+##                          (shift in slope per unit free_reduced_lunch)
+##        g10 is NOT the simple mean of per-school slopes; that mean equals
+##        g10 + g11 * mean(free_reduced_lunch) across schools.
 ## ---------------------------------------------------------------------------
 cat("\n--- Random effects model (gamma estimates) ---\n")
 
@@ -115,6 +138,9 @@ for (nm in design$re_coef_names) {
 ##    For slope REs this is the between-school SD in the age_c/distracted_a1
 ##    effects.  Note: the distracted_a1 empirical SD pools all 47 schools even
 ##    though 7 have no within-school data for that slope.
+##    With free_reduced_lunch in the distracted_a1 hyper-model, the lmer RE
+##    variance now captures only the *residual* between-school variation in
+##    that slope after accounting for the frl moderator.
 ## ---------------------------------------------------------------------------
 cat("--- Between-school SD of random coefficients vs lmer VarCorr ---\n")
 vc <- as.data.frame(lme4::VarCorr(design$lmer_fit))
@@ -132,3 +158,104 @@ for (nm in setdiff(design$re_coef_names, "(Intercept)")) {
               if (nrow(lmer_row)) lmer_row$sdcor[1L] else NA_real_,
               if (nrow(lmer_row)) lmer_row$vcov[1L]  else NA_real_))
 }
+
+## ---------------------------------------------------------------------------
+## 6. lmer refitted on full-rank schools only
+##
+##    design$re_rank is a named logical vector (one entry per school).
+##    Schools flagged FALSE have no within-school variation in distracted_a1
+##    and contribute an exactly-zero BLUP for that slope (section 3 above).
+##    Restricting to full-rank schools means every school contributes real
+##    data to the distracted_a1 slope estimate, including the frl moderator.
+##
+##    With the cross-level interaction the gamma estimates here (g10, g11)
+##    reflect the distracted_a1 slope at frl = 0 and its frl gradient,
+##    estimated from schools that actually observed distracted students.
+## ---------------------------------------------------------------------------
+cat("\n--- lmer refit: full-rank schools only ---\n")
+full_rank_schools <- names(design$re_rank)[design$re_rank]
+cat(sprintf("  Using %d of %d schools (dropping rank-deficient: %s)\n\n",
+            length(full_rank_schools),
+            nlevels(design$groups),
+            paste(names(design$re_rank)[!design$re_rank], collapse = ", ")))
+
+dat_fr       <- subset(dat, school_id %in% full_rank_schools)
+dat_fr$school_id <- droplevels(dat_fr$school_id)
+fit_fr <- lme4::lmer(form_lmer, data = dat_fr, control = ctrl_bobyqa)
+print(summary(fit_fr))
+
+cat("\n--- Random effects model: gamma estimates (full-rank schools only) ---\n")
+fe_fr        <- lme4::fixef(fit_fr)
+coef_df_fr   <- coef(fit_fr)[[design$group_name]]
+coef_means_fr <- colMeans(coef_df_fr)
+
+for (nm in design$re_coef_names) {
+  Xj       <- design$X_hyper[[nm]]
+  other    <- setdiff(colnames(Xj), "(Intercept)")
+  hyper_rhs <- if (length(other) == 0L) "1" else paste(c("1", other), collapse = " + ")
+
+  gamma_fr <- setNames(
+    vapply(colnames(Xj), function(col) {
+      if (nm == "(Intercept)") {
+        if (col %in% names(fe_fr)) unname(fe_fr[col]) else 0
+      } else if (col == "(Intercept)") {
+        if (nm %in% names(fe_fr)) unname(fe_fr[nm])
+        else if (nm %in% names(coef_means_fr)) unname(coef_means_fr[nm])
+        else 0
+      } else {
+        cand <- c(paste0(col, ":", nm), paste0(nm, ":", col))
+        hit  <- cand[cand %in% names(fe_fr)]
+        if (length(hit)) unname(fe_fr[hit[1L]]) else 0
+      }
+    }, numeric(1L)),
+    colnames(Xj)
+  )
+
+  cat(sprintf("  %-*s ~ %s\n", w, nm, hyper_rhs))
+  print(gamma_fr)
+  cat("\n")
+}
+
+cat("\n--- VarCorr comparison: all schools vs full-rank schools only ---\n")
+vc_fr <- as.data.frame(lme4::VarCorr(fit_fr))
+cat(sprintf("  %-13s  all_schools_sd=%7.4f  full_rank_sd=%7.4f\n",
+            "(Intercept)",
+            vc$sdcor[vc$var1 == "(Intercept)" & is.na(vc$var2)][1L],
+            vc_fr$sdcor[vc_fr$var1 == "(Intercept)" & is.na(vc_fr$var2)][1L]))
+for (nm in setdiff(design$re_coef_names, "(Intercept)")) {
+  row_all <- vc[vc$var1 == nm & is.na(vc$var2), ]
+  row_fr  <- vc_fr[vc_fr$var1 == nm & is.na(vc_fr$var2), ]
+  cat(sprintf("  %-13s  all_schools_sd=%7.4f  full_rank_sd=%7.4f\n",
+              nm,
+              if (nrow(row_all)) row_all$sdcor[1L] else NA_real_,
+              if (nrow(row_fr))  row_fr$sdcor[1L]  else NA_real_))
+}
+
+## ===========================================================================
+## 7. Stress test: add esl_observed as a fourth random slope
+##
+##    esl_observed is zero in 36 of 47 schools (all students non-ESL).
+##    Adding it as a random slope leaves only ~10 full-rank schools at the
+##    measurement-model level.  Those 10 schools all happen to be public
+##    (private_school == 0), making the intercept hyper-design matrix
+##    rank-deficient as well -- a cascading failure that lmer does not flag.
+##
+##    Expected output:
+##      Full-rank Z_j      : 10 of 47 groups
+##      Hyper-design rank  : (Intercept) -> RANK-DEFICIENT
+##                           age_c, distracted_a1, esl_observed -> full-rank
+## ===========================================================================
+cat("\n\n=== Section 7: stress test -- esl_observed added as random slope ===\n\n")
+
+form_esl <- score_ppvt ~
+  private_school + title1 + free_reduced_lunch +
+  (1 + age_c + distracted_a1 + esl_observed || school_id)
+
+design_esl <- model_setup(form_esl, data = dat)
+print(design_esl)
+
+cat("--- X_hyper[['(Intercept)']] for full-rank schools ---\n")
+fr_levs_esl <- names(design_esl$re_rank)[design_esl$re_rank]
+cat(sprintf("Full-rank schools (%d): %s\n\n",
+            length(fr_levs_esl), paste(fr_levs_esl, collapse = ", ")))
+print(design_esl$X_hyper[["(Intercept)"]][fr_levs_esl, , drop = FALSE])
