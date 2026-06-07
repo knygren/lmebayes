@@ -80,24 +80,13 @@ multi_rindepNormalGamma_reg(
 
 \item{pfamily_list}{List of length \code{ncol(y)} of \code{pfamily} objects.}
 
-\item{offset}{this can be used to specify an a priori known component to be
-included in the linear predictor during fitting. This should be \code{NULL} or a numeric
-vector or matrix of extents
-matching those of the response.  One or more \code{offset} terms can be
-included in the formula instead or as well, and if more than one are specified their
-sum is used.  See \code{model.offset}.}
+\item{offset}{an optional numeric vector of known offset to be included in the linear predictor.}
 
-\item{weights}{an optional vector of weights to be used in the fitting
-    process.  Should be \code{NULL} or a numeric vector.
-    If non-NULL, weighted least squares is used with weights
-    \code{weights} (that is, minimizing \code{sum(w*e^2)}); otherwise
-    ordinary least squares is used.  See also \sQuote{Details},}
+\item{weights}{an optional numeric vector of prior weights for the observations.}
 
-\item{Gridtype}{an optional argument specifying the method used to determine the number of tangent points used to construct the enveloping function.}
+\item{Gridtype}{an optional argument specifying tangent points for envelope construction.}
 
-\item{n_envopt}{Effective sample size passed to EnvelopeOpt for grid
-construction. Defaults to match \code{n}. Larger values encourage tighter
-envelopes.}
+\item{n_envopt}{Effective sample size passed to EnvelopeOpt for grid construction.}
 
 \item{use_parallel}{Logical. Whether to use parallel processing during simulation.}
 
@@ -132,17 +121,17 @@ Same arguments as \code{\link[glmbayes]{rlmb}} except \code{pfamily} is replaced
 Each element is class \code{"rlmb"} (and \code{"rglmb"}).
 }
 \item{\code{multi_rNormal_reg}}{
-Same arguments as \code{\link{rNormal_reg}} except \code{prior_list} is a
+Same arguments as \code{\link[glmbayesCore]{rNormal_reg}} except \code{prior_list} is a
 list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P}, optional
 \code{dispersion}).
 }
 \item{\code{multi_rNormalGamma_reg}}{
-Same arguments as \code{\link{rNormalGamma_reg}} except \code{prior_list} is a
+Same arguments as \code{\link[glmbayesCore]{rNormalGamma_reg}} except \code{prior_list} is a
 list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P},
 \code{shape}, \code{rate}).
 }
 \item{\code{multi_rindepNormalGamma_reg}}{
-Same arguments as \code{\link{rindepNormalGamma_reg}} except \code{prior_list}
+Same arguments as \code{\link[glmbayesCore]{rindepNormalGamma_reg}} except \code{prior_list}
 is a list of per-column prior lists (\code{mu}, \code{Sigma}, \code{shape},
 \code{rate}, optional dispersion bounds).
 }
@@ -178,7 +167,7 @@ common <- list(
   progbar = FALSE
 )
 
-ps_multi <- glmbayes::multi_prior_setup(
+ps_multi <- glmbayesCore::multi_prior_setup(
   cbind(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width) ~ Species,
   data = iris,
   family = gaussian()
@@ -190,7 +179,7 @@ colnames(y) <- names(ps_multi)
 
 ## --- multi_rlmb (pfamily_list) ---------------------------------------------
 pfamily_list <- lapply(ps_multi, function(ps) {
-  glmbayes::dNormal_Gamma(
+  glmbayesCore::dNormal_Gamma(
     mu = ps$mu, Sigma_0 = ps$Sigma_0, shape = ps$shape, rate = ps$rate
   )
 })
@@ -236,21 +225,12 @@ summary(out_ing)
 }
 \seealso{
 \code{\link{summary.mrglmb}}, \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link[glmbayes]{Prior_Setup}},
-\code{\link[glmbayes]{rlmb}}, \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}},
-\code{\link{rindepNormalGamma_reg}}
+\code{\link[glmbayes]{rlmb}}, \code{\link[glmbayesCore]{rNormal_reg}}, \code{\link[glmbayesCore]{rNormalGamma_reg}},
+\code{\link[glmbayesCore]{rindepNormalGamma_reg}}
 
 glmbayes Modeling Functions
 \code{\link{block_glmb}()},
 \code{\link{block_lmb}()}
-
-glmbayes Simulation Functions
-\code{\link{simfuncs}}
-
-glmbayes Simulation Functions
-\code{\link{simfuncs}}
-
-glmbayes Simulation Functions
-\code{\link{simfuncs}}
 }
 \concept{modelfuns}
 \concept{simfuncs}

@@ -43,5 +43,5 @@ See \code{\link{block_check_identifiability}} and
 }
 \seealso{
 \code{\link{block_check_identifiability}},
-\code{\link{block_rNormalGLM}}
+\code{\link[glmbayesCore]{block_rNormalGLM}}
 }

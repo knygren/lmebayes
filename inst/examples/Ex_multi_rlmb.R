@@ -11,7 +11,7 @@ common <- list(
   progbar = FALSE
 )
 
-ps_multi <- glmbayes::multi_prior_setup(
+ps_multi <- glmbayesCore::multi_prior_setup(
   cbind(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width) ~ Species,
   data = iris,
   family = gaussian()
@@ -23,7 +23,7 @@ colnames(y) <- names(ps_multi)
 
 ## --- multi_rlmb (pfamily_list) ---------------------------------------------
 pfamily_list <- lapply(ps_multi, function(ps) {
-  glmbayes::dNormal_Gamma(
+  glmbayesCore::dNormal_Gamma(
     mu = ps$mu, Sigma_0 = ps$Sigma_0, shape = ps$shape, rate = ps$rate
   )
 })

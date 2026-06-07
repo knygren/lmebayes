@@ -19,6 +19,6 @@ Matrix-interface analogue of \code{.blmb_blocks_full_rank}.  Accepts a
 pre-formed design matrix \code{x} and a block specification (factor, integer
 vector, or list of row-index vectors) rather than a formula and data frame.
 Used internally by \code{block_check_identifiability_xy} and by
-\code{\link{block_rNormalGLM}}.
+\code{\link[glmbayesCore]{block_rNormalGLM}}.
 }
 \keyword{internal}

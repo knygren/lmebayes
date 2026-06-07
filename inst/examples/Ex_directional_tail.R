@@ -14,7 +14,7 @@ summary(lm.D9_null)
 lm.D9_default <- lm(weight ~ group, data = dat2)
 summary(lm.D9_default)
 
-ps_null <- glmbayes::Prior_Setup(
+ps_null <- glmbayesCore::Prior_Setup(
   weight ~ group,
   family = gaussian(),
   pwt = 0.01,
@@ -28,7 +28,7 @@ disp_ML_null <- ps_null$dispersion
 
 lmb.D9_null <- glmbayes::lmb(
   weight ~ group,
-  glmbayes::dNormal(mu_null, V_null, dispersion = disp_ML_null),
+  glmbayesCore::dNormal(mu_null, V_null, dispersion = disp_ML_null),
   data = dat2,
   n = 500
 )
@@ -37,7 +37,7 @@ summary(lmb.D9_null)
 glmb.D9_default <- glmbayes::glmb(
   weight ~ group,
   family  = gaussian(),
-  pfamily = glmbayes::dNormal(mu_null, V_null, dispersion = disp_ML_null),
+  pfamily = glmbayesCore::dNormal(mu_null, V_null, dispersion = disp_ML_null),
   data    = dat2,
   n = 500
 )

@@ -15,17 +15,17 @@
 #'     Each element is class \code{"rlmb"} (and \code{"rglmb"}).
 #'   }
 #'   \item{\code{multi_rNormal_reg}}{
-#'     Same arguments as \code{\link{rNormal_reg}} except \code{prior_list} is a
+#'     Same arguments as \code{\link[glmbayesCore]{rNormal_reg}} except \code{prior_list} is a
 #'     list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P}, optional
 #'     \code{dispersion}).
 #'   }
 #'   \item{\code{multi_rNormalGamma_reg}}{
-#'     Same arguments as \code{\link{rNormalGamma_reg}} except \code{prior_list} is a
+#'     Same arguments as \code{\link[glmbayesCore]{rNormalGamma_reg}} except \code{prior_list} is a
 #'     list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P},
 #'     \code{shape}, \code{rate}).
 #'   }
 #'   \item{\code{multi_rindepNormalGamma_reg}}{
-#'     Same arguments as \code{\link{rindepNormalGamma_reg}} except \code{prior_list}
+#'     Same arguments as \code{\link[glmbayesCore]{rindepNormalGamma_reg}} except \code{prior_list}
 #'     is a list of per-column prior lists (\code{mu}, \code{Sigma}, \code{shape},
 #'     \code{rate}, optional dispersion bounds).
 #'   }
@@ -44,8 +44,8 @@
 #'
 #' @seealso
 #' \code{\link{summary.mrglmb}}, \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link[glmbayes]{Prior_Setup}},
-#' \code{\link[glmbayes]{rlmb}}, \code{\link{rNormal_reg}}, \code{\link{rNormalGamma_reg}},
-#' \code{\link{rindepNormalGamma_reg}}
+#' \code{\link[glmbayes]{rlmb}}, \code{\link[glmbayesCore]{rNormal_reg}}, \code{\link[glmbayesCore]{rNormalGamma_reg}},
+#' \code{\link[glmbayesCore]{rindepNormalGamma_reg}}
 #'
 #' @name multi_rlmb
 #' @aliases multi_rlmb multi_rNormalGamma_reg multi_rNormal_reg
@@ -54,7 +54,7 @@
 NULL
 
 #' @describeIn multi_rlmb Gaussian \code{\link[glmbayes]{rlmb}} simulation with multiple responses.
-#' @inheritParams glmbayes::rlmb
+#' @inheritParams glmbayesCore::rlmb
 #' @param pfamily_list List of length \code{ncol(y)} of \code{pfamily} objects.
 #' @family modelfuns
 #' @export
@@ -79,7 +79,7 @@ multi_rlmb <- function(n = 1,
 
   block_results <- vector("list", inp$l1)
   for (j in seq_len(inp$l1)) {
-    block_results[[j]] <- glmbayes::rlmb(
+    block_results[[j]] <- rlmb(
       n = n_draw,
       y = inp$y_mat[, j],
       x = inp$x,
@@ -110,7 +110,7 @@ multi_rlmb <- function(n = 1,
 }
 
 #' @describeIn multi_rlmb Normal-prior regression with multiple responses.
-#' @inheritParams rNormal_reg
+#' @inheritParams glmbayesCore::rNormal_reg
 #' @param prior_list List of length \code{ncol(y)} of per-column prior lists.
 #' @family simfuncs
 #' @export
@@ -167,7 +167,7 @@ multi_rNormal_reg <- function(n,
 }
 
 #' @describeIn multi_rlmb Normal--Gamma regression with multiple responses.
-#' @inheritParams rNormalGamma_reg
+#' @inheritParams glmbayesCore::rNormalGamma_reg
 #' @param prior_list List of length \code{ncol(y)} of per-column prior lists.
 #' @family simfuncs
 #' @export
@@ -224,7 +224,7 @@ multi_rNormalGamma_reg <- function(n,
 }
 
 #' @describeIn multi_rlmb Independent Normal--Gamma regression with multiple responses.
-#' @inheritParams rindepNormalGamma_reg
+#' @inheritParams glmbayesCore::rindepNormalGamma_reg
 #' @param prior_list List of length \code{ncol(y)} of per-column prior lists.
 #' @family simfuncs
 #' @export

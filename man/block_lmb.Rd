@@ -38,7 +38,7 @@ block_lmb(
 
 \item{block}{Block partition: \code{factor} or vector of length \code{nrow(data)}
 (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-counts, or a list of row index vectors (see \code{\link{normalize_block}}).}
+counts, or a list of row index vectors (see \code{\link[glmbayesCore]{normalize_block}}).}
 
 \item{pfamily}{A single \code{\link[glmbayes]{pfamily}} recycled to every block, or
 use \code{pfamily_list} of length \code{k} (number of blocks).}
@@ -112,7 +112,7 @@ A named list of class \code{"blmb"} (list of \code{"lmb"} fits).
 Fits one \code{\link[glmbayes]{lmb}} per observation block (SAS \code{BY}-style split on
 rows), sharing the same formula on each subset. Contrast with
 \code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
-\code{\link{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
+\code{\link[glmbayesCore]{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
 }
 \section{Functions}{
 \itemize{
@@ -133,7 +133,7 @@ ps_block <- block_prior_setup(
 )
 
 pfamily_list <- lapply(ps_block, function(ps) {
-  glmbayes::dNormal_Gamma(
+  glmbayesCore::dNormal_Gamma(
     mu = ps$mu, Sigma_0 = ps$Sigma_0, shape = ps$shape, rate = ps$rate
   )
 })

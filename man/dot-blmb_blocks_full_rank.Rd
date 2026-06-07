@@ -20,7 +20,7 @@
 
 \item{block}{Block partition: \code{factor} or vector of length \code{nrow(data)}
 (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-counts, or a list of row index vectors (see \code{\link{normalize_block}}).}
+counts, or a list of row index vectors (see \code{\link[glmbayesCore]{normalize_block}}).}
 
 \item{data}{an optional data frame, list or environment (or object
     coercible by \code{\link{as.data.frame}} to a data frame) containing

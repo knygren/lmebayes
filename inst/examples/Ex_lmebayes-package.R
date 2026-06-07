@@ -7,13 +7,13 @@ print(d.AD <- data.frame(treatment, outcome, counts))
 
 glm.D93 <- glm(counts ~ outcome + treatment, family = poisson())
 
-ps <- glmbayes::Prior_Setup(counts ~ outcome + treatment, family = poisson())
+ps <- glmbayesCore::Prior_Setup(counts ~ outcome + treatment, family = poisson())
 
-rglmb.D93 <- glmbayes::rglmb(
+rglmb.D93 <- glmbayesCore::rglmb(
   n = 200,
   y = ps$y,
   x = as.matrix(ps$x),
-  pfamily = glmbayes::dNormal(mu = ps$mu, Sigma = ps$Sigma),
+  pfamily = glmbayesCore::dNormal(mu = ps$mu, Sigma = ps$Sigma),
   family = poisson(),
   weights = rep(1, nrow(ps$x))
 )

@@ -4,29 +4,29 @@
 #' Fits one \code{\link[glmbayes]{lmb}} per observation block (SAS \code{BY}-style split on
 #' rows), sharing the same formula on each subset. Contrast with
 #' \code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
-#' \code{\link{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
+#' \code{\link[glmbayesCore]{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
 #'
 #' @param block Block partition: \code{factor} or vector of length \code{nrow(data)}
 #'   (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-#'   counts, or a list of row index vectors (see \code{\link{normalize_block}}).
+#'   counts, or a list of row index vectors (see \code{\link[glmbayesCore]{normalize_block}}).
 #' @name block_lmb
 #' @family modelfuns
 NULL
 
 #' Prior setup for row-block \code{\link[glmbayes]{lmb}} / \code{block_glmb}
 #'
-#' Runs \code{\link[glmbayes]{Prior_Setup}} on each block subset of the data.
+#' Runs \code{\link[glmbayesCore]{Prior_Setup}} on each block subset of the data.
 #'
 #' @param formula A \code{\link{formula}} with a single response.
 #' @param block Block partition: \code{factor} or vector of length \code{nrow(data)}
 #'   (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-#'   counts, or a list of row index vectors (see \code{\link{normalize_block}}).
-#' @inheritParams glmbayes::Prior_Setup
+#'   counts, or a list of row index vectors (see \code{\link[glmbayesCore]{normalize_block}}).
+#' @inheritParams glmbayesCore::Prior_Setup
 #' @return A named list of class \code{"block_PriorSetup"}. Each element is a
-#'   \code{\link[glmbayes]{Prior_Setup}} result for one block.
+#'   \code{\link[glmbayesCore]{Prior_Setup}} result for one block.
 #' @family prior
-#' @seealso \code{\link{block_lmb}}, \code{\link[glmbayes]{multi_prior_setup}},
-#'   \code{\link{normalize_block}}
+#' @seealso \code{\link{block_lmb}}, \code{\link[glmbayesCore]{multi_prior_setup}},
+#'   \code{\link[glmbayesCore]{normalize_block}}
 #' @export
 block_prior_setup <- function(
     formula,
@@ -104,7 +104,7 @@ block_prior_setup <- function(
       meta$block_info$rows[[b]], meta$mf, data
     )
     setups[[b]] <- do.call(
-      glmbayes::Prior_Setup,
+      Prior_Setup,
       c(
         list(formula = formula, subset = rows_b),
         ps_args,
@@ -448,7 +448,7 @@ block_lmb <- function(
 #' pre-formed design matrix \code{x} and a block specification (factor, integer
 #' vector, or list of row-index vectors) rather than a formula and data frame.
 #' Used internally by \code{block_check_identifiability_xy} and by
-#' \code{\link{block_rNormalGLM}}.
+#' \code{\link[glmbayesCore]{block_rNormalGLM}}.
 #'
 #' @param x Numeric matrix \code{(l2 x l1)}: the full design matrix.
 #' @param block_info Block partition as returned by \code{normalize_block()}.
@@ -509,7 +509,7 @@ block_lmb <- function(
 #' @return Invisibly, the same list structure as
 #'   \code{\link{block_check_identifiability}}.
 #' @seealso \code{\link{block_check_identifiability}},
-#'   \code{\link{block_rNormalGLM}}
+#'   \code{\link[glmbayesCore]{block_rNormalGLM}}
 #' @export
 block_check_identifiability_xy <- function(
     x,

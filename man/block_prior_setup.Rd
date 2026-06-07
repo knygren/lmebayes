@@ -32,7 +32,7 @@ block_prior_setup(
 
 \item{block}{Block partition: \code{factor} or vector of length \code{nrow(data)}
 (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-counts, or a list of row index vectors (see \code{\link{normalize_block}}).}
+counts, or a list of row index vectors (see \code{\link[glmbayesCore]{normalize_block}}).}
 
 \item{family}{a description of the error distribution and link function to be used in the model.}
 
@@ -103,7 +103,7 @@ where \eqn{p} is the number of coefficients (columns of the model matrix). \code
 controls the tail behavior and effective degrees of freedom of the variance prior. It does
 not change the posterior mean of \eqn{\sigma^2} or the covariance of \eqn{\beta}, but larger
 \code{k} makes the prior and posterior for \eqn{\sigma^2} more concentrated and less
-heavy-tailed. Not yet used in calibration; passed through to \code{\link[glmbayes]{compute_gaussian_prior}}
+heavy-tailed. Not yet used in calibration; passed through to \code{\link[glmbayesCore]{compute_gaussian_prior}}
 for future use.}
 
 \item{...}{
@@ -115,13 +115,13 @@ for future use.}
 }
 \value{
 A named list of class \code{"block_PriorSetup"}. Each element is a
-\code{\link[glmbayes]{Prior_Setup}} result for one block.
+\code{\link[glmbayesCore]{Prior_Setup}} result for one block.
 }
 \description{
-Runs \code{\link[glmbayes]{Prior_Setup}} on each block subset of the data.
+Runs \code{\link[glmbayesCore]{Prior_Setup}} on each block subset of the data.
 }
 \seealso{
-\code{\link{block_lmb}}, \code{\link[glmbayes]{multi_prior_setup}},
-\code{\link{normalize_block}}
+\code{\link{block_lmb}}, \code{\link[glmbayesCore]{multi_prior_setup}},
+\code{\link[glmbayesCore]{normalize_block}}
 }
 \concept{prior}
