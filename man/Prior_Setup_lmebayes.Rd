@@ -82,5 +82,6 @@ all inputs needed for the two-block Gibbs sampler:
         + \boldsymbol{\Sigma}_{\mathrm{fixef},k}^{-1}}
 }
 \seealso{
-\code{\link{model_setup}}, \code{\link{print.lmebayes_prior_setup}}
+\code{\link{model_setup}}, \code{\link{build_mu_all}},
+\code{\link{print.lmebayes_prior_setup}}
 }

@@ -67,7 +67,8 @@
 #'           \code{dNormal_Gamma}.}
 #'       }}
 #'   }
-#' @seealso \code{\link{model_setup}}, \code{\link{print.lmebayes_prior_setup}}
+#' @seealso \code{\link{model_setup}}, \code{\link{build_mu_all}},
+#'   \code{\link{print.lmebayes_prior_setup}}
 #' @export
 Prior_Setup_lmebayes <- function(formula,
                                  data,

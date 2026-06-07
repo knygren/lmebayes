@@ -144,3 +144,20 @@ cat("\n  Sigma_b_post:\n");                         print(round(Sigma_b_post, 4L
 cat("\n  lmer ranef (BLUP, for reference):\n")
 blup1 <- as.numeric(lme4::ranef(design$lmer_fit)[[design$group_name]][grp1, ])
 print(round(setNames(blup1, design$re_coef_names), 4L))
+
+## ---------------------------------------------------------------------------
+## build_mu_all: full mu_all matrix for Block 1 (iter-0 fixef from prior_list)
+## ---------------------------------------------------------------------------
+cat("\n=== build_mu_all (iter 0) ===\n")
+fixef0 <- lapply(ps$prior_list, `[[`, "mu_fixef")
+names(fixef0) <- ps$design$re_coef_names
+mu_out <- build_mu_all(ps$design, fixef0)
+cat(sprintf("  mu_all: %d x %d (RE x groups)\n", nrow(mu_out$mu_all), ncol(mu_out$mu_all)))
+cat("  first group, all RE:\n")
+print(round(mu_out$mu_all[, 1L, drop = TRUE], 4L))
+stopifnot(identical(mu_out$re_coef_names, ps$design$re_coef_names))
+stopifnot(all.equal(
+  as.numeric(mu_out$mu_all[, 1L]),
+  as.numeric(mu_b_prior1),
+  tolerance = 1e-8
+))

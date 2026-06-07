@@ -81,4 +81,7 @@ observation blocks, via \code{.rNormalGLMBlocks_cpp()} (each block calls
 
 \code{\link[glmbayesCore]{rNormal_reg}}, \code{\link[glmbayesCore]{simfunction}},
 \code{\link[glmbayesCore]{normalize_block}}, \code{inst/DESIGN_RGLM_BLOCKS.md}
+
+Other block_simfuncs: 
+\code{\link[glmbayesCore]{block_rNormalReg_update}()}
 }

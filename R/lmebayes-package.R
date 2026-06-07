@@ -28,7 +28,7 @@
 #' @example inst/examples/Ex_lmebayes-package.R
 #'
 #' @seealso
-#' \code{\link{model_setup}}, \code{\link{block_lmb}}, \code{\link{block_glmb}};
+#' \code{\link{lmerb}}, \code{\link{model_setup}}, \code{\link{block_lmb}}, \code{\link{block_glmb}};
 #' \code{\link[glmbayesCore]{simfunction}}, \code{\link[glmbayesCore]{EnvelopeBuild}};
 #' \code{\link[glmbayes]{lmb}} and \code{\link[glmbayes]{glmb}} for fixed-effects-only Bayesian
 #' linear and generalized linear models (from \pkg{glmbayes});
