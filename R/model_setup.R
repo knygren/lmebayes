@@ -8,8 +8,56 @@
 #' cross-level fixed interactions (so RE moderation is not double-coded).
 #'
 #' @details
+#' \strong{Fixed-effect constraints.}
+#' \code{model_setup} accepts the same formula language as
+#' \code{\link[lme4]{lmer}}, subject to one structural rule: every fixed
+#' effect that does \emph{not} correspond to a random-slope term must be a
+#' \emph{group-constant} (level-2) covariate---a predictor whose value is the
+#' same for every observation within a given group.  School-level attributes
+#' such as \code{private_school} or \code{title1} satisfy this constraint.
+#' Student-level covariates that vary \emph{within} groups may appear as fixed
+#' main effects only when they \emph{also} appear as random slopes (they then
+#' represent the population mean slope \eqn{\gamma_{10}}, e.g.,
+#' \code{distracted_ppvt}).  Cross-level interactions of the form
+#' \code{level2_var:random_slope} (e.g.,
+#' \code{free_reduced_lunch:distracted_a1}) are additionally permitted; they
+#' moderate the prior mean of the corresponding random slope across groups (see
+#' \code{\link{extract_re_hyper_matrices}}).  Fixed terms that are none of
+#' these three types---level-2 covariate, population mean slope, or cross-level
+#' moderation interaction---are rejected with an informative error.
+#'
+#' \strong{Two-step identifiability assessment.}
+#' After fitting \code{lmer}, \code{model_setup} performs a two-step rank
+#' check that assesses whether the model is empirically identified at both the
+#' within-group and across-group levels:
+#'
+#' \enumerate{
+#'   \item \emph{Level 1 (within-group):}  For each group \eqn{j}, the
+#'     within-group random-effects design submatrix \eqn{\mathbf{Z}_j} is
+#'     checked for full column rank (\code{re_rank}).  A rank-deficient group
+#'     has too few distinct observations to estimate all random slopes
+#'     independently; its BLUPs are identified through the prior rather than
+#'     the data alone.  Such groups are flagged in \code{re_rank} but are
+#'     retained in the \code{lmer} fit; \code{\link{Prior_Setup_lmebayes}}
+#'     excludes them when calibrating priors.
+#'
+#'   \item \emph{Level 2 (across-group):}  Restricting to the full-rank groups
+#'     from Step 1, each hyper-design matrix \code{X_hyper[[k]]} is checked
+#'     for full column rank (\code{hyper_rank}).  Rank deficiency at this level
+#'     means the level-2 hyperparameters \eqn{\boldsymbol{\mu}_k}---the prior
+#'     means for random-effect coefficient \eqn{k} across groups---are not
+#'     identified by the data, even as the number of full-rank groups grows.
+#' }
+#'
+#' The scalar \code{rank_ok} is \code{TRUE} only when every
+#' \code{X_hyper[[k]]} is full-rank after Step 2.  This is a necessary
+#' condition for \code{\link{Prior_Setup_lmebayes}} to derive default priors
+#' automatically; models with \code{rank_ok = FALSE} require user-supplied
+#' hyperpriors.
+#'
 #' The example uses \code{big_word_club} from the Suggested package
-#' \pkg{bayesrules} (see \code{?bayesrules::big_word_club}).
+#' \pkg{bayesrules} (see \code{?bayesrules::big_word_club}) and the same
+#' formula as \code{\link{lmerb}} in \file{inst/examples/Ex_lmerb.R}.
 #'
 #' @param formula Mixed-model formula for design extraction and \code{lmer_fit}
 #'   (fixed effects / hyper calibration).

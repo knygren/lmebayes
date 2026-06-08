@@ -44,13 +44,11 @@ correlated RE (\code{|}) are supported.}
 (names match \code{design$re_coef_names}), each containing:
 \describe{
 \item{\code{mu_fixef}}{Prior mean vector for \code{fixef_k} (length
-\code{ncol(X_hyper[[k]])}).  Set from \code{fixef(fit_fr)} where
-available; for slope-only REs with no explicit fixed effect the
-mean of per-group \code{coef()} values is used.}
+\code{ncol(X_hyper[[k]])}).  Set from \code{fixef(fit_fr)} for every
+hyper parameter; see Details.}
 \item{\code{Sigma_fixef}}{Prior covariance matrix for \code{fixef_k}
 (\code{ncol x ncol}).  Scaled from \code{vcov(fit_fr)} submatrix
-by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}; dimensions not present in
-\code{vcov} use \eqn{\tau^2_k \times (1-\mathrm{pwt})/\mathrm{pwt}}.}
+by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.}
 \item{\code{dispersion_fixef}}{\eqn{\tau^2_k} scalar (equals
 \code{Sigma_ranef[k,k]}).  Used in Block 2 for the dNormal prior;
 will be replaced by \code{shape}/\code{rate} for
@@ -80,6 +78,63 @@ all inputs needed for the two-block Gibbs sampler:
 \deqn{\boldsymbol{\Sigma}_{\mathrm{fixef},k}^{*-1}
       = \mathbf{X}_k'\mathbf{X}_k / \tau^2_k
         + \boldsymbol{\Sigma}_{\mathrm{fixef},k}^{-1}}
+
+\strong{Why default calibration depends on classical estimates.}
+\code{Prior_Setup_lmebayes} anchors the prior mean for each Block 2
+parameter vector \eqn{\mathrm{fixef}_k} at the classical \code{lmer}
+estimate and scales the prior covariance from \code{vcov(fit_fr)} by
+\eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.  This data-driven approach requires
+the classical estimates to be well defined, which imposes two conditions on
+each random-effect coefficient \eqn{k}:
+
+\enumerate{
+\item \strong{Fixed-effect requirement.}  Every column of
+\code{X_hyper[[k]]} must correspond to an entry in
+\code{fixef(fit_fr)}.
+\itemize{
+\item For the random intercept (\code{"(Intercept)"}), each level-2
+covariate in the hyper model (e.g., \code{private_school},
+\code{title1}) must appear as a fixed main effect in the formula.
+\item For each random slope \eqn{k}, the formula must include a fixed
+main effect for \eqn{k} (its population mean \eqn{\gamma_{10}}).
+If cross-level moderation is specified via
+\code{moderator:k} (e.g., \code{free_reduced_lunch:distracted_a1}),
+that interaction term must also appear in the fixed part so that
+\code{lmer} produces an estimate for it.
+}
+A slope that appears only in the random part---without a matching fixed
+main effect---violates this requirement.  \code{lmer} can fit such
+models (the slope has no fixed population mean), but the classical
+\code{fixef} vector contains no value to anchor the prior, so
+automatic calibration is not possible.
+
+\item \strong{Non-singularity requirement.}  The estimated random-effect
+variance \eqn{\tau^2_k} from \code{fit_fr} must be strictly positive.
+\eqn{\tau^2_k} plays two roles: as the \eqn{k}-th diagonal entry of
+\code{Sigma_ranef} (Block 1 prior precision on \eqn{b_j[k]}) and as
+\code{dispersion_fixef} (the scale linking Block 1 and Block 2 in the
+full Gibbs).  A boundary estimate (\eqn{\tau^2_k = 0}) means the
+\code{lmer} fit found no evidence of group-level variation in
+coefficient \eqn{k}: Block 1 would collapse to a point-mass prior, and
+Block 2 would receive a degenerate likelihood.
+}
+
+\strong{Models where default calibration fails.}
+Both conditions encode the requirement that the classical mixed-model
+estimates are well defined for the specified formula.  When either fails,
+\code{Prior_Setup_lmebayes()} stops with a diagnostic message explaining
+which coefficients are problematic.  The usual remedies are to revise the
+formula (add the missing fixed main effect; remove or reparameterise an RE
+term with zero estimated variance).
+
+Such models can still be fitted with \code{\link{lmerb}}, but the user
+must supply the measurement prior directly, without calling
+\code{Prior_Setup_lmebayes}.  The user-constructed object must contain
+\code{dispersion_ranef}, \code{Sigma_ranef}, and a \code{prior_list} (named
+by \code{re_coef_names}, each element providing \code{mu_fixef},
+\code{Sigma_fixef}, and \code{dispersion_fixef}) based on substantive
+knowledge or an alternative calibration strategy, and must be passed as
+\code{measurement_prior_list} to \code{\link{lmerb}}.
 }
 \seealso{
 \code{\link{model_setup}}, \code{\link{build_mu_all}},

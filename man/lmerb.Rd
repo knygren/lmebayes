@@ -6,9 +6,9 @@
 \usage{
 lmerb(
   formula,
+  data = NULL,
   measurement_prior_list,
   n = 1000L,
-  data = NULL,
   REML = TRUE,
   control = lme4::lmerControl(),
   start = NULL,
@@ -25,39 +25,39 @@ lmerb(
 )
 }
 \arguments{
-\item{formula}{Mixed-model formula. Must match
-\code{measurement_prior_list$formula} when both are supplied.}
+\item{formula}{Mixed-model formula (single grouping factor; same constraints
+as \code{\link{model_setup}}). Must match
+\code{measurement_prior_list$formula}.}
+
+\item{data}{Data frame containing all variables in \code{formula}.}
 
 \item{measurement_prior_list}{Required object from
 \code{\link{Prior_Setup_lmebayes}}. Supplies \code{design},
 \code{dispersion_ranef}, \code{Sigma_ranef}, and iter-0 \code{fixef}
-means via \code{prior_list}. Not created inside \code{lmerb}; call
-\code{\link{Prior_Setup_lmebayes}} explicitly first.}
+means via \code{prior_list}. Call \code{\link{Prior_Setup_lmebayes}}
+explicitly before \code{lmerb}.}
 
 \item{n}{Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).}
 
-\item{data}{Optional data frame; must be consistent with
-\code{measurement_prior_list$design}.}
+\item{REML}{Logical; passed to \code{\link[lme4]{lmer}}.}
 
-\item{REML}{Logical; reserved for \code{lmer}-like API compatibility (ignored).}
+\item{control}{\code{\link[lme4]{lmerControl}} settings; passed to \code{lmer}.}
 
-\item{control}{\code{\link[lme4]{lmerControl}} settings; reserved (ignored).}
+\item{start}{Optional starting values; passed to \code{lmer}.}
 
-\item{start}{Optional starting values; reserved (ignored).}
+\item{verbose}{Verbosity flag; passed to \code{lmer}.}
 
-\item{verbose}{Verbosity flag; reserved (ignored).}
+\item{subset}{Optional subset; passed to \code{lmer}.}
 
-\item{subset}{Optional subset; reserved (ignored).}
+\item{weights}{Optional weights; passed to \code{lmer}.}
 
-\item{weights}{Optional weights; reserved (ignored).}
+\item{na.action}{Missing-data handler; passed to \code{lmer}.}
 
-\item{na.action}{Missing-data handler; reserved (ignored).}
+\item{offset}{Optional offset; passed to \code{lmer}.}
 
-\item{offset}{Optional offset; reserved (ignored).}
+\item{contrasts}{Optional contrasts; passed to \code{lmer}.}
 
-\item{contrasts}{Optional contrasts; reserved (ignored).}
-
-\item{devFunOnly}{If \code{TRUE}, return deviance function only; reserved (ignored).}
+\item{devFunOnly}{If \code{TRUE}, return deviance function only; passed to \code{lmer}.}
 
 \item{fixef}{Optional named list of hyper-parameter vectors (Block 2 state).
 When \code{NULL} (default), iter-0 means are taken from
@@ -68,16 +68,24 @@ When \code{NULL} (default), iter-0 means are taken from
 \item{...}{Reserved for future use.}
 }
 \value{
-Object of class \code{"lmerb"}: a list of three components:
+Object of class \code{"lmerb"}: a list with components:
 \describe{
 \item{\code{model_setup}}{The \code{\link{model_setup}} object (from
 \code{measurement_prior_list$design}).}
-\item{\code{lmer}}{The \code{\link[lme4]{lmer}} fit on full-rank groups
-(from \code{measurement_prior_list$fit_fr}).}
+\item{\code{lmer}}{\code{\link[lme4]{lmer}} fit on \code{formula} and
+\code{data} as passed to \code{lmerb}. Use \code{coef(fit$lmer)} for
+per-group coefficients on the same scale as \code{fit$coefficients}.}
+\item{\code{mu_all}}{Numeric matrix \code{p_re x J} of Block 1 prior
+means from the final Gibbs iteration (from \code{\link{build_mu_all}}
+at the final \code{fixef}). Rows are \code{design$re_coef_names};
+columns are grouping levels.}
+\item{\code{fixef}}{Named list of hyper-parameter vectors: the Block 2
+draw from the final Gibbs iteration.}
 \item{\code{coefficients}}{\code{data.frame} with \code{n * J} rows and
 \code{2 + p_re} columns: \code{draw}, the grouping-factor column
 (\code{design$group_name}), and one column per random-effect variable
-(\code{design$re_coef_names}).}
+(\code{design$re_coef_names}). Average over \code{draw} within each
+grouping level for factor-level posterior means (see Examples).}
 }
 }
 \description{
@@ -85,10 +93,57 @@ Entry point for \pkg{lmebayes} models with an \code{lmer}-like interface,
 analogous to \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects models.
 }
 \details{
-Current implementation performs Block 1 sampling: \code{n} iid draws of
-group-level random effects \eqn{b_j} conditional on the supplied measurement
-priors and iter-0 hyper means from \code{measurement_prior_list}.
-A full two-block Gibbs sampler is not yet implemented.
+Calls \code{\link[lme4]{lmer}} on \code{formula} and \code{data} inside
+\code{lmerb} so the returned \code{lmer} fit always matches the model
+arguments passed here. Measurement priors (\code{dispersion_ranef},
+\code{Sigma_ranef}, \code{design}, iter-0 \code{fixef}) must be supplied
+via \code{measurement_prior_list} from a prior call to
+\code{\link{Prior_Setup_lmebayes}}; \code{lmerb} does not run prior setup
+internally.
+
+Runs a two-block Gibbs sampler for \code{n} iterations. Block 1 draws
+group-level random effects \eqn{b_j} given the current hyper means; Block 2
+updates the hyper means (level-2 fixed effects \eqn{\boldsymbol{\gamma}_k})
+given the current \eqn{b_j} draw, using \code{\link{multi_rNormal_reg_v2}}
+with the hyper design matrices from \code{design$X_hyper}.
+
+\strong{Exact posterior and convergence characterisation.}
+When variance components are treated as fixed at their \code{lmer} estimates
+(as done here), the joint posterior over the random-effect coefficients and
+the level-2 fixed effects is \emph{exactly} multivariate normal.  In this
+setting the convergence of the two-block Gibbs sampler is fully
+characterised: Corollary 1 of Nygren (2020) shows that the total variation
+(TV) distance between the \eqn{l}-step kernel and the target density is
+bounded above by a geometrically decreasing function of \eqn{l}, with
+contraction rate \eqn{\lambda^* \in [0, 1)}, the maximal eigenvalue of the
+matrix
+\deqn{A \;=\; P_{11}^{-1/2}\,P_{12}\,P_{22}^{-1}\,P_{21}\,P_{11}^{-1/2}}
+where \eqn{P_{11}}, \eqn{P_{22}}, and \eqn{P_{12}} are the corresponding
+blocks of the joint precision matrix.  Because the bound is explicit and
+computable, the required number of iterations to reach a pre-specified TV
+tolerance \eqn{\varepsilon} can be derived analytically once \eqn{\lambda^*}
+is known.
+
+\strong{\code{m_convergence}.}
+\code{lmerb} maintains an internal constant \code{m_convergence} as a proxy
+for this required number of iterations.  It is initialised to \code{100L}
+and will be replaced by the formula-derived value (a function of
+\eqn{\lambda^*} and \eqn{\varepsilon}) once Block 2 Gibbs sampling is
+implemented and \eqn{\lambda^*} can be computed from the fitted model
+parameters.  In the current Block-1-only implementation every draw is
+already an exact iid draw from the conditional posterior
+\eqn{p(b_j \mid y, \mathrm{fixef}, \sigma^2, \Sigma_b)}, so
+\code{m_convergence} is reserved for future use.
+}
+\examples{
+\donttest{
+  source(system.file("examples", "Ex_lmerb.R", package = "lmebayes"))
+}
+}
+\references{
+Nygren, K. (2020). \emph{On the total variation distance between multivariate
+normal densities with applications to two-block Gibbs samplers.}
+Unpublished manuscript.
 }
 \seealso{
 \code{\link{Prior_Setup_lmebayes}}, \code{\link{build_mu_all}},

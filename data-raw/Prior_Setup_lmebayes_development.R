@@ -39,10 +39,10 @@
 ##                        $dispersion_fixef-- tau2_k scalar (= Sigma_ranef[k,k])
 ##
 ## Calibration philosophy:
-##   mu_fixef_k    <- fixef(fit_fr) for X_hyper columns present in lmer fixef;
-##                    mean of per-group coef() for slope-only REs (no fixef entry)
-##   Sigma_fixef_k <- vcov(fit_fr)[relevant cols] * (1-pwt)/pwt  for known fixed effects;
-##                    tau2_k * (1-pwt)/pwt for dimensions with no vcov entry (slope-only)
+##   mu_fixef_k    <- fixef(fit_fr) for every X_hyper column (each random slope
+##                    needs a matching fixed main effect in the formula)
+##   Sigma_fixef_k <- vcov(fit_fr)[relevant cols] * (1-pwt)/pwt
+##   tau2_k        <- VarCorr(fit_fr); must be strictly positive (non-singular)
 ##   Scaling (1-pwt)/pwt matches glmbayes::compute_gaussian_prior which uses
 ##   Sigma = (n_eff/n_prior) * dispersion * (X'X)^{-1} and n_eff/n_prior = (1-pwt)/pwt.
 ##
@@ -61,26 +61,26 @@ pkgload::load_all(export_all = FALSE)
 ## R/prior_setup_lmebayes.R.  This script loads them via pkgload::load_all().
 
 ## ===========================================================================
-## Development run: big_word_club with free_reduced_lunch x distracted_a1
+## Development run: big_word_club (same formula as inst/examples/Ex_lmerb.R)
 ## ===========================================================================
 
 data(big_word_club, package = "bayesrules")
 dat <- big_word_club
 dat$school_id <- factor(dat$school_id)
-dat$age_c     <- dat$age_months - mean(dat$age_months, na.rm = TRUE)
 dat <- subset(
   dat,
   !is.na(score_ppvt) &
     !is.na(invalid_ppvt) & invalid_ppvt == 0L &
-    complete.cases(dat[, c("score_ppvt", "age_c", "distracted_a1",
+    complete.cases(dat[, c("score_ppvt", "distracted_a1", "distracted_ppvt",
                            "private_school", "title1", "free_reduced_lunch",
                            "school_id")])
 )
 
 form_lmer <- score_ppvt ~
   private_school + title1 + free_reduced_lunch +
-  distracted_a1 + free_reduced_lunch:distracted_a1 +
-  (1 + age_c + distracted_a1 || school_id)
+  distracted_a1 + distracted_ppvt +
+  free_reduced_lunch:distracted_a1 +
+  (1 + distracted_ppvt + distracted_a1 || school_id)
 
 cat("=== Prior_Setup_lmebayes: pwt = 0.01 ===\n\n")
 ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
