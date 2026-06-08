@@ -81,6 +81,24 @@ at the final \code{fixef}). Rows are \code{design$re_coef_names};
 columns are grouping levels.}
 \item{\code{fixef}}{Named list of hyper-parameter vectors: the Block 2
 draw from the final Gibbs iteration.}
+\item{\code{fixef_mean}}{Named list of posterior mean vectors for the
+level-2 fixed effects \eqn{\gamma_k}, computed once by
+\code{\link{lmerb_posterior_mean}} (ICM) before sampling begins.
+Because the joint posterior is exactly Gaussian, this is the exact
+posterior mean, not an MCMC average.  Same structure as \code{fixef}.}
+\item{\code{b_mean}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix of
+posterior mean random effects computed once by
+\code{\link{lmerb_posterior_mean}} (ICM) before sampling begins.
+Rows are group levels (\code{levels(design$groups)}); columns are
+\code{design$re_coef_names}.  This is the exact posterior mean for the
+random effects (under fixed variance components), not an MCMC average.}
+\item{\code{fixef_draws}}{Named list of \eqn{n \times q_k} matrices of
+Block 2 draws, one matrix per RE component.  Row \eqn{i} holds the
+\eqn{\gamma_k} sample from outer iteration \eqn{i}.  Column names
+match \code{colnames(design$X_hyper[[k]])}.}
+\item{\code{fixef_draws_mean}}{Named list of posterior mean vectors
+computed as \code{colMeans(fixef_draws[[k]])} — the MCMC average of
+the Block 2 draws.  Directly comparable to \code{lme4::fixef()}.}
 \item{\code{coefficients}}{\code{data.frame} with \code{n * J} rows and
 \code{2 + p_re} columns: \code{draw}, the grouping-factor column
 (\code{design$group_name}), and one column per random-effect variable

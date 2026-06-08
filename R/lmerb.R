@@ -89,6 +89,24 @@
 #'       columns are grouping levels.}
 #'     \item{\code{fixef}}{Named list of hyper-parameter vectors: the Block 2
 #'       draw from the final Gibbs iteration.}
+#'     \item{\code{fixef_mean}}{Named list of posterior mean vectors for the
+#'       level-2 fixed effects \eqn{\gamma_k}, computed once by
+#'       \code{\link{lmerb_posterior_mean}} (ICM) before sampling begins.
+#'       Because the joint posterior is exactly Gaussian, this is the exact
+#'       posterior mean, not an MCMC average.  Same structure as \code{fixef}.}
+#'     \item{\code{b_mean}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix of
+#'       posterior mean random effects computed once by
+#'       \code{\link{lmerb_posterior_mean}} (ICM) before sampling begins.
+#'       Rows are group levels (\code{levels(design$groups)}); columns are
+#'       \code{design$re_coef_names}.  This is the exact posterior mean for the
+#'       random effects (under fixed variance components), not an MCMC average.}
+#'     \item{\code{fixef_draws}}{Named list of \eqn{n \times q_k} matrices of
+#'       Block 2 draws, one matrix per RE component.  Row \eqn{i} holds the
+#'       \eqn{\gamma_k} sample from outer iteration \eqn{i}.  Column names
+#'       match \code{colnames(design$X_hyper[[k]])}.}
+#'     \item{\code{fixef_draws_mean}}{Named list of posterior mean vectors
+#'       computed as \code{colMeans(fixef_draws[[k]])} — the MCMC average of
+#'       the Block 2 draws.  Directly comparable to \code{lme4::fixef()}.}
 #'     \item{\code{coefficients}}{\code{data.frame} with \code{n * J} rows and
 #'       \code{2 + p_re} columns: \code{draw}, the grouping-factor column
 #'       (\code{design$group_name}), and one column per random-effect variable
@@ -193,6 +211,33 @@ lmerb <- function(
     names(fixef) <- design$re_coef_names
   }
 
+  # Common starting state for every inner Gibbs run.  The TV bound in Nygren
+  # (2020) Corollary 1 is tightest when the chain starts at the joint posterior
+  # mean; using that point minimises the epsilon achievable in m_convergence
+  # steps.  Use lmerb_posterior_mean() to find the exact posterior mean via ICM.
+  fixef_lmer <- fixef   # lmer-derived starting values (for diagnostic printing)
+  pm <- lmerb_posterior_mean(design, measurement_prior_list)
+  fixef_start <- pm$fixef
+
+  # Diagnostic table: lmer start vs ICM posterior mean, one row per parameter
+  hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
+                 "RE component", "parameter", "lmer (start)", "post mean (ICM)")
+  sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
+  cat("--- lmerb: Block 2 fixed effects ---\n")
+  cat(hdr, "\n")
+  cat(sep, "\n")
+  for (k in design$re_coef_names) {
+    nms_k  <- names(fixef_lmer[[k]])
+    lmer_v <- fixef_lmer[[k]]
+    pm_v   <- fixef_start[[k]]
+    for (nm in nms_k) {
+      cat(sprintf("  %-18s  %-30s  %12.4f  %12.4f\n",
+                  k, nm, lmer_v[[nm]], pm_v[[nm]]))
+    }
+  }
+  cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
+              pm$converged, pm$iterations, pm$delta))
+
   Sigma_ranef <- measurement_prior_list$Sigma_ranef
   if (is.null(Sigma_ranef)) {
     stop("measurement_prior_list must contain 'Sigma_ranef'.", call. = FALSE)
@@ -216,11 +261,16 @@ lmerb <- function(
   # eigenvalue of A = P11^{-1/2} P12 P22^{-1} P21 P11^{-1/2}.  Initialized to
   # 100L as a placeholder; will be derived from the model parameters once
   # lambda* is computed from fitted model parameters.
-  m_convergence <- 100L
+  m_convergence <- 10L
 
-  grp_col  <- design$group_name
-  re_names <- design$re_coef_names
-  coef_cols <- c("draw", grp_col, re_names)
+  grp_col      <- design$group_name
+  re_names     <- design$re_coef_names
+  # group_levels = levels(design$groups): the factor-level order lmer uses.
+  # block_rNormalReg now preserves the input factor's level order (fix in
+  # glmbayesCore::normalize_block), so mu_all columns, b_i rows, and X_hyper
+  # rows are all consistently in this same order -- no translation needed.
+  group_levels <- levels(design$groups)
+  coef_cols    <- c("draw", grp_col, re_names)
 
   # Block 1 argument template; prior_list$mu is updated at each Gibbs step.
   mu_all <- as.matrix(build_mu_all(design, fixef)$mu_all)
@@ -254,32 +304,65 @@ lmerb <- function(
 
   draw_rows <- vector("list", n)
 
+  # Pre-allocate storage for Block 2 (fixef) draws: one n x q_k matrix per RE.
+  fixef_draws <- stats::setNames(
+    lapply(re_names, function(k) {
+      q_k <- length(fixef_start[[k]])
+      m   <- matrix(NA_real_, nrow = n, ncol = q_k,
+                    dimnames = list(NULL, names(fixef_start[[k]])))
+      m
+    }),
+    re_names
+  )
+
+  pb <- utils::txtProgressBar(min = 0L, max = n, style = 3L)
+  on.exit(close(pb), add = TRUE)
+
   for (i in seq_len(n)) {
+    utils::setTxtProgressBar(pb, i)
 
-    # -- Block 1: b_j | fixef, sigma^2, Sigma_b -------------------------
-    mu_all <- as.matrix(build_mu_all(design, fixef)$mu_all)
-    block1_args$prior_list$mu <- mu_all
-    block_i <- do.call(block_rNormalReg, block1_args)
-    b_i <- block_i$coefficients
-    if (is.null(rownames(b_i))) {
-      rownames(b_i) <- block_i$block_info$ids
-    }
-    colnames(b_i) <- re_names
+    # Reinitialise to the starting state before each inner loop so that every
+    # draw is an independent run of m_convergence steps from the same point.
+    fixef <- fixef_start
 
-    # -- Block 2: fixef_k | b_j, tau^2_k --------------------------------
-    fixef_draw <- multi_rNormal_reg_v2(
-      n          = 1L,
-      y          = b_i,
-      x          = design$X_hyper,
-      prior_list = block2_prior_list,
-      progbar    = FALSE
-    )
-    fixef <- stats::setNames(
-      lapply(re_names, function(k) fixef_draw[[k]]$coefficients[1L, ]),
-      re_names
-    )
+    # -- Inner Gibbs loop: run m_convergence steps from fixef_start.
+    # Because the TV distance bound (Nygren 2020, Corollary 1) decays
+    # geometrically at rate (lambda*)^m, m_convergence steps guarantee the
+    # chain is within an arbitrarily small epsilon of the stationary
+    # distribution.  The n stored draws are therefore near-independent draws
+    # from (near) the stationary distribution; only the state after the
+    # final step is stored.
+    for (m in seq_len(m_convergence)) {
 
-    # -- Store Block 1 draw ----------------------------------------------
+      # -- Block 1: b_j | fixef, sigma^2, Sigma_b -----------------------
+      mu_all <- as.matrix(build_mu_all(design, fixef)$mu_all)
+      block1_args$prior_list$mu <- mu_all
+      block_i <- do.call(block_rNormalReg, block1_args)
+      b_i <- block_i$coefficients
+      if (is.null(rownames(b_i))) {
+        rownames(b_i) <- block_i$block_info$ids
+      }
+      colnames(b_i) <- re_names
+
+      # -- Block 2: fixef_k | b_j, tau^2_k ------------------------------
+      fixef_draw <- multi_rNormal_reg_v2(
+        n          = 1L,
+        y          = b_i,
+        x          = design$X_hyper,
+        prior_list = block2_prior_list,
+        progbar    = FALSE
+      )
+      fixef <- stats::setNames(
+        lapply(re_names, function(k) fixef_draw[[k]]$coefficients[1L, ]),
+        re_names
+      )
+
+    } # end inner Gibbs loop
+
+    # -- Store Block 2 draw from final inner step ------------------------
+    for (k in re_names) fixef_draws[[k]][i, ] <- fixef[[k]]
+
+    # -- Store Block 1 draw from final inner step ------------------------
     J_i <- nrow(b_i)
     draw_df <- data.frame(
       draw = rep(i, J_i),
@@ -296,13 +379,19 @@ lmerb <- function(
   rownames(coefficients) <- NULL
   coefficients <- coefficients[, coef_cols, drop = FALSE]
 
+  fixef_draws_mean <- lapply(fixef_draws, colMeans)
+
   structure(
     list(
-      model_setup  = design,
-      lmer         = lmer_fit,
-      mu_all       = mu_all,
-      fixef        = fixef,
-      coefficients = coefficients
+      model_setup      = design,
+      lmer             = lmer_fit,
+      mu_all           = mu_all,
+      fixef            = fixef,
+      fixef_mean       = fixef_start,
+      b_mean           = pm$b_mean,   # ICM posterior mean of random effects (J x p_re)
+      fixef_draws      = fixef_draws,
+      fixef_draws_mean = fixef_draws_mean,
+      coefficients     = coefficients
     ),
     class = c("lmerb", "list")
   )

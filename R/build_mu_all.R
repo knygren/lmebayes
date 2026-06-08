@@ -14,13 +14,18 @@
 #'   of \code{design$Z}. Names must match \code{design$re_coef_names}. Each
 #'   \code{fixef[[k]]} is a numeric vector of length \code{ncol(X_hyper[[k]])}
 #'   with names matching \code{colnames(X_hyper[[k]])}.
-#' @param group_levels Character vector of grouping levels defining column
-#'   order of \code{mu_all}. Defaults to \code{levels(design$groups)}.
+#' @param group_levels Character vector of grouping levels defining the
+#'   \emph{column order} of \code{mu_all}.  Defaults to
+#'   \code{levels(design\$groups)}, which is the canonical ordering used
+#'   throughout \pkg{lmebayes} and consistent with \code{lmer} and
+#'   \code{\link[glmbayesCore]{block_rNormalReg}} (which preserves the input
+#'   factor's level order).
 #' @return A list with:
 #'   \describe{
 #'     \item{\code{mu_all}}{Numeric matrix \code{p_re x J} (\code{p_re} =
 #'       number of RE columns, \code{J} = number of groups). Row names are
-#'       \code{design$re_coef_names}; column names are \code{group_levels}.}
+#'       \code{design$re_coef_names}; column names are \code{group_levels} in
+#'       the order supplied.}
 #'     \item{\code{re_coef_names}}{Copy of \code{design$re_coef_names}.}
 #'     \item{\code{group_levels}}{Grouping levels used for columns.}
 #'   }
