@@ -288,6 +288,18 @@ summary(out_ing)
 glmbayes Modeling Functions
 \code{\link{block_glmb}()},
 \code{\link{block_lmb}()}
+
+glmbayes Simulation Functions
+\code{\link{two_block_rNormal_reg}()}
+
+glmbayes Simulation Functions
+\code{\link{two_block_rNormal_reg}()}
+
+glmbayes Simulation Functions
+\code{\link{two_block_rNormal_reg}()}
+
+glmbayes Simulation Functions
+\code{\link{two_block_rNormal_reg}()}
 }
 \concept{modelfuns}
 \concept{simfuncs}

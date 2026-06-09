@@ -172,6 +172,7 @@ Unpublished manuscript.
 }
 \seealso{
 \code{\link{Prior_Setup_lmebayes}}, \code{\link{build_mu_all}},
+\code{\link{two_block_rNormal_reg}},
 \code{\link[glmbayesCore]{block_rNormalReg}},
 \code{\link{lmb}}, \code{\link{glmb}}
 }
