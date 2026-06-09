@@ -3,9 +3,8 @@
 \name{multi_rlmb}
 \alias{multi_rlmb}
 \alias{multi_rNormalGamma_reg}
-\alias{multi_rNormal_reg}
-\alias{multi_rindepNormalGamma_reg}
 \alias{multi_rNormal_reg_v2}
+\alias{multi_rindepNormalGamma_reg}
 \title{Multi-response Bayesian regression and simulation}
 \usage{
 multi_rlmb(
@@ -21,22 +20,6 @@ multi_rlmb(
   use_opencl = FALSE,
   verbose = FALSE,
   progbar = FALSE
-)
-
-multi_rNormal_reg(
-  n,
-  y,
-  x,
-  prior_list,
-  offset = NULL,
-  weights = 1,
-  family = gaussian(),
-  Gridtype = 2,
-  n_envopt = NULL,
-  use_parallel = TRUE,
-  use_opencl = FALSE,
-  verbose = FALSE,
-  progbar = TRUE
 )
 
 multi_rNormal_reg_v2(
@@ -101,9 +84,8 @@ RE coefficients (\code{design$re_coef_names}).}
 
 \item{x}{Either
 \itemize{
-\item a numeric matrix (shared across all response columns) — in this
-case the function behaves identically to \code{multi_rNormal_reg} and
-returns an \code{"mrglmb"} object; or
+\item a numeric matrix (shared across all response columns) — returns
+an \code{"mrglmb"} object; or
 \item a \strong{list} of numeric matrices, one per column of \code{y},
 where \code{x[[k]]} is the \eqn{J \times q_k} design matrix for RE
 component \eqn{k}.  Supply \code{design$X_hyper} from
@@ -140,9 +122,9 @@ attributes; per-column priors are in \code{attr(..., "prior_lists")} or
 \code{attr(..., "pfamily_lists")} for \code{multi_rlmb}.
 
 \describe{
-\item{Shared-x path (matrix \code{x})}{An \code{"mrglmb"} S3 object
-identical in structure to the return value of
-\code{\link{multi_rNormal_reg}}.}
+\item{Shared-x path (matrix \code{x})}{An \code{"mrglmb"} S3 object with
+one \code{\link[glmbayesCore]{rNormal_reg}} result per column of
+\code{y}.}
 \item{List-x path (list \code{x})}{A plain named list of length
 \code{ncol(y)}, named by \code{colnames(y)} (or \code{"Y1"},
 \code{"Y2"}, \ldots{} if \code{y} has no column names).  Each element
@@ -165,10 +147,11 @@ Same arguments as \code{\link[glmbayes]{rlmb}} except \code{pfamily} is replaced
 \code{pfamily_list} (length \code{ncol(y)} of \code{pfamily} objects).
 Each element is class \code{"rlmb"} (and \code{"rglmb"}).
 }
-\item{\code{multi_rNormal_reg}}{
+\item{\code{multi_rNormal_reg_v2}}{
 Same arguments as \code{\link[glmbayesCore]{rNormal_reg}} except \code{prior_list} is a
 list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P}, optional
-\code{dispersion}).
+\code{dispersion}).  Accepts a shared design matrix \code{x} or a list of
+per-column design matrices.
 }
 \item{\code{multi_rNormalGamma_reg}}{
 Same arguments as \code{\link[glmbayesCore]{rNormalGamma_reg}} except \code{prior_list} is a
@@ -191,19 +174,16 @@ named list of \code{"PriorSetup"} objects (one per response column).
 \itemize{
 \item \code{multi_rlmb()}: Gaussian \code{\link[glmbayes]{rlmb}} simulation with multiple responses.
 
-\item \code{multi_rNormal_reg()}: Normal-prior regression with multiple responses.
-
 \item \code{multi_rNormal_reg_v2()}: Normal-prior regression with multiple responses and
 per-column design matrices.
 
-Extension of \code{multi_rNormal_reg} where \code{x} accepts either a
-single shared design matrix (identical behaviour to \code{multi_rNormal_reg})
-or a \strong{list of matrices} with one entry per response column.  The list
-path is the key new capability: it allows each column of \code{y} to have a
-different number of predictors, which is required for Block 2 of the
-two-block Gibbs sampler in \code{\link{lmerb}}, where the hyper design
-matrices \code{design$X_hyper[[k]]} can have differing column dimensions
-across random-effect components \eqn{k}.
+Runs \code{\link[glmbayesCore]{rNormal_reg}} once per column of \code{y}.
+Argument \code{x} may be a single shared design matrix or a \strong{list of
+matrices} with one entry per response column.  The list path allows each
+column of \code{y} to have a different number of predictors, which is
+required for Block 2 of the two-block Gibbs sampler in \code{\link{lmerb}},
+where the hyper design matrices \code{design$X_hyper[[k]]} can have differing
+column dimensions across random-effect components \eqn{k}.
 
 \item \code{multi_rNormalGamma_reg()}: Normal--Gamma regression with multiple responses.
 
@@ -288,9 +268,6 @@ summary(out_ing)
 glmbayes Modeling Functions
 \code{\link{block_glmb}()},
 \code{\link{block_lmb}()}
-
-glmbayes Simulation Functions
-\code{\link{two_block_rNormal_reg}()}
 
 glmbayes Simulation Functions
 \code{\link{two_block_rNormal_reg}()}

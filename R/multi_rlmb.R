@@ -14,10 +14,11 @@
 #'     \code{pfamily_list} (length \code{ncol(y)} of \code{pfamily} objects).
 #'     Each element is class \code{"rlmb"} (and \code{"rglmb"}).
 #'   }
-#'   \item{\code{multi_rNormal_reg}}{
+#'   \item{\code{multi_rNormal_reg_v2}}{
 #'     Same arguments as \code{\link[glmbayesCore]{rNormal_reg}} except \code{prior_list} is a
 #'     list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P}, optional
-#'     \code{dispersion}).
+#'     \code{dispersion}).  Accepts a shared design matrix \code{x} or a list of
+#'     per-column design matrices.
 #'   }
 #'   \item{\code{multi_rNormalGamma_reg}}{
 #'     Same arguments as \code{\link[glmbayesCore]{rNormalGamma_reg}} except \code{prior_list} is a
@@ -48,7 +49,7 @@
 #' \code{\link[glmbayesCore]{rindepNormalGamma_reg}}
 #'
 #' @name multi_rlmb
-#' @aliases multi_rlmb multi_rNormalGamma_reg multi_rNormal_reg
+#' @aliases multi_rlmb multi_rNormalGamma_reg multi_rNormal_reg_v2
 #'   multi_rindepNormalGamma_reg
 #' @example inst/examples/Ex_multi_rlmb.R
 NULL
@@ -109,74 +110,16 @@ multi_rlmb <- function(n = 1,
   )
 }
 
-#' @describeIn multi_rlmb Normal-prior regression with multiple responses.
-#' @inheritParams glmbayesCore::rNormal_reg
-#' @param prior_list List of length \code{ncol(y)} of per-column prior lists.
-#' @family simfuncs
-#' @export
-multi_rNormal_reg <- function(n,
-                              y,
-                              x,
-                              prior_list,
-                              offset = NULL,
-                              weights = 1,
-                              family = gaussian(),
-                              Gridtype = 2,
-                              n_envopt = NULL,
-                              use_parallel = TRUE,
-                              use_opencl = FALSE,
-                              verbose = FALSE,
-                              progbar = TRUE) {
-  call <- match.call()
-  inp <- .mrglmb_check_inputs(y, x, prior_list)
-  prior_lists <- .mrglmb_normalize_prior_lists(
-    prior_list, inp$l1, inp$p, .validate_normal_prior_list
-  )
-  n_draw <- .mrglmb_n_draw(n)
-
-  block_results <- vector("list", inp$l1)
-  for (j in seq_len(inp$l1)) {
-    block_results[[j]] <- rNormal_reg(
-      n = n_draw,
-      y = inp$y_mat[, j],
-      x = inp$x,
-      prior_list = prior_lists[[j]],
-      offset = offset,
-      weights = weights,
-      family = family,
-      Gridtype = Gridtype,
-      n_envopt = n_envopt,
-      use_parallel = use_parallel,
-      use_opencl = use_opencl,
-      verbose = verbose,
-      progbar = progbar && (j == 1L)
-    )
-  }
-
-  .mrglmb_assemble(
-    block_results,
-    inp$coef_names,
-    call,
-    inp$y_mat,
-    inp$x,
-    inp$l1,
-    inp$p,
-    prior_lists,
-    inp$pred_names
-  )
-}
-
 #' @describeIn multi_rlmb Normal-prior regression with multiple responses and
 #'   per-column design matrices.
 #'
-#' Extension of \code{multi_rNormal_reg} where \code{x} accepts either a
-#' single shared design matrix (identical behaviour to \code{multi_rNormal_reg})
-#' or a \strong{list of matrices} with one entry per response column.  The list
-#' path is the key new capability: it allows each column of \code{y} to have a
-#' different number of predictors, which is required for Block 2 of the
-#' two-block Gibbs sampler in \code{\link{lmerb}}, where the hyper design
-#' matrices \code{design$X_hyper[[k]]} can have differing column dimensions
-#' across random-effect components \eqn{k}.
+#' Runs \code{\link[glmbayesCore]{rNormal_reg}} once per column of \code{y}.
+#' Argument \code{x} may be a single shared design matrix or a \strong{list of
+#' matrices} with one entry per response column.  The list path allows each
+#' column of \code{y} to have a different number of predictors, which is
+#' required for Block 2 of the two-block Gibbs sampler in \code{\link{lmerb}},
+#' where the hyper design matrices \code{design$X_hyper[[k]]} can have differing
+#' column dimensions across random-effect components \eqn{k}.
 #'
 #' @inheritParams glmbayesCore::rNormal_reg
 #' @param n Number of draws to request from \code{\link[glmbayesCore]{rNormal_reg}}
@@ -190,9 +133,8 @@ multi_rNormal_reg <- function(n,
 #'   RE coefficients (\code{design$re_coef_names}).
 #' @param x Either
 #'   \itemize{
-#'     \item a numeric matrix (shared across all response columns) — in this
-#'       case the function behaves identically to \code{multi_rNormal_reg} and
-#'       returns an \code{"mrglmb"} object; or
+#'     \item a numeric matrix (shared across all response columns) — returns
+#'       an \code{"mrglmb"} object; or
 #'     \item a \strong{list} of numeric matrices, one per column of \code{y},
 #'       where \code{x[[k]]} is the \eqn{J \times q_k} design matrix for RE
 #'       component \eqn{k}.  Supply \code{design$X_hyper} from
@@ -215,9 +157,9 @@ multi_rNormal_reg <- function(n,
 #'   }
 #' @return
 #'   \describe{
-#'     \item{Shared-x path (matrix \code{x})}{An \code{"mrglmb"} S3 object
-#'       identical in structure to the return value of
-#'       \code{\link{multi_rNormal_reg}}.}
+#'     \item{Shared-x path (matrix \code{x})}{An \code{"mrglmb"} S3 object with
+#'       one \code{\link[glmbayesCore]{rNormal_reg}} result per column of
+#'       \code{y}.}
 #'     \item{List-x path (list \code{x})}{A plain named list of length
 #'       \code{ncol(y)}, named by \code{colnames(y)} (or \code{"Y1"},
 #'       \code{"Y2"}, \ldots{} if \code{y} has no column names).  Each element
@@ -324,10 +266,7 @@ multi_rNormal_reg_v2 <- function(n,
     block_results
 
   } else {
-    # ------------------------------------------------------------------
-    # Shared-design path: x is a single matrix. Identical to
-    # multi_rNormal_reg; returns an mrglmb object.
-    # ------------------------------------------------------------------
+    # Shared-design path: x is a single matrix; returns an mrglmb object.
     inp         <- .mrglmb_check_inputs(y, x, prior_list)
     prior_lists <- .mrglmb_normalize_prior_lists(
       prior_list, inp$l1, inp$p, .validate_normal_prior_list
