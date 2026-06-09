@@ -29,7 +29,7 @@ output is desired.}
 These functions are \code{\link{methods}} for class \code{"mrglmb"} or
 \code{"summary.mrglmb"} objects produced by
 \code{\link{multi_rindepNormalGamma_reg}}, \code{\link{multi_rNormalGamma_reg}},
-\code{\link{multi_rNormal_reg_v2}}, or \code{\link{multi_rlmb}}.
+\code{\link{multi_rNormal_reg}}, or \code{\link{multi_rlmb}}.
 }
 \details{
 Mirrors the behavior of \code{\link[stats]{summary.mlm}}: each response
@@ -38,7 +38,7 @@ printed with a \code{"Response <name> :"} header.
 }
 \seealso{
 \code{\link{multi_rlmb}}, \code{\link{multi_rNormalGamma_reg}},
-\code{\link{multi_rNormal_reg_v2}}, \code{\link{multi_rindepNormalGamma_reg}},
+\code{\link{multi_rNormal_reg}}, \code{\link{multi_rindepNormalGamma_reg}},
 \code{\link[glmbayes]{summary.rglmb}},
 \code{\link[glmbayes]{print.summary.rglmb}}
 }

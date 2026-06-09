@@ -14,7 +14,7 @@
 #'     \code{pfamily_list} (length \code{ncol(y)} of \code{pfamily} objects).
 #'     Each element is class \code{"rlmb"} (and \code{"rglmb"}).
 #'   }
-#'   \item{\code{multi_rNormal_reg_v2}}{
+#'   \item{\code{multi_rNormal_reg}}{
 #'     Same arguments as \code{\link[glmbayesCore]{rNormal_reg}} except \code{prior_list} is a
 #'     list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P}, optional
 #'     \code{dispersion}).  Accepts a shared design matrix \code{x} or a list of
@@ -49,7 +49,7 @@
 #' \code{\link[glmbayesCore]{rindepNormalGamma_reg}}
 #'
 #' @name multi_rlmb
-#' @aliases multi_rlmb multi_rNormalGamma_reg multi_rNormal_reg_v2
+#' @aliases multi_rlmb multi_rNormalGamma_reg multi_rNormal_reg
 #'   multi_rindepNormalGamma_reg
 #' @example inst/examples/Ex_multi_rlmb.R
 NULL
@@ -169,7 +169,7 @@ multi_rlmb <- function(n = 1,
 #'   }
 #' @family simfuncs
 #' @export
-multi_rNormal_reg_v2 <- function(n,
+multi_rNormal_reg <- function(n,
                                  y,
                                  x,
                                  prior_list,

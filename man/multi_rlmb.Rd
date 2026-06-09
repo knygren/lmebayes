@@ -3,7 +3,7 @@
 \name{multi_rlmb}
 \alias{multi_rlmb}
 \alias{multi_rNormalGamma_reg}
-\alias{multi_rNormal_reg_v2}
+\alias{multi_rNormal_reg}
 \alias{multi_rindepNormalGamma_reg}
 \title{Multi-response Bayesian regression and simulation}
 \usage{
@@ -22,7 +22,7 @@ multi_rlmb(
   progbar = FALSE
 )
 
-multi_rNormal_reg_v2(
+multi_rNormal_reg(
   n,
   y,
   x,
@@ -147,7 +147,7 @@ Same arguments as \code{\link[glmbayes]{rlmb}} except \code{pfamily} is replaced
 \code{pfamily_list} (length \code{ncol(y)} of \code{pfamily} objects).
 Each element is class \code{"rlmb"} (and \code{"rglmb"}).
 }
-\item{\code{multi_rNormal_reg_v2}}{
+\item{\code{multi_rNormal_reg}}{
 Same arguments as \code{\link[glmbayesCore]{rNormal_reg}} except \code{prior_list} is a
 list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P}, optional
 \code{dispersion}).  Accepts a shared design matrix \code{x} or a list of
@@ -174,7 +174,7 @@ named list of \code{"PriorSetup"} objects (one per response column).
 \itemize{
 \item \code{multi_rlmb()}: Gaussian \code{\link[glmbayes]{rlmb}} simulation with multiple responses.
 
-\item \code{multi_rNormal_reg_v2()}: Normal-prior regression with multiple responses and
+\item \code{multi_rNormal_reg()}: Normal-prior regression with multiple responses and
 per-column design matrices.
 
 Runs \code{\link[glmbayesCore]{rNormal_reg}} once per column of \code{y}.
@@ -226,12 +226,12 @@ out_rlmb <- multi_rlmb(
 )
 summary(out_rlmb)
 
-## --- multi_rNormal_reg_v2 (shared-x path) ----------------------------------
+## --- multi_rNormal_reg (shared-x path) -------------------------------------
 prior_list_normal <- lapply(ps_multi, function(ps) {
   list(mu = as.numeric(ps$mu), Sigma = ps$Sigma, dispersion = ps$dispersion)
 })
 out_normal <- do.call(
-  multi_rNormal_reg_v2, c(common, list(y = y, x = x, prior_list = prior_list_normal))
+  multi_rNormal_reg, c(common, list(y = y, x = x, prior_list = prior_list_normal))
 )
 summary(out_normal)
 

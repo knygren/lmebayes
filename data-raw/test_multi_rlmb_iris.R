@@ -40,7 +40,7 @@ stopifnot(inherits(out_rlmb[[1L]], "rlmb"))
 prior_list_normal <- lapply(ps_multi, function(ps) {
   list(mu = as.numeric(ps$mu), Sigma = ps$Sigma, dispersion = ps$dispersion)
 })
-out_normal <- do.call(multi_rNormal_reg_v2, c(common, list(prior_list = prior_list_normal)))
+out_normal <- do.call(multi_rNormal_reg, c(common, list(prior_list = prior_list_normal)))
 stopifnot(inherits(out_normal, "mrglmb"), inherits(out_normal[[1L]], "rglmb"))
 
 prior_list_ng <- lapply(ps_multi, function(ps) {

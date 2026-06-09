@@ -14,7 +14,7 @@
 #' Runs a two-block Gibbs sampler for \code{n} iterations. Block 1 draws
 #' group-level random effects \eqn{b_j} given the current hyper means; Block 2
 #' updates the hyper means (level-2 fixed effects \eqn{\boldsymbol{\gamma}_k})
-#' given the current \eqn{b_j} draw, using \code{\link{multi_rNormal_reg_v2}}
+#' given the current \eqn{b_j} draw, using \code{\link{multi_rNormal_reg}}
 #' with the hyper design matrices from \code{design$X_hyper}.
 #'
 #' @details

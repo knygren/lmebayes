@@ -1,10 +1,10 @@
-## Smoke test for multi_rNormal_reg_v2
-## Run from the package root: Rscript data-raw/test_multi_rNormal_reg_v2.R
+## Smoke test for multi_rNormal_reg
+## Run from the package root: Rscript data-raw/test_multi_rNormal_reg.R
 
 devtools::load_all(".", quiet = TRUE)
 
-cat("---  multi_rNormal_reg_v2  ---\n")
-cat("formals:", paste(names(formals(multi_rNormal_reg_v2)), collapse = ", "), "\n\n")
+cat("---  multi_rNormal_reg  ---\n")
+cat("formals:", paste(names(formals(multi_rNormal_reg)), collapse = ", "), "\n\n")
 
 set.seed(42)
 n_obs <- 50
@@ -18,24 +18,24 @@ pl1 <- list(mu = c(0, 0),    Sigma = diag(2), dispersion = 1)
 pl2 <- list(mu = c(0, 0, 0), Sigma = diag(3), dispersion = 1)
 
 tryCatch(
-  multi_rNormal_reg_v2(1, Y, list(x1), list(pl1, pl2)),
+  multi_rNormal_reg(1, Y, list(x1), list(pl1, pl2)),
   error = function(e) cat("[PASS] length mismatch caught:", conditionMessage(e), "\n")
 )
 
 tryCatch(
-  multi_rNormal_reg_v2(1, Y, list(x1, x2), pl1),
+  multi_rNormal_reg(1, Y, list(x1, x2), pl1),
   error = function(e) cat("[PASS] single-prior misuse caught:", conditionMessage(e), "\n")
 )
 
 tryCatch(
-  multi_rNormal_reg_v2(1, Y, list(x1, x2), list(pl1)),
+  multi_rNormal_reg(1, Y, list(x1, x2), list(pl1)),
   error = function(e) cat("[PASS] prior_list wrong length caught:", conditionMessage(e), "\n")
 )
 
 ## ---- list-x sampling ----
 
 cat("\nSampling with list-x (n=1, varying p) ...\n")
-res <- multi_rNormal_reg_v2(
+res <- multi_rNormal_reg(
   n = 1, y = Y, x = list(x1, x2), prior_list = list(pl1, pl2),
   progbar = FALSE
 )
@@ -52,7 +52,7 @@ cat("[PASS] list-x: class =", class(res),
 cat("\nSampling with shared-x (n=5, same p) ...\n")
 x_s  <- cbind(1, rnorm(n_obs))
 pl_s <- list(mu = c(0, 0), Sigma = diag(2), dispersion = 1)
-res2 <- multi_rNormal_reg_v2(
+res2 <- multi_rNormal_reg(
   n = 5, y = Y, x = x_s, prior_list = list(pl_s, pl_s),
   progbar = FALSE
 )

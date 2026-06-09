@@ -3,7 +3,7 @@
 #' Runs the coupled Block~1 / Block~2 Gibbs sampler used by
 #' \code{\link{lmerb}}: Block~1 draws group-level random effects \eqn{b_j}
 #' via \code{\link[glmbayesCore]{block_rNormalReg}}; Block~2 updates
-#' hyper means \eqn{\gamma_k} via \code{\link{multi_rNormal_reg_v2}}.
+#' hyper means \eqn{\gamma_k} via \code{\link{multi_rNormal_reg}}.
 #'
 #' @details
 #' With \code{sampling = "replicate"} (default), each of the \code{n} stored
@@ -25,7 +25,7 @@
 #'   \code{fixef} at each Gibbs step.
 #' @param prior_list_block2 Named list of Block~2 prior lists (one per RE
 #'   column), each with \code{mu}, \code{Sigma} or \code{P}, and
-#'   \code{dispersion}.  Passed to \code{\link{multi_rNormal_reg_v2}}.
+#'   \code{dispersion}.  Passed to \code{\link{multi_rNormal_reg}}.
 #' @param fixef_start Named list of hyper-parameter vectors \eqn{\gamma_k}
 #'   at which each inner chain is initialised.
 #' @param re_coef_names Character vector naming columns of \code{x}.  Defaults
@@ -49,7 +49,7 @@
 #' @family simfuncs
 #' @seealso \code{\link{lmerb}}, \code{\link{build_mu_all}},
 #'   \code{\link[glmbayesCore]{block_rNormalReg}},
-#'   \code{\link{multi_rNormal_reg_v2}}
+#'   \code{\link{multi_rNormal_reg}}
 #' @export
 two_block_rNormal_reg <- function(
     n,
@@ -219,7 +219,7 @@ two_block_rNormal_reg <- function(
       }
       colnames(b_i) <- re_names
 
-      fixef_draw <- multi_rNormal_reg_v2(
+      fixef_draw <- multi_rNormal_reg(
         n          = 1L,
         y          = b_i,
         x          = x_hyper,
