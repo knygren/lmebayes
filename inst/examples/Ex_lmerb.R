@@ -49,6 +49,9 @@ fit <- lmerb(
   seed = 42L
 )
 
+cat("\n=== summary(fit) ===\n\n")
+print(summary(fit))
+
 grp_col  <- fit$model_setup$group_name
 re_names <- fit$model_setup$re_coef_names
 grp_levs <- rownames(coef(fit$lmer)[[grp_col]])
