@@ -1,12 +1,15 @@
 # Smoke tests: multi_* functions on iris (n = 100, l1 = 4, p = 3)
 
 if (!requireNamespace("pkgload", quietly = TRUE)) stop("Install pkgload.")
+if (!requireNamespace("glmbayesCore", quietly = TRUE)) {
+  stop("Install glmbayesCore.", call. = FALSE)
+}
 pkgload::load_all(export_all = FALSE)
 
 set.seed(42)
 n_draw <- 100L
 
-ps_multi <- multi_prior_setup(
+ps_multi <- glmbayesCore::multi_prior_setup(
   cbind(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width) ~ Species,
   data = iris,
   family = gaussian()
@@ -23,7 +26,9 @@ common <- list(
 )
 
 pfamily_list <- lapply(ps_multi, function(ps) {
-  dNormal_Gamma(mu = ps$mu, Sigma_0 = ps$Sigma_0, shape = ps$shape, rate = ps$rate)
+  glmbayesCore::dNormal_Gamma(
+    mu = ps$mu, Sigma_0 = ps$Sigma_0, shape = ps$shape, rate = ps$rate
+  )
 })
 out_rlmb <- multi_rlmb(
   n = n_draw, y = y, x = x, pfamily_list = pfamily_list,
@@ -35,7 +40,7 @@ stopifnot(inherits(out_rlmb[[1L]], "rlmb"))
 prior_list_normal <- lapply(ps_multi, function(ps) {
   list(mu = as.numeric(ps$mu), Sigma = ps$Sigma, dispersion = ps$dispersion)
 })
-out_normal <- do.call(multi_rNormal_reg, c(common, list(prior_list = prior_list_normal)))
+out_normal <- do.call(multi_rNormal_reg_v2, c(common, list(prior_list = prior_list_normal)))
 stopifnot(inherits(out_normal, "mrglmb"), inherits(out_normal[[1L]], "rglmb"))
 
 prior_list_ng <- lapply(ps_multi, function(ps) {

@@ -33,12 +33,12 @@ out_rlmb <- multi_rlmb(
 )
 summary(out_rlmb)
 
-## --- multi_rNormal_reg -----------------------------------------------------
+## --- multi_rNormal_reg_v2 (shared-x path) ----------------------------------
 prior_list_normal <- lapply(ps_multi, function(ps) {
   list(mu = as.numeric(ps$mu), Sigma = ps$Sigma, dispersion = ps$dispersion)
 })
 out_normal <- do.call(
-  multi_rNormal_reg, c(common, list(y = y, x = x, prior_list = prior_list_normal))
+  multi_rNormal_reg_v2, c(common, list(y = y, x = x, prior_list = prior_list_normal))
 )
 summary(out_normal)
 
