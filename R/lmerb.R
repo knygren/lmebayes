@@ -3,13 +3,13 @@
 #' Entry point for \pkg{lmebayes} models with an \code{lmer}-like interface,
 #' analogous to \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects models.
 #'
-#' Calls \code{\link[lme4]{lmer}} on \code{formula} and \code{data} inside
-#' \code{lmerb} so the returned \code{lmer} fit always matches the model
-#' arguments passed here. Measurement priors (\code{dispersion_ranef},
-#' \code{Sigma_ranef}, \code{design}, iter-0 \code{fixef}) must be supplied
-#' via \code{measurement_prior_list} from a prior call to
-#' \code{\link{Prior_Setup_lmebayes}}; \code{lmerb} does not run prior setup
-#' internally.
+#' Calls \code{\link{model_setup}} on \code{formula} and \code{data} for design
+#' matrices (\code{y}, \code{Z}, \code{groups}, \code{X_hyper}, etc.) and embeds
+#' the resulting \code{\link[lme4]{lmer}} fit as \code{lmer}. Measurement priors
+#' (\code{dispersion_ranef}, \code{Sigma_ranef}, Block~2 \code{prior_list}) must
+#' be supplied via \code{measurement_prior_list} from a prior call to
+#' \code{\link{Prior_Setup_lmebayes}}; \code{lmerb} does not call
+#' \code{Prior_Setup_lmebayes} internally.
 #'
 #' Runs a two-block Gibbs sampler for \code{n} iterations. Block 1 draws
 #' group-level random effects \eqn{b_j} given the current hyper means; Block 2
@@ -56,21 +56,22 @@
 #'   \code{measurement_prior_list$formula}.
 #' @param data Data frame containing all variables in \code{formula}.
 #' @param measurement_prior_list Required object from
-#'   \code{\link{Prior_Setup_lmebayes}}. Supplies \code{design},
-#'   \code{dispersion_ranef}, \code{Sigma_ranef}, and iter-0 \code{fixef}
-#'   means via \code{prior_list}. Call \code{\link{Prior_Setup_lmebayes}}
-#'   explicitly before \code{lmerb}.
+#'   \code{\link{Prior_Setup_lmebayes}}. Supplies \code{dispersion_ranef},
+#'   \code{Sigma_ranef}, and Block~2 priors via \code{prior_list} (including
+#'   iter-0 \code{mu_fixef} means). Call \code{\link{Prior_Setup_lmebayes}}
+#'   explicitly before \code{lmerb}; design matrices come from
+#'   \code{\link{model_setup}} inside \code{lmerb}, not from this object.
 #' @param n Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).
-#' @param REML Logical; passed to \code{\link[lme4]{lmer}}.
-#' @param control \code{\link[lme4]{lmerControl}} settings; passed to \code{lmer}.
-#' @param start Optional starting values; passed to \code{lmer}.
-#' @param verbose Verbosity flag; passed to \code{lmer}.
-#' @param subset Optional subset; passed to \code{lmer}.
-#' @param weights Optional weights; passed to \code{lmer}.
-#' @param na.action Missing-data handler; passed to \code{lmer}.
-#' @param offset Optional offset; passed to \code{lmer}.
-#' @param contrasts Optional contrasts; passed to \code{lmer}.
-#' @param devFunOnly If \code{TRUE}, return deviance function only; passed to \code{lmer}.
+#' @param REML Logical; passed to \code{\link{model_setup}}.
+#' @param control \code{\link[lme4]{lmerControl}} settings; passed to \code{model_setup}.
+#' @param start Optional starting values; passed to \code{model_setup}.
+#' @param verbose Verbosity flag; passed to \code{model_setup}.
+#' @param subset Optional subset; passed to \code{model_setup}.
+#' @param weights Optional weights; passed to \code{model_setup}.
+#' @param na.action Missing-data handler; passed to \code{model_setup}.
+#' @param offset Optional offset; passed to \code{model_setup}.
+#' @param contrasts Optional contrasts; passed to \code{model_setup}.
+#' @param devFunOnly If \code{TRUE}, return deviance function only; passed to \code{model_setup}.
 #' @param simulate Logical (default \code{TRUE}).  When \code{TRUE} the
 #'   two-block Gibbs sampler is run for \code{n} iterations and posterior draws
 #'   are stored.  When \code{FALSE} only the ICM algorithm is run: the exact
@@ -88,14 +89,15 @@
 #'   \describe{
 #'     \item{\code{call}}{The matched call.}
 #'     \item{\code{formula}}{The formula supplied.}
-#'     \item{\code{lmer}}{\code{\link[lme4]{lmer}} fit embedded as a
-#'       sub-object — analogous to \code{glmb$glm} and \code{lmb$lm}.  Use
+#'     \item{\code{lmer}}{\code{\link[lme4]{lmer}} fit from
+#'       \code{model_setup} (full \code{formula}), embedded as a sub-object —
+#'       analogous to \code{glmb$glm} and \code{lmb$lm}.  Use
 #'       \code{coef(fit$lmer)} for per-group classical coefficients.}
 #'     \item{\code{prior}}{The \code{measurement_prior_list} object supplied by
 #'       the caller (from \code{\link{Prior_Setup_lmebayes}}), stored for
 #'       reference and re-use — analogous to \code{glmb$Prior}.}
-#'     \item{\code{model_setup}}{The \code{\link{model_setup}} object (from
-#'       \code{measurement_prior_list$design}).}
+#'     \item{\code{model_setup}}{The \code{\link{model_setup}} object built
+#'       inside \code{lmerb} from \code{formula} and \code{data}.}
 #'     \item{\code{coef.mode}}{Named list of exact posterior mode (= mean,
 #'       since the joint posterior is Gaussian) vectors for the level-2 fixed
 #'       effects \eqn{\gamma_k}, computed by \code{\link{lmerb_posterior_mean}}
@@ -122,7 +124,8 @@
 #' \donttest{
 #'   source(system.file("examples", "Ex_lmerb.R", package = "lmebayes"))
 #' }
-#' @seealso \code{\link{Prior_Setup_lmebayes}}, \code{\link{build_mu_all}},
+#' @seealso \code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
+#'   \code{\link{build_mu_all}},
 #'   \code{\link{two_block_rNormal_reg}},
 #'   \code{\link[glmbayesCore]{block_rNormalReg}},
 #'   \code{\link{lmb}}, \code{\link{glmb}}
@@ -180,12 +183,7 @@ lmerb <- function(
     stop("'n' must be at least 1.", call. = FALSE)
   }
 
-  design <- measurement_prior_list$design
-  if (!inherits(design, "model_setup")) {
-    stop("measurement_prior_list$design must be a model_setup object.", call. = FALSE)
-  }
-
-  lmer_args <- list(
+  setup_args <- list(
     formula = formula,
     data = data,
     REML = REML,
@@ -194,25 +192,37 @@ lmerb <- function(
     devFunOnly = devFunOnly
   )
   if (!missing(start) && !is.null(start)) {
-    lmer_args$start <- start
+    setup_args$start <- start
   }
   if (!missing(subset)) {
-    lmer_args$subset <- subset
+    setup_args$subset <- subset
   }
   if (!missing(weights)) {
-    lmer_args$weights <- weights
+    setup_args$weights <- weights
   }
   if (!missing(na.action)) {
-    lmer_args$na.action <- na.action
+    setup_args$na.action <- na.action
   }
   if (!missing(offset)) {
-    lmer_args$offset <- offset
+    setup_args$offset <- offset
   }
   if (!missing(contrasts)) {
-    lmer_args$contrasts <- contrasts
+    setup_args$contrasts <- contrasts
   }
 
-  lmer_fit <- do.call(lme4::lmer, c(lmer_args, list(...)))
+  design <- do.call(model_setup, c(setup_args, list(...)))
+  if (!inherits(design, "model_setup")) {
+    stop("model_setup() must return a model_setup object.", call. = FALSE)
+  }
+
+  if (!identical(design$re_coef_names, names(measurement_prior_list$prior_list))) {
+    stop(
+      "measurement_prior_list$prior_list names must match design$re_coef_names.",
+      call. = FALSE
+    )
+  }
+
+  lmer_fit <- design$lmer_fit
 
   if (is.null(fixef)) {
     fixef <- lapply(measurement_prior_list$prior_list, `[[`, "mu_fixef")
