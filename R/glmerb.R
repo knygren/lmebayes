@@ -14,7 +14,12 @@
 #'   \code{gaussian()}, behaviour matches \code{\link{lmerb}}.
 #' @return Object of class \code{"glmerb"}: same structure as \code{"lmerb"},
 #'   with an additional \code{family} component.
-#' @seealso \code{\link{lmerb}}, \code{\link{glmb}}
+#' @seealso \code{\link{lmerb}}, \code{\link[glmbayesCore]{glmerb_posterior_mode}},
+#'   \code{\link{glmb}}
+#' @examples
+#' \donttest{
+#'   source(system.file("examples", "Ex_glmerb.R", package = "lmebayes"))
+#' }
 #' @export
 glmerb <- function(
     formula,
@@ -130,11 +135,11 @@ glmerb <- function(
   }
 
   fixef_lmer <- fixef
-  pm <- glmbayesCore::lmerb_posterior_mean(design, measurement_prior_list)
+  pm <- glmbayesCore::glmerb_posterior_mode(design, family, measurement_prior_list)
   fixef_start <- pm$fixef
 
   hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
-                 "RE component", "parameter", "lmer (start)", "post mean (ICM)")
+                 "RE component", "parameter", "lmer (start)", "post mode (ICM)")
   sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
   cat("--- glmerb: Block 2 fixed effects ---\n")
   cat(hdr, "\n")

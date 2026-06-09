@@ -6,7 +6,7 @@
 #' following the layout of \code{\link[glmbayes]{summary.glmb}} and the
 #' multi-response structure of \code{\link[glmbayes]{summary.mlmb}}.
 #'
-#' @param object An object of class \code{"lmerb"}.
+#' @param object An object of class \code{"lmerb"} or \code{"glmerb"}.
 #' @param groups Optional character vector of grouping levels for which to
 #'   include a per-group Block~1 (random effects) detail table.  When
 #'   \code{NULL} (default), only an aggregate \code{ranef_overview} is
@@ -18,14 +18,14 @@
 #'   \code{formula}, \code{n}, \code{simulated}, \code{varcor},
 #'   \code{fixef_overview}, \code{fixef} (per-RE-component tables),
 #'   \code{ranef_overview}, and optionally \code{ranef_groups}.
-#' @seealso \code{\link{lmerb}}, \code{\link{print.lmerb}},
+#' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
 #'   \code{\link[glmbayes]{summary.glmb}}, \code{\link[glmbayes]{summary.mlmb}}
 #' @export
 #' @method summary lmerb
 summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("digits") - 3L), ...) {
 
-  if (!inherits(object, "lmerb")) {
-    stop("'object' must be an lmerb fit.", call. = FALSE)
+  if (!inherits(object, c("lmerb", "glmerb"))) {
+    stop("'object' must be an lmerb or glmerb fit.", call. = FALSE)
   }
 
   re_names  <- object$model_setup$re_coef_names
@@ -62,6 +62,11 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
   class(res) <- "summary.lmerb"
   res
 }
+
+#' @rdname summary.lmerb
+#' @export
+#' @method summary glmerb
+summary.glmerb <- summary.lmerb
 
 #' @rdname summary.lmerb
 #' @param x An object of class \code{"summary.lmerb"}.

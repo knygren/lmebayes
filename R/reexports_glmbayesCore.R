@@ -58,6 +58,10 @@ build_mu_all <- glmbayesCore::build_mu_all
 #' @export
 lmerb_posterior_mean <- glmbayesCore::lmerb_posterior_mean
 
+#' @inherit glmbayesCore::glmerb_posterior_mode
+#' @export
+glmerb_posterior_mode <- glmbayesCore::glmerb_posterior_mode
+
 #' @inherit glmbayesCore::two_block_rNormal_reg
 #' @export
 two_block_rNormal_reg <- glmbayesCore::two_block_rNormal_reg

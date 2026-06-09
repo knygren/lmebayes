@@ -96,6 +96,12 @@ Currently a copy of \code{\link{lmerb}} with an additional \code{family}
 argument. Only \code{family = gaussian()} is implemented; other families
 stop with an informative error until GLMM Block~1 samplers are wired in.
 }
+\examples{
+\donttest{
+  source(system.file("examples", "Ex_glmerb.R", package = "lmebayes"))
+}
+}
 \seealso{
-\code{\link{lmerb}}, \code{\link{glmb}}
+\code{\link{lmerb}}, \code{\link[glmbayesCore]{glmerb_posterior_mode}},
+\code{\link{glmb}}
 }

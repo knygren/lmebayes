@@ -2,15 +2,18 @@
 % Please edit documentation in R/summary.lmerb.R
 \name{summary.lmerb}
 \alias{summary.lmerb}
+\alias{summary.glmerb}
 \alias{print.summary.lmerb}
 \title{Summarize Bayesian linear mixed model fits}
 \usage{
 \method{summary}{lmerb}(object, groups = NULL, digits = max(3L, getOption("digits") - 3L), ...)
 
+\method{summary}{glmerb}(object, groups = NULL, digits = max(3L, getOption("digits") - 3L), ...)
+
 \method{print}{summary.lmerb}(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 \arguments{
-\item{object}{An object of class \code{"lmerb"}.}
+\item{object}{An object of class \code{"lmerb"} or \code{"glmerb"}.}
 
 \item{groups}{Optional character vector of grouping levels for which to
 include a per-group Block~1 (random effects) detail table.  When
@@ -37,6 +40,6 @@ following the layout of \code{\link[glmbayes]{summary.glmb}} and the
 multi-response structure of \code{\link[glmbayes]{summary.mlmb}}.
 }
 \seealso{
-\code{\link{lmerb}}, \code{\link{print.lmerb}},
+\code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
 \code{\link[glmbayes]{summary.glmb}}, \code{\link[glmbayes]{summary.mlmb}}
 }
