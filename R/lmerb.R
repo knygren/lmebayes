@@ -71,47 +71,52 @@
 #' @param offset Optional offset; passed to \code{lmer}.
 #' @param contrasts Optional contrasts; passed to \code{lmer}.
 #' @param devFunOnly If \code{TRUE}, return deviance function only; passed to \code{lmer}.
+#' @param simulate Logical (default \code{TRUE}).  When \code{TRUE} the
+#'   two-block Gibbs sampler is run for \code{n} iterations and posterior draws
+#'   are stored.  When \code{FALSE} only the ICM algorithm is run: the exact
+#'   posterior means (\code{coef.mode}, \code{ranef.mode}) are computed and
+#'   returned immediately without any sampling.  Simulation-only fields
+#'   (\code{coefficients}, \code{coef.means}, \code{fixef_draws}) are
+#'   \code{NULL} when \code{simulate = FALSE}.
 #' @param fixef Optional named list of hyper-parameter vectors (Block 2 state).
 #'   When \code{NULL} (default), iter-0 means are taken from
 #'   \code{measurement_prior_list$prior_list$mu_fixef}.
 #' @param seed Optional; sets the RNG seed before sampling.
 #' @param ... Reserved for future use.
-#' @return Object of class \code{"lmerb"}: a list with components:
+#' @return Object of class \code{"lmerb"}: a list with the following
+#'   components (parallel to \code{\link{glmb}} and \code{\link{lmb}}):
 #'   \describe{
+#'     \item{\code{call}}{The matched call.}
+#'     \item{\code{formula}}{The formula supplied.}
+#'     \item{\code{lmer}}{\code{\link[lme4]{lmer}} fit embedded as a
+#'       sub-object — analogous to \code{glmb$glm} and \code{lmb$lm}.  Use
+#'       \code{coef(fit$lmer)} for per-group classical coefficients.}
+#'     \item{\code{prior}}{The \code{measurement_prior_list} object supplied by
+#'       the caller (from \code{\link{Prior_Setup_lmebayes}}), stored for
+#'       reference and re-use — analogous to \code{glmb$Prior}.}
 #'     \item{\code{model_setup}}{The \code{\link{model_setup}} object (from
 #'       \code{measurement_prior_list$design}).}
-#'     \item{\code{lmer}}{\code{\link[lme4]{lmer}} fit on \code{formula} and
-#'       \code{data} as passed to \code{lmerb}. Use \code{coef(fit$lmer)} for
-#'       per-group coefficients on the same scale as \code{fit$coefficients}.}
-#'     \item{\code{mu_all}}{Numeric matrix \code{p_re x J} of Block 1 prior
-#'       means from the final Gibbs iteration (from \code{\link{build_mu_all}}
-#'       at the final \code{fixef}). Rows are \code{design$re_coef_names};
-#'       columns are grouping levels.}
-#'     \item{\code{fixef}}{Named list of hyper-parameter vectors: the Block 2
-#'       draw from the final Gibbs iteration.}
-#'     \item{\code{fixef_mean}}{Named list of posterior mean vectors for the
-#'       level-2 fixed effects \eqn{\gamma_k}, computed once by
-#'       \code{\link{lmerb_posterior_mean}} (ICM) before sampling begins.
-#'       Because the joint posterior is exactly Gaussian, this is the exact
-#'       posterior mean, not an MCMC average.  Same structure as \code{fixef}.}
-#'     \item{\code{b_mean}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix of
-#'       posterior mean random effects computed once by
-#'       \code{\link{lmerb_posterior_mean}} (ICM) before sampling begins.
-#'       Rows are group levels (\code{levels(design$groups)}); columns are
-#'       \code{design$re_coef_names}.  This is the exact posterior mean for the
-#'       random effects (under fixed variance components), not an MCMC average.}
+#'     \item{\code{coef.mode}}{Named list of exact posterior mode (= mean,
+#'       since the joint posterior is Gaussian) vectors for the level-2 fixed
+#'       effects \eqn{\gamma_k}, computed by \code{\link{lmerb_posterior_mean}}
+#'       (ICM).  Analogous to \code{glmb$coef.mode}.}
+#'     \item{\code{ranef.mode}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix
+#'       of exact posterior mode random effects from ICM.  Rows are group
+#'       levels (\code{levels(design$groups)}); columns are
+#'       \code{design$re_coef_names}.}
+#'     \item{\code{coef.means}}{Named list of posterior mean vectors computed
+#'       as \code{colMeans(fixef_draws[[k]])} — the MCMC estimate of the
+#'       level-2 fixed effects.  Analogous to \code{glmb$coef.means}.
+#'       \code{NULL} when \code{simulate = FALSE}.}
 #'     \item{\code{fixef_draws}}{Named list of \eqn{n \times q_k} matrices of
-#'       Block 2 draws, one matrix per RE component.  Row \eqn{i} holds the
-#'       \eqn{\gamma_k} sample from outer iteration \eqn{i}.  Column names
-#'       match \code{colnames(design$X_hyper[[k]])}.}
-#'     \item{\code{fixef_draws_mean}}{Named list of posterior mean vectors
-#'       computed as \code{colMeans(fixef_draws[[k]])} — the MCMC average of
-#'       the Block 2 draws.  Directly comparable to \code{lme4::fixef()}.}
-#'     \item{\code{coefficients}}{\code{data.frame} with \code{n * J} rows and
-#'       \code{2 + p_re} columns: \code{draw}, the grouping-factor column
-#'       (\code{design$group_name}), and one column per random-effect variable
-#'       (\code{design$re_coef_names}). Average over \code{draw} within each
-#'       grouping level for factor-level posterior means (see Examples).}
+#'       Block 2 draws, one per RE component.  \code{NULL} when
+#'       \code{simulate = FALSE}.}
+#'     \item{\code{coefficients}}{\code{data.frame} with \code{n * J} rows:
+#'       \code{draw}, the grouping-factor column, and one column per RE
+#'       variable.  Average over \code{draw} within each group for posterior
+#'       means (see Examples).  \code{NULL} when \code{simulate = FALSE}.}
+#'     \item{\code{mu_all}}{Numeric matrix \code{p_re x J} of Block 1 prior
+#'       means at the final Gibbs state (from \code{\link{build_mu_all}}).}
 #'   }
 #' @examples
 #' \donttest{
@@ -126,6 +131,7 @@ lmerb <- function(
     data = NULL,
     measurement_prior_list,
     n = 1000L,
+    simulate = TRUE,
     REML = TRUE,
     control = lme4::lmerControl(),
     start = NULL,
@@ -140,6 +146,7 @@ lmerb <- function(
     seed = NULL,
     ...
 ) {
+  cl <- match.call()
   if (missing(formula) || !inherits(formula, "formula")) {
     stop("'formula' must be a formula.", call. = FALSE)
   }
@@ -247,6 +254,26 @@ lmerb <- function(
   dispersion <- measurement_prior_list$dispersion_ranef
   if (is.null(dispersion)) {
     stop("measurement_prior_list must contain 'dispersion_ranef'.", call. = FALSE)
+  }
+
+  # When simulate=FALSE return only the ICM posterior means immediately.
+  if (!isTRUE(simulate)) {
+    return(structure(
+      list(
+        call        = cl,
+        formula     = formula,
+        lmer        = lmer_fit,
+        prior       = measurement_prior_list,
+        model_setup = design,
+        coef.mode   = fixef_start,
+        ranef.mode  = pm$b_mean,
+        coef.means  = NULL,
+        fixef_draws = NULL,
+        coefficients = NULL,
+        mu_all      = as.matrix(build_mu_all(design, fixef_start)$mu_all)
+      ),
+      class = c("lmerb", "list")
+    ))
   }
 
   if (!is.null(seed)) {
@@ -379,19 +406,19 @@ lmerb <- function(
   rownames(coefficients) <- NULL
   coefficients <- coefficients[, coef_cols, drop = FALSE]
 
-  fixef_draws_mean <- lapply(fixef_draws, colMeans)
-
   structure(
     list(
-      model_setup      = design,
-      lmer             = lmer_fit,
-      mu_all           = mu_all,
-      fixef            = fixef,
-      fixef_mean       = fixef_start,
-      b_mean           = pm$b_mean,   # ICM posterior mean of random effects (J x p_re)
-      fixef_draws      = fixef_draws,
-      fixef_draws_mean = fixef_draws_mean,
-      coefficients     = coefficients
+      call         = cl,
+      formula      = formula,
+      lmer         = lmer_fit,
+      prior        = measurement_prior_list,
+      model_setup  = design,
+      coef.mode    = fixef_start,          # ICM exact posterior mode/mean (fixed effects)
+      ranef.mode   = pm$b_mean,            # ICM exact posterior mode/mean (random effects)
+      coef.means   = lapply(fixef_draws, colMeans),  # MCMC mean of fixed effect draws
+      fixef_draws  = fixef_draws,
+      coefficients = coefficients,
+      mu_all       = mu_all
     ),
     class = c("lmerb", "list")
   )

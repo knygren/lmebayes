@@ -54,9 +54,9 @@ re_names <- fit$model_setup$re_coef_names
 grp_levs <- rownames(coef(fit$lmer)[[grp_col]])
 
 ## --- Posterior means of fixed effects from Block 2 draws -----------------
-## fit$fixef_draws_mean[[k]]: colMeans of the n Block 2 gamma_k draws.
+## fit$coef.means[[k]]: MCMC mean of the n Block 2 gamma_k draws.
 ## Directly comparable to lme4::fixef() (same parameter scale).
-## fit$fixef_mean: exact ICM posterior mean (used as H0 for z-test below).
+## fit$coef.mode: exact ICM posterior mean (used as H0 for z-test below).
 ## z = (draws mean - ICM mean) / (draws SD / sqrt(n)); flag |z| > 2 with *.
 cat("\n=== Posterior means of fixed effects (from Block 2 draws) ===\n\n")
 n_draws     <- nrow(fit$fixef_draws[[re_names[1L]]])
@@ -67,10 +67,10 @@ cat(sprintf("  %-18s  %-28s  %10s  %10s  %10s  %10s  %7s\n",
             strrep("-", 10L), strrep("-", 10L), strrep("-", 10L),
             strrep("-", 10L), strrep("-", 7L)))
 for (k in re_names) {
-  dm_k  <- fit$fixef_draws_mean[[k]]
+  dm_k  <- fit$coef.means[[k]]
   sd_k  <- apply(fit$fixef_draws[[k]], 2L, sd)
   se_k  <- sd_k / sqrt(n_draws)
-  icm_k <- fit$fixef_mean[[k]]
+  icm_k <- fit$coef.mode[[k]]
   for (nm in names(dm_k)) {
     z_val <- (dm_k[[nm]] - icm_k[[nm]]) / se_k[[nm]]
     flag  <- if (abs(z_val) > 2) " *" else "  "
@@ -82,7 +82,7 @@ cat("  (* |z| > 2: draws mean inconsistent with exact ICM posterior mean)\n")
 cat("\n")
 
 ## --- Z-test: MCMC mean vs ICM posterior mean for random effects -------------
-## fit$b_mean: exact ICM posterior mean (J x p_re), rows = group levels.
+## fit$ranef.mode: exact ICM posterior mean (J x p_re), rows = group levels.
 ## MCMC mean computed as the per-group average of the n Block 1 draws.
 ## z = (MCMC mean - ICM mean) / (draws SD / sqrt(n))
 ## With J * p_re tests we expect a few |z| > 2 by chance; flag |z| > 3.
@@ -111,7 +111,7 @@ cat(sprintf("  %-6s  %-18s  %10s  %10s  %10s  %6s\n",
             strrep("-", 6L), strrep("-", 18L),
             strrep("-", 10L), strrep("-", 10L), strrep("-", 10L), strrep("-", 6L)))
 
-icm_b <- fit$b_mean   # J x p_re, rownames = group levels
+icm_b <- fit$ranef.mode   # J x p_re, rownames = group levels
 
 n_flagged <- 0L
 for (lev in grp_levs) {
@@ -153,7 +153,7 @@ coef_anchor <- vapply(re_names, function(k) {
   } else if (k %in% names(fe_lmer)) {
     unname(fe_lmer[k])
   } else {
-    unname(fit$fixef[[k]]["(Intercept)"])
+    unname(fit$coef.mode[[k]]["(Intercept)"])
   }
 }, numeric(1L))
 
