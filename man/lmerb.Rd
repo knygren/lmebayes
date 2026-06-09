@@ -94,7 +94,8 @@ reference and re-use — analogous to \code{glmb$Prior}.}
 inside \code{lmerb} from \code{formula} and \code{data}.}
 \item{\code{coef.mode}}{Named list of exact posterior mode (= mean,
 since the joint posterior is Gaussian) vectors for the level-2 fixed
-effects \eqn{\gamma_k}, computed by \code{\link{lmerb_posterior_mean}}
+effects \eqn{\gamma_k}, computed by
+\code{\link[glmbayesCore]{lmerb_posterior_mean}}
 (ICM).  Analogous to \code{glmb$coef.mode}.}
 \item{\code{ranef.mode}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix
 of exact posterior mode random effects from ICM.  Rows are group
@@ -112,7 +113,8 @@ Block 2 draws, one per RE component.  \code{NULL} when
 variable.  Average over \code{draw} within each group for posterior
 means (see Examples).  \code{NULL} when \code{simulate = FALSE}.}
 \item{\code{mu_all}}{Numeric matrix \code{p_re x J} of Block 1 prior
-means at the final Gibbs state (from \code{\link{build_mu_all}}).}
+means at the final Gibbs state (from
+\code{\link[glmbayesCore]{build_mu_all}}).}
 }
 }
 \description{
@@ -131,7 +133,8 @@ be supplied via \code{measurement_prior_list} from a prior call to
 Runs a two-block Gibbs sampler for \code{n} iterations. Block 1 draws
 group-level random effects \eqn{b_j} given the current hyper means; Block 2
 updates the hyper means (level-2 fixed effects \eqn{\boldsymbol{\gamma}_k})
-given the current \eqn{b_j} draw, using \code{\link{multi_rNormal_reg}}
+given the current \eqn{b_j} draw, using
+\code{\link[glmbayesCore]{multi_rNormal_reg}}
 with the hyper design matrices from \code{design$X_hyper}.
 
 \strong{Exact posterior and convergence characterisation.}
@@ -174,8 +177,9 @@ Unpublished manuscript.
 }
 \seealso{
 \code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
-\code{\link{build_mu_all}},
-\code{\link{two_block_rNormal_reg}},
+\code{\link[glmbayesCore]{build_mu_all}},
+\code{\link[glmbayesCore]{two_block_rNormal_reg}},
+\code{\link[glmbayesCore]{lmerb_posterior_mean}},
 \code{\link[glmbayesCore]{block_rNormalReg}},
 \code{\link{lmb}}, \code{\link{glmb}}
 }

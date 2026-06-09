@@ -3,7 +3,6 @@
 \name{multi_rlmb}
 \alias{multi_rlmb}
 \alias{multi_rNormalGamma_reg}
-\alias{multi_rNormal_reg}
 \alias{multi_rindepNormalGamma_reg}
 \title{Multi-response Bayesian regression and simulation}
 \usage{
@@ -20,22 +19,6 @@ multi_rlmb(
   use_opencl = FALSE,
   verbose = FALSE,
   progbar = FALSE
-)
-
-multi_rNormal_reg(
-  n,
-  y,
-  x,
-  prior_list,
-  offset = NULL,
-  weights = 1,
-  family = gaussian(),
-  Gridtype = 2,
-  n_envopt = NULL,
-  use_parallel = TRUE,
-  use_opencl = FALSE,
-  verbose = FALSE,
-  progbar = TRUE
 )
 
 multi_rNormalGamma_reg(
@@ -71,27 +54,12 @@ multi_rindepNormalGamma_reg(
 )
 }
 \arguments{
-\item{n}{Number of draws to request from \code{\link[glmbayesCore]{rNormal_reg}}
-for each column of \code{y}.  For a single Gibbs step inside
-\code{\link{lmerb}} set \code{n = 1L}; the first row of each
-\code{$coefficients} matrix is then the draw.}
+\item{n}{number of draws to generate. If \code{length(n) > 1}, the length is taken to be the number required.}
 
-\item{y}{Numeric matrix (or any object coercible via \code{as.matrix}) with
-one column per random-effect component \eqn{k}.  In \code{\link{lmerb}}
-Block 2 this is the \eqn{J \times p_{\mathrm{re}}} matrix of current
-Block 1 draws \eqn{b_j}, where rows are groups and columns correspond to
-RE coefficients (\code{design$re_coef_names}).}
+\item{y}{a vector of observations of length \code{m}.}
 
-\item{x}{Either
-\itemize{
-\item a numeric matrix (shared across all response columns) — returns
-an \code{"mrglmb"} object; or
-\item a \strong{list} of numeric matrices, one per column of \code{y},
-where \code{x[[k]]} is the \eqn{J \times q_k} design matrix for RE
-component \eqn{k}.  Supply \code{design$X_hyper} from
-\code{\link{model_setup}} for the Block 2 path in \code{\link{lmerb}}.
-Predictor dimensions \eqn{q_k} may differ across columns.
-}}
+\item{x}{for \code{rlmb} a design matrix of dimension \code{m * p} and for
+\code{print.rlmb} the object to be printed.}
 
 \item{pfamily_list}{List of length \code{ncol(y)} of \code{pfamily} objects.}
 
@@ -120,18 +88,6 @@ A named list of class \code{"mrglmb"}. Metadata (\code{call}, \code{y},
 \code{x}, \code{l1}, \code{p}, \code{coef_names}, \code{pred_names}) are
 attributes; per-column priors are in \code{attr(..., "prior_lists")} or
 \code{attr(..., "pfamily_lists")} for \code{multi_rlmb}.
-
-\describe{
-\item{Shared-x path (matrix \code{x})}{An \code{"mrglmb"} S3 object with
-one \code{\link[glmbayesCore]{rNormal_reg}} result per column of
-\code{y}.}
-\item{List-x path (list \code{x})}{A plain named list of length
-\code{ncol(y)}, named by \code{colnames(y)} (or \code{"Y1"},
-\code{"Y2"}, \ldots{} if \code{y} has no column names).  Each element
-is the \code{\link[glmbayesCore]{rNormal_reg}} output for column
-\eqn{k}; access the single Gibbs draw via
-\code{result[[k]]$coefficients[1L, ]}.}
-}
 }
 \description{
 These functions run the corresponding single-response sampler once per column
@@ -146,12 +102,6 @@ with \code{cbind} responses). Each returns a named list of class
 Same arguments as \code{\link[glmbayes]{rlmb}} except \code{pfamily} is replaced by
 \code{pfamily_list} (length \code{ncol(y)} of \code{pfamily} objects).
 Each element is class \code{"rlmb"} (and \code{"rglmb"}).
-}
-\item{\code{multi_rNormal_reg}}{
-Same arguments as \code{\link[glmbayesCore]{rNormal_reg}} except \code{prior_list} is a
-list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P}, optional
-\code{dispersion}).  Accepts a shared design matrix \code{x} or a list of
-per-column design matrices.
 }
 \item{\code{multi_rNormalGamma_reg}}{
 Same arguments as \code{\link[glmbayesCore]{rNormalGamma_reg}} except \code{prior_list} is a
@@ -173,17 +123,6 @@ named list of \code{"PriorSetup"} objects (one per response column).
 \section{Functions}{
 \itemize{
 \item \code{multi_rlmb()}: Gaussian \code{\link[glmbayes]{rlmb}} simulation with multiple responses.
-
-\item \code{multi_rNormal_reg()}: Normal-prior regression with multiple responses and
-per-column design matrices.
-
-Runs \code{\link[glmbayesCore]{rNormal_reg}} once per column of \code{y}.
-Argument \code{x} may be a single shared design matrix or a \strong{list of
-matrices} with one entry per response column.  The list path allows each
-column of \code{y} to have a different number of predictors, which is
-required for Block 2 of the two-block Gibbs sampler in \code{\link{lmerb}},
-where the hyper design matrices \code{design$X_hyper[[k]]} can have differing
-column dimensions across random-effect components \eqn{k}.
 
 \item \code{multi_rNormalGamma_reg()}: Normal--Gamma regression with multiple responses.
 
@@ -261,22 +200,14 @@ out_ing <- do.call(
 summary(out_ing)
 }
 \seealso{
-\code{\link{summary.mrglmb}}, \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link[glmbayes]{Prior_Setup}},
+\code{\link{summary.mrglmb}}, \code{\link[glmbayesCore]{multi_rNormal_reg}},
+\code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link[glmbayes]{Prior_Setup}},
 \code{\link[glmbayes]{rlmb}}, \code{\link[glmbayesCore]{rNormal_reg}}, \code{\link[glmbayesCore]{rNormalGamma_reg}},
 \code{\link[glmbayesCore]{rindepNormalGamma_reg}}
 
 glmbayes Modeling Functions
 \code{\link{block_glmb}()},
 \code{\link{block_lmb}()}
-
-glmbayes Simulation Functions
-\code{\link{two_block_rNormal_reg}()}
-
-glmbayes Simulation Functions
-\code{\link{two_block_rNormal_reg}()}
-
-glmbayes Simulation Functions
-\code{\link{two_block_rNormal_reg}()}
 }
 \concept{modelfuns}
 \concept{simfuncs}

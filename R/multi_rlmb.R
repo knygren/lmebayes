@@ -14,12 +14,6 @@
 #'     \code{pfamily_list} (length \code{ncol(y)} of \code{pfamily} objects).
 #'     Each element is class \code{"rlmb"} (and \code{"rglmb"}).
 #'   }
-#'   \item{\code{multi_rNormal_reg}}{
-#'     Same arguments as \code{\link[glmbayesCore]{rNormal_reg}} except \code{prior_list} is a
-#'     list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P}, optional
-#'     \code{dispersion}).  Accepts a shared design matrix \code{x} or a list of
-#'     per-column design matrices.
-#'   }
 #'   \item{\code{multi_rNormalGamma_reg}}{
 #'     Same arguments as \code{\link[glmbayesCore]{rNormalGamma_reg}} except \code{prior_list} is a
 #'     list of per-column prior lists (\code{mu}, \code{Sigma} or \code{P},
@@ -44,13 +38,13 @@
 #' \code{attr(..., "pfamily_lists")} for \code{multi_rlmb}.
 #'
 #' @seealso
-#' \code{\link{summary.mrglmb}}, \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link[glmbayes]{Prior_Setup}},
+#' \code{\link{summary.mrglmb}}, \code{\link[glmbayesCore]{multi_rNormal_reg}},
+#' \code{\link[glmbayes]{lmb}} (\code{cbind} responses), \code{\link[glmbayes]{Prior_Setup}},
 #' \code{\link[glmbayes]{rlmb}}, \code{\link[glmbayesCore]{rNormal_reg}}, \code{\link[glmbayesCore]{rNormalGamma_reg}},
 #' \code{\link[glmbayesCore]{rindepNormalGamma_reg}}
 #'
 #' @name multi_rlmb
-#' @aliases multi_rlmb multi_rNormalGamma_reg multi_rNormal_reg
-#'   multi_rindepNormalGamma_reg
+#' @aliases multi_rlmb multi_rNormalGamma_reg multi_rindepNormalGamma_reg
 #' @example inst/examples/Ex_multi_rlmb.R
 NULL
 
@@ -108,200 +102,6 @@ multi_rlmb <- function(n = 1,
     inp$pred_names,
     pfamily_lists = pfamily_lists
   )
-}
-
-#' @describeIn multi_rlmb Normal-prior regression with multiple responses and
-#'   per-column design matrices.
-#'
-#' Runs \code{\link[glmbayesCore]{rNormal_reg}} once per column of \code{y}.
-#' Argument \code{x} may be a single shared design matrix or a \strong{list of
-#' matrices} with one entry per response column.  The list path allows each
-#' column of \code{y} to have a different number of predictors, which is
-#' required for Block 2 of the two-block Gibbs sampler in \code{\link{lmerb}},
-#' where the hyper design matrices \code{design$X_hyper[[k]]} can have differing
-#' column dimensions across random-effect components \eqn{k}.
-#'
-#' @inheritParams glmbayesCore::rNormal_reg
-#' @param n Number of draws to request from \code{\link[glmbayesCore]{rNormal_reg}}
-#'   for each column of \code{y}.  For a single Gibbs step inside
-#'   \code{\link{lmerb}} set \code{n = 1L}; the first row of each
-#'   \code{$coefficients} matrix is then the draw.
-#' @param y Numeric matrix (or any object coercible via \code{as.matrix}) with
-#'   one column per random-effect component \eqn{k}.  In \code{\link{lmerb}}
-#'   Block 2 this is the \eqn{J \times p_{\mathrm{re}}} matrix of current
-#'   Block 1 draws \eqn{b_j}, where rows are groups and columns correspond to
-#'   RE coefficients (\code{design$re_coef_names}).
-#' @param x Either
-#'   \itemize{
-#'     \item a numeric matrix (shared across all response columns) — returns
-#'       an \code{"mrglmb"} object; or
-#'     \item a \strong{list} of numeric matrices, one per column of \code{y},
-#'       where \code{x[[k]]} is the \eqn{J \times q_k} design matrix for RE
-#'       component \eqn{k}.  Supply \code{design$X_hyper} from
-#'       \code{\link{model_setup}} for the Block 2 path in \code{\link{lmerb}}.
-#'       Predictor dimensions \eqn{q_k} may differ across columns.
-#'   }
-#' @param prior_list
-#'   \itemize{
-#'     \item \emph{Shared-x path} (matrix \code{x}): a list of length
-#'       \code{ncol(y)}, each element a prior list with components \code{mu}
-#'       (length \eqn{p}), \code{Sigma} or \code{P} (\eqn{p \times p}), and
-#'       optionally \code{dispersion}.
-#'     \item \emph{List-x path}: same structure, but for column \eqn{k} the
-#'       \code{mu} and \code{Sigma}/\code{P} must conform to
-#'       \code{ncol(x[[k]])} = \eqn{q_k}.  For \code{\link{lmerb}} Block 2,
-#'       supply the renamed fields from
-#'       \code{\link{Prior_Setup_lmebayes}}\code{$prior_list[[k]]}: use
-#'       \code{mu = mu_fixef}, \code{Sigma = Sigma_fixef}, and
-#'       \code{dispersion = dispersion_fixef}.
-#'   }
-#' @return
-#'   \describe{
-#'     \item{Shared-x path (matrix \code{x})}{An \code{"mrglmb"} S3 object with
-#'       one \code{\link[glmbayesCore]{rNormal_reg}} result per column of
-#'       \code{y}.}
-#'     \item{List-x path (list \code{x})}{A plain named list of length
-#'       \code{ncol(y)}, named by \code{colnames(y)} (or \code{"Y1"},
-#'       \code{"Y2"}, \ldots{} if \code{y} has no column names).  Each element
-#'       is the \code{\link[glmbayesCore]{rNormal_reg}} output for column
-#'       \eqn{k}; access the single Gibbs draw via
-#'       \code{result[[k]]$coefficients[1L, ]}.}
-#'   }
-#' @family simfuncs
-#' @export
-multi_rNormal_reg <- function(n,
-                                 y,
-                                 x,
-                                 prior_list,
-                                 offset = NULL,
-                                 weights = 1,
-                                 family = gaussian(),
-                                 Gridtype = 2,
-                                 n_envopt = NULL,
-                                 use_parallel = TRUE,
-                                 use_opencl = FALSE,
-                                 verbose = FALSE,
-                                 progbar = TRUE) {
-  call  <- match.call()
-  n_draw <- .mrglmb_n_draw(n)
-
-  x_is_list <- is.list(x) && !is.data.frame(x)
-
-  if (x_is_list) {
-    # ------------------------------------------------------------------
-    # Per-column design path: x is a list of matrices, p_k may vary.
-    # Returns a plain named list (Option R2) -- not an mrglmb.
-    # ------------------------------------------------------------------
-    y_mat <- as.matrix(y)
-    l1    <- ncol(y_mat)
-    n_obs <- nrow(y_mat)
-
-    if (l1 < 1L) stop("y must have at least one column.", call. = FALSE)
-
-    coef_names <- colnames(y_mat)
-    if (is.null(coef_names) || length(coef_names) != l1) {
-      coef_names <- paste0("Y", seq_len(l1))
-    }
-
-    if (length(x) != l1) {
-      stop(
-        "When x is a list, length(x) must equal ncol(y) = ", l1, ".",
-        call. = FALSE
-      )
-    }
-    x_list <- lapply(x, as.matrix)
-    for (j in seq_len(l1)) {
-      if (nrow(x_list[[j]]) != n_obs) {
-        stop(
-          "nrow(x[[", j, "]]) (", nrow(x_list[[j]]),
-          ") must equal nrow(y) (", n_obs, ").",
-          call. = FALSE
-        )
-      }
-    }
-    p_vec <- vapply(x_list, ncol, integer(1L))
-
-    if (!is.list(prior_list)) {
-      stop(
-        "prior_list must be a list of length ncol(y) = ", l1, ".",
-        call. = FALSE
-      )
-    }
-    if (!is.null(prior_list$mu) || !is.null(prior_list$Sigma)) {
-      stop(
-        "prior_list must be a list of prior_list objects (one per column ",
-        "of y), not a single prior_list with components mu and Sigma.",
-        call. = FALSE
-      )
-    }
-    if (length(prior_list) != l1) {
-      stop(
-        "length(prior_list) must equal ncol(y) = ", l1, ".",
-        call. = FALSE
-      )
-    }
-    prior_lists <- lapply(seq_len(l1), function(j) {
-      .validate_normal_prior_list(prior_list[[j]], j = j, p = p_vec[j])
-    })
-
-    block_results <- vector("list", l1)
-    names(block_results) <- coef_names
-    for (j in seq_len(l1)) {
-      block_results[[j]] <- rNormal_reg(
-        n            = n_draw,
-        y            = y_mat[, j],
-        x            = x_list[[j]],
-        prior_list   = prior_lists[[j]],
-        offset       = offset,
-        weights      = weights,
-        family       = family,
-        Gridtype     = Gridtype,
-        n_envopt     = n_envopt,
-        use_parallel = use_parallel,
-        use_opencl   = use_opencl,
-        verbose      = verbose,
-        progbar      = progbar && (j == 1L)
-      )
-    }
-    block_results
-
-  } else {
-    # Shared-design path: x is a single matrix; returns an mrglmb object.
-    inp         <- .mrglmb_check_inputs(y, x, prior_list)
-    prior_lists <- .mrglmb_normalize_prior_lists(
-      prior_list, inp$l1, inp$p, .validate_normal_prior_list
-    )
-
-    block_results <- vector("list", inp$l1)
-    for (j in seq_len(inp$l1)) {
-      block_results[[j]] <- rNormal_reg(
-        n            = n_draw,
-        y            = inp$y_mat[, j],
-        x            = inp$x,
-        prior_list   = prior_lists[[j]],
-        offset       = offset,
-        weights      = weights,
-        family       = family,
-        Gridtype     = Gridtype,
-        n_envopt     = n_envopt,
-        use_parallel = use_parallel,
-        use_opencl   = use_opencl,
-        verbose      = verbose,
-        progbar      = progbar && (j == 1L)
-      )
-    }
-    .mrglmb_assemble(
-      block_results,
-      inp$coef_names,
-      call,
-      inp$y_mat,
-      inp$x,
-      inp$l1,
-      inp$p,
-      prior_lists,
-      inp$pred_names
-    )
-  }
 }
 
 #' @describeIn multi_rlmb Normal--Gamma regression with multiple responses.
@@ -697,64 +497,6 @@ multi_rindepNormalGamma_reg <- function(n,
   }
   if (!is.null(pl$Precision)) {
     out$Precision <- pl$Precision
-  }
-  out
-}
-
-#' @keywords internal
-.validate_normal_prior_list <- function(pl, j, p) {
-  if (!is.list(pl)) {
-    stop("prior_list[[", j, "]] must be a list.", call. = FALSE)
-  }
-  if (is.null(pl$mu)) {
-    stop("prior_list[[", j, "]] must contain 'mu'.", call. = FALSE)
-  }
-  if (is.null(pl$Sigma) && is.null(pl$P)) {
-    stop("prior_list[[", j, "]] must contain 'Sigma' or 'P'.", call. = FALSE)
-  }
-
-  mu <- as.numeric(pl$mu)
-  if (length(mu) != p) {
-    stop(
-      "prior_list[[", j, "]]$mu must have length ncol(x) = ", p, ".",
-      call. = FALSE
-    )
-  }
-
-  out <- list(mu = mu)
-  if (!is.null(pl$Sigma)) {
-    S <- as.matrix(pl$Sigma)
-    if (nrow(S) != p || ncol(S) != p) {
-      stop(
-        "prior_list[[", j, "]]$Sigma must be ", p, " x ", p, ".",
-        call. = FALSE
-      )
-    }
-    .check_symmetric_pd(S, label = paste0("prior_list[[", j, "]]$Sigma"))
-    out$Sigma <- S
-  }
-  if (!is.null(pl$P)) {
-    P <- as.matrix(pl$P)
-    if (nrow(P) != p || ncol(P) != p) {
-      stop(
-        "prior_list[[", j, "]]$P must be ", p, " x ", p, ".",
-        call. = FALSE
-      )
-    }
-    .check_symmetric_pd(P, label = paste0("prior_list[[", j, "]]$P"))
-    out$P <- P
-  }
-  if (!is.null(pl$dispersion)) {
-    out$dispersion <- pl$dispersion
-  }
-  if (!is.null(pl$shape)) {
-    out$shape <- pl$shape
-  }
-  if (!is.null(pl$rate)) {
-    out$rate <- pl$rate
-  }
-  if (!is.null(pl$ddef)) {
-    out$ddef <- pl$ddef
   }
   out
 }

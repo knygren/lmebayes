@@ -50,6 +50,22 @@ block_rNormalReg_update <- glmbayesCore::block_rNormalReg_update
 #' @export
 normalize_block <- glmbayesCore::normalize_block
 
+#' @inherit glmbayesCore::build_mu_all
+#' @export
+build_mu_all <- glmbayesCore::build_mu_all
+
+#' @inherit glmbayesCore::lmerb_posterior_mean
+#' @export
+lmerb_posterior_mean <- glmbayesCore::lmerb_posterior_mean
+
+#' @inherit glmbayesCore::two_block_rNormal_reg
+#' @export
+two_block_rNormal_reg <- glmbayesCore::two_block_rNormal_reg
+
+#' @inherit glmbayesCore::multi_rNormal_reg
+#' @export
+multi_rNormal_reg <- glmbayesCore::multi_rNormal_reg
+
 ## C++ callback symbols re-exported for search-path lookup when lmebayes is
 ## attached. glmbayesCore C++ resolves these by unqualified name
 ## (Rcpp::Function("EnvelopeOpt"), etc.).
