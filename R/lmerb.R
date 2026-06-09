@@ -423,3 +423,95 @@ lmerb <- function(
     class = c("lmerb", "list")
   )
 }
+
+#' Print method for lmerb objects
+#'
+#' @param x Object of class \code{"lmerb"}.
+#' @param digits Number of significant digits (default
+#'   \code{max(3, getOption("digits") - 3)}).
+#' @param ... Ignored.
+#' @return \code{x} invisibly.
+#' @export
+print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
+
+  re_names <- x$model_setup$re_coef_names
+  grp      <- x$model_setup$group_name
+  n_obs    <- length(x$model_setup$y)
+  n_grp    <- nlevels(x$model_setup$groups)
+  simulated <- !is.null(x$coefficients)
+
+  # --- Call ---
+  cat("Call:\n  ")
+  cat(paste(deparse(x$call), sep = "\n", collapse = "\n"))
+  cat("\n\n")
+
+  # --- Header line ---
+  if (simulated) {
+    n_draws <- nrow(x$fixef_draws[[re_names[1L]]])
+    cat(sprintf(
+      "Bayesian linear mixed model  [%d draws, two-block Gibbs]\n", n_draws))
+  } else {
+    cat("Bayesian linear mixed model  [ICM only; use simulate = TRUE for draws]\n")
+  }
+  cat("Formula:", deparse1(x$formula), "\n\n")
+
+  # --- Variance components (lmer, fixed during sampling) ---
+  cat("Random effects (variance components fixed at lmer estimates):\n")
+  print(lme4::VarCorr(x$lmer), comp = "Std.Dev.", digits = digits)
+  cat(sprintf("Number of obs: %d,  groups: %s, %d\n\n", n_obs, grp, n_grp))
+
+  # --- Posterior means table ---
+  cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")
+
+  # Flatten coef.mode to a data frame for aligned printing
+  rows <- do.call(rbind, lapply(re_names, function(k) {
+    nms <- names(x$coef.mode[[k]])
+    data.frame(
+      re  = k,
+      par = nms,
+      mode = unname(x$coef.mode[[k]]),
+      stringsAsFactors = FALSE
+    )
+  }))
+
+  w_re  <- max(nchar(rows$re),  nchar("RE component"))
+  w_par <- max(nchar(rows$par), nchar("parameter"))
+
+  if (!simulated) {
+    # ICM-only: single value column
+    cat(sprintf("  %-*s  %-*s  %12s\n",
+                w_re, "RE component", w_par, "parameter", "coef.mode"))
+    cat(sprintf("  %s  %s  %s\n",
+                strrep("-", w_re), strrep("-", w_par), strrep("-", 12L)))
+    for (i in seq_len(nrow(rows))) {
+      cat(sprintf("  %-*s  %-*s  %12.*f\n",
+                  w_re, rows$re[i], w_par, rows$par[i],
+                  digits, rows$mode[i]))
+    }
+    cat("\n")
+
+  } else {
+    # Simulation: coef.mode + coef.means + draws SD side-by-side
+    rows$means <- unlist(lapply(re_names, function(k) unname(x$coef.means[[k]])))
+    rows$sd    <- unlist(lapply(re_names, function(k) {
+      apply(x$fixef_draws[[k]], 2L, sd)
+    }))
+
+    cat(sprintf("  %-*s  %-*s  %12s  %12s  %10s\n",
+                w_re, "RE component", w_par, "parameter",
+                "coef.mode", "coef.means", "draws SD"))
+    cat(sprintf("  %s  %s  %s  %s  %s\n",
+                strrep("-", w_re), strrep("-", w_par),
+                strrep("-", 12L), strrep("-", 12L), strrep("-", 10L)))
+    for (i in seq_len(nrow(rows))) {
+      cat(sprintf("  %-*s  %-*s  %12.*f  %12.*f  %10.*f\n",
+                  w_re, rows$re[i], w_par, rows$par[i],
+                  digits, rows$mode[i],
+                  digits, rows$means[i],
+                  digits, rows$sd[i]))
+    }
+    cat("\n")
+  }
+
+  invisible(x)
+}

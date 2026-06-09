@@ -3,6 +3,7 @@
 S3method(print,bglmb)
 S3method(print,blmb)
 S3method(print,lmebayes_prior_setup)
+S3method(print,lmerb)
 S3method(print,model_setup)
 S3method(print,summary.bglmb)
 S3method(print,summary.blmb)
