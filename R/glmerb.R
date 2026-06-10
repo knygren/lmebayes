@@ -13,6 +13,26 @@
 #' @inheritParams lmerb
 #' @param family A \code{\link[stats]{family}} object describing the response
 #'   distribution and link. Defaults to \code{gaussian()}.
+#' @param tv_tol Total variation tolerance per stored draw, in (0, 1)
+#'   (default \code{0.01}).  For \code{family = gaussian()} the joint
+#'   posterior is exactly multivariate normal and the number of inner Gibbs
+#'   sweeps per stored draw is calibrated exactly as in \code{\link{lmerb}}
+#'   (Nygren 2020, Theorem 3).  For non-Gaussian families the same
+#'   calibration is applied to the \emph{local-Gaussian approximation of the
+#'   posterior at its mode}: per-observation likelihood precisions are
+#'   evaluated at the ICM posterior mode
+#'   (\code{\link[glmbayesCore]{two_block_mode_weights}}) and fed to
+#'   \code{\link[glmbayesCore]{two_block_rate}}.  The derived sweep count is
+#'   then the \emph{minimum} number of iterations required to converge to
+#'   that hypothetical multivariate normal approximation -- a lower bound
+#'   for the true (non-normal) posterior, not a guarantee.
+#' @param m_convergence Optional integer override for the number of inner
+#'   Gibbs sweeps per stored draw.  When \code{NULL} (default) the
+#'   \code{tv_tol}-derived value is used.  A supplied value acts as a
+#'   requested sweep count but is never allowed below the derived minimum:
+#'   \code{max(m_convergence, m_min)} is used, with a warning if the value
+#'   had to be raised.  Typical use is to pick a \emph{larger} number for
+#'   non-Gaussian families (e.g. double the derived lower bound).
 #' @param control Optional \code{\link[lme4]{glmerControl}} settings passed to
 #'   the reference \code{\link[lme4]{glmer}} fit. Defaults to \code{NULL}
 #'   (lme4 defaults). When \code{family = gaussian()}, lme4's \code{glmer}
@@ -32,6 +52,8 @@ glmerb <- function(
     family = gaussian(),
     measurement_prior_list,
     n = 1000L,
+    tv_tol = 0.01,
+    m_convergence = NULL,
     simulate = TRUE,
     REML = TRUE,
     control = NULL,
@@ -84,6 +106,18 @@ glmerb <- function(
   n <- as.integer(n[1L])
   if (n < 1L) {
     stop("'n' must be at least 1.", call. = FALSE)
+  }
+  if (!is.numeric(tv_tol) || length(tv_tol) != 1L ||
+      !is.finite(tv_tol) || tv_tol <= 0 || tv_tol >= 1) {
+    stop("'tv_tol' must be a single value in (0, 1).", call. = FALSE)
+  }
+  if (!is.null(m_convergence)) {
+    if (!is.numeric(m_convergence) || length(m_convergence) != 1L ||
+        !is.finite(m_convergence) || m_convergence < 1) {
+      stop("'m_convergence' must be NULL or a single integer >= 1.",
+           call. = FALSE)
+    }
+    m_convergence <- as.integer(m_convergence)
   }
 
   setup_args <- list(
@@ -176,8 +210,6 @@ glmerb <- function(
     ))
   }
 
-  m_convergence <- 10L
-
   re_names     <- design$re_coef_names
   group_levels <- levels(design$groups)
 
@@ -191,6 +223,78 @@ glmerb <- function(
       )
     }),
     re_names
+  )
+
+  # TV-calibrated number of inner Gibbs sweeps per stored draw.  Exact for
+  # gaussian(), where the joint posterior is multivariate normal and the
+  # Theorem 3 bound (Nygren 2020) applies.  For non-Gaussian families the
+  # same machinery runs on the local-Gaussian approximation at the ICM
+  # posterior mode (per-observation IRLS/Fisher weights at pm$b_mean), so the
+  # derived m_min is the minimum number of sweeps required to converge to
+  # that hypothetical multivariate normal approximation -- a lower bound for
+  # the true posterior.  Chains start at the joint posterior mode (= the mean
+  # of the approximating normal), so D0 = 0; + 1L covers the half-step lag of
+  # the stored b draw.  A user-supplied m_convergence is floored at m_min.
+  is_gaussian <- identical(family$family, "gaussian")
+  if (is_gaussian) {
+    rate <- glmbayesCore::two_block_rate(
+      x                 = design$Z,
+      block             = design$groups,
+      x_hyper           = design$X_hyper,
+      prior_list_block1 = block1_prior,
+      prior_list_block2 = block2_prior_list,
+      family            = gaussian(),
+      group_levels      = group_levels
+    )
+  } else {
+    mode_w <- glmbayesCore::two_block_mode_weights(
+      x            = design$Z,
+      block        = design$groups,
+      b_mode       = pm$b_mean,
+      family       = family,
+      group_levels = group_levels
+    )
+    rate <- glmbayesCore::two_block_rate(
+      x                 = design$Z,
+      block             = design$groups,
+      x_hyper           = design$X_hyper,
+      prior_list_block1 = block1_prior,
+      prior_list_block2 = block2_prior_list,
+      weights           = mode_w$weights,
+      family            = family,
+      group_levels      = group_levels
+    )
+  }
+  m_min <- glmbayesCore::two_block_l_for_tv(
+    rate, tv_tol, method = "theorem3"
+  ) + 1L
+  if (is.null(m_convergence)) {
+    m_convergence <- m_min
+  } else if (m_convergence < m_min) {
+    warning(
+      "glmerb: m_convergence = ", m_convergence, " is below the derived ",
+      "minimum m_min = ", m_min, " for tv_tol = ", tv_tol,
+      "; using m_min instead.",
+      call. = FALSE
+    )
+    m_convergence <- m_min
+  }
+  calib_label <- if (is_gaussian) {
+    "exact (Gaussian posterior)"
+  } else {
+    sprintf("approximate (local-Gaussian at mode, %s)", family$family)
+  }
+  cat(sprintf(
+    "--- glmerb: convergence calibration [%s]:\n    lambda* = %.4f, tv_tol = %g => m_min = %d, using m_convergence = %d ---\n\n",
+    calib_label, rate$lambda_star, tv_tol, m_min, m_convergence
+  ))
+  convergence_info <- list(
+    method        = if (is_gaussian) "exact" else "local_gaussian_mode",
+    tv_tol        = tv_tol,
+    lambda_star   = rate$lambda_star,
+    eigenvalues   = rate$eigenvalues,
+    m_min         = m_min,
+    m_convergence = m_convergence
   )
 
   sampler <- glmbayesCore::two_block_rNormal_reg(
@@ -224,7 +328,8 @@ glmerb <- function(
       coef.means   = lapply(sampler$fixef_draws, colMeans),
       fixef_draws  = sampler$fixef_draws,
       coefficients = sampler$coefficients,
-      mu_all       = sampler$mu_all_last
+      mu_all       = sampler$mu_all_last,
+      convergence  = convergence_info
     ),
     class = c("glmerb", "list")
   )

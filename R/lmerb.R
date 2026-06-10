@@ -36,21 +36,29 @@
 #' tolerance \eqn{\varepsilon} can be derived analytically once \eqn{\lambda^*}
 #' is known.
 #'
-#' \strong{\code{m_convergence}.}
-#' \code{lmerb} maintains an internal constant \code{m_convergence} as a proxy
-#' for this required number of iterations.  It is initialised to \code{100L}
-#' and will be replaced by the formula-derived value (a function of
-#' \eqn{\lambda^*} and \eqn{\varepsilon}) once Block 2 Gibbs sampling is
-#' implemented and \eqn{\lambda^*} can be computed from the fitted model
-#' parameters.  In the current Block-1-only implementation every draw is
-#' already an exact iid draw from the conditional posterior
-#' \eqn{p(b_j \mid y, \mathrm{fixef}, \sigma^2, \Sigma_b)}, so
-#' \code{m_convergence} is reserved for future use.
+#' \strong{TV-calibrated \code{m_convergence}.}
+#' The number of inner Gibbs sweeps per stored draw (\code{m_convergence}) is
+#' derived from \code{tv_tol}: \code{lmerb} computes the Remark 8 eigenvalue
+#' spectrum with \code{\link[glmbayesCore]{two_block_rate}} and inverts the
+#' exact Theorem 3 bound with
+#' \code{\link[glmbayesCore]{two_block_l_for_tv}}.  Because every replicate
+#' chain is started at the exact joint posterior mean (computed by ICM via
+#' \code{\link[glmbayesCore]{lmerb_posterior_mean}}), the mean term of the
+#' bound vanishes and only the variance-convergence sum remains.  One extra
+#' sweep is added because the bound applies to the block updated second in
+#' each sweep (the level-2 fixed effects \eqn{\gamma}); the stored
+#' random-effect draw lags by a half-step.  Each stored draw is therefore
+#' guaranteed to be within \code{tv_tol} of the exact joint posterior in
+#' total variation.
 #'
 #' @references
 #' Nygren, K. (2020). \emph{On the total variation distance between multivariate
 #' normal densities with applications to two-block Gibbs samplers.}
 #' Unpublished manuscript.
+#'
+#' Jones, G. L. and Hobert, J. P. (2001). Honest exploration of intractable
+#' probability distributions via Markov chain Monte Carlo.
+#' \emph{Statistical Science} \bold{16}, 312--334.
 #'
 #' @param formula Mixed-model formula (single grouping factor; same constraints
 #'   as \code{\link{model_setup}}). Must match
@@ -63,6 +71,19 @@
 #'   explicitly before \code{lmerb}; design matrices come from
 #'   \code{\link{model_setup}} inside \code{lmerb}, not from this object.
 #' @param n Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).
+#' @param tv_tol Total variation tolerance per stored draw, in (0, 1)
+#'   (default \code{0.01}, the conventional threshold of the honest-burn-in
+#'   literature; Jones and Hobert 2001).  The number of inner Gibbs sweeps
+#'   per stored draw is derived so that each draw is within \code{tv_tol} of
+#'   the exact joint posterior in total variation (Nygren 2020, Theorem 3;
+#'   see Details).  To certify the whole \code{n}-draw sample at level
+#'   \eqn{\alpha} pass \code{tv_tol = alpha / n}; the cost grows only
+#'   logarithmically in \code{1/tv_tol}.
+#' @param m_convergence Optional integer override for the number of inner
+#'   Gibbs sweeps per stored draw.  When \code{NULL} (default) the
+#'   \code{tv_tol}-derived value is used.  A supplied value is floored at the
+#'   derived minimum: \code{max(m_convergence, m_min)} is used, with a
+#'   warning if the value had to be raised.
 #' @param REML Logical; passed to \code{\link{model_setup}}.
 #' @param control \code{\link[lme4]{lmerControl}} settings; passed to \code{model_setup}.
 #' @param start Optional starting values; passed to \code{model_setup}.
@@ -122,6 +143,12 @@
 #'     \item{\code{mu_all}}{Numeric matrix \code{p_re x J} of Block 1 prior
 #'       means at the final Gibbs state (from
 #'       \code{\link[glmbayesCore]{build_mu_all}}).}
+#'     \item{\code{convergence}}{List describing the sweep-count calibration:
+#'       \code{method} (\code{"exact"}, or \code{"local_gaussian_mode"} for
+#'       non-Gaussian \code{\link{glmerb}}), \code{tv_tol},
+#'       \code{lambda_star}, \code{eigenvalues}, \code{m_min} (derived
+#'       minimum sweeps), and \code{m_convergence} (sweeps actually used).
+#'       \code{NULL} when \code{simulate = FALSE}.}
 #'   }
 #' @examples
 #' \donttest{
@@ -139,6 +166,8 @@ lmerb <- function(
     data = NULL,
     measurement_prior_list,
     n = 1000L,
+    tv_tol = 0.01,
+    m_convergence = NULL,
     simulate = TRUE,
     REML = TRUE,
     control = lme4::lmerControl(),
@@ -185,6 +214,18 @@ lmerb <- function(
   n <- as.integer(n[1L])
   if (n < 1L) {
     stop("'n' must be at least 1.", call. = FALSE)
+  }
+  if (!is.numeric(tv_tol) || length(tv_tol) != 1L ||
+      !is.finite(tv_tol) || tv_tol <= 0 || tv_tol >= 1) {
+    stop("'tv_tol' must be a single value in (0, 1).", call. = FALSE)
+  }
+  if (!is.null(m_convergence)) {
+    if (!is.numeric(m_convergence) || length(m_convergence) != 1L ||
+        !is.finite(m_convergence) || m_convergence < 1) {
+      stop("'m_convergence' must be NULL or a single integer >= 1.",
+           call. = FALSE)
+    }
+    m_convergence <- as.integer(m_convergence)
   }
 
   setup_args <- list(
@@ -290,16 +331,6 @@ lmerb <- function(
     ))
   }
 
-  # Convergence proxy: target number of two-block Gibbs iterations required to
-  # bring the sampler within a pre-specified TV distance of the exact joint
-  # posterior.  When variance components are fixed the joint posterior is
-  # exactly multivariate normal and the TV bound decays geometrically at rate
-  # (lambda*)^l (Nygren 2020, Corollary 1), where lambda* is the maximal
-  # eigenvalue of A = P11^{-1/2} P12 P22^{-1} P21 P11^{-1/2}.  Initialized to
-  # 100L as a placeholder; will be derived from the model parameters once
-  # lambda* is computed from fitted model parameters.
-  m_convergence <- 10L
-
   re_names     <- design$re_coef_names
   group_levels <- levels(design$groups)
 
@@ -314,6 +345,49 @@ lmerb <- function(
       )
     }),
     re_names
+  )
+
+  # TV-calibrated number of inner Gibbs sweeps per stored draw.  With fixed
+  # variance components the joint posterior is exactly multivariate normal,
+  # so the Remark 8 spectrum (Nygren 2020) gives the exact Theorem 3 TV bound
+  # for the l-step kernel.  Every replicate chain starts at the joint
+  # posterior mean (fixef_start, via ICM), so the mean term vanishes (D0 = 0).
+  # The bound applies to the block updated second (gamma); the stored b draw
+  # lags by a half-step, hence the + 1L.
+  rate <- glmbayesCore::two_block_rate(
+    x                 = design$Z,
+    block             = design$groups,
+    x_hyper           = design$X_hyper,
+    prior_list_block1 = block1_prior,
+    prior_list_block2 = block2_prior_list,
+    family            = gaussian(),
+    group_levels      = group_levels
+  )
+  m_min <- glmbayesCore::two_block_l_for_tv(
+    rate, tv_tol, method = "theorem3"
+  ) + 1L
+  if (is.null(m_convergence)) {
+    m_convergence <- m_min
+  } else if (m_convergence < m_min) {
+    warning(
+      "lmerb: m_convergence = ", m_convergence, " is below the derived ",
+      "minimum m_min = ", m_min, " for tv_tol = ", tv_tol,
+      "; using m_min instead.",
+      call. = FALSE
+    )
+    m_convergence <- m_min
+  }
+  cat(sprintf(
+    "--- lmerb: convergence calibration [exact]: lambda* = %.4f, tv_tol = %g => m_min = %d, using m_convergence = %d ---\n\n",
+    rate$lambda_star, tv_tol, m_min, m_convergence
+  ))
+  convergence_info <- list(
+    method        = "exact",
+    tv_tol        = tv_tol,
+    lambda_star   = rate$lambda_star,
+    eigenvalues   = rate$eigenvalues,
+    m_min         = m_min,
+    m_convergence = m_convergence
   )
 
   sampler <- glmbayesCore::two_block_rNormal_reg(
@@ -346,7 +420,8 @@ lmerb <- function(
       coef.means   = lapply(sampler$fixef_draws, colMeans),
       fixef_draws  = sampler$fixef_draws,
       coefficients = sampler$coefficients,
-      mu_all       = sampler$mu_all_last
+      mu_all       = sampler$mu_all_last,
+      convergence  = convergence_info
     ),
     class = c("lmerb", "list")
   )

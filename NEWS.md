@@ -1,3 +1,41 @@
+# lmebayes (development version)
+
+* **Approximate TV calibration for non-Gaussian `glmerb` + `m_convergence`
+  override:** Non-Gaussian `glmerb()` now derives its sweep count from the
+  same Theorem 3 machinery applied to the *local-Gaussian approximation of
+  the posterior at its mode*: per-observation likelihood precisions are
+  evaluated at the ICM posterior mode
+  (`glmbayesCore::two_block_mode_weights()`) and fed to
+  `glmbayesCore::two_block_rate(weights = )`.  The derived `m_min` is the
+  minimum number of inner Gibbs sweeps required to converge to that
+  hypothetical multivariate normal approximation - a lower bound for the
+  true (non-normal) posterior, replacing the previous fixed `10L`.  Both
+  `lmerb()` and `glmerb()` gain an optional `m_convergence` argument: when
+  supplied it overrides the derived value but is floored at `m_min`
+  (`max(m_convergence, m_min)`, warning if raised) - typical use is picking
+  a larger number, e.g. double the derived bound.  The calibration is
+  reported in a clearly labeled line (`exact` vs
+  `approximate (local-Gaussian at mode, <family>)`) and stored in the fitted
+  object as `$convergence` (`method`, `tv_tol`, `lambda_star`,
+  `eigenvalues`, `m_min`, `m_convergence`).  On `bayesrules::airbnb`
+  (Poisson) the heuristic gives `lambda* = 0.48`, `m_min = 4`.
+
+* **TV-calibrated Gibbs sweeps (`tv_tol`):** `lmerb()` and `glmerb()` gain a
+  `tv_tol` argument (default `0.01`, the conventional threshold of the
+  honest-burn-in literature; Jones & Hobert 2001).  For `lmerb()` (and
+  `glmerb()` with `family = gaussian()`) the number of inner Gibbs sweeps per
+  stored draw (`m_convergence`, previously hardcoded to `10L`) is now derived
+  exactly: the Remark 8 eigenvalue spectrum (Nygren 2020) is computed with
+  `glmbayesCore::two_block_rate()` and the exact Theorem 3 TV bound is
+  inverted with `glmbayesCore::two_block_l_for_tv()`, plus one sweep for the
+  half-step lag of the stored random-effect draw.  Chains start at the exact
+  joint posterior mean (ICM), so the bound's mean term vanishes and each
+  stored draw is guaranteed within `tv_tol` of the exact joint posterior in
+  total variation.  For non-Gaussian `glmerb()` families no exact calibration
+  exists; `tv_tol` is accepted but currently ignored (with a message) pending
+  an approximate local-Gaussian (IRLS-weight) calibration.  Regression test:
+  `data-raw/test_tv_tol_arg.R`.
+
 # glmbayes 0.9.6
 
 ## Highlights

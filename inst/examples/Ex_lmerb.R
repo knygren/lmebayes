@@ -41,12 +41,14 @@ ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
 
 
 
+## Defaults: tv_tol = 0.01 (each stored draw within 0.01 TV of the exact
+## joint posterior; m_convergence derived from the Nygren (2020) Theorem 3
+## bound), no fixed seed.
 fit <- lmerb(
   form_lmer,
   data = dat,
   measurement_prior_list = ps,
-  n = 1000L,
-  seed = 42L
+  n = 1000L
 )
 
 cat("\n=== summary(fit) ===\n\n")
