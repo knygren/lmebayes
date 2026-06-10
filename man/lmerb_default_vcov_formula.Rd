@@ -23,7 +23,7 @@ in the Bayesian hyper prior, not as a student-varying fixed effect in the
 returns a formula with:
 \itemize{
 \item group-constant fixed terms only (level-2 hyper covariates);
-\item the same random-effects structure as \code{formula} (\code{||} or
-\code{|}), without cross-level fixed interactions.
+\item the same uncorrelated random-effects structure as \code{formula}
+(\code{||} notation), without cross-level fixed interactions.
 }
 }

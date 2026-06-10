@@ -23,10 +23,8 @@
 #'   \code{\link[lme4]{glmer}} fit) components instead of \code{lmer}.
 #' @seealso \code{\link{lmerb}}, \code{\link[glmbayesCore]{glmerb_posterior_mode}},
 #'   \code{\link{glmb}}
-#' @examples
-#' \donttest{
-#'   source(system.file("examples", "Ex_glmerb.R", package = "lmebayes"))
-#' }
+#' @examplesIf requireNamespace("bayesrules", quietly = TRUE)
+#' @example inst/examples/Ex_glmerb.R
 #' @export
 glmerb <- function(
     formula,

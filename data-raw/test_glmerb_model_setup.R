@@ -36,4 +36,16 @@ stopifnot(inherits(fit$glmer, c("glmerMod", "lmerMod")))
 stopifnot(is.null(fit$lmer))
 stopifnot(!is.null(ps$dispersion_ranef))
 
+bad <- tryCatch(
+  model_setup(y ~ x + (1 + x | g), data = dat, family = gaussian()),
+  error = function(e) e
+)
+stopifnot(inherits(bad, "error"))
+
+bad2 <- tryCatch(
+  model_setup(y ~ (1 || g), data = dat, family = gaussian()),
+  error = function(e) e
+)
+stopifnot(inherits(bad2, "error"))
+
 cat("test_glmerb_model_setup: OK\n")

@@ -6,11 +6,9 @@
 #
 # Canonical lme4 example: Reaction ~ Days + (Days | Subject)
 # This script uses uncorrelated RE so block_lmb priors use diagonal Sigma:
-#   Reaction ~ Days_c + (1 | Subject) + (0 + Days_c | Subject)
+#   Reaction ~ Days_c + (1 + Days_c || Subject)
 #
 # block_lmb: Reaction ~ Days_c, BY Subject, dNormal priors from lmer VarCorr
-#
-# Equivalent shorthand: Reaction ~ Days_c + (1 + Days_c || Subject)
 
 if (!requireNamespace("lme4", quietly = TRUE)) {
   stop("Install lme4: install.packages('lme4')")
@@ -25,7 +23,7 @@ cat(
   "; Days_c range:", paste(range(sleepstudy$Days_c), collapse = " to "), "\n"
 )
 
-form_lmer <- Reaction ~ Days_c + (1 | Subject) + (0 + Days_c | Subject)
+form_lmer <- Reaction ~ Days_c + (1 + Days_c || Subject)
 
 fit_lmer <- lme4::lmer(
   form_lmer,
@@ -33,7 +31,7 @@ fit_lmer <- lme4::lmer(
   REML = TRUE
 )
 
-cat("\n--- lmer: Days_c + uncorrelated (1 | Subject) + (0 + Days_c | Subject) ---\n")
+cat("\n--- lmer: Days_c + (1 + Days_c || Subject) ---\n")
 print(summary(fit_lmer))
 
 cat("\nFixed effects:\n")

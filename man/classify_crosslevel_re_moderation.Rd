@@ -31,7 +31,7 @@ Such terms are allowed in \code{\link{model_setup}} but are not returned in
 }
 \details{
 A main fixed effect whose name matches a random slope name (e.g. \code{age_c}
-alongside \code{(1 + age_c | group)}) is treated as the \emph{population
+alongside \code{(1 + age_c || group)}) is treated as the \emph{population
 mean slope} (gamma_10) and is also allowed. These are returned in
 \code{slope_mean_cols}; they do not change the \code{X_hyper} structure but
 the corresponding \code{fixef()} coefficient is the hyper-model intercept for

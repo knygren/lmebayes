@@ -5,8 +5,15 @@
 #' \code{formula} (including cross-level RE moderation terms). Variance
 #' components use \code{vcov_formula} (defaults to
 #' \code{\link{lmerb_default_vcov_formula}}): level-2 fixed only, same
-#' \code{||} or \code{|} random structure as \code{formula}, without
-#' cross-level fixed interactions (so RE moderation is not double-coded).
+#' \code{||} random structure as \code{formula}, without cross-level fixed
+#' interactions (so RE moderation is not double-coded).
+#'
+#' \strong{Uncorrelated random effects (\code{||}).}
+#' The sampler treats \code{Sigma_ranef} as diagonal (no off-diagonal
+#' covariance). Multi-coefficient random terms must use \code{||}, e.g.
+#' \code{(1 + x || group)} rather than \code{(1 + x | group)}. A single
+#' random intercept may use \code{(1 | group)}; \code{(1 || group)} is not
+#' supported by \code{lme4}.
 #'
 #' @details
 #' \strong{Fixed-effect constraints.}
@@ -129,6 +136,8 @@ model_setup <- function(
       data = data,
       ...
     )
+  } else {
+    .lmebayes_validate_uncorrelated_re_formula(vcov_formula, data = data, ...)
   }
   design$vcov_formula <- vcov_formula
 

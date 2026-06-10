@@ -72,6 +72,56 @@ is_fixed_effects_only <- function(formula, data = NULL, ...) {
   return(FALSE)
 }
 
+#' Validate uncorrelated (diagonal) random effects
+#'
+#' \pkg{lmebayes} treats \code{Sigma_ranef} as diagonal. Multi-coefficient
+#' random terms must use \code{||}; a single random intercept may use
+#' \code{(1 | group)} (\code{(1 || group)} is not supported by \code{lme4}).
+#'
+#' @param formula Mixed-model formula.
+#' @param data Optional data frame for \code{\link[lme4]{lFormula}}.
+#' @param ... Passed to \code{\link[lme4]{lFormula}}.
+#' @return \code{formula} invisibly.
+#' @keywords internal
+.lmebayes_validate_uncorrelated_re_formula <- function(formula, data = NULL, ...) {
+  if (is_fixed_effects_only(formula, data = data, ...)) {
+    return(invisible(formula))
+  }
+
+  f_chr <- paste(deparse(formula, width.cutoff = 500L), collapse = " ")
+  if (grepl("\\(\\s*1\\s*\\|\\|", f_chr)) {
+    stop(
+      "Intercept-only '(1 || group)' is not supported by lme4. ",
+      "Use '(1 | group)' for a random intercept only, or ",
+      "'(1 + slope || group)' when adding uncorrelated random slopes.",
+      call. = FALSE
+    )
+  }
+
+  parsed <- tryCatch(
+    lme4::lFormula(formula = formula, data = data, ...),
+    error = function(e) {
+      stop(
+        "Could not parse random-effects formula: ", conditionMessage(e),
+        call. = FALSE
+      )
+    }
+  )
+
+  cnms <- parsed$reTrms$cnms
+  bad <- which(vapply(cnms, length, integer(1L)) > 1L)
+  if (length(bad)) {
+    stop(
+      "Correlated random effects are not supported (off-diagonal RE covariance). ",
+      "Use '||' for uncorrelated terms, e.g. ",
+      "(1 + x || group) instead of (1 + x | group).",
+      call. = FALSE
+    )
+  }
+
+  invisible(formula)
+}
+
 
 
 .lme4_Z_random_column_map <- function(reTrms) {
@@ -311,7 +361,7 @@ classify_lme4_fixed_columns <- function(X_fixed, group_factor) {
 #' \code{mu_b[random_slope] = X_hyper[s, ] \%*\% gamma}.
 #'
 #' A main fixed effect whose name matches a random slope name (e.g. \code{age_c}
-#' alongside \code{(1 + age_c | group)}) is treated as the \emph{population
+#' alongside \code{(1 + age_c || group)}) is treated as the \emph{population
 #' mean slope} (gamma_10) and is also allowed. These are returned in
 #' \code{slope_mean_cols}; they do not change the \code{X_hyper} structure but
 #' the corresponding \code{fixef()} coefficient is the hyper-model intercept for
@@ -447,6 +497,7 @@ extract_re_hyper_matrices <- function(formula, data = NULL, ...) {
     stop("extract_re_hyper_matrices() requires exactly one grouping factor.",
          call. = FALSE)
   }
+  .lmebayes_validate_uncorrelated_re_formula(formula, data = data, ...)
 
   parsed <- lme4::lFormula(formula = formula, data = data, ...)
   group_name <- names(parsed$reTrms$flist)[1L]
@@ -470,7 +521,7 @@ extract_re_hyper_matrices <- function(formula, data = NULL, ...) {
         re_coef_names = re_coef_names
       )
       re_slope_moderation <- cross_cls$re_slope_moderation
-      # slope_mean_cols (e.g. age_c alongside (1 + age_c | group)) are the
+      # slope_mean_cols (e.g. age_c alongside (1 + age_c || group)) are the
       # population mean slopes gamma_10; they are level-2 parameters estimated
       # as fixed effects and are allowed without changing X_hyper structure.
       if (length(cross_cls$disallowed_level1_cols) > 0L) {
@@ -560,8 +611,8 @@ extract_re_hyper_matrices <- function(formula, data = NULL, ...) {
 #' returns a formula with:
 #' \itemize{
 #'   \item group-constant fixed terms only (level-2 hyper covariates);
-#'   \item the same random-effects structure as \code{formula} (\code{||} or
-#'     \code{|}), without cross-level fixed interactions.
+#'   \item the same uncorrelated random-effects structure as \code{formula}
+#'     (\code{||} notation), without cross-level fixed interactions.
 #' }
 #'
 #' @inheritParams extract_re_hyper_matrices
@@ -600,10 +651,13 @@ lmerb_default_vcov_formula <- function(formula, data = NULL, ...) {
 
   # Build random term from lFormula cnms (findbars() splits || into separate bars).
   re_terms <- ifelse(re_coef_names == "(Intercept)", "1", re_coef_names)
-  re_sep <- if (grepl("||", deparse1(formula), fixed = TRUE)) " || " else " | "
-  random_chr <- paste0(
-    "(", paste(re_terms, collapse = " + "), re_sep, group_name, ")"
-  )
+  if (length(re_coef_names) == 1L && identical(re_coef_names, "(Intercept)")) {
+    random_chr <- paste0("(1 | ", group_name, ")")
+  } else {
+    random_chr <- paste0(
+      "(", paste(re_terms, collapse = " + "), " || ", group_name, ")"
+    )
+  }
 
   stats::as.formula(paste(resp, "~", fixed_rhs, "+", random_chr))
 }

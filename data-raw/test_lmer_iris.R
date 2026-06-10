@@ -17,8 +17,7 @@ if (!requireNamespace("lme4", quietly = TRUE)) {
 
 data("iris", package = "datasets")
 
-form_lmer <- Sepal.Length ~ Sepal.Width +
-  (1 | Species) + (0 + Sepal.Width | Species)
+form_lmer <- Sepal.Length ~ Sepal.Width + (1 + Sepal.Width || Species)
 
 fit_lmer <- lme4::lmer(
   form_lmer,
@@ -26,7 +25,7 @@ fit_lmer <- lme4::lmer(
   REML = TRUE
 )
 
-cat("\n--- lmer: Sepal.Width + uncorrelated (1 | Species) + (0 + Sepal.Width | Species) ---\n")
+cat("\n--- lmer: Sepal.Width + (1 + Sepal.Width || Species) ---\n")
 print(summary(fit_lmer))
 
 cat("\nFixed effects:\n")
