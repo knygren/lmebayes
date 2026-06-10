@@ -105,25 +105,25 @@ families use \code{block_rNormalGLM} for Block~1 Gibbs updates.
 \examples{
 \dontshow{if (requireNamespace("bayesrules", quietly = TRUE)) withAutoprint(\{ # examplesIf}
 \dontshow{\}) # examplesIf}
-## glmerb: neighborhood random intercepts on bayesrules::airbnb
+## glmerb: neighborhood random intercept and slopes on bayesrules::airbnb
 ##
-## Listing-level review counts (Poisson) with neighborhood-level walkability
-## covariates (constant within neighborhood). Random intercepts capture
-## unmodeled between-neighborhood heterogeneity.
+## Poisson model for review counts with listing-level rating and log-price,
+## and neighborhood-specific intercepts and slopes for both predictors.
+## (Plain glmer exploration: data-raw/explore_airbnb_glmer_models.R.)
 ##
 ## Workflow: model_setup(), then Prior_Setup_lmebayes(), then glmerb().
 
 data(airbnb, package = "bayesrules")
 
 dat <- airbnb
+dat$rating_c <- dat$rating - mean(dat$rating)
+dat$log_price_c <- scale(log(dat$price + 1))[, 1]
 dat <- dat[complete.cases(dat[, c(
-  "reviews", "neighborhood", "walk_score", "transit_score", "bike_score"
+  "reviews", "rating", "rating_c", "price", "neighborhood"
 )]), ]
-dat$walk_c    <- dat$walk_score    - mean(dat$walk_score)
-dat$transit_c <- dat$transit_score - mean(dat$transit_score)
-dat$bike_c    <- dat$bike_score    - mean(dat$bike_score)
 
-form_glmer <- reviews ~ walk_c + transit_c + bike_c + (1 | neighborhood)
+form_glmer <- reviews ~ rating_c + log_price_c +
+  (1 + rating_c + log_price_c || neighborhood)
 
 design <- model_setup(form_glmer, data = dat, family = poisson())
 cat("\n=== model_setup ===\n\n")
@@ -159,7 +159,7 @@ print(cmp)
 
 grp_col  <- fit$model_setup$group_name
 re_names <- fit$model_setup$re_coef_names
-cat("\nNeighborhood random intercepts on log scale (first 6 levels):\n")
+cat("\nNeighborhood random effects (first 6 levels):\n")
 ri_glmer <- coef(fit$glmer)[[grp_col]][, re_names, drop = FALSE]
 ri_mode  <- fit$ranef.mode[, re_names, drop = FALSE]
 print(head(cbind(glmer = ri_glmer, glmerb = ri_mode)))

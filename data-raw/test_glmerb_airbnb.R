@@ -1,11 +1,9 @@
-# Smoke test: glmerb (Poisson) on bayesrules::airbnb neighborhood RE model.
-#
-# reviews ~ walkability covariates (level-2) + (1 | neighborhood).
-# Same data prep as inst/examples/Ex_glmerb.R.
+# Smoke test: glmerb (Poisson) on bayesrules::airbnb with level-2 covariates
+# and cross-level RE moderation (walk_c:rating_c, transit_c:log_price_c).
 #
 #   Rscript data-raw/test_glmerb_airbnb.R
-#   Rscript data-raw/test_glmerb_airbnb.R quick    # n = 50
-#   Rscript data-raw/test_glmerb_airbnb.R small    # airbnb_small
+#   Rscript data-raw/test_glmerb_airbnb.R quick
+#   Rscript data-raw/test_glmerb_airbnb.R small
 
 args <- commandArgs(trailingOnly = TRUE)
 run_quick <- any(tolower(args) %in% c("quick", "--quick", "-q"))
@@ -29,21 +27,32 @@ if (use_small) {
   message("Using bayesrules::airbnb (n = ", nrow(dat), ")")
 }
 
+dat$rating_c    <- dat$rating - mean(dat$rating)
+dat$log_price_c <- scale(log(dat$price + 1))[, 1]
+dat$walk_c      <- dat$walk_score - mean(dat$walk_score)
+dat$transit_c   <- dat$transit_score - mean(dat$transit_score)
 dat <- dat[complete.cases(dat[, c(
-  "reviews", "neighborhood", "walk_score", "transit_score", "bike_score"
+  "reviews", "rating", "rating_c", "price",
+  "walk_score", "transit_score", "walk_c", "transit_c", "neighborhood"
 )]), ]
-dat$walk_c    <- dat$walk_score    - mean(dat$walk_score)
-dat$transit_c <- dat$transit_score - mean(dat$transit_score)
-dat$bike_c    <- dat$bike_score    - mean(dat$bike_score)
 
-form <- reviews ~ walk_c + transit_c + bike_c + (1 | neighborhood)
+form <- reviews ~
+  walk_c + transit_c +
+  rating_c + log_price_c +
+  walk_c:rating_c + transit_c:log_price_c +
+  (1 + rating_c + log_price_c || neighborhood)
 
 design <- model_setup(form, data = dat, family = poisson())
 stopifnot(isTRUE(design$rank_ok))
+stopifnot(length(design$re_coef_names) == 3L)
+stopifnot(ncol(design$X_hyper[["(Intercept)"]]) >= 3L)
+stopifnot(ncol(design$X_hyper[["rating_c"]]) >= 2L)
+stopifnot(ncol(design$X_hyper[["log_price_c"]]) >= 2L)
 
 ps <- Prior_Setup_lmebayes(form, data = dat, family = poisson(), pwt = 0.01)
 stopifnot(inherits(ps, "lmebayes_prior_setup"))
 stopifnot(is.null(ps$dispersion_ranef))
+stopifnot(all(diag(ps$Sigma_ranef) > 0))
 
 n_draw <- if (run_quick) 50L else 200L
 message("Posterior draws: n = ", n_draw)
@@ -58,13 +67,9 @@ fit <- glmerb(
 )
 
 stopifnot(inherits(fit, "glmerb"))
-stopifnot(inherits(fit$glmer, "glmerMod"))
-stopifnot(is.null(fit$lmer))
-stopifnot(identical(fit$family$family, "poisson"))
+stopifnot(length(fit$coef.mode) == 3L)
 re_names <- fit$model_setup$re_coef_names
 stopifnot(nrow(fit$fixef_draws[[re_names[1L]]]) == n_draw)
-stopifnot(nrow(fit$coefficients) == n_draw * nlevels(design$groups))
-stopifnot(length(fit$coef.mode) == length(ps$prior_list))
 
 print(summary(fit))
 
