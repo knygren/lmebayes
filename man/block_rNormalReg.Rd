@@ -2,7 +2,7 @@
 % Please edit documentation in R/reexports_glmbayesCore.R
 \name{block_rNormalReg}
 \alias{block_rNormalReg}
-\title{One Gibbs block update via \code{block_rNormalReg}}
+\title{One Gibbs block update via \code{block_rNormalGLM}}
 \usage{
 block_rNormalReg(
   n,
@@ -21,27 +21,32 @@ block_rNormalReg(
 
 \item{y}{Response vector of length \code{nrow(x)}.}
 
-\item{x}{Design matrix \code{nrow(x)} by \code{ncol(x)}.}
+\item{x}{Design matrix \code{nrow(x)} by \code{ncol(x)}; same \code{ncol} in every block.}
 
-\item{block}{Block partition: \code{factor}/integer vector of length
-\code{l2}, integer counts summing to \code{l2}, or list of row-index
-vectors. See \code{\link[glmbayesCore]{normalize_block}}.}
+\item{block}{Block partition: \code{factor}/integer length \code{l2}, \code{l2_blocks}
+counts summing to \code{l2}, or list of row index vectors.}
 
-\item{prior_list}{Prior specification. Must contain \code{mu}, one of
-\code{P} or \code{Sigma}, and \code{dispersion}. \code{mu} may be an
-\code{l1 x k} matrix for block-specific prior means.}
+\item{prior_list}{Single prior specification recycled to all blocks, or with
+\code{mu} as \code{l1} by \code{k} matrix or \code{blocks} sublist.}
 
-\item{prior_lists}{Optional list of length \code{k} (or \code{1}) of
-per-block \code{prior_list} objects.}
+\item{prior_lists}{Optional list of length \code{k} (or \code{1}) of per-block
+\code{prior_list} objects.}
 
 \item{offset}{Optional numeric vector (length \code{1} or \code{length(y)});
 partitioned across blocks like \code{y}.}
 
-\item{weights}{Optional weights; same recycling as \code{offset}.}
+\item{weights}{Optional weights; same recycling and blocking as \code{offset}.}
 
 \item{Gridtype}{Passed to each block's sampler (Armadillo Gridtype).}
 }
 \value{
+A list with:
+\describe{
+\item{theta}{Vector of length \code{nrow(x)} (one draw per row/block).}
+\item{coefficients,coef.mode}{Matrices from \code{block_rNormalGLM}.}
+\item{block_rNormalGLM}{Full block sampler output.}
+}
+
 A list with:
 \describe{
 \item{b_draws}{Matrix \code{k x length(coef_cols)} of coefficient draws.}
@@ -49,35 +54,41 @@ A list with:
 \item{block_rNormalReg}{Full block sampler output.}
 }
 
-A list with class \code{"block_rNormalReg"} including:
+A list with class \code{"block_rNormalGLM"} including:
 \describe{
-\item{coefficients}{Matrix \code{k x p}; row \code{b} is the draw for block \code{b}.}
-\item{coef.mode}{Matrix \code{k x p}; posterior mode per block.}
-\item{dispersion}{Numeric vector of length \code{k}; residual dispersion per block.}
-\item{block_info}{Block partition metadata from \code{\link[glmbayesCore]{normalize_block}}.}
+\item{coefficients}{Matrix \code{k * p}; row \code{b} is the draw for block \code{b}.}
+\item{coef.mode}{Matrix \code{k * p}; posterior mode per block.}
+\item{block_info}{Block partition metadata.}
 \item{block_results}{List of length \code{k} with each block's sampler output.}
 }
+
+A list with class \code{"block_rNormalReg"} including
+\code{coefficients}, \code{coef.mode}, \code{dispersion}, and
+\code{block_info}.
 }
 \description{
+Draw a single blockwise GLM posterior sample (\code{n = 1}) and return
+latent-level draws (e.g. updated \code{theta}) for two-block Gibbs samplers
+where each observation or group is its own block with scalar (or vector)
+coefficients per block.
+
 Draw a single blockwise Gaussian posterior sample (\code{n = 1}) and
 return coefficient draws for two-block Gibbs samplers where each group
 is its own block (e.g. school-level random effects \eqn{b_j}).
 
-Draw from blockwise full conditionals for \strong{Gaussian} responses when the
-posterior factorizes across observation blocks, via
-\code{.rNormalRegBlocks_cpp()} (each block calls \code{rNormalReg}).
-This is the Gaussian counterpart of \code{\link[glmbayesCore]{block_rNormalGLM}}.
-
-Typical use is \strong{block Gibbs} (\code{n = 1} per outer iteration, updating
-the random-effects block).  \code{n > 1} yields iid draws from the product
+Draw from blockwise full conditionals when the posterior factorizes across
+observation blocks.  \code{\link[glmbayesCore]{block_rNormalReg}} uses
+\code{.rNormalRegBlocks_cpp()} (Gaussian; each block calls \code{rNormalReg}).
+\code{\link[glmbayesCore]{block_rNormalGLM}} uses \code{.rNormalGLMBlocks_cpp()} (GLM envelope;
+each block calls \code{rNormalGLM}).  Typical use is \strong{block Gibbs}
+(\code{n = 1} per outer step); \code{n > 1} gives iid draws from the product
 conditional.
 }
 \seealso{
+\code{\link[glmbayesCore]{block_rNormalGLM}}, \code{\link[glmbayesCore]{normalize_block}}
+
 \code{\link[glmbayesCore]{block_rNormalReg}}, \code{\link[glmbayesCore]{normalize_block}}
 
-\code{\link[glmbayesCore]{block_rNormalGLM}}, \code{\link[glmbayesCore]{rNormal_reg}},
-\code{\link[glmbayesCore]{normalize_block}}
-
-Other block_simfuncs: 
-\code{\link[glmbayesCore]{block_rNormalGLM_update}()}
+\code{\link[glmbayesCore]{rNormal_reg}}, \code{\link[glmbayesCore]{simfunction}},
+\code{\link[glmbayesCore]{normalize_block}}, \code{inst/DESIGN_RGLM_BLOCKS.md}
 }

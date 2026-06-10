@@ -31,6 +31,7 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
   re_names  <- object$model_setup$re_coef_names
   simulated <- !is.null(object$coefficients)
   n_draws   <- if (simulated) nrow(object$fixef_draws[[re_names[1L]]]) else NULL
+  mer_fit   <- .lmerb_reference_fit(object)
 
   fixef_parts <- stats::setNames(
     lapply(re_names, function(k) {
@@ -44,8 +45,8 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     formula       = object$formula,
     n             = n_draws,
     simulated     = simulated,
-    lmer          = object$lmer,
-    varcor        = lme4::VarCorr(object$lmer),
+    mer           = mer_fit,
+    varcor        = lme4::VarCorr(mer_fit),
     dispersion    = object$prior$dispersion_ranef,
     n_obs         = length(object$model_setup$y),
     n_groups      = nlevels(object$model_setup$groups),
@@ -207,7 +208,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   prior_sd   <- sqrt(diag(pl_k$Sigma_fixef))
 
   lmer_ref <- lapply(par, function(nm) {
-    .lmerb_lmer_fixef_lookup(object$lmer, k, nm)
+    .lmerb_lmer_fixef_lookup(.lmerb_reference_fit(object), k, nm)
   })
   lmer_est <- vapply(lmer_ref, `[[`, numeric(1), "estimate")
   lmer_se  <- vapply(lmer_ref, `[[`, numeric(1), "se")

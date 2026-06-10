@@ -5,15 +5,22 @@
 #' \code{\link{glmb}} for fixed-effects GLMs.
 #'
 #' Currently a copy of \code{\link{lmerb}} with an additional \code{family}
-#' argument. Only \code{family = gaussian()} is implemented; other families
-#' stop with an informative error until GLMM Block~1 samplers are wired in.
+#' argument. When \code{family = gaussian()}, behaviour matches
+#' \code{\link{lmerb}} except that the embedded reference fit is from
+#' \code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}. Non-Gaussian
+#' families use \code{block_rNormalGLM} for Block~1 Gibbs updates.
 #'
 #' @inheritParams lmerb
 #' @param family A \code{\link[stats]{family}} object describing the response
-#'   distribution and link. Defaults to \code{gaussian()}. When
-#'   \code{gaussian()}, behaviour matches \code{\link{lmerb}}.
+#'   distribution and link. Defaults to \code{gaussian()}.
+#' @param control Optional \code{\link[lme4]{glmerControl}} settings passed to
+#'   the reference \code{\link[lme4]{glmer}} fit. Defaults to \code{NULL}
+#'   (lme4 defaults). When \code{family = gaussian()}, lme4's \code{glmer}
+#'   shortcut to \code{lmer} does not accept an explicit \code{glmerControl};
+#'   leave \code{control = NULL} or pass \code{\link[lme4]{lmerControl}}.
 #' @return Object of class \code{"glmerb"}: same structure as \code{"lmerb"},
-#'   with an additional \code{family} component.
+#'   with additional \code{family} and \code{glmer} (reference
+#'   \code{\link[lme4]{glmer}} fit) components instead of \code{lmer}.
 #' @seealso \code{\link{lmerb}}, \code{\link[glmbayesCore]{glmerb_posterior_mode}},
 #'   \code{\link{glmb}}
 #' @examples
@@ -29,7 +36,7 @@ glmerb <- function(
     n = 1000L,
     simulate = TRUE,
     REML = TRUE,
-    control = lme4::lmerControl(),
+    control = NULL,
     start = NULL,
     verbose = 0L,
     subset,
@@ -54,13 +61,6 @@ glmerb <- function(
   }
   if (!inherits(family, "family")) {
     stop("'family' must be a family object.", call. = FALSE)
-  }
-  if (!identical(family$family, "gaussian")) {
-    stop(
-      "glmerb() is a draft: only family = gaussian() is implemented. ",
-      "Use lmerb() for the Gaussian mixed model.",
-      call. = FALSE
-    )
   }
   if (missing(measurement_prior_list) || is.null(measurement_prior_list)) {
     stop(
@@ -91,29 +91,9 @@ glmerb <- function(
   setup_args <- list(
     formula = formula,
     data = data,
-    REML = REML,
-    control = control,
-    verbose = verbose,
-    devFunOnly = devFunOnly
+    family = family,
+    fit_mer = FALSE
   )
-  if (!missing(start) && !is.null(start)) {
-    setup_args$start <- start
-  }
-  if (!missing(subset)) {
-    setup_args$subset <- subset
-  }
-  if (!missing(weights)) {
-    setup_args$weights <- weights
-  }
-  if (!missing(na.action)) {
-    setup_args$na.action <- na.action
-  }
-  if (!missing(offset)) {
-    setup_args$offset <- offset
-  }
-  if (!missing(contrasts)) {
-    setup_args$contrasts <- contrasts
-  }
 
   design <- do.call(model_setup, c(setup_args, list(...)))
   if (!inherits(design, "model_setup")) {
@@ -127,7 +107,25 @@ glmerb <- function(
     )
   }
 
-  lmer_fit <- design$lmer_fit
+  glmer_args <- c(
+    list(
+      formula = formula,
+      data = data,
+      family = family,
+      verbose = verbose
+    ),
+    if (!is.null(control)) list(control = control),
+    .lmebayes_mer_optional_args(
+      start = start,
+      subset = subset,
+      weights = weights,
+      na.action = na.action,
+      offset = offset,
+      contrasts = contrasts
+    ),
+    list(...)
+  )
+  glmer_fit <- do.call(lme4::glmer, glmer_args)
 
   if (is.null(fixef)) {
     fixef <- lapply(measurement_prior_list$prior_list, `[[`, "mu_fixef")
@@ -156,16 +154,7 @@ glmerb <- function(
   cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
               pm$converged, pm$iterations, pm$delta))
 
-  Sigma_ranef <- measurement_prior_list$Sigma_ranef
-  if (is.null(Sigma_ranef)) {
-    stop("measurement_prior_list must contain 'Sigma_ranef'.", call. = FALSE)
-  }
-  P <- solve(Sigma_ranef)
-
-  dispersion <- measurement_prior_list$dispersion_ranef
-  if (is.null(dispersion)) {
-    stop("measurement_prior_list must contain 'dispersion_ranef'.", call. = FALSE)
-  }
+  block1_prior <- .lmebayes_block1_prior_list(measurement_prior_list)
 
   if (!isTRUE(simulate)) {
     return(structure(
@@ -173,7 +162,7 @@ glmerb <- function(
         call        = cl,
         formula     = formula,
         family      = family,
-        lmer        = lmer_fit,
+        glmer       = glmer_fit,
         prior       = measurement_prior_list,
         model_setup = design,
         coef.mode   = fixef_start,
@@ -212,12 +201,13 @@ glmerb <- function(
     x                 = design$Z,
     block             = design$groups,
     x_hyper           = design$X_hyper,
-    prior_list_block1 = list(P = P, dispersion = dispersion, ddef = FALSE),
+    prior_list_block1 = block1_prior,
     prior_list_block2 = block2_prior_list,
     fixef_start       = fixef_start,
     re_coef_names     = re_names,
     group_levels      = group_levels,
     group_name        = design$group_name,
+    family            = family,
     m_convergence     = m_convergence,
     seed              = seed,
     progbar           = TRUE
@@ -228,7 +218,7 @@ glmerb <- function(
       call         = cl,
       formula      = formula,
       family       = family,
-      lmer         = lmer_fit,
+      glmer        = glmer_fit,
       prior        = measurement_prior_list,
       model_setup  = design,
       coef.mode    = fixef_start,
@@ -273,8 +263,8 @@ print.glmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   }
   cat("Formula:", deparse1(x$formula), "\n\n")
 
-  cat("Random effects (variance components fixed at lmer estimates):\n")
-  print(lme4::VarCorr(x$lmer), comp = "Std.Dev.", digits = digits)
+  cat("Random effects (variance components fixed at glmer estimates):\n")
+  print(lme4::VarCorr(x$glmer), comp = "Std.Dev.", digits = digits)
   cat(sprintf("Number of obs: %d,  groups: %s, %d\n\n", n_obs, grp, n_grp))
 
   cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")

@@ -1,10 +1,10 @@
 #' Prior setup for the two-block Gibbs lmebayes sampler
 #'
 #' Calibrates priors for the level-2 fixed effects (\code{fixef}) of a
-#' hierarchical linear mixed model using a \code{lmer} fit on the full-rank
-#' subset of groups.  Variance components are treated as fixed at their lmer
-#' estimates (Gaussian / \code{dNormal} analog).  The returned object provides
-#' all inputs needed for the two-block Gibbs sampler:
+#' hierarchical mixed model using an \code{lmer}/\code{glmer} fit on the
+#' full-rank subset of groups.  Random-effect variances are treated as fixed
+#' at their mixed-model estimates.  The returned object provides all inputs
+#' needed for the two-block Gibbs sampler:
 #'
 #' \strong{Block 1} (per-group, independent):
 #' \deqn{p(\mathbf{b}_j \mid \mathbf{y}, \mathrm{fixef}, \sigma^2, \Sigma_b)
@@ -12,6 +12,9 @@
 #' \deqn{\boldsymbol{\Sigma}_{b,j}^{*-1}
 #'       = \mathbf{Z}_j'\mathbf{Z}_j / \sigma^2
 #'         + \mathrm{diag}(1/\tau^2_k)}
+#' when \code{family = gaussian()}.  For non-Gaussian families there is no
+#' observation-level dispersion; Block~1 uses \code{dNormal} with
+#' \code{ddef = TRUE} (see \code{\link[glmbayesCore]{dNormal}}).
 #'
 #' \strong{Block 2} (per-RE coefficient \eqn{k}, independent):
 #' \deqn{p(\mathrm{fixef}_k \mid \mathbf{b}_k, \tau^2_k)
@@ -22,107 +25,41 @@
 #'         + \boldsymbol{\Sigma}_{\mathrm{fixef},k}^{-1}}
 #'
 #' @param formula Mixed-model formula passed to \code{\link{model_setup}} and
-#'   \code{\link[lme4]{lmer}}.
+#'   the full-rank reference \code{lmer}/\code{glmer} fit.
 #' @param data Data frame containing all variables in \code{formula}.
-#' @param family Model family.  Default \code{gaussian()}.  Reserved for future
-#'   extension to \code{dNormal_Gamma} and \code{dIndependent_Normal_Gamma};
-#'   only Gaussian is implemented in this version.
+#' @param family Model \code{\link[stats]{family}}.  Default \code{gaussian()}.
+#'   Non-Gaussian families use \code{\link[lme4]{glmer}} for calibration;
+#'   \code{dispersion_ranef} is omitted (analogous to
+#'   \code{\link[glmbayesCore]{Prior_Setup}} for flat GLMs).
 #' @param pwt Scalar prior weight in \eqn{(0, 1)}.  The prior covariance for
 #'   each \code{fixef_k} block is scaled by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}
-#'   relative to \code{vcov(lmer_fit)}, matching the
-#'   \code{glmbayes::compute_gaussian_prior} convention.  A small \code{pwt}
-#'   (default 0.01) gives a diffuse prior; a large \code{pwt} gives a
-#'   more informative prior centred on the lmer estimates.
+#'   relative to \code{vcov(fit_fr)}, matching the
+#'   \code{glmbayesCore::compute_gaussian_prior} convention.
 #'
 #' @return Object of class \code{"lmebayes_prior_setup"} with fields:
 #'   \describe{
 #'     \item{\code{formula}}{Model formula.}
 #'     \item{\code{family}}{Family object.}
 #'     \item{\code{pwt}}{Prior weight used.}
-#'     \item{\code{design}}{Full \code{\link{model_setup}} object (all groups).
-#'       Contains \code{re_rank}, \code{hyper_rank}, \code{rank_ok}, \code{Z},
-#'       \code{X_hyper}, etc.}
-#'     \item{\code{fit_fr}}{lmer fit on full-rank groups only.}
-#'     \item{\code{dispersion_ranef}}{Scalar \eqn{\sigma^2}: residual variance
-#'       fixed at the full-rank lmer estimate.  Used in Block 1.}
-#'     \item{\code{Sigma_ranef}}{Diagonal \eqn{p_\mathrm{re} \times
-#'       p_\mathrm{re}} matrix with \eqn{\tau^2_k} on the diagonal (one per RE
-#'       coefficient).  Used in Block 1.  Off-diagonals are zero under the
-#'       \code{||} zero-correlation structure; will become a full matrix when
-#'       correlated RE (\code{|}) are supported.}
-#'     \item{\code{prior_list}}{Named list, one entry per RE coefficient \eqn{k}
-#'       (names match \code{design$re_coef_names}), each containing:
-#'       \describe{
-#'         \item{\code{mu_fixef}}{Prior mean vector for \code{fixef_k} (length
-#'           \code{ncol(X_hyper[[k]])}).  Set from \code{fixef(fit_fr)} for every
-#'           hyper parameter; see Details.}
-#'         \item{\code{Sigma_fixef}}{Prior covariance matrix for \code{fixef_k}
-#'           (\code{ncol x ncol}).  Scaled from \code{vcov(fit_fr)} submatrix
-#'           by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.}
-#'         \item{\code{dispersion_fixef}}{\eqn{\tau^2_k} scalar (equals
-#'           \code{Sigma_ranef[k,k]}).  Used in Block 2 for the dNormal prior;
-#'           will be replaced by \code{shape}/\code{rate} for
-#'           \code{dNormal_Gamma}.}
-#'       }}
+#'     \item{\code{design}}{Full \code{\link{model_setup}} object (all groups).}
+#'     \item{\code{fit_fr}}{Reference \code{lmer}/\code{glmer} fit on full-rank
+#'       groups only.}
+#'     \item{\code{dispersion_ranef}}{Scalar \eqn{\sigma^2} for Gaussian models
+#'       only; \code{NULL} otherwise.}
+#'     \item{\code{Sigma_ranef}}{Diagonal RE covariance matrix (Block~1).}
+#'     \item{\code{prior_list}}{Named Block~2 prior list per RE coefficient.}
 #'   }
 #' @details
 #' \strong{Why default calibration depends on classical estimates.}
-#' \code{Prior_Setup_lmebayes} anchors the prior mean for each Block 2
-#' parameter vector \eqn{\mathrm{fixef}_k} at the classical \code{lmer}
-#' estimate and scales the prior covariance from \code{vcov(fit_fr)} by
-#' \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.  This data-driven approach requires
-#' the classical estimates to be well defined, which imposes two conditions on
-#' each random-effect coefficient \eqn{k}:
-#'
+#' \code{Prior_Setup_lmebayes} anchors each Block~2 mean at the classical
+#' mixed-model estimate and scales covariances from \code{vcov(fit_fr)} by
+#' \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.  This requires:
 #' \enumerate{
-#'   \item \strong{Fixed-effect requirement.}  Every column of
-#'     \code{X_hyper[[k]]} must correspond to an entry in
-#'     \code{fixef(fit_fr)}.
-#'     \itemize{
-#'       \item For the random intercept (\code{"(Intercept)"}), each level-2
-#'         covariate in the hyper model (e.g., \code{private_school},
-#'         \code{title1}) must appear as a fixed main effect in the formula.
-#'       \item For each random slope \eqn{k}, the formula must include a fixed
-#'         main effect for \eqn{k} (its population mean \eqn{\gamma_{10}}).
-#'         If cross-level moderation is specified via
-#'         \code{moderator:k} (e.g., \code{free_reduced_lunch:distracted_a1}),
-#'         that interaction term must also appear in the fixed part so that
-#'         \code{lmer} produces an estimate for it.
-#'     }
-#'     A slope that appears only in the random part---without a matching fixed
-#'     main effect---violates this requirement.  \code{lmer} can fit such
-#'     models (the slope has no fixed population mean), but the classical
-#'     \code{fixef} vector contains no value to anchor the prior, so
-#'     automatic calibration is not possible.
-#'
-#'   \item \strong{Non-singularity requirement.}  The estimated random-effect
-#'     variance \eqn{\tau^2_k} from \code{fit_fr} must be strictly positive.
-#'     \eqn{\tau^2_k} plays two roles: as the \eqn{k}-th diagonal entry of
-#'     \code{Sigma_ranef} (Block 1 prior precision on \eqn{b_j[k]}) and as
-#'     \code{dispersion_fixef} (the scale linking Block 1 and Block 2 in the
-#'     full Gibbs).  A boundary estimate (\eqn{\tau^2_k = 0}) means the
-#'     \code{lmer} fit found no evidence of group-level variation in
-#'     coefficient \eqn{k}: Block 1 would collapse to a point-mass prior, and
-#'     Block 2 would receive a degenerate likelihood.
+#'   \item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_fr)} term.
+#'   \item Each RE variance \eqn{\tau^2_k} from \code{fit_fr} is strictly positive.
 #' }
-#'
-#' \strong{Models where default calibration fails.}
-#' Both conditions encode the requirement that the classical mixed-model
-#' estimates are well defined for the specified formula.  When either fails,
-#' \code{Prior_Setup_lmebayes()} stops with a diagnostic message explaining
-#' which coefficients are problematic.  The usual remedies are to revise the
-#' formula (add the missing fixed main effect; remove or reparameterise an RE
-#' term with zero estimated variance).
-#'
-#' Such models can still be fitted with \code{\link{lmerb}}, but the user
-#' must supply the measurement prior directly, without calling
-#' \code{Prior_Setup_lmebayes}.  The user-constructed object must contain
-#' \code{dispersion_ranef}, \code{Sigma_ranef}, and a \code{prior_list} (named
-#' by \code{re_coef_names}, each element providing \code{mu_fixef},
-#' \code{Sigma_fixef}, and \code{dispersion_fixef}) based on substantive
-#' knowledge or an alternative calibration strategy, and must be passed as
-#' \code{measurement_prior_list} to \code{\link{lmerb}}.
-#' @seealso \code{\link{model_setup}}, \code{\link{build_mu_all}},
+#' @seealso \code{\link{model_setup}}, \code{\link[glmbayesCore]{Prior_Setup}},
+#'   \code{\link[glmbayesCore]{build_mu_all}},
 #'   \code{\link{print.lmebayes_prior_setup}}
 #' @export
 Prior_Setup_lmebayes <- function(formula,
@@ -140,54 +77,55 @@ Prior_Setup_lmebayes <- function(formula,
     stop("'pwt' must be a scalar in (0, 1).", call. = FALSE)
   }
   if (is.character(family)) {
-    family <- get(family, mode = "function", envir = parent.frame())()
+    family <- get(family, mode = "function", envir = parent.frame())
   }
   if (is.function(family)) {
     family <- family()
   }
-  if (!identical(family$family, "gaussian")) {
-    stop("Only Gaussian family is implemented in this version.", call. = FALSE)
+  if (!inherits(family, "family") || is.null(family$family)) {
+    stop("'family' must be a family object.", call. = FALSE)
   }
 
-  ctrl <- lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+  is_gaussian <- identical(family$family, "gaussian")
+  mer_label   <- if (is_gaussian) "lmer" else "glmer"
 
-  # ------------------------------------------------------------------
-  # Step 1: model_setup on full data -- populates re_rank, X_hyper, Z
-  # ------------------------------------------------------------------
-  design <- model_setup(formula, data = data, control = ctrl)
+  if (is_gaussian) {
+    ctrl <- lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+  } else {
+    # Explicit glmerControl() can crash some lme4 builds; let glmer defaults apply.
+    ctrl <- NULL
+  }
 
-  # ------------------------------------------------------------------
-  # Step 2: refit lmer on full-rank groups only
-  # ------------------------------------------------------------------
+  design <- model_setup(
+    formula = formula,
+    data = data,
+    family = family,
+    control = if (is_gaussian) ctrl else lme4::lmerControl()
+  )
+
   fr_levs  <- names(design$re_rank)[design$re_rank]
   grp_col  <- design$group_name
   grp_vals <- as.character(data[[grp_col]])
   data_fr  <- data[grp_vals %in% fr_levs, , drop = FALSE]
   data_fr[[grp_col]] <- droplevels(factor(data_fr[[grp_col]]))
 
-  fit_fr <- lme4::lmer(formula, data = data_fr, control = ctrl)
+  fit_fr <- if (is_gaussian) {
+    lme4::lmer(formula, data = data_fr, control = ctrl)
+  } else {
+    lme4::glmer(formula, data = data_fr, family = family)
+  }
 
-  # ------------------------------------------------------------------
-  # Step 3: variance components from the full-rank fit (treated as fixed)
-  # ------------------------------------------------------------------
-  vc_fr            <- extract_lmer_variance_components(fit_fr, design$re_coef_names)
-  dispersion_ranef <- vc_fr$residual_var    # sigma2  (scalar)
-  tau2_vec         <- vc_fr$vcov_re         # named numeric vector, one per RE
+  vc_fr <- extract_mer_variance_components(fit_fr, design$re_coef_names)
+  dispersion_ranef <- if (is_gaussian) vc_fr$residual_var else NULL
+  tau2_vec         <- vc_fr$vcov_re
 
-  # Sigma_ranef: diagonal p_re x p_re matrix with tau2_k on the diagonal.
-  # Off-diagonal elements are zero (|| zero-correlation structure).
-  # When extended to full | correlated RE, this becomes a full covariance matrix.
   p_re        <- length(design$re_coef_names)
   Sigma_ranef <- diag(unname(tau2_vec), nrow = p_re, ncol = p_re)
   dimnames(Sigma_ranef) <- list(design$re_coef_names, design$re_coef_names)
 
-  # ------------------------------------------------------------------
-  # Step 4: fixed effects and their vcov from the full-rank fit
-  # ------------------------------------------------------------------
   fe   <- lme4::fixef(fit_fr)
   V_fe <- as.matrix(stats::vcov(fit_fr))
 
-  # Helper: map one X_hyper column name to its lmer fixef name given RE k
   fe_name_for <- function(k, col) {
     if (k == "(Intercept)") {
       if (col %in% names(fe)) col else NA_character_
@@ -200,9 +138,6 @@ Prior_Setup_lmebayes <- function(formula,
     }
   }
 
-  # ------------------------------------------------------------------
-  # Step 4b: calibration checks (each RE needs fixef + positive tau^2)
-  # ------------------------------------------------------------------
   re_names  <- design$re_coef_names
   tau_tol   <- sqrt(.Machine$double.eps)
   re_issues <- character(0)
@@ -214,18 +149,15 @@ Prior_Setup_lmebayes <- function(formula,
     miss_idx <- is.na(fe_nms) | !fe_nms %in% names(fe)
 
     if (any(miss_idx)) {
-      miss_idx <- is.na(fe_nms) | !fe_nms %in% names(fe)
       if (k != "(Intercept)" &&
           length(cols_k) == 1L &&
           identical(cols_k, "(Intercept)")) {
-        # Hyper ~ 1 for a random slope: the missing piece is fixef[k], not
-        # a literal (Intercept) fixed effect.
         re_issues <- c(
           re_issues,
           sprintf(
             paste0(
-              "%s: random slope has no fixed main effect in lmer ",
-              "(add '%s' to the fixed part of the formula)"
+              "%s: random slope has no fixed main effect in ", mer_label,
+              " (add '%s' to the fixed part of the formula)"
             ),
             k, k
           )
@@ -244,8 +176,8 @@ Prior_Setup_lmebayes <- function(formula,
         re_issues <- c(
           re_issues,
           sprintf(
-            "%s: no lmer fixed effect for %s",
-            k,
+            "%s: no %s fixed effect for %s",
+            k, mer_label,
             paste(expected_fe[miss_idx], collapse = ", ")
           )
         )
@@ -259,7 +191,7 @@ Prior_Setup_lmebayes <- function(formula,
         sprintf(
           paste0(
             "%s: random-effect variance is zero or on the boundary ",
-            "(singular fit); school-level variation is not identified"
+            "(singular fit); group-level variation is not identified"
           ),
           k
         )
@@ -278,17 +210,10 @@ Prior_Setup_lmebayes <- function(formula,
     )
   }
 
-  # ------------------------------------------------------------------
-  # Step 5: build prior_list for each RE k
-  # ------------------------------------------------------------------
-
-  # Scaling: (1-pwt)/pwt matches glmbayes::compute_gaussian_prior which uses
-  # Sigma = (n_eff/n_prior) * dispersion * (X'X)^{-1} and n_eff/n_prior = (1-pwt)/pwt
   scale <- (1 - pwt) / pwt
 
   prior_list <- stats::setNames(
     lapply(re_names, function(k) {
-
       X_k    <- design$X_hyper[[k]]
       cols_k <- colnames(X_k)
       p_k    <- length(cols_k)
@@ -341,12 +266,19 @@ print.lmebayes_prior_setup <- function(x, digits = 4L, ...) {
   re_names <- x$design$re_coef_names
   n_fr     <- sum(x$design$re_rank)
   n_all    <- nlevels(x$design$groups)
-  w        <- max(nchar(re_names))
 
   cat("Call: Prior_Setup_lmebayes()\n\n")
+  cat(sprintf("  family           : %s (%s link)\n",
+              x$family$family, x$family$link))
   cat(sprintf("  pwt              : %.4g\n", x$pwt))
-  cat(sprintf("  dispersion_ranef : %.4f  (sigma2, fixed from %d full-rank %s)\n",
-              x$dispersion_ranef, n_fr, x$design$group_name))
+  if (!is.null(x$dispersion_ranef)) {
+    cat(sprintf(
+      "  dispersion_ranef : %.4f  (sigma2, fixed from %d full-rank %s)\n",
+      x$dispersion_ranef, n_fr, x$design$group_name
+    ))
+  } else {
+    cat("  dispersion_ranef : NULL  (no observation-level dispersion)\n")
+  }
   cat(sprintf("  Full-rank groups : %d of %d %s\n\n",
               n_fr, n_all, x$design$group_name))
 
@@ -362,7 +294,7 @@ print.lmebayes_prior_setup <- function(x, digits = 4L, ...) {
     cat("  Sigma_fixef:\n")
     print(round(pl$Sigma_fixef, digits))
     cat(sprintf(
-      "  dispersion_fixef: %.4f  (dNormal; replaced by shape/rate for dNormal_Gamma)\n",
+      "  dispersion_fixef: %.4f  (RE variance tau^2_k; Block 2 scale)\n",
       pl$dispersion_fixef))
   }
 

@@ -1,10 +1,11 @@
-#' Bayesian mixed model setup (single-factor \code{lmer} gate)
+#' Bayesian mixed model setup (single-factor \code{lmer}/\code{glmer} gate)
 #'
-#' Wrapper around \code{\link[lme4]{lmer}} for models with exactly one
-#' grouping factor. Design matrices come from \code{formula} (including
-#' cross-level RE moderation terms). Variance components use \code{vcov_formula}
-#' (defaults to \code{\link{lmerb_default_vcov_formula}}): level-2 fixed only,
-#' same \code{||} or \code{|} random structure as \code{formula}, without
+#' Wrapper around \code{\link[lme4]{lmer}} or \code{\link[lme4]{glmer}} for
+#' models with exactly one grouping factor. Design matrices come from
+#' \code{formula} (including cross-level RE moderation terms). Variance
+#' components use \code{vcov_formula} (defaults to
+#' \code{\link{lmerb_default_vcov_formula}}): level-2 fixed only, same
+#' \code{||} or \code{|} random structure as \code{formula}, without
 #' cross-level fixed interactions (so RE moderation is not double-coded).
 #'
 #' @details
@@ -59,22 +60,34 @@
 #' \pkg{bayesrules} (see \code{?bayesrules::big_word_club}) and the same
 #' formula as \code{\link{lmerb}} in \file{inst/examples/Ex_lmerb.R}.
 #'
-#' @param formula Mixed-model formula for design extraction and \code{lmer_fit}
-#'   (fixed effects / hyper calibration).
-#' @param vcov_formula Optional formula for the \code{lmer} fit used to extract
+#' @param formula Mixed-model formula for design extraction and the reference
+#'   \code{lmer}/\code{glmer} fit (fixed effects / hyper calibration).
+#' @param vcov_formula Optional formula for the reference fit used to extract
 #'   \code{vcov_re}. Defaults to \code{\link{lmerb_default_vcov_formula}(formula)}.
 #' @param data Optional data frame.
-#' @param REML Logical; passed to \code{\link[lme4]{lmer}}.
-#' @param control \code{\link[lme4]{lmerControl}} settings.
+#' @param family A \code{\link[stats]{family}} object. Defaults to
+#'   \code{gaussian()}, in which case \code{\link[lme4]{lmer}} is used.
+#'   Non-Gaussian families use \code{\link[lme4]{glmer}}.
+#' @param REML Logical; passed to \code{\link[lme4]{lmer}} when
+#'   \code{family = gaussian()}.
+#' @param control \code{\link[lme4]{lmerControl}} when \code{family = gaussian()},
+#'   otherwise \code{\link[lme4]{glmerControl}}; passed through to the reference
+#'   fit when \code{fit_mer = TRUE}.
+#' @param fit_mer If \code{TRUE} (default), fit reference \code{lmer}/\code{glmer}
+#'   models and extract variance components. If \code{FALSE}, return design
+#'   matrices and rank diagnostics only (used by \code{\link{glmerb}}).
 #' @param start Optional starting values for the inner optimization.
 #' @param verbose Passed to \code{\link[lme4]{lmer}}.
 #' @param subset,weights,na.action,offset,contrasts Passed to
 #'   \code{\link[lme4]{lmer}}.
-#' @param devFunOnly If \code{TRUE}, return the deviance function only.
-#' @param ... Passed to design extraction and \code{\link[lme4]{lmer}}.
+#' @param devFunOnly If \code{TRUE}, return the deviance function only (Gaussian
+#'   \code{lmer} fits only).
+#' @param ... Passed to design extraction and, when \code{fit_mer = TRUE}, to the
+#'   reference \code{lmer}/\code{glmer} fit.
 #' @return Object of class \code{"model_setup"}: \code{y}, \code{Z},
-#'   \code{groups}, \code{X_hyper}, \code{formula}, \code{vcov_formula},
-#'   \code{lmer_fit} (full formula), \code{lmer_vcov_fit}, \code{varcorr},
+#'   \code{groups}, \code{X_hyper}, \code{formula}, \code{family},
+#'   \code{vcov_formula}, \code{lmer_fit} / \code{glmer_fit} (full formula),
+#'   matching \code{lmer_vcov_fit} / \code{glmer_vcov_fit}, \code{varcorr},
 #'   \code{vcov_re}, \code{residual_var}, and \code{re_rank} (named logical
 #'   vector: \code{TRUE} if \code{Z_j} is full column rank for that group).
 #' @seealso \code{\link{extract_re_hyper_matrices}},
@@ -87,6 +100,7 @@ model_setup <- function(
     formula,
     data = NULL,
     vcov_formula = NULL,
+    family = gaussian(),
     REML = TRUE,
     control = lme4::lmerControl(),
     start = NULL,
@@ -97,12 +111,17 @@ model_setup <- function(
     offset,
     contrasts = NULL,
     devFunOnly = FALSE,
+    fit_mer = TRUE,
     ...
 ) {
   cl <- match.call()
+  family <- .lmebayes_normalize_family(family)
+  is_gaussian <- identical(family$family, "gaussian")
+
   design <- extract_re_hyper_matrices(formula = formula, data = data, ...)
   design$call    <- cl
   design$formula <- formula
+  design$family  <- family
 
   if (is.null(vcov_formula)) {
     vcov_formula <- lmerb_default_vcov_formula(
@@ -113,51 +132,67 @@ model_setup <- function(
   }
   design$vcov_formula <- vcov_formula
 
-  lmer_args <- list(
-    data = data,
-    REML = REML,
-    control = control,
-    verbose = verbose,
-    devFunOnly = devFunOnly
-  )
-  if (!missing(start) && !is.null(start)) {
-    lmer_args$start <- start
-  }
-  if (!missing(subset)) {
-    lmer_args$subset <- subset
-  }
-  if (!missing(weights)) {
-    lmer_args$weights <- weights
-  }
-  if (!missing(na.action)) {
-    lmer_args$na.action <- na.action
-  }
-  if (!missing(offset)) {
-    lmer_args$offset <- offset
-  }
-  if (!missing(contrasts)) {
-    lmer_args$contrasts <- contrasts
-  }
-
-  fit_full <- do.call(lme4::lmer, c(lmer_args, list(formula = formula), list(...)))
-  fit_vcov <- do.call(
-    lme4::lmer,
-    c(lmer_args, list(formula = vcov_formula), list(...))
-  )
-
-  if (lme4::isSingular(fit_vcov)) {
-    message(
-      "lmer vcov fit is singular -- check VarCorr; ",
-      "RE variances may be on boundary."
+  if (isTRUE(fit_mer)) {
+    mer_args <- c(
+      list(
+        data = data,
+        control = control,
+        verbose = verbose
+      ),
+      .lmebayes_mer_optional_args(
+        start = start,
+        subset = subset,
+        weights = weights,
+        na.action = na.action,
+        offset = offset,
+        contrasts = contrasts
+      ),
+      list(...)
     )
-  }
 
-  vc <- extract_lmer_variance_components(fit_vcov, design$re_coef_names)
-  design$lmer_fit <- fit_full
-  design$lmer_vcov_fit <- fit_vcov
-  design$varcorr <- vc$varcorr
-  design$vcov_re <- vc$vcov_re
-  design$residual_var <- vc$residual_var
+    if (is_gaussian) {
+      fit_full <- do.call(
+        lme4::lmer,
+        c(list(formula = formula, REML = REML, devFunOnly = devFunOnly), mer_args)
+      )
+      fit_vcov <- do.call(
+        lme4::lmer,
+        c(list(formula = vcov_formula, REML = REML, devFunOnly = devFunOnly), mer_args)
+      )
+    } else {
+      fit_full <- do.call(
+        lme4::glmer,
+        c(list(formula = formula, family = family), mer_args)
+      )
+      fit_vcov <- do.call(
+        lme4::glmer,
+        c(list(formula = vcov_formula, family = family), mer_args)
+      )
+    }
+
+    if (lme4::isSingular(fit_vcov)) {
+      message(
+        if (is_gaussian) "lmer" else "glmer",
+        " vcov fit is singular -- check VarCorr; ",
+        "RE variances may be on boundary."
+      )
+    }
+
+    vc <- extract_mer_variance_components(
+      fit_vcov,
+      design$re_coef_names
+    )
+    if (is_gaussian) {
+      design$lmer_fit <- fit_full
+      design$lmer_vcov_fit <- fit_vcov
+    } else {
+      design$glmer_fit <- fit_full
+      design$glmer_vcov_fit <- fit_vcov
+    }
+    design$varcorr <- vc$varcorr
+    design$vcov_re <- vc$vcov_re
+    design$residual_var <- vc$residual_var
+  }
 
   # Per-group rank check: is Z_j full column rank for each factor level?
   p_re  <- ncol(design$Z)
@@ -204,6 +239,51 @@ model_setup <- function(
   design$rank_ok <- all(design$hyper_rank)
 
   design
+}
+
+#' @noRd
+.lmebayes_normalize_family <- function(family) {
+  if (is.character(family)) {
+    family <- get(family, mode = "function", envir = parent.frame())
+  }
+  if (is.function(family)) {
+    family <- family()
+  }
+  if (!inherits(family, "family") || is.null(family$family)) {
+    stop("'family' must be a family object.", call. = FALSE)
+  }
+  family
+}
+
+#' @noRd
+.lmebayes_mer_optional_args <- function(
+    start,
+    subset,
+    weights,
+    na.action,
+    offset,
+    contrasts
+) {
+  args <- list()
+  if (!missing(start) && !is.null(start)) {
+    args$start <- start
+  }
+  if (!missing(subset)) {
+    args$subset <- subset
+  }
+  if (!missing(weights)) {
+    args$weights <- weights
+  }
+  if (!missing(na.action)) {
+    args$na.action <- na.action
+  }
+  if (!missing(offset)) {
+    args$offset <- offset
+  }
+  if (!missing(contrasts)) {
+    args$contrasts <- contrasts
+  }
+  args
 }
 
 #' @export

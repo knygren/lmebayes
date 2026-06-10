@@ -615,13 +615,24 @@ lmerb_default_vcov_formula <- function(formula, data = NULL, ...) {
 #'
 #' @param fit Object of class \code{"lmerMod"} from \code{\link[lme4]{lmer}}.
 #' @param re_coef_names Random coefficient names (as in \code{reTrms$cnms}).
-#' @return List with \code{varcorr} (\code{data.frame} from
-#'   \code{as.data.frame(VarCorr(fit))}), \code{vcov_re} (named variances per
-#'   \code{re_coef_names}), and \code{residual_var}.
+#' @return List with \code{varcorr}, \code{vcov_re}, and \code{residual_var}.
 #' @export
 extract_lmer_variance_components <- function(fit, re_coef_names) {
   if (!inherits(fit, "lmerMod")) {
     stop("fit must be an lmerMod object.", call. = FALSE)
+  }
+  extract_mer_variance_components(fit, re_coef_names)
+}
+
+#' Extract variance components from an \code{lmer} or \code{glmer} fit
+#'
+#' @param fit Object of class \code{"merMod"}.
+#' @param re_coef_names Random coefficient names (as in \code{reTrms$cnms}).
+#' @return List with \code{varcorr}, \code{vcov_re}, and \code{residual_var}.
+#' @keywords internal
+extract_mer_variance_components <- function(fit, re_coef_names) {
+  if (!inherits(fit, "merMod")) {
+    stop("fit must be an merMod object.", call. = FALSE)
   }
 
   vc_df <- as.data.frame(lme4::VarCorr(fit), stringsAsFactors = FALSE)
@@ -648,10 +659,12 @@ extract_lmer_variance_components <- function(fit, re_coef_names) {
   }
 
   residual_var <- vc_df$vcov[vc_df$grp == "Residual"]
-  if (length(residual_var) < 1L) {
+  if (length(residual_var) >= 1L) {
+    residual_var <- unname(residual_var[1L])
+  } else if (inherits(fit, "lmerMod")) {
     residual_var <- lme4::getME(fit, "sigma")^2
   } else {
-    residual_var <- residual_var[1L]
+    residual_var <- NA_real_
   }
 
   list(
@@ -659,6 +672,36 @@ extract_lmer_variance_components <- function(fit, re_coef_names) {
     vcov_re = vcov_re,
     residual_var = unname(residual_var)
   )
+}
+
+#' Reference \code{lmer}/\code{glmer} fit embedded in an \code{lmerb}/\code{glmerb} object
+#' @keywords internal
+.lmerb_reference_fit <- function(object) {
+  if (inherits(object, "glmerb")) {
+    if (is.null(object$glmer)) {
+      stop("glmerb fit is missing component 'glmer'.", call. = FALSE)
+    }
+    return(object$glmer)
+  }
+  if (is.null(object$lmer)) {
+    stop("lmerb fit is missing component 'lmer'.", call. = FALSE)
+  }
+  object$lmer
+}
+
+#' Build Block~1 prior list from a \code{lmebayes_prior_setup} object
+#' @keywords internal
+.lmebayes_block1_prior_list <- function(measurement_prior_list) {
+  if (is.null(measurement_prior_list$Sigma_ranef)) {
+    stop("measurement_prior_list must contain 'Sigma_ranef'.", call. = FALSE)
+  }
+  P <- solve(measurement_prior_list$Sigma_ranef)
+  dispersion <- measurement_prior_list$dispersion_ranef
+  if (is.null(dispersion)) {
+    list(P = P, ddef = TRUE)
+  } else {
+    list(P = P, dispersion = dispersion, ddef = FALSE)
+  }
 }
 
 #' Restructure \code{lme4} sparse \code{Z} to per-observation RE loadings

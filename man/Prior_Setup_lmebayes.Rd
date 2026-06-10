@@ -8,20 +8,19 @@ Prior_Setup_lmebayes(formula, data, family = gaussian(), pwt = 0.01)
 }
 \arguments{
 \item{formula}{Mixed-model formula passed to \code{\link{model_setup}} and
-\code{\link[lme4]{lmer}}.}
+the full-rank reference \code{lmer}/\code{glmer} fit.}
 
 \item{data}{Data frame containing all variables in \code{formula}.}
 
-\item{family}{Model family.  Default \code{gaussian()}.  Reserved for future
-extension to \code{dNormal_Gamma} and \code{dIndependent_Normal_Gamma};
-only Gaussian is implemented in this version.}
+\item{family}{Model \code{\link[stats]{family}}.  Default \code{gaussian()}.
+Non-Gaussian families use \code{\link[lme4]{glmer}} for calibration;
+\code{dispersion_ranef} is omitted (analogous to
+\code{\link[glmbayesCore]{Prior_Setup}} for flat GLMs).}
 
 \item{pwt}{Scalar prior weight in \eqn{(0, 1)}.  The prior covariance for
 each \code{fixef_k} block is scaled by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}
-relative to \code{vcov(lmer_fit)}, matching the
-\code{glmbayes::compute_gaussian_prior} convention.  A small \code{pwt}
-(default 0.01) gives a diffuse prior; a large \code{pwt} gives a
-more informative prior centred on the lmer estimates.}
+relative to \code{vcov(fit_fr)}, matching the
+\code{glmbayesCore::compute_gaussian_prior} convention.}
 }
 \value{
 Object of class \code{"lmebayes_prior_setup"} with fields:
@@ -29,39 +28,21 @@ Object of class \code{"lmebayes_prior_setup"} with fields:
 \item{\code{formula}}{Model formula.}
 \item{\code{family}}{Family object.}
 \item{\code{pwt}}{Prior weight used.}
-\item{\code{design}}{Full \code{\link{model_setup}} object (all groups).
-Contains \code{re_rank}, \code{hyper_rank}, \code{rank_ok}, \code{Z},
-\code{X_hyper}, etc.}
-\item{\code{fit_fr}}{lmer fit on full-rank groups only.}
-\item{\code{dispersion_ranef}}{Scalar \eqn{\sigma^2}: residual variance
-fixed at the full-rank lmer estimate.  Used in Block 1.}
-\item{\code{Sigma_ranef}}{Diagonal \eqn{p_\mathrm{re} \times
-      p_\mathrm{re}} matrix with \eqn{\tau^2_k} on the diagonal (one per RE
-coefficient).  Used in Block 1.  Off-diagonals are zero under the
-\code{||} zero-correlation structure; will become a full matrix when
-correlated RE (\code{|}) are supported.}
-\item{\code{prior_list}}{Named list, one entry per RE coefficient \eqn{k}
-(names match \code{design$re_coef_names}), each containing:
-\describe{
-\item{\code{mu_fixef}}{Prior mean vector for \code{fixef_k} (length
-\code{ncol(X_hyper[[k]])}).  Set from \code{fixef(fit_fr)} for every
-hyper parameter; see Details.}
-\item{\code{Sigma_fixef}}{Prior covariance matrix for \code{fixef_k}
-(\code{ncol x ncol}).  Scaled from \code{vcov(fit_fr)} submatrix
-by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.}
-\item{\code{dispersion_fixef}}{\eqn{\tau^2_k} scalar (equals
-\code{Sigma_ranef[k,k]}).  Used in Block 2 for the dNormal prior;
-will be replaced by \code{shape}/\code{rate} for
-\code{dNormal_Gamma}.}
-}}
+\item{\code{design}}{Full \code{\link{model_setup}} object (all groups).}
+\item{\code{fit_fr}}{Reference \code{lmer}/\code{glmer} fit on full-rank
+groups only.}
+\item{\code{dispersion_ranef}}{Scalar \eqn{\sigma^2} for Gaussian models
+only; \code{NULL} otherwise.}
+\item{\code{Sigma_ranef}}{Diagonal RE covariance matrix (Block~1).}
+\item{\code{prior_list}}{Named Block~2 prior list per RE coefficient.}
 }
 }
 \description{
 Calibrates priors for the level-2 fixed effects (\code{fixef}) of a
-hierarchical linear mixed model using a \code{lmer} fit on the full-rank
-subset of groups.  Variance components are treated as fixed at their lmer
-estimates (Gaussian / \code{dNormal} analog).  The returned object provides
-all inputs needed for the two-block Gibbs sampler:
+hierarchical mixed model using an \code{lmer}/\code{glmer} fit on the
+full-rank subset of groups.  Random-effect variances are treated as fixed
+at their mixed-model estimates.  The returned object provides all inputs
+needed for the two-block Gibbs sampler:
 }
 \details{
 \strong{Block 1} (per-group, independent):
@@ -70,6 +51,9 @@ all inputs needed for the two-block Gibbs sampler:
 \deqn{\boldsymbol{\Sigma}_{b,j}^{*-1}
       = \mathbf{Z}_j'\mathbf{Z}_j / \sigma^2
         + \mathrm{diag}(1/\tau^2_k)}
+when \code{family = gaussian()}.  For non-Gaussian families there is no
+observation-level dispersion; Block~1 uses \code{dNormal} with
+\code{ddef = TRUE} (see \code{\link[glmbayesCore]{dNormal}}).
 
 \strong{Block 2} (per-RE coefficient \eqn{k}, independent):
 \deqn{p(\mathrm{fixef}_k \mid \mathbf{b}_k, \tau^2_k)
@@ -80,63 +64,16 @@ all inputs needed for the two-block Gibbs sampler:
         + \boldsymbol{\Sigma}_{\mathrm{fixef},k}^{-1}}
 
 \strong{Why default calibration depends on classical estimates.}
-\code{Prior_Setup_lmebayes} anchors the prior mean for each Block 2
-parameter vector \eqn{\mathrm{fixef}_k} at the classical \code{lmer}
-estimate and scales the prior covariance from \code{vcov(fit_fr)} by
-\eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.  This data-driven approach requires
-the classical estimates to be well defined, which imposes two conditions on
-each random-effect coefficient \eqn{k}:
-
+\code{Prior_Setup_lmebayes} anchors each Block~2 mean at the classical
+mixed-model estimate and scales covariances from \code{vcov(fit_fr)} by
+\eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.  This requires:
 \enumerate{
-\item \strong{Fixed-effect requirement.}  Every column of
-\code{X_hyper[[k]]} must correspond to an entry in
-\code{fixef(fit_fr)}.
-\itemize{
-\item For the random intercept (\code{"(Intercept)"}), each level-2
-covariate in the hyper model (e.g., \code{private_school},
-\code{title1}) must appear as a fixed main effect in the formula.
-\item For each random slope \eqn{k}, the formula must include a fixed
-main effect for \eqn{k} (its population mean \eqn{\gamma_{10}}).
-If cross-level moderation is specified via
-\code{moderator:k} (e.g., \code{free_reduced_lunch:distracted_a1}),
-that interaction term must also appear in the fixed part so that
-\code{lmer} produces an estimate for it.
+\item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_fr)} term.
+\item Each RE variance \eqn{\tau^2_k} from \code{fit_fr} is strictly positive.
 }
-A slope that appears only in the random part---without a matching fixed
-main effect---violates this requirement.  \code{lmer} can fit such
-models (the slope has no fixed population mean), but the classical
-\code{fixef} vector contains no value to anchor the prior, so
-automatic calibration is not possible.
-
-\item \strong{Non-singularity requirement.}  The estimated random-effect
-variance \eqn{\tau^2_k} from \code{fit_fr} must be strictly positive.
-\eqn{\tau^2_k} plays two roles: as the \eqn{k}-th diagonal entry of
-\code{Sigma_ranef} (Block 1 prior precision on \eqn{b_j[k]}) and as
-\code{dispersion_fixef} (the scale linking Block 1 and Block 2 in the
-full Gibbs).  A boundary estimate (\eqn{\tau^2_k = 0}) means the
-\code{lmer} fit found no evidence of group-level variation in
-coefficient \eqn{k}: Block 1 would collapse to a point-mass prior, and
-Block 2 would receive a degenerate likelihood.
-}
-
-\strong{Models where default calibration fails.}
-Both conditions encode the requirement that the classical mixed-model
-estimates are well defined for the specified formula.  When either fails,
-\code{Prior_Setup_lmebayes()} stops with a diagnostic message explaining
-which coefficients are problematic.  The usual remedies are to revise the
-formula (add the missing fixed main effect; remove or reparameterise an RE
-term with zero estimated variance).
-
-Such models can still be fitted with \code{\link{lmerb}}, but the user
-must supply the measurement prior directly, without calling
-\code{Prior_Setup_lmebayes}.  The user-constructed object must contain
-\code{dispersion_ranef}, \code{Sigma_ranef}, and a \code{prior_list} (named
-by \code{re_coef_names}, each element providing \code{mu_fixef},
-\code{Sigma_fixef}, and \code{dispersion_fixef}) based on substantive
-knowledge or an alternative calibration strategy, and must be passed as
-\code{measurement_prior_list} to \code{\link{lmerb}}.
 }
 \seealso{
-\code{\link{model_setup}}, \code{\link{build_mu_all}},
+\code{\link{model_setup}}, \code{\link[glmbayesCore]{Prior_Setup}},
+\code{\link[glmbayesCore]{build_mu_all}},
 \code{\link{print.lmebayes_prior_setup}}
 }

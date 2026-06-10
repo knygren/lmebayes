@@ -260,16 +260,13 @@ lmerb <- function(
   cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
               pm$converged, pm$iterations, pm$delta))
 
-  Sigma_ranef <- measurement_prior_list$Sigma_ranef
-  if (is.null(Sigma_ranef)) {
-    stop("measurement_prior_list must contain 'Sigma_ranef'.", call. = FALSE)
+  if (is.null(measurement_prior_list$dispersion_ranef)) {
+    stop(
+      "'measurement_prior_list' must contain 'dispersion_ranef' for lmerb().",
+      call. = FALSE
+    )
   }
-  P <- solve(Sigma_ranef)
-
-  dispersion <- measurement_prior_list$dispersion_ranef
-  if (is.null(dispersion)) {
-    stop("measurement_prior_list must contain 'dispersion_ranef'.", call. = FALSE)
-  }
+  block1_prior <- .lmebayes_block1_prior_list(measurement_prior_list)
 
   # When simulate=FALSE return only the ICM posterior means immediately.
   if (!isTRUE(simulate)) {
@@ -325,12 +322,13 @@ lmerb <- function(
     x                 = design$Z,
     block             = design$groups,
     x_hyper           = design$X_hyper,
-    prior_list_block1 = list(P = P, dispersion = dispersion, ddef = FALSE),
+    prior_list_block1 = block1_prior,
     prior_list_block2 = block2_prior_list,
     fixef_start       = fixef_start,
     re_coef_names     = re_names,
     group_levels      = group_levels,
     group_name        = design$group_name,
+    family            = gaussian(),
     m_convergence     = m_convergence,
     seed              = seed,
     progbar           = TRUE

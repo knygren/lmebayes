@@ -12,7 +12,7 @@ glmerb(
   n = 1000L,
   simulate = TRUE,
   REML = TRUE,
-  control = lme4::lmerControl(),
+  control = NULL,
   start = NULL,
   verbose = 0L,
   subset,
@@ -34,8 +34,7 @@ as \code{\link{model_setup}}). Must match
 \item{data}{Data frame containing all variables in \code{formula}.}
 
 \item{family}{A \code{\link[stats]{family}} object describing the response
-distribution and link. Defaults to \code{gaussian()}. When
-\code{gaussian()}, behaviour matches \code{\link{lmerb}}.}
+distribution and link. Defaults to \code{gaussian()}.}
 
 \item{measurement_prior_list}{Required object from
 \code{\link{Prior_Setup_lmebayes}}. Supplies \code{dispersion_ranef},
@@ -56,7 +55,11 @@ returned immediately without any sampling.  Simulation-only fields
 
 \item{REML}{Logical; passed to \code{\link{model_setup}}.}
 
-\item{control}{\code{\link[lme4]{lmerControl}} settings; passed to \code{model_setup}.}
+\item{control}{Optional \code{\link[lme4]{glmerControl}} settings passed to
+the reference \code{\link[lme4]{glmer}} fit. Defaults to \code{NULL}
+(lme4 defaults). When \code{family = gaussian()}, lme4's \code{glmer}
+shortcut to \code{lmer} does not accept an explicit \code{glmerControl};
+leave \code{control = NULL} or pass \code{\link[lme4]{lmerControl}}.}
 
 \item{start}{Optional starting values; passed to \code{model_setup}.}
 
@@ -84,7 +87,8 @@ When \code{NULL} (default), iter-0 means are taken from
 }
 \value{
 Object of class \code{"glmerb"}: same structure as \code{"lmerb"},
-with an additional \code{family} component.
+with additional \code{family} and \code{glmer} (reference
+\code{\link[lme4]{glmer}} fit) components instead of \code{lmer}.
 }
 \description{
 Draft entry point for \pkg{lmebayes} GLMM models with a \code{glmer}-like
@@ -93,8 +97,10 @@ interface, analogous to \code{\link{lmerb}} for Gaussian responses and to
 }
 \details{
 Currently a copy of \code{\link{lmerb}} with an additional \code{family}
-argument. Only \code{family = gaussian()} is implemented; other families
-stop with an informative error until GLMM Block~1 samplers are wired in.
+argument. When \code{family = gaussian()}, behaviour matches
+\code{\link{lmerb}} except that the embedded reference fit is from
+\code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}. Non-Gaussian
+families use \code{block_rNormalGLM} for Block~1 Gibbs updates.
 }
 \examples{
 \donttest{

@@ -2,12 +2,13 @@
 % Please edit documentation in R/model_setup.R
 \name{model_setup}
 \alias{model_setup}
-\title{Bayesian mixed model setup (single-factor \code{lmer} gate)}
+\title{Bayesian mixed model setup (single-factor \code{lmer}/\code{glmer} gate)}
 \usage{
 model_setup(
   formula,
   data = NULL,
   vcov_formula = NULL,
+  family = gaussian(),
   REML = TRUE,
   control = lme4::lmerControl(),
   start = NULL,
@@ -18,21 +19,29 @@ model_setup(
   offset,
   contrasts = NULL,
   devFunOnly = FALSE,
+  fit_mer = TRUE,
   ...
 )
 }
 \arguments{
-\item{formula}{Mixed-model formula for design extraction and \code{lmer_fit}
-(fixed effects / hyper calibration).}
+\item{formula}{Mixed-model formula for design extraction and the reference
+\code{lmer}/\code{glmer} fit (fixed effects / hyper calibration).}
 
 \item{data}{Optional data frame.}
 
-\item{vcov_formula}{Optional formula for the \code{lmer} fit used to extract
+\item{vcov_formula}{Optional formula for the reference fit used to extract
 \code{vcov_re}. Defaults to \code{\link{lmerb_default_vcov_formula}(formula)}.}
 
-\item{REML}{Logical; passed to \code{\link[lme4]{lmer}}.}
+\item{family}{A \code{\link[stats]{family}} object. Defaults to
+\code{gaussian()}, in which case \code{\link[lme4]{lmer}} is used.
+Non-Gaussian families use \code{\link[lme4]{glmer}}.}
 
-\item{control}{\code{\link[lme4]{lmerControl}} settings.}
+\item{REML}{Logical; passed to \code{\link[lme4]{lmer}} when
+\code{family = gaussian()}.}
+
+\item{control}{\code{\link[lme4]{lmerControl}} when \code{family = gaussian()},
+otherwise \code{\link[lme4]{glmerControl}}; passed through to the reference
+fit when \code{fit_mer = TRUE}.}
 
 \item{start}{Optional starting values for the inner optimization.}
 
@@ -41,23 +50,31 @@ model_setup(
 \item{subset, weights, na.action, offset, contrasts}{Passed to
 \code{\link[lme4]{lmer}}.}
 
-\item{devFunOnly}{If \code{TRUE}, return the deviance function only.}
+\item{devFunOnly}{If \code{TRUE}, return the deviance function only (Gaussian
+\code{lmer} fits only).}
 
-\item{...}{Passed to design extraction and \code{\link[lme4]{lmer}}.}
+\item{fit_mer}{If \code{TRUE} (default), fit reference \code{lmer}/\code{glmer}
+models and extract variance components. If \code{FALSE}, return design
+matrices and rank diagnostics only (used by \code{\link{glmerb}}).}
+
+\item{...}{Passed to design extraction and, when \code{fit_mer = TRUE}, to the
+reference \code{lmer}/\code{glmer} fit.}
 }
 \value{
 Object of class \code{"model_setup"}: \code{y}, \code{Z},
-\code{groups}, \code{X_hyper}, \code{formula}, \code{vcov_formula},
-\code{lmer_fit} (full formula), \code{lmer_vcov_fit}, \code{varcorr},
+\code{groups}, \code{X_hyper}, \code{formula}, \code{family},
+\code{vcov_formula}, \code{lmer_fit} / \code{glmer_fit} (full formula),
+matching \code{lmer_vcov_fit} / \code{glmer_vcov_fit}, \code{varcorr},
 \code{vcov_re}, \code{residual_var}, and \code{re_rank} (named logical
 vector: \code{TRUE} if \code{Z_j} is full column rank for that group).
 }
 \description{
-Wrapper around \code{\link[lme4]{lmer}} for models with exactly one
-grouping factor. Design matrices come from \code{formula} (including
-cross-level RE moderation terms). Variance components use \code{vcov_formula}
-(defaults to \code{\link{lmerb_default_vcov_formula}}): level-2 fixed only,
-same \code{||} or \code{|} random structure as \code{formula}, without
+Wrapper around \code{\link[lme4]{lmer}} or \code{\link[lme4]{glmer}} for
+models with exactly one grouping factor. Design matrices come from
+\code{formula} (including cross-level RE moderation terms). Variance
+components use \code{vcov_formula} (defaults to
+\code{\link{lmerb_default_vcov_formula}}): level-2 fixed only, same
+\code{||} or \code{|} random structure as \code{formula}, without
 cross-level fixed interactions (so RE moderation is not double-coded).
 }
 \details{

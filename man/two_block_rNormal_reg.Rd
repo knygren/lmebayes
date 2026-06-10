@@ -2,7 +2,7 @@
 % Please edit documentation in R/reexports_glmbayesCore.R
 \name{two_block_rNormal_reg}
 \alias{two_block_rNormal_reg}
-\title{Two-block Gaussian Gibbs sampler for hierarchical regression}
+\title{Two-block Gibbs sampler for hierarchical regression}
 \usage{
 two_block_rNormal_reg(
   n,
@@ -18,6 +18,14 @@ two_block_rNormal_reg(
   group_name = NULL,
   m_convergence = 10L,
   sampling = c("replicate", "chain"),
+  family = gaussian(),
+  offset = NULL,
+  weights = 1,
+  Gridtype = 2L,
+  n_envopt = NULL,
+  use_parallel = TRUE,
+  use_opencl = FALSE,
+  verbose = FALSE,
   seed = NULL,
   progbar = TRUE
 )
@@ -35,7 +43,8 @@ two_block_rNormal_reg(
 (\code{J x q_k}), one per column of \code{x}.}
 
 \item{prior_list_block1}{Prior for Block~1: \code{P} or \code{Sigma},
-\code{dispersion}, optional \code{ddef}.  \code{mu} is updated internally.}
+\code{dispersion} (required for \code{gaussian()}), optional \code{ddef}.
+\code{mu} is updated internally.}
 
 \item{prior_list_block2}{Named list of Block~2 prior lists passed to
 \code{\link[glmbayesCore]{multi_rNormal_reg}}.}
@@ -53,6 +62,14 @@ chain is initialised.}
 
 \item{sampling}{Sampling scheme; only \code{"replicate"} is implemented.}
 
+\item{family}{Response \code{\link[stats]{family}} for Block~1 (default
+\code{gaussian()}). Block~2 always uses \code{gaussian()}.}
+
+\item{offset, weights}{Passed to Block~1 (length \code{l2} or recycled).}
+
+\item{Gridtype, n_envopt, use_parallel, use_opencl, verbose}{Passed to Block~1
+when \code{family} is not Gaussian.}
+
 \item{seed}{Optional RNG seed.}
 
 \item{progbar}{Logical; show a text progress bar.}
@@ -61,16 +78,22 @@ chain is initialised.}
 Object of class \code{"two_block_rNormal_reg"}.
 }
 \description{
-Runs the coupled Block~1 / Block~2 Gibbs sampler for two-block mixed models:
-Block~1 draws group-level random effects
-\eqn{b_j} via \code{\link[glmbayesCore]{block_rNormalReg}}; Block~2 updates hyper means
-\eqn{\gamma_k} via \code{\link[glmbayesCore]{multi_rNormal_reg}}.
+Runs the coupled Block~1 / Block~2 Gibbs sampler for two-block mixed models.
+Block~1 draws group-level random effects \eqn{b_j}; Block~2 updates hyper
+means \eqn{\gamma_k} via \code{\link[glmbayesCore]{multi_rNormal_reg}} (always Gaussian).
+}
+\details{
+Block~1 follows the same path as \code{\link[glmbayesCore]{rNormal_reg}}:
+\code{\link[glmbayesCore]{block_rNormalReg}} when \code{family = gaussian()}, otherwise
+\code{\link[glmbayesCore]{block_rNormalGLM}} for the GLM envelope path.
 }
 \seealso{
-\code{\link[glmbayesCore]{build_mu_all}},
-\code{\link[glmbayesCore]{block_rNormalReg}}, \code{\link[glmbayesCore]{multi_rNormal_reg}}
+\code{\link[glmbayesCore]{build_mu_all}}, \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}},
+\code{\link[glmbayesCore]{block_rNormalReg}}, \code{\link[glmbayesCore]{block_rNormalGLM}},
+\code{\link[glmbayesCore]{multi_rNormal_reg}}, \code{\link[glmbayesCore]{rNormal_reg}}
 
 glmbayes Simulation Functions
 \code{\link[glmbayesCore]{multi_rNormal_reg}()},
-\code{\link[glmbayesCore]{simfuncs}}
+\code{\link[glmbayesCore]{simfuncs}},
+\code{\link[glmbayesCore]{two_block_rNormal_reg_v2}()}
 }

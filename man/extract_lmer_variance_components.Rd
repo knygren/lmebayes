@@ -12,9 +12,7 @@ extract_lmer_variance_components(fit, re_coef_names)
 \item{re_coef_names}{Random coefficient names (as in \code{reTrms$cnms}).}
 }
 \value{
-List with \code{varcorr} (\code{data.frame} from
-\code{as.data.frame(VarCorr(fit))}), \code{vcov_re} (named variances per
-\code{re_coef_names}), and \code{residual_var}.
+List with \code{varcorr}, \code{vcov_re}, and \code{residual_var}.
 }
 \description{
 Maps \code{lme4::VarCorr()} output to a named vector of random-effect

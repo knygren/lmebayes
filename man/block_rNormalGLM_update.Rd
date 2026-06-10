@@ -26,9 +26,10 @@ block_rNormalGLM_update(
 )
 }
 \arguments{
-\item{mu_all}{Length-\code{k} vector of prior means per block (linear predictors
-from the population block). Required unless \code{prior_lists} or
-\code{prior_list} is supplied.}
+\item{mu_all}{Numeric matrix \code{l1 x k} or vector of length \code{l1}
+(recycled to all blocks): prior means per block (e.g. \eqn{X_\text{hyper}
+  \gamma}). Required unless \code{prior_lists} or \code{prior_list} is
+supplied.}
 
 \item{sigma_theta_sq}{Shared prior variance for scalar blocks when building
 \code{prior_lists} from \code{mu_all}.}
@@ -53,9 +54,11 @@ partitioned across blocks like \code{y}.}
 
 \item{weights}{Optional weights; same recycling and blocking as \code{offset}.}
 
-\item{Gridtype, use_parallel, use_opencl, verbose, progbar}{Passed to each block's sampler.}
+\item{Gridtype}{Passed to each block's sampler (Armadillo Gridtype).}
 
 \item{n_envopt}{Passed to each block; defaults to \code{1} when \code{NULL}.}
+
+\item{use_parallel, use_opencl, verbose, progbar}{Passed to each block's GLM sampler.}
 
 \item{seed}{Optional; passed to \code{\link{set.seed}} before sampling.}
 
@@ -70,6 +73,13 @@ A list with:
 \item{block_rNormalGLM}{Full block sampler output.}
 }
 
+A list with:
+\describe{
+\item{b_draws}{Matrix \code{k x length(coef_cols)} of coefficient draws.}
+\item{coefficients,coef.mode}{Matrices from \code{block_rNormalReg}.}
+\item{block_rNormalReg}{Full block sampler output.}
+}
+
 A list with class \code{"block_rNormalGLM"} including:
 \describe{
 \item{coefficients}{Matrix \code{k * p}; row \code{b} is the draw for block \code{b}.}
@@ -77,6 +87,10 @@ A list with class \code{"block_rNormalGLM"} including:
 \item{block_info}{Block partition metadata.}
 \item{block_results}{List of length \code{k} with each block's sampler output.}
 }
+
+A list with class \code{"block_rNormalReg"} including
+\code{coefficients}, \code{coef.mode}, \code{dispersion}, and
+\code{block_info}.
 }
 \description{
 Draw a single blockwise GLM posterior sample (\code{n = 1}) and return
@@ -84,17 +98,23 @@ latent-level draws (e.g. updated \code{theta}) for two-block Gibbs samplers
 where each observation or group is its own block with scalar (or vector)
 coefficients per block.
 
+Draw a single blockwise Gaussian posterior sample (\code{n = 1}) and
+return coefficient draws for two-block Gibbs samplers where each group
+is its own block (e.g. school-level random effects \eqn{b_j}).
+
 Draw from blockwise full conditionals when the posterior factorizes across
-observation blocks, via \code{.rNormalGLMBlocks_cpp()} (each block calls
-\code{rNormalGLM}). Typical use is \strong{block Gibbs} (\code{n = 1} per outer step);
-\code{n > 1} gives iid draws from the product conditional.
+observation blocks.  \code{\link[glmbayesCore]{block_rNormalReg}} uses
+\code{.rNormalRegBlocks_cpp()} (Gaussian; each block calls \code{rNormalReg}).
+\code{\link[glmbayesCore]{block_rNormalGLM}} uses \code{.rNormalGLMBlocks_cpp()} (GLM envelope;
+each block calls \code{rNormalGLM}).  Typical use is \strong{block Gibbs}
+(\code{n = 1} per outer step); \code{n > 1} gives iid draws from the product
+conditional.
 }
 \seealso{
 \code{\link[glmbayesCore]{block_rNormalGLM}}, \code{\link[glmbayesCore]{normalize_block}}
 
+\code{\link[glmbayesCore]{block_rNormalReg}}, \code{\link[glmbayesCore]{normalize_block}}
+
 \code{\link[glmbayesCore]{rNormal_reg}}, \code{\link[glmbayesCore]{simfunction}},
 \code{\link[glmbayesCore]{normalize_block}}, \code{inst/DESIGN_RGLM_BLOCKS.md}
-
-Other block_simfuncs: 
-\code{\link[glmbayesCore]{block_rNormalReg_update}()}
 }

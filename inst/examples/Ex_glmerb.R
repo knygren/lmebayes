@@ -55,7 +55,7 @@ print(summary(fit))
 
 grp_col  <- fit$model_setup$group_name
 re_names <- fit$model_setup$re_coef_names
-grp_levs <- rownames(coef(fit$lmer)[[grp_col]])
+grp_levs <- rownames(coef(fit$glmer)[[grp_col]])
 
 ## --- Posterior means of fixed effects from Block 2 draws -----------------
 ## fit$coef.means[[k]]: MCMC mean of the n Block 2 gamma_k draws.
@@ -148,14 +148,14 @@ rename_re_cols <- function(df, re_names, suffix) {
   df
 }
 
-fe_lmer <- lme4::fixef(fit$lmer)
-coef_raw_df <- as.data.frame(coef(fit$lmer)[[grp_col]])
-## anchor[k]: fixef(lmer) for terms with a population fixed effect.
+fe_glmer <- lme4::fixef(fit$glmer)
+coef_raw_df <- as.data.frame(coef(fit$glmer)[[grp_col]])
+## anchor[k]: fixef(glmer) for terms with a population fixed effect.
 coef_anchor <- vapply(re_names, function(k) {
   if (k == "(Intercept)") {
-    unname(fe_lmer["(Intercept)"])
-  } else if (k %in% names(fe_lmer)) {
-    unname(fe_lmer[k])
+    unname(fe_glmer["(Intercept)"])
+  } else if (k %in% names(fe_glmer)) {
+    unname(fe_glmer[k])
   } else {
     unname(fit$coef.mode[[k]]["(Intercept)"])
   }
