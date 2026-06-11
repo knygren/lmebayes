@@ -31,7 +31,9 @@ ps <- structure(
 )
 
 fit <- glmerb(form, data = dat, family = gaussian(),
-              measurement_prior_list = ps, n = 2, simulate = FALSE)
+              pfamily_list = pfamily_list(ps),
+              dispersion_ranef = ps$dispersion_ranef,
+              n = 2, simulate = FALSE)
 stopifnot(inherits(fit$glmer, c("glmerMod", "lmerMod")))
 stopifnot(is.null(fit$lmer))
 stopifnot(!is.null(ps$dispersion_ranef))

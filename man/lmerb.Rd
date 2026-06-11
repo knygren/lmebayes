@@ -7,7 +7,8 @@
 lmerb(
   formula,
   data = NULL,
-  measurement_prior_list,
+  pfamily_list,
+  dispersion_ranef,
   n = 1000L,
   tv_tol = 0.01,
   m_convergence = NULL,
@@ -29,17 +30,24 @@ lmerb(
 }
 \arguments{
 \item{formula}{Mixed-model formula (single grouping factor; same constraints
-as \code{\link{model_setup}}). Must match
-\code{measurement_prior_list$formula}.}
+as \code{\link{model_setup}}).}
 
 \item{data}{Data frame containing all variables in \code{formula}.}
 
-\item{measurement_prior_list}{Required object from
-\code{\link{Prior_Setup_lmebayes}}. Supplies \code{dispersion_ranef},
-\code{Sigma_ranef}, and Block~2 priors via \code{prior_list} (including
-iter-0 \code{mu_fixef} means). Call \code{\link{Prior_Setup_lmebayes}}
-explicitly before \code{lmerb}; design matrices come from
-\code{\link{model_setup}} inside \code{lmerb}, not from this object.}
+\item{pfamily_list}{Required named list of
+\code{\link[glmbayesCore]{pfamily}} objects, one per random-effect
+coefficient (names must match the random-effect coefficient names, any
+order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and,
+through each component's \code{dispersion}, the Block~1 random-effect
+variances \eqn{\tau^2_k}.  Currently only \code{dNormal} components are
+supported.  Typically built with
+\code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
+\code{\link{Prior_Setup_lmebayes}} object.}
+
+\item{dispersion_ranef}{Required positive scalar: the observation-level
+measurement dispersion \eqn{\sigma^2}, treated as known during sampling.
+Typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.  (A prior
+specification for this parameter may be supported in the future.)}
 
 \item{n}{Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).}
 
@@ -87,8 +95,8 @@ returned immediately without any sampling.  Simulation-only fields
 \item{devFunOnly}{If \code{TRUE}, return deviance function only; passed to \code{model_setup}.}
 
 \item{fixef}{Optional named list of hyper-parameter vectors (Block 2 state).
-When \code{NULL} (default), iter-0 means are taken from
-\code{measurement_prior_list$prior_list$mu_fixef}.}
+When \code{NULL} (default), iter-0 means are taken from the
+\code{pfamily_list} prior means.}
 
 \item{seed}{Optional; sets the RNG seed before sampling.}
 
@@ -104,9 +112,12 @@ components (parallel to \code{\link{glmb}} and \code{\link{lmb}}):
 \code{model_setup} (full \code{formula}), embedded as a sub-object —
 analogous to \code{glmb$glm} and \code{lmb$lm}.  Use
 \code{coef(fit$lmer)} for per-group classical coefficients.}
-\item{\code{prior}}{The \code{measurement_prior_list} object supplied by
-the caller (from \code{\link{Prior_Setup_lmebayes}}), stored for
-reference and re-use — analogous to \code{glmb$Prior}.}
+\item{\code{prior}}{Normalized prior container: \code{pfamily_list}
+(as supplied, reordered to the RE coefficient names),
+\code{dispersion_ranef}, the reconstructed \code{Sigma_ranef}, and
+the per-component \code{prior_list} (\code{mu_fixef},
+\code{Sigma_fixef}, \code{dispersion_fixef}) — analogous to
+\code{glmb$Prior}.}
 \item{\code{model_setup}}{The \code{\link{model_setup}} object built
 inside \code{lmerb} from \code{formula} and \code{data}.}
 \item{\code{coef.mode}}{Named list of exact posterior mode (= mean,
@@ -147,10 +158,16 @@ analogous to \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects models.
 \details{
 Calls \code{\link{model_setup}} on \code{formula} and \code{data} for design
 matrices (\code{y}, \code{Z}, \code{groups}, \code{X_hyper}, etc.) and embeds
-the resulting \code{\link[lme4]{lmer}} fit as \code{lmer}. Measurement priors
-(\code{dispersion_ranef}, \code{Sigma_ranef}, Block~2 \code{prior_list}) must
-be supplied via \code{measurement_prior_list} from a prior call to
-\code{\link{Prior_Setup_lmebayes}}; \code{lmerb} does not call
+the resulting \code{\link[lme4]{lmer}} fit as \code{lmer}. Priors are
+supplied as a named list of \code{\link[glmbayesCore]{pfamily}} objects
+(\code{pfamily_list}, the Block~2 hyperpriors -- one per random-effect
+coefficient) plus the observation-level measurement dispersion
+(\code{dispersion_ranef}).  Both are typically built from
+\code{\link{Prior_Setup_lmebayes}}:
+\code{pfamily_list = pfamily_list(ps)} and
+\code{dispersion_ranef = ps$dispersion_ranef}.  The Block~1 random-effect
+covariance is reconstructed from the Block~2 pfamily dispersions
+(\code{Sigma_ranef = diag(tau^2_k)}); \code{lmerb} does not call
 \code{Prior_Setup_lmebayes} internally.
 
 Runs a two-block Gibbs sampler for \code{n} iterations. Block 1 draws

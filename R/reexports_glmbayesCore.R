@@ -30,6 +30,12 @@ dIndependent_Normal_Gamma <- glmbayesCore::dIndependent_Normal_Gamma
 #' @export
 dGamma <- glmbayesCore::dGamma
 
+## Proper re-export (not a copy) so S3 methods register against the
+## glmbayesCore generic.
+#' @importFrom glmbayesCore pfamily_list
+#' @export
+glmbayesCore::pfamily_list
+
 #' @inherit glmbayesCore::block_rNormalGLM title description params return seealso
 #' @export
 block_rNormalGLM <- glmbayesCore::block_rNormalGLM

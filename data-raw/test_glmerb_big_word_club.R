@@ -68,7 +68,8 @@ fit <- glmerb(
   form_lmer,
   data = dat,
   family = gaussian(),
-  measurement_prior_list = ps,
+  pfamily_list = pfamily_list(ps),
+  dispersion_ranef = ps$dispersion_ranef,
   n = n_draw,
   seed = 42L
 )

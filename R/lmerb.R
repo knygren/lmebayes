@@ -5,10 +5,16 @@
 #'
 #' Calls \code{\link{model_setup}} on \code{formula} and \code{data} for design
 #' matrices (\code{y}, \code{Z}, \code{groups}, \code{X_hyper}, etc.) and embeds
-#' the resulting \code{\link[lme4]{lmer}} fit as \code{lmer}. Measurement priors
-#' (\code{dispersion_ranef}, \code{Sigma_ranef}, Block~2 \code{prior_list}) must
-#' be supplied via \code{measurement_prior_list} from a prior call to
-#' \code{\link{Prior_Setup_lmebayes}}; \code{lmerb} does not call
+#' the resulting \code{\link[lme4]{lmer}} fit as \code{lmer}. Priors are
+#' supplied as a named list of \code{\link[glmbayesCore]{pfamily}} objects
+#' (\code{pfamily_list}, the Block~2 hyperpriors -- one per random-effect
+#' coefficient) plus the observation-level measurement dispersion
+#' (\code{dispersion_ranef}).  Both are typically built from
+#' \code{\link{Prior_Setup_lmebayes}}:
+#' \code{pfamily_list = pfamily_list(ps)} and
+#' \code{dispersion_ranef = ps$dispersion_ranef}.  The Block~1 random-effect
+#' covariance is reconstructed from the Block~2 pfamily dispersions
+#' (\code{Sigma_ranef = diag(tau^2_k)}); \code{lmerb} does not call
 #' \code{Prior_Setup_lmebayes} internally.
 #'
 #' Runs a two-block Gibbs sampler for \code{n} iterations. Block 1 draws
@@ -61,15 +67,21 @@
 #' \emph{Statistical Science} \bold{16}, 312--334.
 #'
 #' @param formula Mixed-model formula (single grouping factor; same constraints
-#'   as \code{\link{model_setup}}). Must match
-#'   \code{measurement_prior_list$formula}.
+#'   as \code{\link{model_setup}}).
 #' @param data Data frame containing all variables in \code{formula}.
-#' @param measurement_prior_list Required object from
-#'   \code{\link{Prior_Setup_lmebayes}}. Supplies \code{dispersion_ranef},
-#'   \code{Sigma_ranef}, and Block~2 priors via \code{prior_list} (including
-#'   iter-0 \code{mu_fixef} means). Call \code{\link{Prior_Setup_lmebayes}}
-#'   explicitly before \code{lmerb}; design matrices come from
-#'   \code{\link{model_setup}} inside \code{lmerb}, not from this object.
+#' @param pfamily_list Required named list of
+#'   \code{\link[glmbayesCore]{pfamily}} objects, one per random-effect
+#'   coefficient (names must match the random-effect coefficient names, any
+#'   order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and,
+#'   through each component's \code{dispersion}, the Block~1 random-effect
+#'   variances \eqn{\tau^2_k}.  Currently only \code{dNormal} components are
+#'   supported.  Typically built with
+#'   \code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
+#'   \code{\link{Prior_Setup_lmebayes}} object.
+#' @param dispersion_ranef Required positive scalar: the observation-level
+#'   measurement dispersion \eqn{\sigma^2}, treated as known during sampling.
+#'   Typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.  (A prior
+#'   specification for this parameter may be supported in the future.)
 #' @param n Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).
 #' @param tv_tol Total variation tolerance per stored draw, in (0, 1)
 #'   (default \code{0.01}, the conventional threshold of the honest-burn-in
@@ -102,8 +114,8 @@
 #'   (\code{coefficients}, \code{coef.means}, \code{fixef_draws}) are
 #'   \code{NULL} when \code{simulate = FALSE}.
 #' @param fixef Optional named list of hyper-parameter vectors (Block 2 state).
-#'   When \code{NULL} (default), iter-0 means are taken from
-#'   \code{measurement_prior_list$prior_list$mu_fixef}.
+#'   When \code{NULL} (default), iter-0 means are taken from the
+#'   \code{pfamily_list} prior means.
 #' @param seed Optional; sets the RNG seed before sampling.
 #' @param ... Reserved for future use.
 #' @return Object of class \code{"lmerb"}: a list with the following
@@ -115,9 +127,12 @@
 #'       \code{model_setup} (full \code{formula}), embedded as a sub-object —
 #'       analogous to \code{glmb$glm} and \code{lmb$lm}.  Use
 #'       \code{coef(fit$lmer)} for per-group classical coefficients.}
-#'     \item{\code{prior}}{The \code{measurement_prior_list} object supplied by
-#'       the caller (from \code{\link{Prior_Setup_lmebayes}}), stored for
-#'       reference and re-use — analogous to \code{glmb$Prior}.}
+#'     \item{\code{prior}}{Normalized prior container: \code{pfamily_list}
+#'       (as supplied, reordered to the RE coefficient names),
+#'       \code{dispersion_ranef}, the reconstructed \code{Sigma_ranef}, and
+#'       the per-component \code{prior_list} (\code{mu_fixef},
+#'       \code{Sigma_fixef}, \code{dispersion_fixef}) — analogous to
+#'       \code{glmb$Prior}.}
 #'     \item{\code{model_setup}}{The \code{\link{model_setup}} object built
 #'       inside \code{lmerb} from \code{formula} and \code{data}.}
 #'     \item{\code{coef.mode}}{Named list of exact posterior mode (= mean,
@@ -164,7 +179,8 @@
 lmerb <- function(
     formula,
     data = NULL,
-    measurement_prior_list,
+    pfamily_list,
+    dispersion_ranef,
     n = 1000L,
     tv_tol = 0.01,
     m_convergence = NULL,
@@ -190,22 +206,17 @@ lmerb <- function(
   if (is.null(data) || !is.data.frame(data)) {
     stop("'data' must be a data frame.", call. = FALSE)
   }
-  if (missing(measurement_prior_list) || is.null(measurement_prior_list)) {
+  if (missing(pfamily_list) || is.null(pfamily_list)) {
     stop(
-      "'measurement_prior_list' is required. ",
-      "Build it with Prior_Setup_lmebayes() and pass the result to lmerb().",
+      "'pfamily_list' is required. Build it with ",
+      "pfamily_list(Prior_Setup_lmebayes(...)) and pass the result to lmerb().",
       call. = FALSE
     )
   }
-  if (!inherits(measurement_prior_list, "lmebayes_prior_setup")) {
+  if (missing(dispersion_ranef)) {
     stop(
-      "'measurement_prior_list' must be an object from Prior_Setup_lmebayes().",
-      call. = FALSE
-    )
-  }
-  if (!identical(deparse(formula), deparse(measurement_prior_list$formula))) {
-    stop(
-      "'formula' does not match measurement_prior_list$formula.",
+      "'dispersion_ranef' is required for lmerb(). Typically ",
+      "Prior_Setup_lmebayes(...)$dispersion_ranef.",
       call. = FALSE
     )
   }
@@ -260,17 +271,18 @@ lmerb <- function(
     stop("model_setup() must return a model_setup object.", call. = FALSE)
   }
 
-  if (!identical(design$re_coef_names, names(measurement_prior_list$prior_list))) {
-    stop(
-      "measurement_prior_list$prior_list names must match design$re_coef_names.",
-      call. = FALSE
-    )
-  }
+  prior <- .lmebayes_priors_from_pfamily_list(
+    pfamily_list     = pfamily_list,
+    dispersion_ranef = dispersion_ranef,
+    design           = design,
+    family           = gaussian(),
+    fn_name          = "lmerb"
+  )
 
   lmer_fit <- design$lmer_fit
 
   if (is.null(fixef)) {
-    fixef <- lapply(measurement_prior_list$prior_list, `[[`, "mu_fixef")
+    fixef <- lapply(prior$prior_list, `[[`, "mu_fixef")
     names(fixef) <- design$re_coef_names
   }
 
@@ -279,7 +291,7 @@ lmerb <- function(
   # mean; using that point minimises the epsilon achievable in m_convergence
   # steps.  Use lmerb_posterior_mean() to find the exact posterior mean via ICM.
   fixef_lmer <- fixef   # lmer-derived starting values (for diagnostic printing)
-  pm <- glmbayesCore::lmerb_posterior_mean(design, measurement_prior_list)
+  pm <- glmbayesCore::lmerb_posterior_mean(design, prior)
   fixef_start <- pm$fixef
 
   # Diagnostic table: lmer start vs ICM posterior mean, one row per parameter
@@ -301,13 +313,7 @@ lmerb <- function(
   cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
               pm$converged, pm$iterations, pm$delta))
 
-  if (is.null(measurement_prior_list$dispersion_ranef)) {
-    stop(
-      "'measurement_prior_list' must contain 'dispersion_ranef' for lmerb().",
-      call. = FALSE
-    )
-  }
-  block1_prior <- .lmebayes_block1_prior_list(measurement_prior_list)
+  block1_prior <- .lmebayes_block1_prior_list(prior)
 
   # When simulate=FALSE return only the ICM posterior means immediately.
   if (!isTRUE(simulate)) {
@@ -316,7 +322,7 @@ lmerb <- function(
         call        = cl,
         formula     = formula,
         lmer        = lmer_fit,
-        prior       = measurement_prior_list,
+        prior       = prior,
         model_setup = design,
         coef.mode   = fixef_start,
         ranef.mode  = pm$b_mean,
@@ -334,10 +340,10 @@ lmerb <- function(
   re_names     <- design$re_coef_names
   group_levels <- levels(design$groups)
 
-  # Block 2 prior: fixed hyperpriors from Prior_Setup_lmebayes.
+  # Block 2 prior: fixed hyperpriors from the supplied pfamily_list.
   block2_prior_list <- stats::setNames(
     lapply(re_names, function(k) {
-      pl_k <- measurement_prior_list$prior_list[[k]]
+      pl_k <- prior$prior_list[[k]]
       list(
         mu         = pl_k$mu_fixef,
         Sigma      = pl_k$Sigma_fixef,
@@ -413,7 +419,7 @@ lmerb <- function(
       call         = cl,
       formula      = formula,
       lmer         = lmer_fit,
-      prior        = measurement_prior_list,
+      prior        = prior,
       model_setup  = design,
       coef.mode    = fixef_start,
       ranef.mode   = pm$b_mean,

@@ -7,7 +7,9 @@
 ## (walk_c:rating_c, transit_c:log_price_c), analogous to
 ## free_reduced_lunch:distracted_a1 in inst/examples/Ex_lmerb.R.
 ##
-## Workflow: model_setup(), then Prior_Setup_lmebayes(), then glmerb().
+## Workflow: model_setup(), Prior_Setup_lmebayes(), pfamily_list(), then
+## glmerb(pfamily_list = ).  Poisson has no observation-level dispersion,
+## so dispersion_ranef stays NULL.
 
 data(airbnb, package = "bayesrules")
 
@@ -39,7 +41,7 @@ fit <- glmerb(
   form_glmer,
   data = dat,
   family = poisson(),
-  measurement_prior_list = ps,
+  pfamily_list = pfamily_list(ps),
   n = 1000L,
   seed = 42L
 )

@@ -50,7 +50,8 @@ cat("\n=== lmerb: lmer fit + Block 1 random-effects draws ===\n\n")
 fit <- lmerb(
   form_lmer,
   data = dat,
-  measurement_prior_list = ps,
+  pfamily_list = pfamily_list(ps),
+  dispersion_ranef = ps$dispersion_ranef,
   n = 1L,
   control = ctrl_bobyqa,
   seed = 42L

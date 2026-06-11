@@ -743,7 +743,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   object$lmer
 }
 
-#' Build Block~1 prior list from a \code{lmebayes_prior_setup} object
+#' Build Block~1 prior list from a normalized prior container
 #' @keywords internal
 .lmebayes_block1_prior_list <- function(measurement_prior_list) {
   if (is.null(measurement_prior_list$Sigma_ranef)) {
@@ -756,6 +756,163 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   } else {
     list(P = P, dispersion = dispersion, ddef = FALSE)
   }
+}
+
+#' Normalize a pfamily list + dispersion into the internal prior container
+#'
+#' Validates the \code{pfamily_list} / \code{dispersion_ranef} arguments of
+#' \code{\link{lmerb}} and \code{\link{glmerb}} against the model design and
+#' converts them into the internal prior container consumed downstream
+#' (\code{Sigma_ranef}, \code{dispersion_ranef}, per-component
+#' \code{prior_list} with \code{mu_fixef} / \code{Sigma_fixef} /
+#' \code{dispersion_fixef}).
+#'
+#' The Block~1 random-effect covariance is reconstructed from the Block~2
+#' dispersions: \code{Sigma_ranef = diag(tau^2_k)} where \code{tau^2_k} is the
+#' \code{dispersion} of component \code{k}'s \code{dNormal} pfamily.  Only
+#' \code{dNormal} components are currently supported; sampling the Block~2
+#' dispersion (e.g. \code{dIndependent_Normal_Gamma}) is not implemented yet.
+#'
+#' @param pfamily_list Named list of \code{"pfamily"} objects, one per
+#'   random-effect coefficient (e.g. from
+#'   \code{\link{pfamily_list.lmebayes_prior_setup}}).  Names must match
+#'   \code{design$re_coef_names} (any order).
+#' @param dispersion_ranef Observation-level dispersion for the measurement
+#'   model.  Required positive scalar for \code{gaussian()}; must be
+#'   \code{NULL} for families without a dispersion parameter.
+#' @param design A \code{\link{model_setup}} object.
+#' @param family A \code{\link[stats]{family}} object.
+#' @param fn_name Calling function name used in error messages.
+#' @return List with \code{pfamily_list} (reordered), \code{dispersion_ranef},
+#'   \code{Sigma_ranef}, and \code{prior_list}.
+#' @keywords internal
+.lmebayes_priors_from_pfamily_list <- function(pfamily_list,
+                                               dispersion_ranef,
+                                               design,
+                                               family,
+                                               fn_name = "lmerb") {
+
+  re_names <- design$re_coef_names
+  p_re     <- length(re_names)
+
+  ## --- dispersion_ranef (Block 1 measurement dispersion) -------------------
+  has_dispersion <- family$family %in%
+    c("gaussian", "Gamma", "quasipoisson", "quasibinomial")
+  if (has_dispersion) {
+    if (is.null(dispersion_ranef) || !is.numeric(dispersion_ranef) ||
+        length(dispersion_ranef) != 1L || !is.finite(dispersion_ranef) ||
+        dispersion_ranef <= 0) {
+      stop(
+        "'dispersion_ranef' must be a single positive number for family = ",
+        family$family, "(). Use Prior_Setup_lmebayes()$dispersion_ranef.",
+        call. = FALSE
+      )
+    }
+    dispersion_ranef <- as.numeric(dispersion_ranef)
+  } else {
+    if (!is.null(dispersion_ranef)) {
+      stop(
+        "'dispersion_ranef' must be NULL for family = ", family$family,
+        "() (no observation-level dispersion).",
+        call. = FALSE
+      )
+    }
+  }
+
+  ## --- pfamily_list ---------------------------------------------------------
+  if (!is.list(pfamily_list) || length(pfamily_list) != p_re) {
+    stop(
+      "'pfamily_list' must be a list with one pfamily per random-effect ",
+      "component (", p_re, " expected: ", paste(re_names, collapse = ", "),
+      "). Build it with pfamily_list(Prior_Setup_lmebayes(...)).",
+      call. = FALSE
+    )
+  }
+  if (is.null(names(pfamily_list)) || !setequal(names(pfamily_list), re_names)) {
+    stop(
+      "Names of 'pfamily_list' must match the random-effect coefficient ",
+      "names: ", paste(re_names, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+  pfamily_list <- pfamily_list[re_names]
+
+  prior_list <- stats::setNames(vector("list", p_re), re_names)
+  tau2 <- stats::setNames(numeric(p_re), re_names)
+
+  for (k in re_names) {
+    pf <- pfamily_list[[k]]
+    if (!inherits(pf, "pfamily")) {
+      stop("pfamily_list[[\"", k, "\"]] must be a pfamily object.",
+           call. = FALSE)
+    }
+    if (!identical(pf$pfamily, "dNormal")) {
+      stop(
+        fn_name, "() currently supports only dNormal pfamilies in ",
+        "'pfamily_list'; component \"", k, "\" is ", pf$pfamily,
+        ". Sampling the Block 2 dispersion is not implemented yet.",
+        call. = FALSE
+      )
+    }
+
+    par_names <- colnames(design$X_hyper[[k]])
+    q_k <- length(par_names)
+
+    mu_k <- as.numeric(pf$prior_list$mu)
+    if (length(mu_k) != q_k) {
+      stop(
+        "pfamily_list[[\"", k, "\"]]$prior_list$mu has length ",
+        length(mu_k), " but the hyper design has ", q_k, " column(s): ",
+        paste(par_names, collapse = ", "), ".",
+        call. = FALSE
+      )
+    }
+    mu_nms <- rownames(pf$prior_list$mu)
+    if (!is.null(mu_nms) && all(nzchar(mu_nms))) {
+      if (!setequal(mu_nms, par_names)) {
+        stop(
+          "Parameter names of pfamily_list[[\"", k, "\"]] (",
+          paste(mu_nms, collapse = ", "), ") do not match the hyper design ",
+          "columns (", paste(par_names, collapse = ", "), ").",
+          call. = FALSE
+        )
+      }
+      ord <- match(par_names, mu_nms)
+      mu_k <- mu_k[ord]
+      Sigma_k <- as.matrix(pf$prior_list$Sigma)[ord, ord, drop = FALSE]
+    } else {
+      Sigma_k <- as.matrix(pf$prior_list$Sigma)
+    }
+    names(mu_k) <- par_names
+    dimnames(Sigma_k) <- list(par_names, par_names)
+
+    d_k <- pf$prior_list$dispersion
+    if (isTRUE(pf$prior_list$ddef)) {
+      warning(
+        fn_name, ": pfamily_list[[\"", k, "\"]] uses the default ",
+        "dispersion = 1 (none was supplied to dNormal()); the Block 1 ",
+        "random-effect variance tau^2 for \"", k, "\" is therefore 1.",
+        call. = FALSE
+      )
+    }
+
+    tau2[[k]] <- as.numeric(d_k)
+    prior_list[[k]] <- list(
+      mu_fixef         = mu_k,
+      Sigma_fixef      = Sigma_k,
+      dispersion_fixef = as.numeric(d_k)
+    )
+  }
+
+  Sigma_ranef <- diag(unname(tau2), nrow = p_re, ncol = p_re)
+  dimnames(Sigma_ranef) <- list(re_names, re_names)
+
+  list(
+    pfamily_list     = pfamily_list,
+    dispersion_ranef = dispersion_ranef,
+    Sigma_ranef      = Sigma_ranef,
+    prior_list       = prior_list
+  )
 }
 
 #' Restructure \code{lme4} sparse \code{Z} to per-observation RE loadings

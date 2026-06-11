@@ -8,7 +8,8 @@
 ## random slopes. Cross-level moderation: free_reduced_lunch:distracted_a1
 ## (school lunch status moderates the distracted_a1 random slope).
 ##
-## Workflow: model_setup(), then Prior_Setup_lmebayes(), then lmerb().
+## Workflow: model_setup(), Prior_Setup_lmebayes(), pfamily_list(), then
+## lmerb(pfamily_list = , dispersion_ranef = ).
 
 data(big_word_club, package = "bayesrules")
 
@@ -47,7 +48,8 @@ ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
 fit <- lmerb(
   form_lmer,
   data = dat,
-  measurement_prior_list = ps,
+  pfamily_list = pfamily_list(ps),
+  dispersion_ranef = ps$dispersion_ranef,
   n = 1000L
 )
 

@@ -13,6 +13,11 @@
 #' @inheritParams lmerb
 #' @param family A \code{\link[stats]{family}} object describing the response
 #'   distribution and link. Defaults to \code{gaussian()}.
+#' @param dispersion_ranef Observation-level measurement dispersion, treated
+#'   as known during sampling.  Required positive scalar for families with a
+#'   dispersion parameter (e.g. \code{gaussian()}); must be \code{NULL}
+#'   (default) for \code{poisson()} and \code{binomial()}.  Typically
+#'   \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.
 #' @param tv_tol Total variation tolerance per stored draw, in (0, 1)
 #'   (default \code{0.01}).  For \code{family = gaussian()} the joint
 #'   posterior is exactly multivariate normal and the number of inner Gibbs
@@ -50,7 +55,8 @@ glmerb <- function(
     formula,
     data = NULL,
     family = gaussian(),
-    measurement_prior_list,
+    pfamily_list,
+    dispersion_ranef = NULL,
     n = 1000L,
     tv_tol = 0.01,
     m_convergence = NULL,
@@ -82,22 +88,10 @@ glmerb <- function(
   if (!inherits(family, "family")) {
     stop("'family' must be a family object.", call. = FALSE)
   }
-  if (missing(measurement_prior_list) || is.null(measurement_prior_list)) {
+  if (missing(pfamily_list) || is.null(pfamily_list)) {
     stop(
-      "'measurement_prior_list' is required. ",
-      "Build it with Prior_Setup_lmebayes() and pass the result to glmerb().",
-      call. = FALSE
-    )
-  }
-  if (!inherits(measurement_prior_list, "lmebayes_prior_setup")) {
-    stop(
-      "'measurement_prior_list' must be an object from Prior_Setup_lmebayes().",
-      call. = FALSE
-    )
-  }
-  if (!identical(deparse(formula), deparse(measurement_prior_list$formula))) {
-    stop(
-      "'formula' does not match measurement_prior_list$formula.",
+      "'pfamily_list' is required. Build it with ",
+      "pfamily_list(Prior_Setup_lmebayes(...)) and pass the result to glmerb().",
       call. = FALSE
     )
   }
@@ -132,12 +126,13 @@ glmerb <- function(
     stop("model_setup() must return a model_setup object.", call. = FALSE)
   }
 
-  if (!identical(design$re_coef_names, names(measurement_prior_list$prior_list))) {
-    stop(
-      "measurement_prior_list$prior_list names must match design$re_coef_names.",
-      call. = FALSE
-    )
-  }
+  prior <- .lmebayes_priors_from_pfamily_list(
+    pfamily_list     = pfamily_list,
+    dispersion_ranef = dispersion_ranef,
+    design           = design,
+    family           = family,
+    fn_name          = "glmerb"
+  )
 
   glmer_args <- c(
     list(
@@ -160,12 +155,12 @@ glmerb <- function(
   glmer_fit <- do.call(lme4::glmer, glmer_args)
 
   if (is.null(fixef)) {
-    fixef <- lapply(measurement_prior_list$prior_list, `[[`, "mu_fixef")
+    fixef <- lapply(prior$prior_list, `[[`, "mu_fixef")
     names(fixef) <- design$re_coef_names
   }
 
   fixef_lmer <- fixef
-  pm <- glmbayesCore::glmerb_posterior_mode(design, family, measurement_prior_list)
+  pm <- glmbayesCore::glmerb_posterior_mode(design, family, prior)
   fixef_start <- pm$fixef
 
   hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
@@ -186,7 +181,7 @@ glmerb <- function(
   cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
               pm$converged, pm$iterations, pm$delta))
 
-  block1_prior <- .lmebayes_block1_prior_list(measurement_prior_list)
+  block1_prior <- .lmebayes_block1_prior_list(prior)
 
   if (!isTRUE(simulate)) {
     return(structure(
@@ -195,7 +190,7 @@ glmerb <- function(
         formula     = formula,
         family      = family,
         glmer       = glmer_fit,
-        prior       = measurement_prior_list,
+        prior       = prior,
         model_setup = design,
         coef.mode   = fixef_start,
         ranef.mode  = pm$b_mean,
@@ -215,7 +210,7 @@ glmerb <- function(
 
   block2_prior_list <- stats::setNames(
     lapply(re_names, function(k) {
-      pl_k <- measurement_prior_list$prior_list[[k]]
+      pl_k <- prior$prior_list[[k]]
       list(
         mu         = pl_k$mu_fixef,
         Sigma      = pl_k$Sigma_fixef,
@@ -321,7 +316,7 @@ glmerb <- function(
       formula      = formula,
       family       = family,
       glmer        = glmer_fit,
-      prior        = measurement_prior_list,
+      prior        = prior,
       model_setup  = design,
       coef.mode    = fixef_start,
       ranef.mode   = pm$b_mean,

@@ -8,7 +8,8 @@ glmerb(
   formula,
   data = NULL,
   family = gaussian(),
-  measurement_prior_list,
+  pfamily_list,
+  dispersion_ranef = NULL,
   n = 1000L,
   tv_tol = 0.01,
   m_convergence = NULL,
@@ -30,20 +31,28 @@ glmerb(
 }
 \arguments{
 \item{formula}{Mixed-model formula (single grouping factor; same constraints
-as \code{\link{model_setup}}). Must match
-\code{measurement_prior_list$formula}.}
+as \code{\link{model_setup}}).}
 
 \item{data}{Data frame containing all variables in \code{formula}.}
 
 \item{family}{A \code{\link[stats]{family}} object describing the response
 distribution and link. Defaults to \code{gaussian()}.}
 
-\item{measurement_prior_list}{Required object from
-\code{\link{Prior_Setup_lmebayes}}. Supplies \code{dispersion_ranef},
-\code{Sigma_ranef}, and Block~2 priors via \code{prior_list} (including
-iter-0 \code{mu_fixef} means). Call \code{\link{Prior_Setup_lmebayes}}
-explicitly before \code{lmerb}; design matrices come from
-\code{\link{model_setup}} inside \code{lmerb}, not from this object.}
+\item{pfamily_list}{Required named list of
+\code{\link[glmbayesCore]{pfamily}} objects, one per random-effect
+coefficient (names must match the random-effect coefficient names, any
+order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and,
+through each component's \code{dispersion}, the Block~1 random-effect
+variances \eqn{\tau^2_k}.  Currently only \code{dNormal} components are
+supported.  Typically built with
+\code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
+\code{\link{Prior_Setup_lmebayes}} object.}
+
+\item{dispersion_ranef}{Observation-level measurement dispersion, treated
+as known during sampling.  Required positive scalar for families with a
+dispersion parameter (e.g. \code{gaussian()}); must be \code{NULL}
+(default) for \code{poisson()} and \code{binomial()}.  Typically
+\code{Prior_Setup_lmebayes(...)$dispersion_ranef}.}
 
 \item{n}{Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).}
 
@@ -102,8 +111,8 @@ leave \code{control = NULL} or pass \code{\link[lme4]{lmerControl}}.}
 \item{devFunOnly}{If \code{TRUE}, return deviance function only; passed to \code{model_setup}.}
 
 \item{fixef}{Optional named list of hyper-parameter vectors (Block 2 state).
-When \code{NULL} (default), iter-0 means are taken from
-\code{measurement_prior_list$prior_list$mu_fixef}.}
+When \code{NULL} (default), iter-0 means are taken from the
+\code{pfamily_list} prior means.}
 
 \item{seed}{Optional; sets the RNG seed before sampling.}
 
@@ -138,7 +147,9 @@ families use \code{block_rNormalGLM} for Block~1 Gibbs updates.
 ## (walk_c:rating_c, transit_c:log_price_c), analogous to
 ## free_reduced_lunch:distracted_a1 in inst/examples/Ex_lmerb.R.
 ##
-## Workflow: model_setup(), then Prior_Setup_lmebayes(), then glmerb().
+## Workflow: model_setup(), Prior_Setup_lmebayes(), pfamily_list(), then
+## glmerb(pfamily_list = ).  Poisson has no observation-level dispersion,
+## so dispersion_ranef stays NULL.
 
 data(airbnb, package = "bayesrules")
 
@@ -170,7 +181,7 @@ fit <- glmerb(
   form_glmer,
   data = dat,
   family = poisson(),
-  measurement_prior_list = ps,
+  pfamily_list = pfamily_list(ps),
   n = 1000L,
   seed = 42L
 )

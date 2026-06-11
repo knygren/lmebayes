@@ -2,11 +2,11 @@
 % Please edit documentation in R/glmerb_utilities.R
 \name{.lmebayes_block1_prior_list}
 \alias{.lmebayes_block1_prior_list}
-\title{Build Block~1 prior list from a \code{lmebayes_prior_setup} object}
+\title{Build Block~1 prior list from a normalized prior container}
 \usage{
 .lmebayes_block1_prior_list(measurement_prior_list)
 }
 \description{
-Build Block~1 prior list from a \code{lmebayes_prior_setup} object
+Build Block~1 prior list from a normalized prior container
 }
 \keyword{internal}

@@ -1,5 +1,39 @@
 # lmebayes (development version)
 
+* **`lmerb()`/`glmerb()` prior interface migrated to pfamily lists:** The
+  `measurement_prior_list` argument (a whole `Prior_Setup_lmebayes()`
+  object) is replaced by two explicit arguments placed before `n`:
+  `pfamily_list` (named list of `dNormal` pfamilies, one per random-effect
+  coefficient - the Block-2 hyperpriors) and `dispersion_ranef` (the
+  observation-level measurement dispersion, a known constant for now;
+  required for `gaussian()`, must be `NULL` for `poisson()`/`binomial()`).
+  The Block-1 random-effect covariance is reconstructed from the pfamily
+  dispersions (`Sigma_ranef = diag(tau^2_k)`), so the pair is
+  information-complete.  Typical workflow:
+  `ps <- Prior_Setup_lmebayes(...)`, then
+  `lmerb(f, dat, pfamily_list = pfamily_list(ps),
+  dispersion_ranef = ps$dispersion_ranef)`.
+  `dIndependent_Normal_Gamma` components are rejected with a clear message
+  until Block-2 dispersion sampling is implemented.  The fitted object's
+  `$prior` now stores the normalized container (`pfamily_list`,
+  `dispersion_ranef`, `Sigma_ranef`, `prior_list`); `summary()` methods are
+  unchanged.  Validation/conversion lives in the internal helper
+  `.lmebayes_priors_from_pfamily_list()`.
+
+* **Block-2 hyperpriors as pfamily objects (`pfamily_list()`):** New S3
+  method `pfamily_list.lmebayes_prior_setup()` converts the per-component
+  Block-2 hyperprior parameters of a `Prior_Setup_lmebayes()` object into a
+  named list of `glmbayesCore` pfamily objects (one per random-effect
+  coefficient).  The `ptypes` argument is either a single string recycled
+  to every component or a character vector / list with one entry per
+  component (optionally named, in any order); allowed values are
+  `"dNormal"` (known Block-2 dispersion `tau^2_k`) and
+  `"dIndependent_Normal_Gamma"` (Gamma prior on the Block-2 precision,
+  calibrated with the `shape_ING` convention from
+  `glmbayesCore::Prior_Setup()` using `n0 = J * pwt/(1-pwt)`:
+  `shape = (n0+1)/2 + p_k/2`, `rate = tau^2_k * n0/2`).  The generic lives
+  in `glmbayesCore` and is re-exported.
+
 * **Approximate TV calibration for non-Gaussian `glmerb` + `m_convergence`
   override:** Non-Gaussian `glmerb()` now derives its sweep count from the
   same Theorem 3 machinery applied to the *local-Gaussian approximation of
