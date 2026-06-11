@@ -1,5 +1,30 @@
 # lmebayes (development version)
 
+* **Conservative TV calibration for `dIndependent_Normal_Gamma` priors:**
+  `lmerb()`/`glmerb()` now accept ING components in `pfamily_list`,
+  provided each supplies a positive `disp_lower` (lower truncation of the
+  dispersion).  `disp_lower` replaces the `dNormal` dispersion as the
+  plug-in `tau^2_k` in the eigenvalue / TV calibration: smaller `tau^2`
+  increases the block coupling and hence `lambda*`, so the disp_lower-based
+  rate upper-bounds the contraction rate for every dispersion in the
+  truncated support.  Because Block-2 dispersion sampling is not
+  implemented yet, the fit displays the calibration
+  (`conservative: ING tau^2_k = disp_lower`) and stops, returning the ICM
+  mode plus `$convergence` (method `"disp_lower_bound"`, or
+  `"<base>+disp_lower_bound"` in `glmerb`) without draws.  On
+  `big_word_club` with `disp_lower = tau^2_k / 2`, `lambda*` rises from
+  0.839 to 0.903 and `m_min` from 11 to 18, matching an explicit `dNormal`
+  fit at `tau^2/2` exactly (`data-raw/test_ing_calibration.R`).
+  `pfamily_list()` now fills in a default
+  `disp_lower = 1 / qgamma(0.99, shape, rate)` - the 0.01 quantile of the
+  implied inverse-Gamma dispersion prior (reciprocal of the 99th percentile
+  of the Gamma precision prior) - so ING lists it builds pass
+  `lmerb()`/`glmerb()` validation out of the box and the calibration covers
+  99% of the prior dispersion mass.  Under the diffuse default calibration
+  (`pwt = 0.01`) this quantile sits at roughly 3-5% of `tau^2_k` on
+  `big_word_club`, giving a strongly conservative `lambda* = 0.989`,
+  `m_min = 156`.
+
 * **`lmerb()`/`glmerb()` prior interface migrated to pfamily lists:** The
   `measurement_prior_list` argument (a whole `Prior_Setup_lmebayes()`
   object) is replaced by two explicit arguments placed before `n`:

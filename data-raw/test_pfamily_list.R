@@ -79,11 +79,16 @@ for (k in re_names) {
   p_k <- length(pl$mu_fixef)
   shape_exp <- (n_prior + 1) / 2 + p_k / 2
   rate_exp  <- unname(pl$dispersion_fixef) * (n_prior / 2)
+  ## Default disp_lower: 0.01 quantile of the inverse-Gamma dispersion prior
+  ## (reciprocal of the 99th percentile of the Gamma precision prior).
+  disp_lower_exp <- 1 / stats::qgamma(0.99, shape = shape_exp, rate = rate_exp)
   stopifnot(
     isTRUE(all.equal(as.numeric(pr$mu), unname(pl$mu_fixef))),
     isTRUE(all.equal(unname(as.matrix(pr$Sigma)), unname(pl$Sigma_fixef))),
     isTRUE(all.equal(pr$shape, shape_exp)),
-    isTRUE(all.equal(pr$rate, rate_exp))
+    isTRUE(all.equal(pr$rate, rate_exp)),
+    isTRUE(all.equal(pr$disp_lower, disp_lower_exp)),
+    pr$disp_lower > 0
   )
   ## Prior mean of the precision: shape/rate = (n0 + 1 + p_k) / (n0 * tau^2_k).
   ## For weak priors (small n0) this is inflated relative to 1/tau^2_k by the

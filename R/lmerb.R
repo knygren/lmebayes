@@ -74,8 +74,16 @@
 #'   coefficient (names must match the random-effect coefficient names, any
 #'   order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and,
 #'   through each component's \code{dispersion}, the Block~1 random-effect
-#'   variances \eqn{\tau^2_k}.  Currently only \code{dNormal} components are
-#'   supported.  Typically built with
+#'   variances \eqn{\tau^2_k}.  \code{dNormal} components run the full
+#'   sampler.  \code{dIndependent_Normal_Gamma} components are accepted but
+#'   must supply a positive \code{disp_lower} (lower dispersion truncation),
+#'   which is used as a conservative \eqn{\tau^2_k} plug-in for the
+#'   eigenvalue / TV calibration (smaller \eqn{\tau^2} increases the
+#'   contraction rate \eqn{\lambda^*}, so the bound holds for every
+#'   dispersion in the truncated support); since Block~2 dispersion sampling
+#'   is not implemented yet, the fit stops after displaying the calibration
+#'   and returns the ICM mode plus \code{convergence} info without draws.
+#'   Typically built with
 #'   \code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
 #'   \code{\link{Prior_Setup_lmebayes}} object.
 #' @param dispersion_ranef Required positive scalar: the observation-level
@@ -383,18 +391,54 @@ lmerb <- function(
     )
     m_convergence <- m_min
   }
+  calib_label <- if (prior$any_ing) {
+    "conservative: ING tau^2_k = disp_lower"
+  } else {
+    "exact"
+  }
   cat(sprintf(
-    "--- lmerb: convergence calibration [exact]: lambda* = %.4f, tv_tol = %g => m_min = %d, using m_convergence = %d ---\n\n",
-    rate$lambda_star, tv_tol, m_min, m_convergence
+    "--- lmerb: convergence calibration [%s]: lambda* = %.4f, tv_tol = %g => m_min = %d, using m_convergence = %d ---\n\n",
+    calib_label, rate$lambda_star, tv_tol, m_min, m_convergence
   ))
   convergence_info <- list(
-    method        = "exact",
+    method        = if (prior$any_ing) "disp_lower_bound" else "exact",
     tv_tol        = tv_tol,
     lambda_star   = rate$lambda_star,
     eigenvalues   = rate$eigenvalues,
     m_min         = m_min,
     m_convergence = m_convergence
   )
+
+  # ING components: tau^2 sampling is not implemented yet, so stop after the
+  # calibration (the disp_lower plug-in makes lambda* an upper bound over the
+  # truncated dispersion support).
+  if (prior$any_ing) {
+    cat(
+      "--- lmerb: dIndependent_Normal_Gamma components present; Block 2\n",
+      "    dispersion sampling is not implemented yet. Stopping after the\n",
+      "    convergence calibration (no draws generated). ---\n\n",
+      sep = ""
+    )
+    return(structure(
+      list(
+        call        = cl,
+        formula     = formula,
+        lmer        = lmer_fit,
+        prior       = prior,
+        model_setup = design,
+        coef.mode   = fixef_start,
+        ranef.mode  = pm$b_mean,
+        coef.means  = NULL,
+        fixef_draws = NULL,
+        coefficients = NULL,
+        mu_all      = as.matrix(
+          glmbayesCore::build_mu_all(design, fixef_start)$mu_all
+        ),
+        convergence = convergence_info
+      ),
+      class = c("lmerb", "list")
+    ))
+  }
 
   sampler <- glmbayesCore::two_block_rNormal_reg(
     n                 = n,

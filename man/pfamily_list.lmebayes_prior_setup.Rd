@@ -51,6 +51,21 @@ component \eqn{k} (the \code{shape_ING} convention).  The prior
 mean of the precision is \eqn{(n_0 + 1 + p_k)/(n_0 \tau^2_k)},
 i.e. centered near \eqn{1/\tau^2_k} when \eqn{n_0} is moderate and
 deliberately diffuse for small \code{pwt}.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{\code{disp_lower} defaults to the 0.01 quantile of the implied
+inverse-Gamma dispersion prior, i.e. the value below which the
+dispersion falls with prior probability 1\\\%:
+\deqn{disp\_lower = 1 / q_{\Gamma}(0.99;\; shape,\; rate),}
+equivalently the reciprocal of the 99th percentile of the Gamma
+precision prior.  \code{\link{lmerb}} and \code{\link{glmerb}} use
+this value as the conservative \eqn{\tau^2_k} plug-in for their
+eigenvalue / TV convergence calibration, so the resulting bound
+holds over 99\\\% of the prior dispersion mass.  Note that with the
+diffuse default calibration (small \code{pwt}) this quantile can be
+far below \eqn{\hat\tau^2_k}, giving conservative (large) sweep
+counts.
+}\if{html}{\out{</div>}}
+
 }
 }
 \examples{

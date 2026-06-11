@@ -769,9 +769,17 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
 #'
 #' The Block~1 random-effect covariance is reconstructed from the Block~2
 #' dispersions: \code{Sigma_ranef = diag(tau^2_k)} where \code{tau^2_k} is the
-#' \code{dispersion} of component \code{k}'s \code{dNormal} pfamily.  Only
-#' \code{dNormal} components are currently supported; sampling the Block~2
-#' dispersion (e.g. \code{dIndependent_Normal_Gamma}) is not implemented yet.
+#' \code{dispersion} of component \code{k}'s \code{dNormal} pfamily.
+#'
+#' \code{dIndependent_Normal_Gamma} components are accepted with a
+#' \emph{required} \code{disp_lower} (lower truncation of the dispersion),
+#' which is used as the plug-in \eqn{\tau^2_k} for the eigenvalue / TV
+#' calibration: smaller \eqn{\tau^2} increases the coupling between blocks
+#' and hence the contraction rate \eqn{\lambda^*}, so the lower bound yields
+#' a conservative (upper-bound) eigenvalue and sweep count valid for every
+#' dispersion in the truncated support.  Sampling the Block~2 dispersion is
+#' not implemented yet; the callers stop after calibration when any ING
+#' component is present (\code{any_ing = TRUE} in the returned container).
 #'
 #' @param pfamily_list Named list of \code{"pfamily"} objects, one per
 #'   random-effect coefficient (e.g. from
@@ -784,7 +792,8 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
 #' @param family A \code{\link[stats]{family}} object.
 #' @param fn_name Calling function name used in error messages.
 #' @return List with \code{pfamily_list} (reordered), \code{dispersion_ranef},
-#'   \code{Sigma_ranef}, and \code{prior_list}.
+#'   \code{Sigma_ranef}, \code{prior_list}, \code{ptypes} (per-component
+#'   constructor names), and \code{any_ing}.
 #' @keywords internal
 .lmebayes_priors_from_pfamily_list <- function(pfamily_list,
                                                dispersion_ranef,
@@ -838,7 +847,8 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   pfamily_list <- pfamily_list[re_names]
 
   prior_list <- stats::setNames(vector("list", p_re), re_names)
-  tau2 <- stats::setNames(numeric(p_re), re_names)
+  tau2   <- stats::setNames(numeric(p_re), re_names)
+  ptypes <- stats::setNames(character(p_re), re_names)
 
   for (k in re_names) {
     pf <- pfamily_list[[k]]
@@ -846,14 +856,15 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
       stop("pfamily_list[[\"", k, "\"]] must be a pfamily object.",
            call. = FALSE)
     }
-    if (!identical(pf$pfamily, "dNormal")) {
+    if (!pf$pfamily %in% c("dNormal", "dIndependent_Normal_Gamma")) {
       stop(
-        fn_name, "() currently supports only dNormal pfamilies in ",
-        "'pfamily_list'; component \"", k, "\" is ", pf$pfamily,
-        ". Sampling the Block 2 dispersion is not implemented yet.",
+        fn_name, "() supports only dNormal and dIndependent_Normal_Gamma ",
+        "pfamilies in 'pfamily_list'; component \"", k, "\" is ",
+        pf$pfamily, ".",
         call. = FALSE
       )
     }
+    ptypes[[k]] <- pf$pfamily
 
     par_names <- colnames(design$X_hyper[[k]])
     q_k <- length(par_names)
@@ -886,14 +897,30 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
     names(mu_k) <- par_names
     dimnames(Sigma_k) <- list(par_names, par_names)
 
-    d_k <- pf$prior_list$dispersion
-    if (isTRUE(pf$prior_list$ddef)) {
-      warning(
-        fn_name, ": pfamily_list[[\"", k, "\"]] uses the default ",
-        "dispersion = 1 (none was supplied to dNormal()); the Block 1 ",
-        "random-effect variance tau^2 for \"", k, "\" is therefore 1.",
-        call. = FALSE
-      )
+    if (identical(pf$pfamily, "dNormal")) {
+      d_k <- pf$prior_list$dispersion
+      if (isTRUE(pf$prior_list$ddef)) {
+        warning(
+          fn_name, ": pfamily_list[[\"", k, "\"]] uses the default ",
+          "dispersion = 1 (none was supplied to dNormal()); the Block 1 ",
+          "random-effect variance tau^2 for \"", k, "\" is therefore 1.",
+          call. = FALSE
+        )
+      }
+    } else {
+      ## ING: disp_lower is required and serves as the conservative tau^2
+      ## plug-in for the eigenvalue / TV calibration.
+      d_k <- pf$prior_list$disp_lower
+      if (is.null(d_k) || !is.numeric(d_k) || length(d_k) != 1L ||
+          !is.finite(d_k) || d_k <= 0) {
+        stop(
+          fn_name, "(): pfamily_list[[\"", k, "\"]] is ",
+          "dIndependent_Normal_Gamma and must supply a positive scalar ",
+          "'disp_lower' (lower dispersion truncation). It is used as the ",
+          "conservative tau^2 plug-in for the convergence calibration.",
+          call. = FALSE
+        )
+      }
     }
 
     tau2[[k]] <- as.numeric(d_k)
@@ -911,7 +938,9 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
     pfamily_list     = pfamily_list,
     dispersion_ranef = dispersion_ranef,
     Sigma_ranef      = Sigma_ranef,
-    prior_list       = prior_list
+    prior_list       = prior_list,
+    ptypes           = ptypes,
+    any_ing          = any(ptypes == "dIndependent_Normal_Gamma")
   )
 }
 

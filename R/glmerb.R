@@ -279,18 +279,57 @@ glmerb <- function(
   } else {
     sprintf("approximate (local-Gaussian at mode, %s)", family$family)
   }
+  if (prior$any_ing) {
+    calib_label <- paste0(calib_label, "; conservative: ING tau^2_k = disp_lower")
+  }
   cat(sprintf(
     "--- glmerb: convergence calibration [%s]:\n    lambda* = %.4f, tv_tol = %g => m_min = %d, using m_convergence = %d ---\n\n",
     calib_label, rate$lambda_star, tv_tol, m_min, m_convergence
   ))
+  method_label <- if (is_gaussian) "exact" else "local_gaussian_mode"
+  if (prior$any_ing) {
+    method_label <- paste0(method_label, "+disp_lower_bound")
+  }
   convergence_info <- list(
-    method        = if (is_gaussian) "exact" else "local_gaussian_mode",
+    method        = method_label,
     tv_tol        = tv_tol,
     lambda_star   = rate$lambda_star,
     eigenvalues   = rate$eigenvalues,
     m_min         = m_min,
     m_convergence = m_convergence
   )
+
+  # ING components: tau^2 sampling is not implemented yet, so stop after the
+  # calibration (the disp_lower plug-in makes lambda* an upper bound over the
+  # truncated dispersion support).
+  if (prior$any_ing) {
+    cat(
+      "--- glmerb: dIndependent_Normal_Gamma components present; Block 2\n",
+      "    dispersion sampling is not implemented yet. Stopping after the\n",
+      "    convergence calibration (no draws generated). ---\n\n",
+      sep = ""
+    )
+    return(structure(
+      list(
+        call        = cl,
+        formula     = formula,
+        family      = family,
+        glmer       = glmer_fit,
+        prior       = prior,
+        model_setup = design,
+        coef.mode   = fixef_start,
+        ranef.mode  = pm$b_mean,
+        coef.means  = NULL,
+        fixef_draws = NULL,
+        coefficients = NULL,
+        mu_all      = as.matrix(
+          glmbayesCore::build_mu_all(design, fixef_start)$mu_all
+        ),
+        convergence = convergence_info
+      ),
+      class = c("glmerb", "list")
+    ))
+  }
 
   sampler <- glmbayesCore::two_block_rNormal_reg(
     n                 = n,

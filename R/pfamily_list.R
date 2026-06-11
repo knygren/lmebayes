@@ -25,6 +25,19 @@
 #'     mean of the precision is \eqn{(n_0 + 1 + p_k)/(n_0 \tau^2_k)},
 #'     i.e. centered near \eqn{1/\tau^2_k} when \eqn{n_0} is moderate and
 #'     deliberately diffuse for small \code{pwt}.
+#'
+#'     \code{disp_lower} defaults to the 0.01 quantile of the implied
+#'     inverse-Gamma dispersion prior, i.e. the value below which the
+#'     dispersion falls with prior probability 1\%:
+#'     \deqn{disp\_lower = 1 / q_{\Gamma}(0.99;\; shape,\; rate),}
+#'     equivalently the reciprocal of the 99th percentile of the Gamma
+#'     precision prior.  \code{\link{lmerb}} and \code{\link{glmerb}} use
+#'     this value as the conservative \eqn{\tau^2_k} plug-in for their
+#'     eigenvalue / TV convergence calibration, so the resulting bound
+#'     holds over 99\% of the prior dispersion mass.  Note that with the
+#'     diffuse default calibration (small \code{pwt}) this quantile can be
+#'     far below \eqn{\hat\tau^2_k}, giving conservative (large) sweep
+#'     counts.
 #' }
 #'
 #' @param object An object of class \code{"lmebayes_prior_setup"} as
@@ -155,12 +168,19 @@ pfamily_list.lmebayes_prior_setup <- function(object,
         Sigma      = Sig_k,
         dispersion = d_k
       ),
-      dIndependent_Normal_Gamma = glmbayesCore::dIndependent_Normal_Gamma(
-        mu    = mu_k,
-        Sigma = Sig_k,
-        shape = (n_prior + 1) / 2 + p_k / 2,
-        rate  = d_k * (n_prior / 2)
-      )
+      dIndependent_Normal_Gamma = {
+        shape_k <- (n_prior + 1) / 2 + p_k / 2
+        rate_k  <- d_k * (n_prior / 2)
+        glmbayesCore::dIndependent_Normal_Gamma(
+          mu    = mu_k,
+          Sigma = Sig_k,
+          shape = shape_k,
+          rate  = rate_k,
+          ## Default lower truncation: 0.01 quantile of the inverse-Gamma
+          ## dispersion prior (= 1 / 99th percentile of the Gamma precision).
+          disp_lower = 1 / stats::qgamma(0.99, shape = shape_k, rate = rate_k)
+        )
+      }
     )
   }
 

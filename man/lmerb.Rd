@@ -39,8 +39,16 @@ as \code{\link{model_setup}}).}
 coefficient (names must match the random-effect coefficient names, any
 order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and,
 through each component's \code{dispersion}, the Block~1 random-effect
-variances \eqn{\tau^2_k}.  Currently only \code{dNormal} components are
-supported.  Typically built with
+variances \eqn{\tau^2_k}.  \code{dNormal} components run the full
+sampler.  \code{dIndependent_Normal_Gamma} components are accepted but
+must supply a positive \code{disp_lower} (lower dispersion truncation),
+which is used as a conservative \eqn{\tau^2_k} plug-in for the
+eigenvalue / TV calibration (smaller \eqn{\tau^2} increases the
+contraction rate \eqn{\lambda^*}, so the bound holds for every
+dispersion in the truncated support); since Block~2 dispersion sampling
+is not implemented yet, the fit stops after displaying the calibration
+and returns the ICM mode plus \code{convergence} info without draws.
+Typically built with
 \code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
 \code{\link{Prior_Setup_lmebayes}} object.}
 
