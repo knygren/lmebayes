@@ -46,6 +46,14 @@ stopifnot(length(re_names) == 3L)
 J       <- nlevels(ps$design$groups)
 n_prior <- (ps$pwt / (1 - ps$pwt)) * J
 
+## The setup object now carries per-component n_prior_dispersion; with a
+## scalar pwt it must equal the classic derivation used below.
+stopifnot(
+  is.numeric(ps$n_prior_dispersion),
+  identical(names(ps$n_prior_dispersion), re_names),
+  isTRUE(all.equal(as.vector(ps$n_prior_dispersion), rep(n_prior, 3L)))
+)
+
 ## --- 1. default: all dNormal ------------------------------------------------
 pf <- pfamily_list(ps)
 stopifnot(

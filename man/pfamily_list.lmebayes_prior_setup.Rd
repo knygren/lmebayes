@@ -41,9 +41,12 @@ as known.
 \item \code{"dIndependent_Normal_Gamma"}: the same \code{mu} and
 \code{Sigma}, plus a Gamma prior on the Block-2 precision
 \eqn{1/\tau^2_k} calibrated with the same convention as
-\code{\link[glmbayesCore]{Prior_Setup}}.  With \eqn{J} groups and
-prior weight \code{pwt}, the effective prior sample size is
-\eqn{n_0 = J \cdot pwt/(1 - pwt)} and
+\code{\link[glmbayesCore]{Prior_Setup}}.  The per-component
+effective prior sample size \eqn{n_0} is taken from
+\code{object$n_prior_dispersion[[k]]} (set by
+\code{\link{Prior_Setup_lmebayes}} via \code{pwt_dispersion} /
+\code{n_prior_dispersion}, or derived from \code{pwt} as
+\eqn{n_0 = J \cdot pwt/(1 - pwt)} with \eqn{J} groups).  Then
 \deqn{shape = (n_0 + 1)/2 + p_k/2, \qquad
           rate = \tau^2_k \, n_0/2,}
 where \eqn{p_k} is the number of Block-2 coefficients for

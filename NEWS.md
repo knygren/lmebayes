@@ -1,5 +1,27 @@
 # lmebayes (development version)
 
+* **Per-component `pwt` and decoupled dispersion prior in
+  `Prior_Setup_lmebayes()`:** `pwt` now accepts, besides a scalar, a list
+  with one element per random-effect component (named with the RE
+  coefficient names or positional); each element is a scalar (recycled
+  over that component's Block-2 predictors) or a per-predictor vector
+  (optionally named with the `X_hyper[[k]]` columns).  `Sigma_fixef` is
+  scaled elementwise by `sqrt((1-w_i)/w_i) * sqrt((1-w_j)/w_j)`, matching
+  the `glmbayesCore::Prior_Setup` vector-`pwt` convention and reducing to
+  the classic `(1-pwt)/pwt` factor for equal weights.  Two new optional
+  arguments decouple the Block-2 dispersion (precision) prior from the
+  coefficient weights: `pwt_dispersion` (relative weight in (0,1)) and
+  `n_prior_dispersion` (absolute effective prior sample size in group
+  units), each a scalar or per-component list/vector; at most one may be
+  supplied, and when neither is, the values are derived from the
+  per-component mean `pwt` for consistency.  The returned object always
+  carries mutually consistent `$pwt_dispersion` and `$n_prior_dispersion`
+  per-component vectors (`n_k = J w_k / (1 - w_k)`), which
+  `pfamily_list()` now uses to calibrate `dIndependent_Normal_Gamma`
+  shape/rate per component instead of re-deriving them from the scalar
+  `pwt`.  `print()` shows per-component weights and the dispersion-prior
+  source.  Covered by `data-raw/test_prior_setup_pwt.R`.
+
 * **Conservative TV calibration for `dIndependent_Normal_Gamma` priors:**
   `lmerb()`/`glmerb()` now accept ING components in `pfamily_list`,
   provided each supplies a positive `disp_lower` (lower truncation of the

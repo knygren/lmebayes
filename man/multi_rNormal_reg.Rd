@@ -71,5 +71,6 @@ glmbayes Simulation Functions
 \code{\link[glmbayesCore]{two_block_rNormal_reg}()},
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}()},
 \code{\link[glmbayesCore]{two_block_rate}()},
+\code{\link[glmbayesCore]{two_block_rate_v2}()},
 \code{\link[glmbayesCore]{two_block_tv_bound}()}
 }

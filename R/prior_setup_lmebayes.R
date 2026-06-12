@@ -1,10 +1,12 @@
 #' Prior setup for the two-block Gibbs lmebayes sampler
 #'
 #' Calibrates priors for the level-2 fixed effects (\code{fixef}) of a
-#' hierarchical mixed model using an \code{lmer}/\code{glmer} fit on the
-#' full-rank subset of groups.  Random-effect variances are treated as fixed
-#' at their mixed-model estimates.  The returned object provides all inputs
-#' needed for the two-block Gibbs sampler:
+#' hierarchical mixed model using the reference \code{lmer}/\code{glmer} fits
+#' on \strong{all} groups (from \code{\link{model_setup}}).  Per-group design
+#' rank (\code{re_rank}) is a diagnostic check only and does not subset the
+#' data.  Random-effect variances are treated as fixed at their mixed-model
+#' estimates.  The returned object provides all inputs needed for the
+#' two-block Gibbs sampler:
 #'
 #' \strong{Block 1} (per-group, independent):
 #' \deqn{p(\mathbf{b}_j \mid \mathbf{y}, \mathrm{fixef}, \sigma^2, \Sigma_b)
@@ -24,26 +26,58 @@
 #'       = \mathbf{X}_k'\mathbf{X}_k / \tau^2_k
 #'         + \boldsymbol{\Sigma}_{\mathrm{fixef},k}^{-1}}
 #'
-#' @param formula Mixed-model formula passed to \code{\link{model_setup}} and
-#'   the full-rank reference \code{lmer}/\code{glmer} fit.
+#' @param formula Mixed-model formula passed to \code{\link{model_setup}},
+#'   whose reference \code{lmer}/\code{glmer} fits (all groups) supply the
+#'   calibration quantities.
 #' @param data Data frame containing all variables in \code{formula}.
 #' @param family Model \code{\link[stats]{family}}.  Default \code{gaussian()}.
 #'   Non-Gaussian families use \code{\link[lme4]{glmer}} for calibration;
 #'   \code{dispersion_ranef} is omitted (analogous to
 #'   \code{\link[glmbayesCore]{Prior_Setup}} for flat GLMs).
-#' @param pwt Scalar prior weight in \eqn{(0, 1)}.  The prior covariance for
-#'   each \code{fixef_k} block is scaled by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}
-#'   relative to \code{vcov(fit_fr)}, matching the
-#'   \code{glmbayesCore::compute_gaussian_prior} convention.
+#' @param pwt Prior weight(s) in \eqn{(0, 1)}.  Either a \strong{scalar}
+#'   (applied to every random-effect component and every Block~2 predictor),
+#'   or a \strong{list with one element per random-effect component} (named
+#'   with the RE coefficient names in any order, or unnamed positional).
+#'   Each list element is a scalar (recycled over that component's Block~2
+#'   predictors) or a vector of length \eqn{p_k} (optionally named with the
+#'   predictor column names of \code{X_hyper[[k]]}, reordered to match).
+#'   The prior covariance for each \code{fixef_k} block is scaled relative to
+#'   \code{vcov(fit_ref)} following the \code{\link[glmbayesCore]{Prior_Setup}}
+#'   convention: \eqn{(1-\mathrm{pwt})/\mathrm{pwt}} for a scalar, and
+#'   elementwise
+#'   \eqn{\sqrt{(1-\mathrm{pwt}_i)/\mathrm{pwt}_i}\,
+#'        \sqrt{(1-\mathrm{pwt}_j)/\mathrm{pwt}_j}} for vectors.
+#' @param pwt_dispersion Optional \emph{relative} prior weight(s) in
+#'   \eqn{(0, 1)} for the Block~2 dispersion (precision) prior, decoupled from
+#'   \code{pwt}.  A scalar, or a list / numeric vector with one value per
+#'   random-effect component (named or positional).  Converted internally to
+#'   an effective prior sample size \eqn{n_k = J\,w_k/(1-w_k)} where \eqn{J}
+#'   is the number of groups.  At most one of \code{pwt_dispersion} and
+#'   \code{n_prior_dispersion} may be supplied; when neither is, the values
+#'   are derived from \code{pwt} (per-component mean weight) for consistency.
+#' @param n_prior_dispersion Optional \emph{absolute} effective prior sample
+#'   size(s) (in group units) for the Block~2 dispersion prior.  A positive
+#'   scalar, or a list / numeric vector with one value per random-effect
+#'   component (named or positional).  See \code{pwt_dispersion}.
 #'
 #' @return Object of class \code{"lmebayes_prior_setup"} with fields:
 #'   \describe{
 #'     \item{\code{formula}}{Model formula.}
 #'     \item{\code{family}}{Family object.}
-#'     \item{\code{pwt}}{Prior weight used.}
+#'     \item{\code{pwt}}{Prior weight(s) used: the scalar as supplied, or the
+#'       canonical named list of per-predictor weight vectors when a list was
+#'       supplied.}
+#'     \item{\code{pwt_dispersion}}{Named per-component vector of relative
+#'       dispersion prior weights (always present; consistent with
+#'       \code{n_prior_dispersion} via \eqn{w_k = n_k/(n_k + J)}).}
+#'     \item{\code{n_prior_dispersion}}{Named per-component vector of
+#'       effective prior sample sizes for the Block~2 dispersion prior
+#'       (always present; used by
+#'       \code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} to
+#'       calibrate \code{dIndependent_Normal_Gamma} components).}
 #'     \item{\code{design}}{Full \code{\link{model_setup}} object (all groups).}
-#'     \item{\code{fit_fr}}{Reference \code{lmer}/\code{glmer} fit on full-rank
-#'       groups only.}
+#'     \item{\code{fit_ref}}{Reference \code{lmer}/\code{glmer} fit on all
+#'       groups (the full-formula fit from \code{\link{model_setup}}).}
 #'     \item{\code{dispersion_ranef}}{Scalar \eqn{\sigma^2} for Gaussian models
 #'       only; \code{NULL} otherwise.}
 #'     \item{\code{Sigma_ranef}}{Diagonal RE covariance matrix (Block~1).}
@@ -52,11 +86,11 @@
 #' @details
 #' \strong{Why default calibration depends on classical estimates.}
 #' \code{Prior_Setup_lmebayes} anchors each Block~2 mean at the classical
-#' mixed-model estimate and scales covariances from \code{vcov(fit_fr)} by
+#' mixed-model estimate and scales covariances from \code{vcov(fit_ref)} by
 #' \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.  This requires:
 #' \enumerate{
-#'   \item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_fr)} term.
-#'   \item Each RE variance \eqn{\tau^2_k} from \code{fit_fr} is strictly positive.
+#'   \item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_ref)} term.
+#'   \item Each RE variance \eqn{\tau^2_k} from \code{fit_ref} is strictly positive.
 #' }
 #' @seealso \code{\link{model_setup}}, \code{\link[glmbayesCore]{Prior_Setup}},
 #'   \code{\link[glmbayesCore]{build_mu_all}},
@@ -65,7 +99,9 @@
 Prior_Setup_lmebayes <- function(formula,
                                  data,
                                  family = gaussian(),
-                                 pwt    = 0.01) {
+                                 pwt    = 0.01,
+                                 pwt_dispersion = NULL,
+                                 n_prior_dispersion = NULL) {
 
   if (!inherits(formula, "formula")) {
     stop("'formula' must be a formula.", call. = FALSE)
@@ -73,8 +109,26 @@ Prior_Setup_lmebayes <- function(formula,
   if (!is.data.frame(data)) {
     stop("'data' must be a data frame.", call. = FALSE)
   }
-  if (!is.numeric(pwt) || length(pwt) != 1L || pwt <= 0 || pwt >= 1) {
-    stop("'pwt' must be a scalar in (0, 1).", call. = FALSE)
+  if (is.numeric(pwt)) {
+    if (length(pwt) != 1L || is.na(pwt) || pwt <= 0 || pwt >= 1) {
+      stop(
+        "'pwt' must be a scalar in (0, 1) or a list with one element per ",
+        "random-effect component.",
+        call. = FALSE
+      )
+    }
+  } else if (!is.list(pwt)) {
+    stop(
+      "'pwt' must be a scalar in (0, 1) or a list with one element per ",
+      "random-effect component.",
+      call. = FALSE
+    )
+  }
+  if (!is.null(pwt_dispersion) && !is.null(n_prior_dispersion)) {
+    stop(
+      "Supply at most one of 'pwt_dispersion' and 'n_prior_dispersion'.",
+      call. = FALSE
+    )
   }
   if (is.character(family)) {
     family <- get(family, mode = "function", envir = parent.frame())
@@ -103,28 +157,29 @@ Prior_Setup_lmebayes <- function(formula,
     control = if (is_gaussian) ctrl else lme4::lmerControl()
   )
 
-  fr_levs  <- names(design$re_rank)[design$re_rank]
-  grp_col  <- design$group_name
-  grp_vals <- as.character(data[[grp_col]])
-  data_fr  <- data[grp_vals %in% fr_levs, , drop = FALSE]
-  data_fr[[grp_col]] <- droplevels(factor(data_fr[[grp_col]]))
-
-  fit_fr <- if (is_gaussian) {
-    lme4::lmer(formula, data = data_fr, control = ctrl)
-  } else {
-    lme4::glmer(formula, data = data_fr, family = family)
+  ## Full-rank status is a per-group DESIGN CHECK only (reported by print();
+  ## groups with rank-deficient Z_j are still fully used below).  All
+  ## calibration quantities come from the reference fits on ALL groups,
+  ## already computed by model_setup(): lmer_fit/glmer_fit (full formula) for
+  ## fixed effects and their covariance; the matching vcov fit for the
+  ## per-component RE variances and the residual variance.
+  fit_ref <- if (is_gaussian) design$lmer_fit else design$glmer_fit
+  if (is.null(fit_ref)) {
+    stop(
+      "model_setup() did not return a reference ", mer_label, " fit.",
+      call. = FALSE
+    )
   }
 
-  vc_fr <- extract_mer_variance_components(fit_fr, design$re_coef_names)
-  dispersion_ranef <- if (is_gaussian) vc_fr$residual_var else NULL
-  tau2_vec         <- vc_fr$vcov_re
+  dispersion_ranef <- if (is_gaussian) design$residual_var else NULL
+  tau2_vec         <- design$vcov_re
 
   p_re        <- length(design$re_coef_names)
   Sigma_ranef <- diag(unname(tau2_vec), nrow = p_re, ncol = p_re)
   dimnames(Sigma_ranef) <- list(design$re_coef_names, design$re_coef_names)
 
-  fe   <- lme4::fixef(fit_fr)
-  V_fe <- as.matrix(stats::vcov(fit_fr))
+  fe   <- lme4::fixef(fit_ref)
+  V_fe <- as.matrix(stats::vcov(fit_ref))
 
   fe_name_for <- function(k, col) {
     if (k == "(Intercept)") {
@@ -210,7 +265,16 @@ Prior_Setup_lmebayes <- function(formula,
     )
   }
 
-  scale <- (1 - pwt) / pwt
+  pwt_list <- .lmebayes_resolve_pwt(pwt, design)
+
+  J_groups <- nlevels(design$groups)
+  disp     <- .lmebayes_resolve_disp_prior(
+    pwt_dispersion     = pwt_dispersion,
+    n_prior_dispersion = n_prior_dispersion,
+    pwt_list           = pwt_list,
+    J                  = J_groups,
+    re_names           = re_names
+  )
 
   prior_list <- stats::setNames(
     lapply(re_names, function(k) {
@@ -227,7 +291,10 @@ Prior_Setup_lmebayes <- function(formula,
       }, numeric(1L))
       names(mu_fixef) <- cols_k
 
-      Sigma_fixef <- V_fe[fe_idx, fe_idx, drop = FALSE] * scale
+      ## Elementwise scaling sqrt(s_i) * sqrt(s_j) with s_i = (1-w_i)/w_i;
+      ## reduces to the scalar (1-pwt)/pwt factor when all weights are equal.
+      sc_k <- sqrt((1 - pwt_list[[k]]) / pwt_list[[k]])
+      Sigma_fixef <- V_fe[fe_idx, fe_idx, drop = FALSE] * outer(sc_k, sc_k)
       dimnames(Sigma_fixef) <- list(cols_k, cols_k)
 
       list(
@@ -239,19 +306,187 @@ Prior_Setup_lmebayes <- function(formula,
     re_names
   )
 
+  pwt_out <- if (is.numeric(pwt)) pwt else pwt_list
+
   structure(
     list(
-      formula          = formula,
-      family           = family,
-      pwt              = pwt,
-      design           = design,
-      fit_fr           = fit_fr,
-      dispersion_ranef = dispersion_ranef,
-      Sigma_ranef      = Sigma_ranef,
-      prior_list       = prior_list
+      formula            = formula,
+      family             = family,
+      pwt                = pwt_out,
+      pwt_dispersion     = disp$pwt_dispersion,
+      n_prior_dispersion = disp$n_prior_dispersion,
+      design             = design,
+      fit_ref            = fit_ref,
+      dispersion_ranef   = dispersion_ranef,
+      Sigma_ranef        = Sigma_ranef,
+      prior_list         = prior_list
     ),
     class = "lmebayes_prior_setup"
   )
+}
+
+## Resolve 'pwt' (scalar or list) into a canonical named list with one named
+## numeric vector per random-effect component, ordered like X_hyper[[k]].
+#' @keywords internal
+#' @noRd
+.lmebayes_resolve_pwt <- function(pwt, design) {
+
+  re_names <- design$re_coef_names
+  p_re     <- length(re_names)
+
+  check_range <- function(v, what) {
+    if (!is.numeric(v) || anyNA(v) || any(v <= 0) || any(v >= 1)) {
+      stop(sprintf("%s must be numeric with all values in (0, 1).", what),
+           call. = FALSE)
+    }
+  }
+
+  if (is.numeric(pwt)) {
+    check_range(pwt, "'pwt'")
+    return(stats::setNames(
+      lapply(re_names, function(k) {
+        cols_k <- colnames(design$X_hyper[[k]])
+        stats::setNames(rep(as.numeric(pwt), length(cols_k)), cols_k)
+      }),
+      re_names
+    ))
+  }
+
+  if (length(pwt) != p_re) {
+    stop(sprintf(
+      paste0("'pwt' list has length %d but there are %d random-effect ",
+             "components (%s)."),
+      length(pwt), p_re, paste(re_names, collapse = ", ")
+    ), call. = FALSE)
+  }
+
+  nms <- names(pwt)
+  if (!is.null(nms) && any(nzchar(nms))) {
+    if (!setequal(nms, re_names)) {
+      stop(
+        "Names of 'pwt' must match the random-effect coefficient names: ",
+        paste(re_names, collapse = ", "),
+        call. = FALSE
+      )
+    }
+    pwt <- pwt[re_names]
+  } else {
+    names(pwt) <- re_names
+  }
+
+  out <- stats::setNames(vector("list", p_re), re_names)
+  for (k in re_names) {
+    cols_k <- colnames(design$X_hyper[[k]])
+    p_k    <- length(cols_k)
+    v      <- pwt[[k]]
+    what   <- sprintf("'pwt[[\"%s\"]]'", k)
+    check_range(v, what)
+
+    if (length(v) == 1L) {
+      v <- rep(as.numeric(v), p_k)
+    } else if (length(v) == p_k) {
+      vn <- names(v)
+      if (!is.null(vn) && any(nzchar(vn))) {
+        if (!setequal(vn, cols_k)) {
+          stop(sprintf(
+            "Names of %s must match the Block 2 predictors: %s.",
+            what, paste(cols_k, collapse = ", ")
+          ), call. = FALSE)
+        }
+        v <- v[cols_k]
+      }
+      v <- as.numeric(v)
+    } else {
+      stop(sprintf(
+        "%s must have length 1 or %d (one value per Block 2 predictor).",
+        what, p_k
+      ), call. = FALSE)
+    }
+    out[[k]] <- stats::setNames(v, cols_k)
+  }
+  out
+}
+
+## Resolve the Block 2 dispersion-prior weights into mutually consistent
+## per-component vectors: n_k = J * w_k / (1 - w_k)  <=>  w_k = n_k / (n_k + J).
+#' @keywords internal
+#' @noRd
+.lmebayes_resolve_disp_prior <- function(pwt_dispersion,
+                                         n_prior_dispersion,
+                                         pwt_list,
+                                         J,
+                                         re_names) {
+
+  p_re <- length(re_names)
+
+  expand <- function(x, what) {
+    if (is.list(x)) {
+      ok <- vapply(
+        x, function(e) is.numeric(e) && length(e) == 1L && !is.na(e),
+        logical(1L)
+      )
+      if (!all(ok)) {
+        stop(sprintf(
+          "'%s' list elements must each be a single numeric value.", what
+        ), call. = FALSE)
+      }
+      nms <- names(x)
+      x <- vapply(x, as.numeric, numeric(1L))
+      names(x) <- nms
+    }
+    if (!is.numeric(x) || anyNA(x)) {
+      stop(sprintf("'%s' must be numeric without missing values.", what),
+           call. = FALSE)
+    }
+    if (length(x) == 1L) {
+      x <- rep(unname(x), p_re)
+    } else if (length(x) == p_re) {
+      nms <- names(x)
+      if (!is.null(nms) && any(nzchar(nms))) {
+        if (!setequal(nms, re_names)) {
+          stop(sprintf(
+            "Names of '%s' must match the random-effect coefficient names: %s.",
+            what, paste(re_names, collapse = ", ")
+          ), call. = FALSE)
+        }
+        x <- x[re_names]
+      }
+    } else {
+      stop(sprintf(
+        paste0("'%s' must have length 1 or %d (one value per random-effect ",
+               "component)."),
+        what, p_re
+      ), call. = FALSE)
+    }
+    stats::setNames(as.numeric(x), re_names)
+  }
+
+  if (!is.null(pwt_dispersion)) {
+    w <- expand(pwt_dispersion, "pwt_dispersion")
+    if (any(w <= 0) || any(w >= 1)) {
+      stop("'pwt_dispersion' values must be in (0, 1).", call. = FALSE)
+    }
+    n   <- J * w / (1 - w)
+    src <- "user-supplied (pwt_dispersion)"
+  } else if (!is.null(n_prior_dispersion)) {
+    n <- expand(n_prior_dispersion, "n_prior_dispersion")
+    if (any(n <= 0) || any(!is.finite(n))) {
+      stop("'n_prior_dispersion' values must be positive and finite.",
+           call. = FALSE)
+    }
+    w   <- n / (n + J)
+    src <- "user-supplied (n_prior_dispersion)"
+  } else {
+    w <- vapply(re_names, function(k) mean(pwt_list[[k]]), numeric(1L))
+    n   <- J * w / (1 - w)
+    src <- "derived from pwt"
+  }
+
+  w <- stats::setNames(w, re_names)
+  n <- stats::setNames(n, re_names)
+  attr(w, "source") <- src
+  attr(n, "source") <- src
+  list(pwt_dispersion = w, n_prior_dispersion = n, source = src)
 }
 
 #' Print method for \code{lmebayes_prior_setup} objects
@@ -267,19 +502,20 @@ print.lmebayes_prior_setup <- function(x, digits = 4L, ...) {
   n_fr     <- sum(x$design$re_rank)
   n_all    <- nlevels(x$design$groups)
 
+  disp_src <- attr(x$pwt_dispersion, "source")
+
   cat("Call: Prior_Setup_lmebayes()\n\n")
   cat(sprintf("  family           : %s (%s link)\n",
               x$family$family, x$family$link))
-  cat(sprintf("  pwt              : %.4g\n", x$pwt))
   if (!is.null(x$dispersion_ranef)) {
     cat(sprintf(
-      "  dispersion_ranef : %.4f  (sigma2, fixed from %d full-rank %s)\n",
-      x$dispersion_ranef, n_fr, x$design$group_name
+      "  dispersion_ranef : %.4f  (sigma2, fixed from all %d %s)\n",
+      x$dispersion_ranef, n_all, x$design$group_name
     ))
   } else {
     cat("  dispersion_ranef : NULL  (no observation-level dispersion)\n")
   }
-  cat(sprintf("  Full-rank groups : %d of %d %s\n\n",
+  cat(sprintf("  Full-rank groups : %d of %d %s  (design check only)\n\n",
               n_fr, n_all, x$design$group_name))
 
   cat("--- Sigma_ranef (diagonal RE covariance) ---\n")
@@ -289,6 +525,26 @@ print.lmebayes_prior_setup <- function(x, digits = 4L, ...) {
   for (nm in re_names) {
     pl <- x$prior_list[[nm]]
     cat(sprintf("\n  [%s]\n", nm))
+    pwt_k <- if (is.numeric(x$pwt)) x$pwt else x$pwt[[nm]]
+    pwt_str <- if (length(unique(pwt_k)) == 1L) {
+      sprintf("%.4g", pwt_k[1L])
+    } else {
+      paste(sprintf("%s=%.4g", names(pwt_k), pwt_k), collapse = ", ")
+    }
+    cat(sprintf("  pwt             : %s\n", pwt_str))
+    if (!is.null(x$pwt_dispersion)) {
+      cat(sprintf(
+        "  pwt_disp        : %.4g  [%s]\n",
+        x$pwt_dispersion[[nm]],
+        if (is.null(disp_src)) "unknown" else disp_src
+      ))
+    }
+    if (!is.null(x$n_prior_dispersion)) {
+      cat(sprintf(
+        "  n_prior_disp    : %.4g  (= J * pwt_disp / (1 - pwt_disp))\n",
+        x$n_prior_dispersion[[nm]]
+      ))
+    }
     cat("  mu_fixef:\n")
     print(round(pl$mu_fixef, digits))
     cat("  Sigma_fixef:\n")

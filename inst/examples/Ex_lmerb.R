@@ -39,8 +39,8 @@ cat("\n=== model_setup ===\n\n")
 print(design)
 
 ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
-
-
+cat("\n=== Prior_Setup_lmebayes ===\n\n")
+print(ps)
 
 ## Defaults: tv_tol = 0.01 (each stored draw within 0.01 TV of the exact
 ## joint posterior; m_convergence derived from the Nygren (2020) Theorem 3

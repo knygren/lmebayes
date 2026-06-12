@@ -4,11 +4,19 @@
 \alias{Prior_Setup_lmebayes}
 \title{Prior setup for the two-block Gibbs lmebayes sampler}
 \usage{
-Prior_Setup_lmebayes(formula, data, family = gaussian(), pwt = 0.01)
+Prior_Setup_lmebayes(
+  formula,
+  data,
+  family = gaussian(),
+  pwt = 0.01,
+  pwt_dispersion = NULL,
+  n_prior_dispersion = NULL
+)
 }
 \arguments{
-\item{formula}{Mixed-model formula passed to \code{\link{model_setup}} and
-the full-rank reference \code{lmer}/\code{glmer} fit.}
+\item{formula}{Mixed-model formula passed to \code{\link{model_setup}},
+whose reference \code{lmer}/\code{glmer} fits (all groups) supply the
+calibration quantities.}
 
 \item{data}{Data frame containing all variables in \code{formula}.}
 
@@ -17,20 +25,53 @@ Non-Gaussian families use \code{\link[lme4]{glmer}} for calibration;
 \code{dispersion_ranef} is omitted (analogous to
 \code{\link[glmbayesCore]{Prior_Setup}} for flat GLMs).}
 
-\item{pwt}{Scalar prior weight in \eqn{(0, 1)}.  The prior covariance for
-each \code{fixef_k} block is scaled by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}
-relative to \code{vcov(fit_fr)}, matching the
-\code{glmbayesCore::compute_gaussian_prior} convention.}
+\item{pwt}{Prior weight(s) in \eqn{(0, 1)}.  Either a \strong{scalar}
+(applied to every random-effect component and every Block~2 predictor),
+or a \strong{list with one element per random-effect component} (named
+with the RE coefficient names in any order, or unnamed positional).
+Each list element is a scalar (recycled over that component's Block~2
+predictors) or a vector of length \eqn{p_k} (optionally named with the
+predictor column names of \code{X_hyper[[k]]}, reordered to match).
+The prior covariance for each \code{fixef_k} block is scaled relative to
+\code{vcov(fit_ref)} following the \code{\link[glmbayesCore]{Prior_Setup}}
+convention: \eqn{(1-\mathrm{pwt})/\mathrm{pwt}} for a scalar, and
+elementwise
+\eqn{\sqrt{(1-\mathrm{pwt}_i)/\mathrm{pwt}_i}\,
+       \sqrt{(1-\mathrm{pwt}_j)/\mathrm{pwt}_j}} for vectors.}
+
+\item{pwt_dispersion}{Optional \emph{relative} prior weight(s) in
+\eqn{(0, 1)} for the Block~2 dispersion (precision) prior, decoupled from
+\code{pwt}.  A scalar, or a list / numeric vector with one value per
+random-effect component (named or positional).  Converted internally to
+an effective prior sample size \eqn{n_k = J\,w_k/(1-w_k)} where \eqn{J}
+is the number of groups.  At most one of \code{pwt_dispersion} and
+\code{n_prior_dispersion} may be supplied; when neither is, the values
+are derived from \code{pwt} (per-component mean weight) for consistency.}
+
+\item{n_prior_dispersion}{Optional \emph{absolute} effective prior sample
+size(s) (in group units) for the Block~2 dispersion prior.  A positive
+scalar, or a list / numeric vector with one value per random-effect
+component (named or positional).  See \code{pwt_dispersion}.}
 }
 \value{
 Object of class \code{"lmebayes_prior_setup"} with fields:
 \describe{
 \item{\code{formula}}{Model formula.}
 \item{\code{family}}{Family object.}
-\item{\code{pwt}}{Prior weight used.}
+\item{\code{pwt}}{Prior weight(s) used: the scalar as supplied, or the
+canonical named list of per-predictor weight vectors when a list was
+supplied.}
+\item{\code{pwt_dispersion}}{Named per-component vector of relative
+dispersion prior weights (always present; consistent with
+\code{n_prior_dispersion} via \eqn{w_k = n_k/(n_k + J)}).}
+\item{\code{n_prior_dispersion}}{Named per-component vector of
+effective prior sample sizes for the Block~2 dispersion prior
+(always present; used by
+\code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} to
+calibrate \code{dIndependent_Normal_Gamma} components).}
 \item{\code{design}}{Full \code{\link{model_setup}} object (all groups).}
-\item{\code{fit_fr}}{Reference \code{lmer}/\code{glmer} fit on full-rank
-groups only.}
+\item{\code{fit_ref}}{Reference \code{lmer}/\code{glmer} fit on all
+groups (the full-formula fit from \code{\link{model_setup}}).}
 \item{\code{dispersion_ranef}}{Scalar \eqn{\sigma^2} for Gaussian models
 only; \code{NULL} otherwise.}
 \item{\code{Sigma_ranef}}{Diagonal RE covariance matrix (Block~1).}
@@ -39,10 +80,12 @@ only; \code{NULL} otherwise.}
 }
 \description{
 Calibrates priors for the level-2 fixed effects (\code{fixef}) of a
-hierarchical mixed model using an \code{lmer}/\code{glmer} fit on the
-full-rank subset of groups.  Random-effect variances are treated as fixed
-at their mixed-model estimates.  The returned object provides all inputs
-needed for the two-block Gibbs sampler:
+hierarchical mixed model using the reference \code{lmer}/\code{glmer} fits
+on \strong{all} groups (from \code{\link{model_setup}}).  Per-group design
+rank (\code{re_rank}) is a diagnostic check only and does not subset the
+data.  Random-effect variances are treated as fixed at their mixed-model
+estimates.  The returned object provides all inputs needed for the
+two-block Gibbs sampler:
 }
 \details{
 \strong{Block 1} (per-group, independent):
@@ -65,11 +108,11 @@ observation-level dispersion; Block~1 uses \code{dNormal} with
 
 \strong{Why default calibration depends on classical estimates.}
 \code{Prior_Setup_lmebayes} anchors each Block~2 mean at the classical
-mixed-model estimate and scales covariances from \code{vcov(fit_fr)} by
+mixed-model estimate and scales covariances from \code{vcov(fit_ref)} by
 \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.  This requires:
 \enumerate{
-\item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_fr)} term.
-\item Each RE variance \eqn{\tau^2_k} from \code{fit_fr} is strictly positive.
+\item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_ref)} term.
+\item Each RE variance \eqn{\tau^2_k} from \code{fit_ref} is strictly positive.
 }
 }
 \seealso{
