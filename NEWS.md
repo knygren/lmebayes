@@ -1,5 +1,19 @@
 # lmebayes (development version)
 
+* **Block-2 candidate counts in `lmerb()`/`glmerb()` fits:** fits now carry
+  `$iters_draws` (`n x p_re` matrix of total Block-2 candidates generated
+  per stored draw, summed over the inner sweeps; from the new
+  `iters_fixef_draws` output of
+  `glmbayesCore::two_block_rNormal_reg_v2`) and `$iters.means` (average
+  candidates per accepted draw, `colMeans(iters_draws)/m_convergence`).
+  `dNormal` components are conjugate and always show 1;
+  `dIndependent_Normal_Gamma` components show roughly the reciprocal
+  acceptance rate of the joint `(gamma_k, tau^2_k)` envelope sampler.
+  `summary()` adds a `Cand/draw` column to the Block-2 dispersion table as
+  a sampler-efficiency diagnostic (values near 1-3 indicate a tight
+  envelope; large values flag a mis-centered truncation window or
+  ill-calibrated prior).
+
 * **ING Gamma rate now follows the glmbayesCore default calibration
   (mean-matched):** `Prior_Setup_lmebayes()` (`ing_prior` field) and
   `pfamily_list()` previously set `rate = tau2_k * n0/2`, which matches the

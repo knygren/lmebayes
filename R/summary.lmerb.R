@@ -18,9 +18,12 @@
 #'   \code{formula}, \code{n}, \code{simulated}, \code{varcor},
 #'   \code{fixef_overview}, \code{fixef} (per-RE-component tables),
 #'   \code{ranef_overview}, \code{any_ing}, \code{tau2} (per-component
-#'   Block~2 dispersion table: prior type, plug-in value, and posterior
+#'   Block~2 dispersion table: prior type, plug-in value, posterior
 #'   mean / SD / quantiles from \code{tau2_draws} for sampled ING
-#'   components), and optionally \code{ranef_groups}.
+#'   components, and \code{Cand/draw}, the average number of Block~2
+#'   candidates per accepted draw from \code{iters.means} -- 1 for
+#'   \code{dNormal}, roughly the reciprocal acceptance rate of the
+#'   envelope sampler for ING), and optionally \code{ranef_groups}.
 #' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
 #'   \code{\link[glmbayes]{summary.glmb}}, \code{\link[glmbayes]{summary.mlmb}}
 #' @export
@@ -326,7 +329,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 }
 
 ## Per-component tau^2 summary: prior type and plug-in value always; posterior
-## mean/SD/quantiles from tau2_draws for sampled (ING) components.
+## mean/SD/quantiles from tau2_draws and average candidates per accepted
+## Block 2 draw (iters.means) for sampled fits.
 #' @keywords internal
 .lmerb_tau2_summary <- function(object, simulated) {
 
@@ -356,6 +360,11 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     tab$`2.5%`  <- qs[, 1L]
     tab$Median  <- qs[, 2L]
     tab$`97.5%` <- qs[, 3L]
+  }
+  ## Average envelope candidates per accepted Block 2 draw (1 for dNormal;
+  ## ~1/acceptance-rate for ING): sampler-efficiency diagnostic.
+  if (simulated && !is.null(object$iters.means)) {
+    tab$`Cand/draw` <- unname(object$iters.means[re_names])
   }
 
   tab

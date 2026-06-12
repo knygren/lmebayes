@@ -313,6 +313,7 @@ glmerb <- function(
   )
 
   tau2_draws <- sampler$dispersion_fixef_draws
+  iters_draws <- sampler$iters_fixef_draws
 
   structure(
     list(
@@ -329,6 +330,8 @@ glmerb <- function(
       coefficients = sampler$coefficients,
       tau2_draws   = tau2_draws,
       tau2.means   = colMeans(tau2_draws),
+      iters_draws  = iters_draws,
+      iters.means  = colMeans(iters_draws) / m_convergence,
       mu_all       = sampler$mu_all_last,
       convergence  = convergence_info
     ),

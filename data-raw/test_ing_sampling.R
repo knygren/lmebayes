@@ -34,7 +34,7 @@ dat <- subset(dat, !is.na(score_ppvt))
 form <- score_ppvt ~ private_school + (1 | school_id)
 
 ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01,
-                           pwt_dispersion = 0.4)
+                           pwt_dispersion = 0.2)
 J        <- nlevels(ps$design$groups)
 tau2_hat <- unname(ps$prior_list[["(Intercept)"]]$dispersion_fixef)
 

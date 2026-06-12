@@ -162,6 +162,20 @@ columns (the fixed \code{dispersion}) for \code{dNormal} components.
 \item{\code{tau2.means}}{Named vector of posterior means of
 \eqn{\tau^2_k} (\code{colMeans(tau2_draws)}).  \code{NULL} when
 \code{simulate = FALSE}.}
+\item{\code{iters_draws}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
+total number of Block~2 candidates generated per stored draw,
+summed over the \code{m_convergence} inner sweeps.
+\code{dIndependent_Normal_Gamma} components count envelope
+accept-reject candidates until acceptance (as \code{iters} in
+\pkg{glmbayes} samplers); \code{dNormal} components count exactly
+one conjugate draw per sweep.  \code{NULL} when
+\code{simulate = FALSE}.}
+\item{\code{iters.means}}{Named vector of average candidates per
+accepted Block~2 draw
+(\code{colMeans(iters_draws)/m_convergence}; equals 1 for
+\code{dNormal} components, and approximately the reciprocal
+acceptance rate of the ING envelope sampler otherwise).
+\code{NULL} when \code{simulate = FALSE}.}
 \item{\code{mu_all}}{Numeric matrix \code{p_re x J} of Block 1 prior
 means at the final Gibbs state (from
 \code{\link[glmbayesCore]{build_mu_all}}).}
