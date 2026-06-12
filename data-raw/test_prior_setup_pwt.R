@@ -3,7 +3,8 @@
 #
 # Checks:
 #   - scalar pwt: unchanged behavior; $pwt stays scalar; n_prior_dispersion
-#     and pwt_dispersion derived per component (n_k = J*w/(1-w)).
+#     and pwt_dispersion default to a flat 0.2 (n_k = J/4), decoupled from
+#     pwt.
 #   - list pwt (per-component scalars, named/scrambled and positional):
 #     Sigma_fixef scaled per component by (1-w_k)/w_k.
 #   - vector pwt within a component (named, scrambled): elementwise
@@ -64,12 +65,16 @@ stopifnot(
   identical(names(ps0$n_prior_dispersion), re_names),
   is.numeric(ps0$pwt_dispersion),
   identical(names(ps0$pwt_dispersion), re_names),
-  identical(attr(ps0$n_prior_dispersion, "source"), "derived from pwt")
+  identical(attr(ps0$n_prior_dispersion, "source"), "default (0.2)")
 )
-n_exp <- J * w0 / (1 - w0)
+## Default dispersion weight is a flat 0.2 (n_k = J/4), decoupled from pwt:
+## weak coefficient priors would otherwise stretch the ING tau^2 window and
+## collapse the envelope acceptance rate.
+wd_def <- 0.2
+n_exp  <- J * wd_def / (1 - wd_def)
 stopifnot(
   isTRUE(all.equal(as.vector(ps0$n_prior_dispersion), rep(n_exp, 3L))),
-  isTRUE(all.equal(as.vector(ps0$pwt_dispersion), rep(w0, 3L))),
+  isTRUE(all.equal(as.vector(ps0$pwt_dispersion), rep(wd_def, 3L))),
   ## consistency identity w = n / (n + J)
   isTRUE(all.equal(
     as.vector(ps0$pwt_dispersion),
@@ -118,13 +123,9 @@ for (k in re_names) {
     ps0$prior_list[[k]]$Sigma_fixef * (s_k / s0)
   )))
 }
-## dispersion prior derived from per-component mean weight
+## dispersion prior stays at the flat 0.2 default regardless of pwt
 stopifnot(isTRUE(all.equal(
-  as.vector(ps_c$n_prior_dispersion),
-  vapply(re_names, function(k) {
-    w_k <- w_by_comp[[k]]
-    J * w_k / (1 - w_k)
-  }, numeric(1L), USE.NAMES = FALSE)
+  as.vector(ps_c$n_prior_dispersion), rep(n_exp, 3L)
 )))
 cat("Per-component scalar pwt: OK\n")
 
@@ -154,10 +155,9 @@ for (k in re_names[-1L]) {
     ps_v$prior_list[[k]]$Sigma_fixef, ps0$prior_list[[k]]$Sigma_fixef
   )))
 }
-## n_prior_dispersion for the vector component uses the mean weight
+## n_prior_dispersion stays at the flat 0.2 default (decoupled from pwt)
 stopifnot(isTRUE(all.equal(
-  unname(ps_v$n_prior_dispersion[[k1]]),
-  J * mean(w_vec) / (1 - mean(w_vec))
+  unname(ps_v$n_prior_dispersion[[k1]]), n_exp
 )))
 cat("Per-predictor vector pwt: OK\n")
 
@@ -222,7 +222,10 @@ for (k in re_names) {
   p_k <- length(pl$mu_fixef)
   stopifnot(
     isTRUE(all.equal(pr$shape, (n_k + 1) / 2 + p_k / 2)),
-    isTRUE(all.equal(pr$rate, unname(pl$dispersion_fixef) * (n_k / 2)))
+    ## glmbayesCore default rate b_0 = tau2 * (n_k + p_k - 1)/2
+    ##                              = tau2 * (shape - 1): mean-matched.
+    isTRUE(all.equal(pr$rate,
+                     unname(pl$dispersion_fixef) * (n_k + p_k - 1) / 2))
   )
 }
 cat("pfamily_list ING uses n_prior_dispersion: OK\n")

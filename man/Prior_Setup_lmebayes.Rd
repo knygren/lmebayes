@@ -45,8 +45,12 @@ elementwise
 random-effect component (named or positional).  Converted internally to
 an effective prior sample size \eqn{n_k = J\,w_k/(1-w_k)} where \eqn{J}
 is the number of groups.  At most one of \code{pwt_dispersion} and
-\code{n_prior_dispersion} may be supplied; when neither is, the values
-are derived from \code{pwt} (per-component mean weight) for consistency.}
+\code{n_prior_dispersion} may be supplied; when neither is, a default
+of \eqn{0.2} is used for every component (\eqn{n_k = J/4}; deliberately
+\emph{not} derived from \code{pwt}, since very weak coefficient priors
+would imply a heavy-tailed dispersion prior whose wide \eqn{\tau^2}
+truncation window makes the \code{dIndependent_Normal_Gamma} envelope
+sampler reject heavily without changing the posterior appreciably).}
 
 \item{n_prior_dispersion}{Optional \emph{absolute} effective prior sample
 size(s) (in group units) for the Block~2 dispersion prior.  A positive

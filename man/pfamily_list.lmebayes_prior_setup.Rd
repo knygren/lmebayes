@@ -45,8 +45,8 @@ as known.
 effective prior sample size \eqn{n_0} is taken from
 \code{object$n_prior_dispersion[[k]]} (set by
 \code{\link{Prior_Setup_lmebayes}} via \code{pwt_dispersion} /
-\code{n_prior_dispersion}, or derived from \code{pwt} as
-\eqn{n_0 = J \cdot pwt/(1 - pwt)} with \eqn{J} groups).  Then
+\code{n_prior_dispersion}, defaulting to a flat weight of 0.2,
+i.e. \eqn{n_0 = J/4} with \eqn{J} groups).  Then
 \deqn{shape = (n_0 + 1 + p_k)/2, \qquad
           rate = \tau^2_k \, (n_0 + p_k - 1)/2,}
 where \eqn{p_k} is the number of Block-2 coefficients for
@@ -54,7 +54,7 @@ component \eqn{k} (the \code{shape_ING} convention with the
 glmbayesCore default rate \eqn{b_0}).  Because
 \eqn{rate = \tau^2_k (shape - 1)}, the implied inverse-Gamma prior
 on the dispersion has mean exactly \eqn{\tau^2_k} for every
-\eqn{n_0} and \eqn{p_k}, while small \code{pwt} keeps it
+\eqn{n_0} and \eqn{p_k}, while small \code{pwt_dispersion} keeps it
 deliberately diffuse.
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{The dispersion prior must not outweigh the data: \eqn{n_0 \le J}

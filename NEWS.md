@@ -1,5 +1,19 @@
 # lmebayes (development version)
 
+* **`pwt_dispersion` now defaults to 0.2 (was: derived from `pwt`):** when
+  neither `pwt_dispersion` nor `n_prior_dispersion` is supplied,
+  `Prior_Setup_lmebayes()` uses a flat 0.2 per component (`n_k = J/4`)
+  instead of inheriting the coefficient `pwt`.  Rationale: with weak
+  coefficient priors (e.g. `pwt = 0.01`) the inherited dispersion prior is
+  so heavy-tailed that the default ING `tau^2` truncation window becomes
+  very wide and the joint `(gamma_k, tau^2_k)` envelope sampler rejects
+  heavily (`Cand/draw` grew ~5-6x per halving of `pwt_dispersion`: ~4.6 at
+  0.4, ~28 at 0.2, ~159 at 0.1 on the schools example) while the `tau^2`
+  posterior was essentially unchanged once `J` dominates.  0.2 keeps the
+  window moderate and clearly data-dominated; supply `pwt_dispersion` /
+  `n_prior_dispersion` explicitly to override in either direction (subject
+  to the `<= 0.5` guard).
+
 * **Block-2 candidate counts in `lmerb()`/`glmerb()` fits:** fits now carry
   `$iters_draws` (`n x p_re` matrix of total Block-2 candidates generated
   per stored draw, summed over the inner sweeps; from the new

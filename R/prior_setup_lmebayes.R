@@ -53,8 +53,12 @@
 #'   random-effect component (named or positional).  Converted internally to
 #'   an effective prior sample size \eqn{n_k = J\,w_k/(1-w_k)} where \eqn{J}
 #'   is the number of groups.  At most one of \code{pwt_dispersion} and
-#'   \code{n_prior_dispersion} may be supplied; when neither is, the values
-#'   are derived from \code{pwt} (per-component mean weight) for consistency.
+#'   \code{n_prior_dispersion} may be supplied; when neither is, a default
+#'   of \eqn{0.2} is used for every component (\eqn{n_k = J/4}; deliberately
+#'   \emph{not} derived from \code{pwt}, since very weak coefficient priors
+#'   would imply a heavy-tailed dispersion prior whose wide \eqn{\tau^2}
+#'   truncation window makes the \code{dIndependent_Normal_Gamma} envelope
+#'   sampler reject heavily without changing the posterior appreciably).
 #' @param n_prior_dispersion Optional \emph{absolute} effective prior sample
 #'   size(s) (in group units) for the Block~2 dispersion prior.  A positive
 #'   scalar, or a list / numeric vector with one value per random-effect
@@ -284,7 +288,6 @@ Prior_Setup_lmebayes <- function(formula,
   disp     <- .lmebayes_resolve_disp_prior(
     pwt_dispersion     = pwt_dispersion,
     n_prior_dispersion = n_prior_dispersion,
-    pwt_list           = pwt_list,
     J                  = J_groups,
     re_names           = re_names
   )
@@ -454,7 +457,6 @@ Prior_Setup_lmebayes <- function(formula,
 #' @noRd
 .lmebayes_resolve_disp_prior <- function(pwt_dispersion,
                                          n_prior_dispersion,
-                                         pwt_list,
                                          J,
                                          re_names) {
 
@@ -518,9 +520,15 @@ Prior_Setup_lmebayes <- function(formula,
     w   <- n / (n + J)
     src <- "user-supplied (n_prior_dispersion)"
   } else {
-    w <- vapply(re_names, function(k) mean(pwt_list[[k]]), numeric(1L))
+    ## Default 0.2 (not derived from pwt): weak coefficient priors (small
+    ## pwt) would otherwise produce a heavy-tailed dispersion prior whose
+    ## wide tau^2 truncation window collapses the ING envelope acceptance
+    ## rate (Cand/draw grows ~5-6x per halving of pwt_dispersion), at no
+    ## inferential gain once J dominates.  0.2 keeps the window moderate
+    ## while staying clearly data-dominated (n_k = J/4).
+    w   <- rep(0.2, p_re)
     n   <- J * w / (1 - w)
-    src <- "derived from pwt"
+    src <- "default (0.2)"
   }
 
   w <- stats::setNames(w, re_names)

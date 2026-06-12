@@ -45,10 +45,10 @@ re_names <- names(ps$prior_list)
 stopifnot(length(re_names) == 3L)
 
 J       <- nlevels(ps$design$groups)
-n_prior <- (ps$pwt / (1 - ps$pwt)) * J
+## Default dispersion-prior weight is a flat 0.2 (decoupled from pwt), so
+## n_prior_dispersion defaults to J * 0.2 / 0.8 = J/4 per component.
+n_prior <- J * 0.2 / (1 - 0.2)
 
-## The setup object now carries per-component n_prior_dispersion; with a
-## scalar pwt it must equal the classic derivation used below.
 stopifnot(
   is.numeric(ps$n_prior_dispersion),
   identical(names(ps$n_prior_dispersion), re_names),
