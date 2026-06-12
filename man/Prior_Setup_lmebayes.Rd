@@ -76,6 +76,19 @@ groups (the full-formula fit from \code{\link{model_setup}}).}
 only; \code{NULL} otherwise.}
 \item{\code{Sigma_ranef}}{Diagonal RE covariance matrix (Block~1).}
 \item{\code{prior_list}}{Named Block~2 prior list per RE coefficient.}
+\item{\code{ing_prior}}{Named per-component list of the prospective
+\code{dIndependent_Normal_Gamma} calibration: Gamma precision-prior
+\code{shape} \eqn{= (n_0 + 1 + p_k)/2} and \code{rate}
+\eqn{= \hat\tau^2_k (n_0 + p_k - 1)/2} (the glmbayesCore default
+calibration with \eqn{n_0 =} \code{n_prior_dispersion}; since
+\code{rate} \eqn{= \hat\tau^2_k (\code{shape} - 1)}, the implied
+inverse-Gamma prior on \eqn{\tau^2_k} has mean exactly
+\eqn{\hat\tau^2_k}), and the default \eqn{\tau^2_k} truncation
+window \code{disp_lower} / \code{disp_upper} (0.01 / 0.99 quantiles
+of that prior, i.e. its central 98\\% prior-mass interval).  Used by
+\code{\link{pfamily_list}} when
+\code{ptypes = "dIndependent_Normal_Gamma"}; ignored for
+\code{dNormal} priors.}
 }
 }
 \description{

@@ -37,18 +37,24 @@ as \code{\link{model_setup}}).}
 \item{pfamily_list}{Required named list of
 \code{\link[glmbayesCore]{pfamily}} objects, one per random-effect
 coefficient (names must match the random-effect coefficient names, any
-order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and,
-through each component's \code{dispersion}, the Block~1 random-effect
-variances \eqn{\tau^2_k}.  \code{dNormal} components run the full
-sampler.  \code{dIndependent_Normal_Gamma} components are accepted but
-must supply a positive \code{disp_lower} (lower dispersion truncation),
-which is used as a conservative \eqn{\tau^2_k} plug-in for the
-eigenvalue / TV calibration (smaller \eqn{\tau^2} increases the
-contraction rate \eqn{\lambda^*}, so the bound holds for every
-dispersion in the truncated support); since Block~2 dispersion sampling
-is not implemented yet, the fit stops after displaying the calibration
-and returns the ICM mode plus \code{convergence} info without draws.
-Typically built with
+order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and
+the Block~1 random-effect variances \eqn{\tau^2_k}.  \code{dNormal}
+components treat \eqn{\tau^2_k} (the pfamily \code{dispersion}) as
+known and make conjugate \eqn{\gamma_k} draws.
+\code{dIndependent_Normal_Gamma} components place a Gamma prior on the
+Block~2 precision \eqn{1/\tau^2_k}: Block~2 then makes a joint
+\eqn{(\gamma_k, \tau^2_k)} draw via the likelihood-subgradient envelope
+sampler (\code{\link[glmbayesCore]{rindepNormalGamma_reg}}), and the
+sampled \eqn{\tau^2_k} feeds back into the Block~1 prior precision.
+ING components must supply both truncation bounds: each
+\eqn{\tau^2_k} draw is hard-truncated to
+\code{[disp_lower, disp_upper]}, fixed across all inner Gibbs sweeps,
+with \code{disp_lower} doubling as the conservative \eqn{\tau^2_k}
+plug-in for the eigenvalue / TV calibration (smaller \eqn{\tau^2}
+increases the contraction rate \eqn{\lambda^*}, so the bound holds
+for every dispersion in the truncated support).  They must also
+satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
+(\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
 \code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
 \code{\link{Prior_Setup_lmebayes}} object.}
 
@@ -148,6 +154,14 @@ Block 2 draws, one per RE component.  \code{NULL} when
 \code{draw}, the grouping-factor column, and one column per RE
 variable.  Average over \code{draw} within each group for posterior
 means (see Examples).  \code{NULL} when \code{simulate = FALSE}.}
+\item{\code{tau2_draws}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
+Block~2 dispersion (\eqn{\tau^2_k}) at each stored draw: sampled
+values for \code{dIndependent_Normal_Gamma} components, constant
+columns (the fixed \code{dispersion}) for \code{dNormal} components.
+\code{NULL} when \code{simulate = FALSE}.}
+\item{\code{tau2.means}}{Named vector of posterior means of
+\eqn{\tau^2_k} (\code{colMeans(tau2_draws)}).  \code{NULL} when
+\code{simulate = FALSE}.}
 \item{\code{mu_all}}{Numeric matrix \code{p_re x J} of Block 1 prior
 means at the final Gibbs state (from
 \code{\link[glmbayesCore]{build_mu_all}}).}
@@ -205,7 +219,7 @@ is known.
 \strong{TV-calibrated \code{m_convergence}.}
 The number of inner Gibbs sweeps per stored draw (\code{m_convergence}) is
 derived from \code{tv_tol}: \code{lmerb} computes the Remark 8 eigenvalue
-spectrum with \code{\link[glmbayesCore]{two_block_rate}} and inverts the
+spectrum with \code{\link[glmbayesCore]{two_block_rate_v2}} and inverts the
 exact Theorem 3 bound with
 \code{\link[glmbayesCore]{two_block_l_for_tv}}.  Because every replicate
 chain is started at the exact joint posterior mean (computed by ICM via
@@ -234,7 +248,7 @@ probability distributions via Markov chain Monte Carlo.
 \seealso{
 \code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
 \code{\link[glmbayesCore]{build_mu_all}},
-\code{\link[glmbayesCore]{two_block_rNormal_reg}},
+\code{\link[glmbayesCore]{two_block_rNormal_reg_v2}},
 \code{\link[glmbayesCore]{lmerb_posterior_mean}},
 \code{\link[glmbayesCore]{block_rNormalReg}},
 \code{\link{lmb}}, \code{\link{glmb}}

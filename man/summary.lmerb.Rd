@@ -31,7 +31,10 @@ returned.}
 \code{"summary.lmerb"}, a list with components \code{call},
 \code{formula}, \code{n}, \code{simulated}, \code{varcor},
 \code{fixef_overview}, \code{fixef} (per-RE-component tables),
-\code{ranef_overview}, and optionally \code{ranef_groups}.
+\code{ranef_overview}, \code{any_ing}, \code{tau2} (per-component
+Block~2 dispersion table: prior type, plug-in value, and posterior
+mean / SD / quantiles from \code{tau2_draws} for sampled ING
+components), and optionally \code{ranef_groups}.
 }
 \description{
 Methods for \code{\link{lmerb}} fits.  \code{summary.lmerb} builds

@@ -47,26 +47,44 @@ effective prior sample size \eqn{n_0} is taken from
 \code{\link{Prior_Setup_lmebayes}} via \code{pwt_dispersion} /
 \code{n_prior_dispersion}, or derived from \code{pwt} as
 \eqn{n_0 = J \cdot pwt/(1 - pwt)} with \eqn{J} groups).  Then
-\deqn{shape = (n_0 + 1)/2 + p_k/2, \qquad
-          rate = \tau^2_k \, n_0/2,}
+\deqn{shape = (n_0 + 1 + p_k)/2, \qquad
+          rate = \tau^2_k \, (n_0 + p_k - 1)/2,}
 where \eqn{p_k} is the number of Block-2 coefficients for
-component \eqn{k} (the \code{shape_ING} convention).  The prior
-mean of the precision is \eqn{(n_0 + 1 + p_k)/(n_0 \tau^2_k)},
-i.e. centered near \eqn{1/\tau^2_k} when \eqn{n_0} is moderate and
-deliberately diffuse for small \code{pwt}.
+component \eqn{k} (the \code{shape_ING} convention with the
+glmbayesCore default rate \eqn{b_0}).  Because
+\eqn{rate = \tau^2_k (shape - 1)}, the implied inverse-Gamma prior
+on the dispersion has mean exactly \eqn{\tau^2_k} for every
+\eqn{n_0} and \eqn{p_k}, while small \code{pwt} keeps it
+deliberately diffuse.
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{\code{disp_lower} defaults to the 0.01 quantile of the implied
-inverse-Gamma dispersion prior, i.e. the value below which the
-dispersion falls with prior probability 1\\\%:
-\deqn{disp\_lower = 1 / q_{\Gamma}(0.99;\; shape,\; rate),}
-equivalently the reciprocal of the 99th percentile of the Gamma
-precision prior.  \code{\link{lmerb}} and \code{\link{glmerb}} use
-this value as the conservative \eqn{\tau^2_k} plug-in for their
-eigenvalue / TV convergence calibration, so the resulting bound
-holds over 99\\\% of the prior dispersion mass.  Note that with the
-diffuse default calibration (small \code{pwt}) this quantile can be
-far below \eqn{\hat\tau^2_k}, giving conservative (large) sweep
-counts.
+\if{html}{\out{<div class="sourceCode">}}\preformatted{The dispersion prior must not outweigh the data: \eqn{n_0 \le J}
+(equivalently \code{pwt_dispersion} \eqn{\le 0.5}) is required,
+mirroring the sampler-side guard in
+\code{\link[glmbayesCore]{two_block_rNormal_reg_v2}} (the ING
+dispersion envelope caps its log-tilt at the data contribution
+\eqn{J/2}; a prior-dominated calibration would invalidate it).
+
+\code{disp_lower} and \code{disp_upper} default to the 0.01 and
+0.99 quantiles of the implied inverse-Gamma dispersion prior:
+\deqn{disp\_lower = 1 / q_{\Gamma}(0.99;\; shape,\; rate), \qquad
+          disp\_upper = 1 / q_{\Gamma}(0.01;\; shape,\; rate),}
+i.e. the central 98\\\% prior-mass window for \eqn{\tau^2_k}.  These
+values are computed once by \code{\link{Prior_Setup_lmebayes}}
+(stored in its \code{ing_prior} field and shown by its print
+method); this function reads them from the object.  During
+sampling each \eqn{\tau^2_k} draw is hard-truncated to this window
+(renormalized inverse-CDF), and because both bounds are supplied
+the window is \\emph\{fixed\} across all inner Gibbs sweeps, rather
+than re-derived per sweep from a surrogate posterior.
+\code{\link{lmerb}} and \code{\link{glmerb}} use \code{disp_lower}
+as the conservative \eqn{\tau^2_k} plug-in for their eigenvalue /
+TV convergence calibration, so the resulting bound holds over the
+chain's entire (truncated) dispersion support.  Note that with the
+diffuse default calibration (small \code{pwt}) the lower quantile
+can be far below \eqn{\hat\tau^2_k}, giving conservative (large)
+sweep counts, while the upper quantile can be very large (heavy
+inverse-Gamma tail), making the upper truncation effectively
+non-binding.
 }\if{html}{\out{</div>}}
 
 }

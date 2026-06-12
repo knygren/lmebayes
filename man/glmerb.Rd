@@ -41,18 +41,24 @@ distribution and link. Defaults to \code{gaussian()}.}
 \item{pfamily_list}{Required named list of
 \code{\link[glmbayesCore]{pfamily}} objects, one per random-effect
 coefficient (names must match the random-effect coefficient names, any
-order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and,
-through each component's \code{dispersion}, the Block~1 random-effect
-variances \eqn{\tau^2_k}.  \code{dNormal} components run the full
-sampler.  \code{dIndependent_Normal_Gamma} components are accepted but
-must supply a positive \code{disp_lower} (lower dispersion truncation),
-which is used as a conservative \eqn{\tau^2_k} plug-in for the
-eigenvalue / TV calibration (smaller \eqn{\tau^2} increases the
-contraction rate \eqn{\lambda^*}, so the bound holds for every
-dispersion in the truncated support); since Block~2 dispersion sampling
-is not implemented yet, the fit stops after displaying the calibration
-and returns the ICM mode plus \code{convergence} info without draws.
-Typically built with
+order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and
+the Block~1 random-effect variances \eqn{\tau^2_k}.  \code{dNormal}
+components treat \eqn{\tau^2_k} (the pfamily \code{dispersion}) as
+known and make conjugate \eqn{\gamma_k} draws.
+\code{dIndependent_Normal_Gamma} components place a Gamma prior on the
+Block~2 precision \eqn{1/\tau^2_k}: Block~2 then makes a joint
+\eqn{(\gamma_k, \tau^2_k)} draw via the likelihood-subgradient envelope
+sampler (\code{\link[glmbayesCore]{rindepNormalGamma_reg}}), and the
+sampled \eqn{\tau^2_k} feeds back into the Block~1 prior precision.
+ING components must supply both truncation bounds: each
+\eqn{\tau^2_k} draw is hard-truncated to
+\code{[disp_lower, disp_upper]}, fixed across all inner Gibbs sweeps,
+with \code{disp_lower} doubling as the conservative \eqn{\tau^2_k}
+plug-in for the eigenvalue / TV calibration (smaller \eqn{\tau^2}
+increases the contraction rate \eqn{\lambda^*}, so the bound holds
+for every dispersion in the truncated support).  They must also
+satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
+(\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
 \code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
 \code{\link{Prior_Setup_lmebayes}} object.}
 
@@ -73,7 +79,7 @@ calibration is applied to the \emph{local-Gaussian approximation of the
 posterior at its mode}: per-observation likelihood precisions are
 evaluated at the ICM posterior mode
 (\code{\link[glmbayesCore]{two_block_mode_weights}}) and fed to
-\code{\link[glmbayesCore]{two_block_rate}}.  The derived sweep count is
+\code{\link[glmbayesCore]{two_block_rate_v2}}.  The derived sweep count is
 then the \emph{minimum} number of iterations required to converge to
 that hypothetical multivariate normal approximation -- a lower bound
 for the true (non-normal) posterior, not a guarantee.}

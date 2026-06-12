@@ -82,6 +82,19 @@
 #'       only; \code{NULL} otherwise.}
 #'     \item{\code{Sigma_ranef}}{Diagonal RE covariance matrix (Block~1).}
 #'     \item{\code{prior_list}}{Named Block~2 prior list per RE coefficient.}
+#'     \item{\code{ing_prior}}{Named per-component list of the prospective
+#'       \code{dIndependent_Normal_Gamma} calibration: Gamma precision-prior
+#'       \code{shape} \eqn{= (n_0 + 1 + p_k)/2} and \code{rate}
+#'       \eqn{= \hat\tau^2_k (n_0 + p_k - 1)/2} (the glmbayesCore default
+#'       calibration with \eqn{n_0 =} \code{n_prior_dispersion}; since
+#'       \code{rate} \eqn{= \hat\tau^2_k (\code{shape} - 1)}, the implied
+#'       inverse-Gamma prior on \eqn{\tau^2_k} has mean exactly
+#'       \eqn{\hat\tau^2_k}), and the default \eqn{\tau^2_k} truncation
+#'       window \code{disp_lower} / \code{disp_upper} (0.01 / 0.99 quantiles
+#'       of that prior, i.e. its central 98\% prior-mass interval).  Used by
+#'       \code{\link{pfamily_list}} when
+#'       \code{ptypes = "dIndependent_Normal_Gamma"}; ignored for
+#'       \code{dNormal} priors.}
 #'   }
 #' @details
 #' \strong{Why default calibration depends on classical estimates.}
@@ -308,6 +321,33 @@ Prior_Setup_lmebayes <- function(formula,
 
   pwt_out <- if (is.numeric(pwt)) pwt else pwt_list
 
+  ## Prospective dIndependent_Normal_Gamma calibration per component (used
+  ## only when pfamily_list(ptypes = "dIndependent_Normal_Gamma") is chosen):
+  ## Gamma precision prior shape/rate from the glmbayesCore default
+  ## calibration (compute_gaussian_prior() with k = 1):
+  ##   shape_ING = (n0 + 1 + p_k)/2,  b_0 = tau2_k * (n0 + p_k - 1)/2.
+  ## Since b_0 = tau2_k * (shape_ING - 1), the implied inverse-Gamma prior on
+  ## tau^2_k has mean exactly tau2_k for every n0 and p_k.  Also stored: the
+  ## default tau^2 truncation window = central 98% prior-mass interval of
+  ## that prior (0.01 / 0.99 quantiles).  Stored here so print() can display
+  ## the window and pfamily_list() consumes one source of truth.
+  ing_prior <- stats::setNames(
+    lapply(re_names, function(k) {
+      n0_k    <- unname(disp$n_prior_dispersion[[k]])
+      p_k     <- length(prior_list[[k]]$mu_fixef)
+      tau2_k  <- unname(prior_list[[k]]$dispersion_fixef)
+      shape_k <- (n0_k + 1) / 2 + p_k / 2
+      rate_k  <- tau2_k * (n0_k + p_k - 1) / 2
+      list(
+        shape      = shape_k,
+        rate       = rate_k,
+        disp_lower = 1 / stats::qgamma(0.99, shape = shape_k, rate = rate_k),
+        disp_upper = 1 / stats::qgamma(0.01, shape = shape_k, rate = rate_k)
+      )
+    }),
+    re_names
+  )
+
   structure(
     list(
       formula            = formula,
@@ -319,7 +359,8 @@ Prior_Setup_lmebayes <- function(formula,
       fit_ref            = fit_ref,
       dispersion_ranef   = dispersion_ranef,
       Sigma_ranef        = Sigma_ranef,
-      prior_list         = prior_list
+      prior_list         = prior_list,
+      ing_prior          = ing_prior
     ),
     class = "lmebayes_prior_setup"
   )
@@ -552,6 +593,18 @@ print.lmebayes_prior_setup <- function(x, digits = 4L, ...) {
     cat(sprintf(
       "  dispersion_fixef: %.4f  (RE variance tau^2_k; Block 2 scale)\n",
       pl$dispersion_fixef))
+    ing_k <- x$ing_prior[[nm]]
+    if (!is.null(ing_k)) {
+      cat(sprintf(
+        "  ING tau^2 window: [%.4g, %.4g]  (0.01/0.99 prior quantiles; upper/tau2 = %.3g)\n",
+        ing_k$disp_lower, ing_k$disp_upper,
+        ing_k$disp_upper / unname(pl$dispersion_fixef)
+      ))
+      cat(sprintf(
+        "  ING shape, rate : %.4g, %.4g  (Gamma prior on 1/tau^2_k; used only with ptypes = \"dIndependent_Normal_Gamma\")\n",
+        ing_k$shape, ing_k$rate
+      ))
+    }
   }
 
   invisible(x)

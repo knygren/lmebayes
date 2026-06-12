@@ -45,7 +45,7 @@
 #' \strong{TV-calibrated \code{m_convergence}.}
 #' The number of inner Gibbs sweeps per stored draw (\code{m_convergence}) is
 #' derived from \code{tv_tol}: \code{lmerb} computes the Remark 8 eigenvalue
-#' spectrum with \code{\link[glmbayesCore]{two_block_rate}} and inverts the
+#' spectrum with \code{\link[glmbayesCore]{two_block_rate_v2}} and inverts the
 #' exact Theorem 3 bound with
 #' \code{\link[glmbayesCore]{two_block_l_for_tv}}.  Because every replicate
 #' chain is started at the exact joint posterior mean (computed by ICM via
@@ -72,18 +72,24 @@
 #' @param pfamily_list Required named list of
 #'   \code{\link[glmbayesCore]{pfamily}} objects, one per random-effect
 #'   coefficient (names must match the random-effect coefficient names, any
-#'   order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and,
-#'   through each component's \code{dispersion}, the Block~1 random-effect
-#'   variances \eqn{\tau^2_k}.  \code{dNormal} components run the full
-#'   sampler.  \code{dIndependent_Normal_Gamma} components are accepted but
-#'   must supply a positive \code{disp_lower} (lower dispersion truncation),
-#'   which is used as a conservative \eqn{\tau^2_k} plug-in for the
-#'   eigenvalue / TV calibration (smaller \eqn{\tau^2} increases the
-#'   contraction rate \eqn{\lambda^*}, so the bound holds for every
-#'   dispersion in the truncated support); since Block~2 dispersion sampling
-#'   is not implemented yet, the fit stops after displaying the calibration
-#'   and returns the ICM mode plus \code{convergence} info without draws.
-#'   Typically built with
+#'   order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and
+#'   the Block~1 random-effect variances \eqn{\tau^2_k}.  \code{dNormal}
+#'   components treat \eqn{\tau^2_k} (the pfamily \code{dispersion}) as
+#'   known and make conjugate \eqn{\gamma_k} draws.
+#'   \code{dIndependent_Normal_Gamma} components place a Gamma prior on the
+#'   Block~2 precision \eqn{1/\tau^2_k}: Block~2 then makes a joint
+#'   \eqn{(\gamma_k, \tau^2_k)} draw via the likelihood-subgradient envelope
+#'   sampler (\code{\link[glmbayesCore]{rindepNormalGamma_reg}}), and the
+#'   sampled \eqn{\tau^2_k} feeds back into the Block~1 prior precision.
+#'   ING components must supply both truncation bounds: each
+#'   \eqn{\tau^2_k} draw is hard-truncated to
+#'   \code{[disp_lower, disp_upper]}, fixed across all inner Gibbs sweeps,
+#'   with \code{disp_lower} doubling as the conservative \eqn{\tau^2_k}
+#'   plug-in for the eigenvalue / TV calibration (smaller \eqn{\tau^2}
+#'   increases the contraction rate \eqn{\lambda^*}, so the bound holds
+#'   for every dispersion in the truncated support).  They must also
+#'   satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
+#'   (\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
 #'   \code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
 #'   \code{\link{Prior_Setup_lmebayes}} object.
 #' @param dispersion_ranef Required positive scalar: the observation-level
@@ -163,6 +169,14 @@
 #'       \code{draw}, the grouping-factor column, and one column per RE
 #'       variable.  Average over \code{draw} within each group for posterior
 #'       means (see Examples).  \code{NULL} when \code{simulate = FALSE}.}
+#'     \item{\code{tau2_draws}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
+#'       Block~2 dispersion (\eqn{\tau^2_k}) at each stored draw: sampled
+#'       values for \code{dIndependent_Normal_Gamma} components, constant
+#'       columns (the fixed \code{dispersion}) for \code{dNormal} components.
+#'       \code{NULL} when \code{simulate = FALSE}.}
+#'     \item{\code{tau2.means}}{Named vector of posterior means of
+#'       \eqn{\tau^2_k} (\code{colMeans(tau2_draws)}).  \code{NULL} when
+#'       \code{simulate = FALSE}.}
 #'     \item{\code{mu_all}}{Numeric matrix \code{p_re x J} of Block 1 prior
 #'       means at the final Gibbs state (from
 #'       \code{\link[glmbayesCore]{build_mu_all}}).}
@@ -179,7 +193,7 @@
 #' }
 #' @seealso \code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
 #'   \code{\link[glmbayesCore]{build_mu_all}},
-#'   \code{\link[glmbayesCore]{two_block_rNormal_reg}},
+#'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}},
 #'   \code{\link[glmbayesCore]{lmerb_posterior_mean}},
 #'   \code{\link[glmbayesCore]{block_rNormalReg}},
 #'   \code{\link{lmb}}, \code{\link{glmb}}
@@ -348,32 +362,21 @@ lmerb <- function(
   re_names     <- design$re_coef_names
   group_levels <- levels(design$groups)
 
-  # Block 2 prior: fixed hyperpriors from the supplied pfamily_list.
-  block2_prior_list <- stats::setNames(
-    lapply(re_names, function(k) {
-      pl_k <- prior$prior_list[[k]]
-      list(
-        mu         = pl_k$mu_fixef,
-        Sigma      = pl_k$Sigma_fixef,
-        dispersion = pl_k$dispersion_fixef
-      )
-    }),
-    re_names
-  )
-
   # TV-calibrated number of inner Gibbs sweeps per stored draw.  With fixed
   # variance components the joint posterior is exactly multivariate normal,
   # so the Remark 8 spectrum (Nygren 2020) gives the exact Theorem 3 TV bound
   # for the l-step kernel.  Every replicate chain starts at the joint
   # posterior mean (fixef_start, via ICM), so the mean term vanishes (D0 = 0).
   # The bound applies to the block updated second (gamma); the stored b draw
-  # lags by a half-step, hence the + 1L.
-  rate <- glmbayesCore::two_block_rate(
+  # lags by a half-step, hence the + 1L.  For ING components the rate uses
+  # the conservative disp_lower plug-in, making lambda* an upper bound over
+  # the truncated tau^2 support.
+  rate <- glmbayesCore::two_block_rate_v2(
     x                 = design$Z,
     block             = design$groups,
     x_hyper           = design$X_hyper,
     prior_list_block1 = block1_prior,
-    prior_list_block2 = block2_prior_list,
+    pfamily_list      = prior$pfamily_list,
     family            = gaussian(),
     group_levels      = group_levels
   )
@@ -409,45 +412,19 @@ lmerb <- function(
     m_convergence = m_convergence
   )
 
-  # ING components: tau^2 sampling is not implemented yet, so stop after the
-  # calibration (the disp_lower plug-in makes lambda* an upper bound over the
-  # truncated dispersion support).
-  if (prior$any_ing) {
-    cat(
-      "--- lmerb: dIndependent_Normal_Gamma components present; Block 2\n",
-      "    dispersion sampling is not implemented yet. Stopping after the\n",
-      "    convergence calibration (no draws generated). ---\n\n",
-      sep = ""
-    )
-    return(structure(
-      list(
-        call        = cl,
-        formula     = formula,
-        lmer        = lmer_fit,
-        prior       = prior,
-        model_setup = design,
-        coef.mode   = fixef_start,
-        ranef.mode  = pm$b_mean,
-        coef.means  = NULL,
-        fixef_draws = NULL,
-        coefficients = NULL,
-        mu_all      = as.matrix(
-          glmbayesCore::build_mu_all(design, fixef_start)$mu_all
-        ),
-        convergence = convergence_info
-      ),
-      class = c("lmerb", "list")
-    ))
-  }
-
-  sampler <- glmbayesCore::two_block_rNormal_reg(
+  # The v2 driver consumes the pfamily list directly: dNormal components get
+  # the conjugate gamma_k draw at fixed tau^2_k (identical to the v1 path),
+  # ING components make a joint (gamma_k, tau^2_k) draw via the
+  # likelihood-subgradient envelope sampler, with the sampled tau^2_k fed
+  # back into the Block 1 prior precision on the next inner step.
+  sampler <- glmbayesCore::two_block_rNormal_reg_v2(
     n                 = n,
     y                 = design$y,
     x                 = design$Z,
     block             = design$groups,
     x_hyper           = design$X_hyper,
     prior_list_block1 = block1_prior,
-    prior_list_block2 = block2_prior_list,
+    pfamily_list      = prior$pfamily_list,
     fixef_start       = fixef_start,
     re_coef_names     = re_names,
     group_levels      = group_levels,
@@ -457,6 +434,8 @@ lmerb <- function(
     seed              = seed,
     progbar           = TRUE
   )
+
+  tau2_draws <- sampler$dispersion_fixef_draws
 
   structure(
     list(
@@ -470,6 +449,8 @@ lmerb <- function(
       coef.means   = lapply(sampler$fixef_draws, colMeans),
       fixef_draws  = sampler$fixef_draws,
       coefficients = sampler$coefficients,
+      tau2_draws   = tau2_draws,
+      tau2.means   = colMeans(tau2_draws),
       mu_all       = sampler$mu_all_last,
       convergence  = convergence_info
     ),
@@ -508,10 +489,21 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   }
   cat("Formula:", deparse1(x$formula), "\n\n")
 
-  # --- Variance components (lmer, fixed during sampling) ---
-  cat("Random effects (variance components fixed at lmer estimates):\n")
+  # --- Variance components ---
+  any_ing <- isTRUE(x$prior$any_ing)
+  if (any_ing) {
+    cat("Random effects (lmer reference; tau^2 sampled for ING components):\n")
+  } else {
+    cat("Random effects (variance components fixed at lmer estimates):\n")
+  }
   print(lme4::VarCorr(x$lmer), comp = "Std.Dev.", digits = digits)
   cat(sprintf("Number of obs: %d,  groups: %s, %d\n\n", n_obs, grp, n_grp))
+  if (any_ing && !is.null(x$tau2.means)) {
+    cat("Posterior mean tau^2_k: ",
+        paste(sprintf("%s = %.4g", names(x$tau2.means), x$tau2.means),
+              collapse = ", "),
+        "\n\n", sep = "")
+  }
 
   # --- Posterior means table ---
   cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")

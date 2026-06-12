@@ -27,7 +27,7 @@
 #'   posterior at its mode}: per-observation likelihood precisions are
 #'   evaluated at the ICM posterior mode
 #'   (\code{\link[glmbayesCore]{two_block_mode_weights}}) and fed to
-#'   \code{\link[glmbayesCore]{two_block_rate}}.  The derived sweep count is
+#'   \code{\link[glmbayesCore]{two_block_rate_v2}}.  The derived sweep count is
 #'   then the \emph{minimum} number of iterations required to converge to
 #'   that hypothetical multivariate normal approximation -- a lower bound
 #'   for the true (non-normal) posterior, not a guarantee.
@@ -208,18 +208,6 @@ glmerb <- function(
   re_names     <- design$re_coef_names
   group_levels <- levels(design$groups)
 
-  block2_prior_list <- stats::setNames(
-    lapply(re_names, function(k) {
-      pl_k <- prior$prior_list[[k]]
-      list(
-        mu         = pl_k$mu_fixef,
-        Sigma      = pl_k$Sigma_fixef,
-        dispersion = pl_k$dispersion_fixef
-      )
-    }),
-    re_names
-  )
-
   # TV-calibrated number of inner Gibbs sweeps per stored draw.  Exact for
   # gaussian(), where the joint posterior is multivariate normal and the
   # Theorem 3 bound (Nygren 2020) applies.  For non-Gaussian families the
@@ -230,14 +218,16 @@ glmerb <- function(
   # the true posterior.  Chains start at the joint posterior mode (= the mean
   # of the approximating normal), so D0 = 0; + 1L covers the half-step lag of
   # the stored b draw.  A user-supplied m_convergence is floored at m_min.
+  # ING components enter through the conservative disp_lower plug-in, making
+  # lambda* an upper bound over the truncated tau^2 support.
   is_gaussian <- identical(family$family, "gaussian")
   if (is_gaussian) {
-    rate <- glmbayesCore::two_block_rate(
+    rate <- glmbayesCore::two_block_rate_v2(
       x                 = design$Z,
       block             = design$groups,
       x_hyper           = design$X_hyper,
       prior_list_block1 = block1_prior,
-      prior_list_block2 = block2_prior_list,
+      pfamily_list      = prior$pfamily_list,
       family            = gaussian(),
       group_levels      = group_levels
     )
@@ -249,12 +239,12 @@ glmerb <- function(
       family       = family,
       group_levels = group_levels
     )
-    rate <- glmbayesCore::two_block_rate(
+    rate <- glmbayesCore::two_block_rate_v2(
       x                 = design$Z,
       block             = design$groups,
       x_hyper           = design$X_hyper,
       prior_list_block1 = block1_prior,
-      prior_list_block2 = block2_prior_list,
+      pfamily_list      = prior$pfamily_list,
       weights           = mode_w$weights,
       family            = family,
       group_levels      = group_levels
@@ -299,46 +289,19 @@ glmerb <- function(
     m_convergence = m_convergence
   )
 
-  # ING components: tau^2 sampling is not implemented yet, so stop after the
-  # calibration (the disp_lower plug-in makes lambda* an upper bound over the
-  # truncated dispersion support).
-  if (prior$any_ing) {
-    cat(
-      "--- glmerb: dIndependent_Normal_Gamma components present; Block 2\n",
-      "    dispersion sampling is not implemented yet. Stopping after the\n",
-      "    convergence calibration (no draws generated). ---\n\n",
-      sep = ""
-    )
-    return(structure(
-      list(
-        call        = cl,
-        formula     = formula,
-        family      = family,
-        glmer       = glmer_fit,
-        prior       = prior,
-        model_setup = design,
-        coef.mode   = fixef_start,
-        ranef.mode  = pm$b_mean,
-        coef.means  = NULL,
-        fixef_draws = NULL,
-        coefficients = NULL,
-        mu_all      = as.matrix(
-          glmbayesCore::build_mu_all(design, fixef_start)$mu_all
-        ),
-        convergence = convergence_info
-      ),
-      class = c("glmerb", "list")
-    ))
-  }
-
-  sampler <- glmbayesCore::two_block_rNormal_reg(
+  # The v2 driver consumes the pfamily list directly: dNormal components get
+  # the conjugate gamma_k draw at fixed tau^2_k (identical to the v1 path),
+  # ING components make a joint (gamma_k, tau^2_k) draw via the
+  # likelihood-subgradient envelope sampler, with the sampled tau^2_k fed
+  # back into the Block 1 prior precision on the next inner step.
+  sampler <- glmbayesCore::two_block_rNormal_reg_v2(
     n                 = n,
     y                 = design$y,
     x                 = design$Z,
     block             = design$groups,
     x_hyper           = design$X_hyper,
     prior_list_block1 = block1_prior,
-    prior_list_block2 = block2_prior_list,
+    pfamily_list      = prior$pfamily_list,
     fixef_start       = fixef_start,
     re_coef_names     = re_names,
     group_levels      = group_levels,
@@ -348,6 +311,8 @@ glmerb <- function(
     seed              = seed,
     progbar           = TRUE
   )
+
+  tau2_draws <- sampler$dispersion_fixef_draws
 
   structure(
     list(
@@ -362,6 +327,8 @@ glmerb <- function(
       coef.means   = lapply(sampler$fixef_draws, colMeans),
       fixef_draws  = sampler$fixef_draws,
       coefficients = sampler$coefficients,
+      tau2_draws   = tau2_draws,
+      tau2.means   = colMeans(tau2_draws),
       mu_all       = sampler$mu_all_last,
       convergence  = convergence_info
     ),
@@ -400,9 +367,20 @@ print.glmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   }
   cat("Formula:", deparse1(x$formula), "\n\n")
 
-  cat("Random effects (variance components fixed at glmer estimates):\n")
+  any_ing <- isTRUE(x$prior$any_ing)
+  if (any_ing) {
+    cat("Random effects (glmer reference; tau^2 sampled for ING components):\n")
+  } else {
+    cat("Random effects (variance components fixed at glmer estimates):\n")
+  }
   print(lme4::VarCorr(x$glmer), comp = "Std.Dev.", digits = digits)
   cat(sprintf("Number of obs: %d,  groups: %s, %d\n\n", n_obs, grp, n_grp))
+  if (any_ing && !is.null(x$tau2.means)) {
+    cat("Posterior mean tau^2_k: ",
+        paste(sprintf("%s = %.4g", names(x$tau2.means), x$tau2.means),
+              collapse = ", "),
+        "\n\n", sep = "")
+  }
 
   cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")
 

@@ -17,7 +17,10 @@
 #'   \code{"summary.lmerb"}, a list with components \code{call},
 #'   \code{formula}, \code{n}, \code{simulated}, \code{varcor},
 #'   \code{fixef_overview}, \code{fixef} (per-RE-component tables),
-#'   \code{ranef_overview}, and optionally \code{ranef_groups}.
+#'   \code{ranef_overview}, \code{any_ing}, \code{tau2} (per-component
+#'   Block~2 dispersion table: prior type, plug-in value, and posterior
+#'   mean / SD / quantiles from \code{tau2_draws} for sampled ING
+#'   components), and optionally \code{ranef_groups}.
 #' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
 #'   \code{\link[glmbayes]{summary.glmb}}, \code{\link[glmbayes]{summary.mlmb}}
 #' @export
@@ -53,7 +56,9 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     group_name    = object$model_setup$group_name,
     fixef_overview = .lmerb_fixef_overview(object, simulated = simulated),
     fixef         = fixef_parts,
-    ranef_overview = .lmerb_ranef_overview(object, simulated = simulated)
+    ranef_overview = .lmerb_ranef_overview(object, simulated = simulated),
+    any_ing       = isTRUE(object$prior$any_ing),
+    tau2          = .lmerb_tau2_summary(object, simulated = simulated)
   )
 
   if (!is.null(groups) && length(groups) > 0L) {
@@ -86,12 +91,25 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
   cat("Formula:", deparse1(x$formula), "\n\n")
 
-  cat("Random effects (variance components fixed at lmer estimates):\n")
+  if (isTRUE(x$any_ing)) {
+    cat("Random effects (lmer reference; tau^2 sampled for ING components):\n")
+  } else {
+    cat("Random effects (variance components fixed at lmer estimates):\n")
+  }
   print(x$varcor, comp = "Std.Dev.", digits = digits)
   cat(sprintf(
     "Number of obs: %d,  groups: %s, %d\n\n",
     x$n_obs, x$group_name, x$n_groups
   ))
+
+  if (!is.null(x$tau2)) {
+    cat("Block 2 dispersion (RE variance tau^2_k):\n\n")
+    t2 <- x$tau2
+    num_cols <- vapply(t2, is.numeric, logical(1L))
+    t2[num_cols] <- lapply(t2[num_cols], round, digits = digits)
+    print(t2)
+    cat("\n")
+  }
 
   # --- Block 2 overview ---
   cat("=== Block 2: Level-2 fixed effects (hyperparameters) ===\n\n")
@@ -305,6 +323,42 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
 
   out
+}
+
+## Per-component tau^2 summary: prior type and plug-in value always; posterior
+## mean/SD/quantiles from tau2_draws for sampled (ING) components.
+#' @keywords internal
+.lmerb_tau2_summary <- function(object, simulated) {
+
+  ptypes <- object$prior$ptypes
+  if (is.null(ptypes)) {
+    return(NULL)
+  }
+  re_names <- object$model_setup$re_coef_names
+
+  tab <- data.frame(
+    prior = unname(vapply(re_names, function(k) {
+      if (identical(ptypes[[k]], "dIndependent_Normal_Gamma")) "ING" else "dNormal"
+    }, character(1L))),
+    tau2.plugin = unname(vapply(re_names, function(k) {
+      as.numeric(object$prior$prior_list[[k]]$dispersion_fixef)
+    }, numeric(1L))),
+    row.names = re_names,
+    stringsAsFactors = FALSE
+  )
+
+  td <- object$tau2_draws
+  if (simulated && !is.null(td)) {
+    tab$Post.Mean <- colMeans(td)[re_names]
+    tab$Post.Sd   <- apply(td[, re_names, drop = FALSE], 2L, stats::sd)
+    qs <- t(apply(td[, re_names, drop = FALSE], 2L, stats::quantile,
+                  probs = c(0.025, 0.5, 0.975)))
+    tab$`2.5%`  <- qs[, 1L]
+    tab$Median  <- qs[, 2L]
+    tab$`97.5%` <- qs[, 3L]
+  }
+
+  tab
 }
 
 #' @keywords internal

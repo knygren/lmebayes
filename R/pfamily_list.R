@@ -21,26 +21,44 @@
 #'     \code{\link{Prior_Setup_lmebayes}} via \code{pwt_dispersion} /
 #'     \code{n_prior_dispersion}, or derived from \code{pwt} as
 #'     \eqn{n_0 = J \cdot pwt/(1 - pwt)} with \eqn{J} groups).  Then
-#'     \deqn{shape = (n_0 + 1)/2 + p_k/2, \qquad
-#'           rate = \tau^2_k \, n_0/2,}
+#'     \deqn{shape = (n_0 + 1 + p_k)/2, \qquad
+#'           rate = \tau^2_k \, (n_0 + p_k - 1)/2,}
 #'     where \eqn{p_k} is the number of Block-2 coefficients for
-#'     component \eqn{k} (the \code{shape_ING} convention).  The prior
-#'     mean of the precision is \eqn{(n_0 + 1 + p_k)/(n_0 \tau^2_k)},
-#'     i.e. centered near \eqn{1/\tau^2_k} when \eqn{n_0} is moderate and
-#'     deliberately diffuse for small \code{pwt}.
+#'     component \eqn{k} (the \code{shape_ING} convention with the
+#'     glmbayesCore default rate \eqn{b_0}).  Because
+#'     \eqn{rate = \tau^2_k (shape - 1)}, the implied inverse-Gamma prior
+#'     on the dispersion has mean exactly \eqn{\tau^2_k} for every
+#'     \eqn{n_0} and \eqn{p_k}, while small \code{pwt} keeps it
+#'     deliberately diffuse.
 #'
-#'     \code{disp_lower} defaults to the 0.01 quantile of the implied
-#'     inverse-Gamma dispersion prior, i.e. the value below which the
-#'     dispersion falls with prior probability 1\%:
-#'     \deqn{disp\_lower = 1 / q_{\Gamma}(0.99;\; shape,\; rate),}
-#'     equivalently the reciprocal of the 99th percentile of the Gamma
-#'     precision prior.  \code{\link{lmerb}} and \code{\link{glmerb}} use
-#'     this value as the conservative \eqn{\tau^2_k} plug-in for their
-#'     eigenvalue / TV convergence calibration, so the resulting bound
-#'     holds over 99\% of the prior dispersion mass.  Note that with the
-#'     diffuse default calibration (small \code{pwt}) this quantile can be
-#'     far below \eqn{\hat\tau^2_k}, giving conservative (large) sweep
-#'     counts.
+#'     The dispersion prior must not outweigh the data: \eqn{n_0 \le J}
+#'     (equivalently \code{pwt_dispersion} \eqn{\le 0.5}) is required,
+#'     mirroring the sampler-side guard in
+#'     \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}} (the ING
+#'     dispersion envelope caps its log-tilt at the data contribution
+#'     \eqn{J/2}; a prior-dominated calibration would invalidate it).
+#'
+#'     \code{disp_lower} and \code{disp_upper} default to the 0.01 and
+#'     0.99 quantiles of the implied inverse-Gamma dispersion prior:
+#'     \deqn{disp\_lower = 1 / q_{\Gamma}(0.99;\; shape,\; rate), \qquad
+#'           disp\_upper = 1 / q_{\Gamma}(0.01;\; shape,\; rate),}
+#'     i.e. the central 98\% prior-mass window for \eqn{\tau^2_k}.  These
+#'     values are computed once by \code{\link{Prior_Setup_lmebayes}}
+#'     (stored in its \code{ing_prior} field and shown by its print
+#'     method); this function reads them from the object.  During
+#'     sampling each \eqn{\tau^2_k} draw is hard-truncated to this window
+#'     (renormalized inverse-CDF), and because both bounds are supplied
+#'     the window is \emph{fixed} across all inner Gibbs sweeps, rather
+#'     than re-derived per sweep from a surrogate posterior.
+#'     \code{\link{lmerb}} and \code{\link{glmerb}} use \code{disp_lower}
+#'     as the conservative \eqn{\tau^2_k} plug-in for their eigenvalue /
+#'     TV convergence calibration, so the resulting bound holds over the
+#'     chain's entire (truncated) dispersion support.  Note that with the
+#'     diffuse default calibration (small \code{pwt}) the lower quantile
+#'     can be far below \eqn{\hat\tau^2_k}, giving conservative (large)
+#'     sweep counts, while the upper quantile can be very large (heavy
+#'     inverse-Gamma tail), making the upper truncation effectively
+#'     non-binding.
 #' }
 #'
 #' @param object An object of class \code{"lmebayes_prior_setup"} as
@@ -182,16 +200,50 @@ pfamily_list.lmebayes_prior_setup <- function(object,
       ),
       dIndependent_Normal_Gamma = {
         n_prior_k <- n_prior_for(k)
-        shape_k <- (n_prior_k + 1) / 2 + p_k / 2
-        rate_k  <- d_k * (n_prior_k / 2)
+        ## Prior-vs-data balance guard (mirrors the two_block_rNormal_reg_v2
+        ## sampler check): the Block-2 hyper-regression has J group-level
+        ## observations and the ING dispersion envelope caps its log-tilt at
+        ## J/2, so the dispersion prior may not carry more effective
+        ## observations than the groups supply.
+        if (n_prior_k > J) {
+          stop(
+            "Component \"", k, "\": the dispersion prior has effective ",
+            "prior sample size n_prior_dispersion = ", signif(n_prior_k, 4),
+            ", but there are only J = ", J, " groups. ",
+            "dIndependent_Normal_Gamma sampling requires ",
+            "n_prior_dispersion <= J (pwt_dispersion <= 0.5); lower ",
+            "'pwt_dispersion'/'n_prior_dispersion' in Prior_Setup_lmebayes().",
+            call. = FALSE
+          )
+        }
+        ## Gamma shape/rate and the default tau^2 truncation window (central
+        ## 98% prior-mass interval) come from object$ing_prior, computed once
+        ## by Prior_Setup_lmebayes() and shown by its print() method; the
+        ## formulas are re-derived here only for legacy objects that predate
+        ## the ing_prior field.  Fixed bounds keep the tau^2_k truncation
+        ## identical across all inner Gibbs sweeps, so the disp_lower-based
+        ## lambda* upper bound holds over the chain's entire dispersion
+        ## support.
+        ing_k <- object$ing_prior[[k]]
+        if (is.null(ing_k)) {
+          shape_k <- (n_prior_k + 1) / 2 + p_k / 2
+          rate_k  <- d_k * (n_prior_k + p_k - 1) / 2
+          ing_k <- list(
+            shape      = shape_k,
+            rate       = rate_k,
+            disp_lower = 1 / stats::qgamma(0.99, shape = shape_k,
+                                           rate = rate_k),
+            disp_upper = 1 / stats::qgamma(0.01, shape = shape_k,
+                                           rate = rate_k)
+          )
+        }
         glmbayesCore::dIndependent_Normal_Gamma(
-          mu    = mu_k,
-          Sigma = Sig_k,
-          shape = shape_k,
-          rate  = rate_k,
-          ## Default lower truncation: 0.01 quantile of the inverse-Gamma
-          ## dispersion prior (= 1 / 99th percentile of the Gamma precision).
-          disp_lower = 1 / stats::qgamma(0.99, shape = shape_k, rate = rate_k)
+          mu         = mu_k,
+          Sigma      = Sig_k,
+          shape      = ing_k$shape,
+          rate       = ing_k$rate,
+          disp_lower = ing_k$disp_lower,
+          disp_upper = ing_k$disp_upper
         )
       }
     )

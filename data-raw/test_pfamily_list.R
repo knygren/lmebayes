@@ -4,8 +4,9 @@
 # coefficient) from Prior_Setup_lmebayes() output.  Checks:
 #   - dNormal path: mu/Sigma/dispersion match prior_list fields exactly.
 #   - dIndependent_Normal_Gamma path: mu/Sigma match; shape/rate follow the
-#     shape_ING convention with n0 = J * pwt/(1-pwt) so the Gamma prior mean
-#     of the dispersion is ~ tau^2_k.
+#     glmbayesCore default calibration (shape_ING with b_0 = tau2*(shape-1),
+#     n0 = J * pwt/(1-pwt)) so the inverse-Gamma prior mean of the
+#     dispersion is exactly tau^2_k.
 #   - ptypes recycling (single string), positional vectors, named vectors
 #     (any order), and list input.
 #   - validation errors: bad type strings, wrong length, wrong names.
@@ -86,23 +87,43 @@ for (k in re_names) {
   pr  <- pf_ing[[k]]$prior_list
   p_k <- length(pl$mu_fixef)
   shape_exp <- (n_prior + 1) / 2 + p_k / 2
-  rate_exp  <- unname(pl$dispersion_fixef) * (n_prior / 2)
-  ## Default disp_lower: 0.01 quantile of the inverse-Gamma dispersion prior
-  ## (reciprocal of the 99th percentile of the Gamma precision prior).
+  ## glmbayesCore default rate b_0 = tau2 * (n_prior + p_k - 1)/2
+  ##                              = tau2 * (shape_ING - 1): mean-matched.
+  rate_exp  <- unname(pl$dispersion_fixef) * (n_prior + p_k - 1) / 2
+  ## Default truncation window: central 98% prior-mass interval for the
+  ## inverse-Gamma dispersion (0.01 and 0.99 quantiles); both bounds are
+  ## required for sampling so the tau^2 window is fixed across Gibbs sweeps.
   disp_lower_exp <- 1 / stats::qgamma(0.99, shape = shape_exp, rate = rate_exp)
+  disp_upper_exp <- 1 / stats::qgamma(0.01, shape = shape_exp, rate = rate_exp)
   stopifnot(
     isTRUE(all.equal(as.numeric(pr$mu), unname(pl$mu_fixef))),
     isTRUE(all.equal(unname(as.matrix(pr$Sigma)), unname(pl$Sigma_fixef))),
     isTRUE(all.equal(pr$shape, shape_exp)),
     isTRUE(all.equal(pr$rate, rate_exp)),
     isTRUE(all.equal(pr$disp_lower, disp_lower_exp)),
-    pr$disp_lower > 0
+    isTRUE(all.equal(pr$disp_upper, disp_upper_exp)),
+    pr$disp_lower > 0,
+    pr$disp_upper > pr$disp_lower
   )
-  ## Prior mean of the precision: shape/rate = (n0 + 1 + p_k) / (n0 * tau^2_k).
-  ## For weak priors (small n0) this is inflated relative to 1/tau^2_k by the
-  ## factor (n0 + 1 + p_k)/n0; verify the identity rather than closeness.
-  prec_mean_exp <- (n_prior + 1 + p_k) / (n_prior * unname(pl$dispersion_fixef))
-  stopifnot(isTRUE(all.equal(pr$shape / pr$rate, prec_mean_exp)))
+  ## Mean-matching identity: rate = tau2 * (shape - 1), so the implied
+  ## inverse-Gamma prior on the dispersion has mean exactly tau^2_k for
+  ## every n0 and p_k (and the 98% window brackets tau^2_k).
+  tau2_k <- unname(pl$dispersion_fixef)
+  stopifnot(
+    isTRUE(all.equal(pr$rate / (pr$shape - 1), tau2_k)),
+    pr$disp_lower < tau2_k,
+    pr$disp_upper > tau2_k
+  )
+  ## Single source of truth: the pfamily must carry exactly the calibration
+  ## stored on the setup object by Prior_Setup_lmebayes() (ing_prior field).
+  ing_k <- ps$ing_prior[[k]]
+  stopifnot(
+    !is.null(ing_k),
+    isTRUE(all.equal(pr$shape,      ing_k$shape)),
+    isTRUE(all.equal(pr$rate,       ing_k$rate)),
+    isTRUE(all.equal(pr$disp_lower, ing_k$disp_lower)),
+    isTRUE(all.equal(pr$disp_upper, ing_k$disp_upper))
+  )
 }
 cat("dIndependent_Normal_Gamma path: OK\n")
 
@@ -163,6 +184,19 @@ expect_error(pfamily_list(ps, ptypes = 1L),
              "character vector or list")
 expect_error(pfamily_list(ps, ptypes = list("dNormal", 2, "dNormal")),
              "single string")
+
+## Prior-vs-data guard: pwt_dispersion > 0.5 implies n_prior_dispersion > J,
+## which the ING dispersion envelope cannot support (sampler caps the
+## log-tilt at J/2).  Building such a pfamily must fail early.
+ps_heavy <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01,
+                                 pwt_dispersion = 0.9)
+expect_error(
+  pfamily_list(ps_heavy, ptypes = "dIndependent_Normal_Gamma"),
+  "n_prior_dispersion <= J"
+)
+## dNormal is unaffected by the dispersion-prior guard.
+pf_heavy_norm <- pfamily_list(ps_heavy)
+stopifnot(length(pf_heavy_norm) == 3L)
 cat("Validation errors: OK\n")
 
 cat("\nAll pfamily_list() tests passed.\n")

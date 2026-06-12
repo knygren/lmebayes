@@ -46,14 +46,14 @@ The Block~1 random-effect covariance is reconstructed from the Block~2
 dispersions: \code{Sigma_ranef = diag(tau^2_k)} where \code{tau^2_k} is the
 \code{dispersion} of component \code{k}'s \code{dNormal} pfamily.
 
-\code{dIndependent_Normal_Gamma} components are accepted with a
-\emph{required} \code{disp_lower} (lower truncation of the dispersion),
-which is used as the plug-in \eqn{\tau^2_k} for the eigenvalue / TV
-calibration: smaller \eqn{\tau^2} increases the coupling between blocks
-and hence the contraction rate \eqn{\lambda^*}, so the lower bound yields
-a conservative (upper-bound) eigenvalue and sweep count valid for every
-dispersion in the truncated support.  Sampling the Block~2 dispersion is
-not implemented yet; the callers stop after calibration when any ING
-component is present (\code{any_ing = TRUE} in the returned container).
+\code{dIndependent_Normal_Gamma} components must carry \emph{both}
+truncation bounds: \code{disp_lower} doubles as the plug-in
+\eqn{\tau^2_k} for the eigenvalue / TV calibration (smaller \eqn{\tau^2}
+increases the coupling between blocks and hence the contraction rate
+\eqn{\lambda^*}, so the lower bound yields a conservative eigenvalue and
+sweep count), and supplying \code{disp_upper} as well fixes the
+\eqn{\tau^2_k} truncation window \code{[disp_lower, disp_upper]} across
+all inner Gibbs sweeps of \code{two_block_rNormal_reg_v2}, making the
+calibration valid over the chain's entire dispersion support.
 }
 \keyword{internal}

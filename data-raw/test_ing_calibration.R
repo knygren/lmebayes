@@ -5,8 +5,9 @@
 # eigenvalue / TV calibration: smaller tau^2 increases the block coupling
 # and hence lambda*, so the disp_lower-based lambda* upper-bounds the rate
 # for every dispersion in the truncated support.  Block 2 dispersion
-# sampling is not implemented, so the fit displays the calibration and
-# stops (no draws).
+# sampling is implemented via two_block_rNormal_reg_v2: ING components make
+# a joint (gamma_k, tau^2_k) draw each inner sweep, so the fit now produces
+# draws (tau2_draws / tau2.means) instead of stopping after calibration.
 #
 # Test value per the design discussion: disp_lower = tau^2_k / 2 (half the
 # classical lmer-estimated RE variance).
@@ -58,6 +59,8 @@ lambda_dn <- fit_dn$convergence$lambda_star
 m_min_dn  <- fit_dn$convergence$m_min
 
 ## --- ING pfamilies with disp_lower = tau^2_k / 2 ----------------------------
+## disp_upper keeps the default 0.99 prior dispersion quantile: both bounds
+## are required for sampling (fixed truncation window across Gibbs sweeps).
 pf_ing0 <- pfamily_list(ps, ptypes = "dIndependent_Normal_Gamma")
 pf_ing <- stats::setNames(lapply(re_names, function(k) {
   pr <- pf_ing0[[k]]$prior_list
@@ -66,7 +69,8 @@ pf_ing <- stats::setNames(lapply(re_names, function(k) {
     Sigma      = pr$Sigma,
     shape      = pr$shape,
     rate       = pr$rate,
-    disp_lower = unname(ps$prior_list[[k]]$dispersion_fixef) / 2
+    disp_lower = unname(ps$prior_list[[k]]$dispersion_fixef) / 2,
+    disp_upper = as.numeric(pr$disp_upper)
   )
 }), re_names)
 
@@ -77,22 +81,31 @@ out_ing <- capture.output(
                    n = 10L, seed = 1L)
 )
 
-## 1. Stops after calibration: no draws, but calibration info present/printed.
+## 1. Full ING fit: draws generated, tau^2 sampled per component, and the
+##    conservative disp_lower calibration is still reported.
 stopifnot(
   inherits(fit_ing, "lmerb"),
-  is.null(fit_ing$coefficients),
-  is.null(fit_ing$fixef_draws),
-  is.null(fit_ing$coef.means),
+  !is.null(fit_ing$coefficients),
+  !is.null(fit_ing$fixef_draws),
+  !is.null(fit_ing$coef.means),
   !is.null(fit_ing$coef.mode),
   !is.null(fit_ing$convergence),
   identical(fit_ing$convergence$method, "disp_lower_bound")
 )
 stopifnot(
+  is.matrix(fit_ing$tau2_draws),
+  nrow(fit_ing$tau2_draws) == 10L,
+  identical(colnames(fit_ing$tau2_draws), re_names),
+  all(is.finite(fit_ing$tau2_draws)), all(fit_ing$tau2_draws > 0),
+  all(apply(fit_ing$tau2_draws, 2L, stats::sd) > 0),
+  identical(names(fit_ing$tau2.means), re_names)
+)
+stopifnot(
   any(grepl("conservative: ING tau\\^2_k = disp_lower", out_ing)),
-  any(grepl("Stopping after the", out_ing))
+  !any(grepl("Stopping after the", out_ing))
 )
 cat(sprintf(
-  "1. lmerb ING: stopped after calibration; lambda* = %.4f (dNormal: %.4f), m_min = %d (dNormal: %d)\n",
+  "1. lmerb ING: draws + sampled tau^2; lambda* = %.4f (dNormal: %.4f), m_min = %d (dNormal: %d)\n",
   fit_ing$convergence$lambda_star, lambda_dn,
   fit_ing$convergence$m_min, m_min_dn
 ))
@@ -138,11 +151,25 @@ err <- tryCatch(
 stopifnot(is.character(err), grepl("disp_lower", err))
 cat("4. Missing disp_lower rejected: OK\n")
 
+## 4a. Missing disp_upper (one-sided lower bound) is also rejected: sampling
+##     needs the full fixed truncation window.
+pf_bad2 <- pf_ing
+pf_bad2[[1L]] <- dIndependent_Normal_Gamma(
+  mu = pr1$mu, Sigma = pr1$Sigma, shape = pr1$shape, rate = pr1$rate,
+  disp_lower = as.numeric(pr1$disp_lower)
+)
+err2 <- tryCatch(
+  lmerb(form_lmer, data = dat, pfamily_list = pf_bad2,
+        dispersion_ranef = ps$dispersion_ranef, n = 5L),
+  error = function(e) conditionMessage(e)
+)
+stopifnot(is.character(err2), grepl("disp_upper", err2))
+cat("4a. Missing disp_upper rejected: OK\n")
+
 ## 4b. pfamily_list() default disp_lower (0.01 dispersion quantile =
 ##     1/qgamma(0.99, shape, rate)) passes lmerb validation end-to-end and
-##     stops after calibration.  With the diffuse default calibration the
-##     quantile sits far below tau^2, so lambda* should exceed the tau^2/2
-##     case.
+##     samples.  With the diffuse default calibration the quantile sits far
+##     below tau^2, so lambda* should exceed the tau^2/2 case.
 for (k in re_names) {
   pr <- pf_ing0[[k]]$prior_list
   stopifnot(isTRUE(all.equal(
@@ -153,10 +180,10 @@ out_def <- capture.output(
   fit_def <- lmerb(form_lmer, data = dat,
                    pfamily_list = pf_ing0,
                    dispersion_ranef = ps$dispersion_ranef,
-                   n = 10L, seed = 1L)
+                   n = 5L, seed = 1L)
 )
 stopifnot(
-  is.null(fit_def$coefficients),
+  !is.null(fit_def$coefficients),
   identical(fit_def$convergence$method, "disp_lower_bound"),
   fit_def$convergence$lambda_star > fit_ing$convergence$lambda_star,
   fit_def$convergence$m_min >= fit_ing$convergence$m_min
@@ -171,7 +198,8 @@ cat(sprintf(
   paste(sprintf("%.3f", ratios), collapse = ", ")
 ))
 
-## 5. Mixed list (ING + dNormal) also stops after calibration.
+## 5. Mixed list (ING + dNormal): ING tau^2 column varies, dNormal column
+##    stays fixed at the supplied dispersion.
 pf_mixed <- pfamily_list(ps)
 pf_mixed[[2L]] <- pf_ing[[2L]]
 out_mix <- capture.output(
@@ -181,11 +209,16 @@ out_mix <- capture.output(
                    n = 10L, seed = 1L)
 )
 stopifnot(
-  is.null(fit_mix$coefficients),
+  !is.null(fit_mix$coefficients),
   identical(fit_mix$convergence$method, "disp_lower_bound"),
-  fit_mix$convergence$lambda_star > lambda_dn
+  fit_mix$convergence$lambda_star > lambda_dn,
+  stats::sd(fit_mix$tau2_draws[, re_names[2L]]) > 0,
+  all(fit_mix$tau2_draws[, re_names[1L]] ==
+        unname(ps$prior_list[[re_names[1L]]]$dispersion_fixef)),
+  all(fit_mix$tau2_draws[, re_names[3L]] ==
+        unname(ps$prior_list[[re_names[3L]]]$dispersion_fixef))
 )
-cat("5. Mixed dNormal/ING list stops after calibration: OK\n")
+cat("5. Mixed dNormal/ING list: sampled vs fixed tau^2 columns OK\n")
 
 ## 6. glmerb (gaussian) path: same behavior, combined method label.
 out_g <- capture.output(
@@ -196,12 +229,24 @@ out_g <- capture.output(
 )
 stopifnot(
   inherits(fit_g, "glmerb"),
-  is.null(fit_g$coefficients),
+  !is.null(fit_g$coefficients),
+  !is.null(fit_g$tau2_draws),
   identical(fit_g$convergence$method, "exact+disp_lower_bound"),
   isTRUE(all.equal(fit_g$convergence$lambda_star,
                    fit_ing$convergence$lambda_star))
 )
 stopifnot(any(grepl("conservative: ING tau\\^2_k = disp_lower", out_g)))
 cat("6. glmerb gaussian ING path: OK\n")
+
+## 7. summary() prints the tau^2 table without error.
+s_ing <- summary(fit_ing)
+stopifnot(
+  !is.null(s_ing$tau2),
+  identical(rownames(s_ing$tau2), re_names),
+  all(s_ing$tau2$prior == "ING"),
+  all(is.finite(s_ing$tau2$Post.Mean))
+)
+invisible(capture.output(print(s_ing)))
+cat("7. summary tau^2 table: OK\n")
 
 cat("\ntest_ing_calibration.R: all checks passed\n")

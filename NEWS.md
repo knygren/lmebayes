@@ -1,5 +1,49 @@
 # lmebayes (development version)
 
+* **ING Gamma rate now follows the glmbayesCore default calibration
+  (mean-matched):** `Prior_Setup_lmebayes()` (`ing_prior` field) and
+  `pfamily_list()` previously set `rate = tau2_k * n0/2`, which matches the
+  `glmbayesCore::Prior_Setup()` default `b_0 = tau2_k * (n0 + p_k - 1)/2`
+  only for single-predictor components (`p_k = 1`).  For `p_k > 1` the
+  implied inverse-Gamma prior on `tau^2_k` was mis-centered well below the
+  classical estimate, so the default 98% truncation window
+  (`disp_lower`/`disp_upper`) could exclude `hat(tau)^2_k` entirely
+  (observed for a `p_k = 4` intercept component) and slow the envelope
+  sampler.  The rate now uses the glmbayesCore formula; since
+  `b_0 = tau2_k * (shape_ING - 1)`, the prior mean of the dispersion equals
+  `tau2_k` exactly for every `n_prior_dispersion` and `p_k`, and the
+  default window always brackets the classical estimate.  Covered by the
+  updated `data-raw/test_pfamily_list.R` (mean-matching identity and
+  window-bracketing assertions).
+
+* **`dIndependent_Normal_Gamma` Block-2 dispersion sampling in
+  `lmerb()`/`glmerb()`:** the fitters now run the pfamily-based
+  `glmbayesCore::two_block_rNormal_reg_v2` sampler.  `dNormal` components
+  keep the conjugate `gamma_k` draw at fixed `tau^2_k` (draws are
+  bitwise-identical to the previous sampler under the same seed); ING
+  components make a joint `(gamma_k, tau^2_k)` draw each inner sweep via
+  the likelihood-subgradient envelope sampler, with the sampled `tau^2_k`
+  fed back into the Block-1 prior precision.  The previous behavior of
+  stopping after the calibration for ING components is removed; the
+  conservative `disp_lower`-based TV calibration is retained.  Fits gain
+  `$tau2_draws` (n x p_re matrix; constant columns for `dNormal`) and
+  `$tau2.means`; `summary()` gains a per-component `tau^2` table with
+  posterior mean / SD / quantiles.  Covered by
+  `data-raw/test_ing_sampling.R` and the updated
+  `data-raw/test_ing_calibration.R`.
+
+* **Prior-vs-data balance guard for ING dispersion priors:** the ING
+  dispersion envelope caps its log-tilt at the data contribution `J/2`
+  (`J` = number of groups, the Block-2 observation count), which presumes
+  a likelihood-dominated prior; a prior-dominated calibration would
+  silently invalidate the envelope (biased draws were observed at small
+  `J` with `pwt_dispersion` near 1).  `pfamily_list()` therefore rejects
+  ING components with `n_prior_dispersion > J` (equivalently
+  `pwt_dispersion > 0.5`) at construction, and the same check is enforced
+  sampler-side in `glmbayesCore::two_block_rNormal_reg_v2` for hand-built
+  pfamilies.  Mirrors the `n_prior <= n_w` guard added to
+  `rindepNormalGamma_reg` in glmbayes/glmbayesCore.
+
 * **Per-component `pwt` and decoupled dispersion prior in
   `Prior_Setup_lmebayes()`:** `pwt` now accepts, besides a scalar, a list
   with one element per random-effect component (named with the RE
@@ -29,11 +73,11 @@
   plug-in `tau^2_k` in the eigenvalue / TV calibration: smaller `tau^2`
   increases the block coupling and hence `lambda*`, so the disp_lower-based
   rate upper-bounds the contraction rate for every dispersion in the
-  truncated support.  Because Block-2 dispersion sampling is not
-  implemented yet, the fit displays the calibration
-  (`conservative: ING tau^2_k = disp_lower`) and stops, returning the ICM
-  mode plus `$convergence` (method `"disp_lower_bound"`, or
-  `"<base>+disp_lower_bound"` in `glmerb`) without draws.  On
+  truncated support.  The fit displays the calibration
+  (`conservative: ING tau^2_k = disp_lower`) and records `$convergence`
+  (method `"disp_lower_bound"`, or `"<base>+disp_lower_bound"` in
+  `glmerb`).  (Initially the fit stopped after the calibration; with the
+  v2 sampler entry above, draws are now generated.)  On
   `big_word_club` with `disp_lower = tau^2_k / 2`, `lambda*` rises from
   0.839 to 0.903 and `m_min` from 11 to 18, matching an explicit `dNormal`
   fit at `tau^2/2` exactly (`data-raw/test_ing_calibration.R`).

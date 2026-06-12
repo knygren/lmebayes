@@ -771,15 +771,15 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
 #' dispersions: \code{Sigma_ranef = diag(tau^2_k)} where \code{tau^2_k} is the
 #' \code{dispersion} of component \code{k}'s \code{dNormal} pfamily.
 #'
-#' \code{dIndependent_Normal_Gamma} components are accepted with a
-#' \emph{required} \code{disp_lower} (lower truncation of the dispersion),
-#' which is used as the plug-in \eqn{\tau^2_k} for the eigenvalue / TV
-#' calibration: smaller \eqn{\tau^2} increases the coupling between blocks
-#' and hence the contraction rate \eqn{\lambda^*}, so the lower bound yields
-#' a conservative (upper-bound) eigenvalue and sweep count valid for every
-#' dispersion in the truncated support.  Sampling the Block~2 dispersion is
-#' not implemented yet; the callers stop after calibration when any ING
-#' component is present (\code{any_ing = TRUE} in the returned container).
+#' \code{dIndependent_Normal_Gamma} components must carry \emph{both}
+#' truncation bounds: \code{disp_lower} doubles as the plug-in
+#' \eqn{\tau^2_k} for the eigenvalue / TV calibration (smaller \eqn{\tau^2}
+#' increases the coupling between blocks and hence the contraction rate
+#' \eqn{\lambda^*}, so the lower bound yields a conservative eigenvalue and
+#' sweep count), and supplying \code{disp_upper} as well fixes the
+#' \eqn{\tau^2_k} truncation window \code{[disp_lower, disp_upper]} across
+#' all inner Gibbs sweeps of \code{two_block_rNormal_reg_v2}, making the
+#' calibration valid over the chain's entire dispersion support.
 #'
 #' @param pfamily_list Named list of \code{"pfamily"} objects, one per
 #'   random-effect coefficient (e.g. from
@@ -897,6 +897,13 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
     names(mu_k) <- par_names
     dimnames(Sigma_k) <- list(par_names, par_names)
 
+    ## Keep the pfamily object itself aligned with the hyper-design column
+    ## order: it is passed straight to the v2 sampler as the Block 2 source
+    ## of truth, so its mu/Sigma must match x_hyper[[k]].
+    pfamily_list[[k]]$prior_list$mu <-
+      matrix(mu_k, ncol = 1L, dimnames = list(par_names, NULL))
+    pfamily_list[[k]]$prior_list$Sigma <- Sigma_k
+
     if (identical(pf$pfamily, "dNormal")) {
       d_k <- pf$prior_list$dispersion
       if (isTRUE(pf$prior_list$ddef)) {
@@ -908,8 +915,11 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
         )
       }
     } else {
-      ## ING: disp_lower is required and serves as the conservative tau^2
-      ## plug-in for the eigenvalue / TV calibration.
+      ## ING: both truncation bounds are required.  disp_lower doubles as
+      ## the conservative tau^2 plug-in for the eigenvalue / TV calibration;
+      ## together the bounds fix the tau^2_k truncation window across all
+      ## inner Gibbs sweeps (one-sided specifications would fall back to a
+      ## per-sweep surrogate-posterior window inside the envelope code).
       d_k <- pf$prior_list$disp_lower
       if (is.null(d_k) || !is.numeric(d_k) || length(d_k) != 1L ||
           !is.finite(d_k) || d_k <= 0) {
@@ -918,6 +928,19 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
           "dIndependent_Normal_Gamma and must supply a positive scalar ",
           "'disp_lower' (lower dispersion truncation). It is used as the ",
           "conservative tau^2 plug-in for the convergence calibration.",
+          call. = FALSE
+        )
+      }
+      u_k <- pf$prior_list$disp_upper
+      if (is.null(u_k) || !is.numeric(u_k) || length(u_k) != 1L ||
+          !is.finite(u_k) || u_k <= as.numeric(d_k)) {
+        stop(
+          fn_name, "(): pfamily_list[[\"", k, "\"]] is ",
+          "dIndependent_Normal_Gamma and must supply a finite scalar ",
+          "'disp_upper' > 'disp_lower' (upper dispersion truncation), so ",
+          "the tau^2 truncation window is fixed across Gibbs sweeps. ",
+          "pfamily_list(Prior_Setup_lmebayes(...)) sets both bounds to the ",
+          "0.01/0.99 prior dispersion quantiles by default.",
           call. = FALSE
         )
       }
