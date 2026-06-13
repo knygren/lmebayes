@@ -332,7 +332,7 @@ classify_lme4_fixed_columns <- function(X_fixed, group_factor) {
 
   level2_flags <- logical(length(x_colnames))
   names(level2_flags) <- x_colnames
-
+  
   for (col in x_colnames) {
     if (col == "(Intercept)") {
       level2_flags[col] <- TRUE
