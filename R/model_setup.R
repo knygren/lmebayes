@@ -110,7 +110,7 @@ model_setup <- function(
     vcov_formula = NULL,
     family = gaussian(),
     REML = TRUE,
-    control = lme4::lmerControl(),
+    control = NULL,
     start = NULL,
     verbose = 0L,
     subset,
@@ -125,6 +125,9 @@ model_setup <- function(
   cl <- match.call()
   family <- .lmebayes_normalize_family(family)
   is_gaussian <- identical(family$family, "gaussian")
+  if (is.null(control) && is_gaussian) {
+    control <- lme4::lmerControl()
+  }
 
   design <- extract_re_hyper_matrices(formula = formula, data = data, ...)
   design$call    <- cl
@@ -146,9 +149,9 @@ model_setup <- function(
     mer_args <- c(
       list(
         data = data,
-        control = control,
         verbose = verbose
       ),
+      if (!is.null(control)) list(control = control),
       .lmebayes_mer_optional_args(
         start = start,
         subset = subset,

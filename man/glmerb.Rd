@@ -11,8 +11,10 @@ glmerb(
   pfamily_list,
   dispersion_ranef = NULL,
   n = 1000L,
+  n_pilot = 1000L,
   tv_tol = 0.01,
   m_convergence = NULL,
+  m_convergence_pilot = NULL,
   simulate = TRUE,
   REML = TRUE,
   control = NULL,
@@ -70,6 +72,20 @@ dispersion parameter (e.g. \code{gaussian()}); must be \code{NULL}
 
 \item{n}{Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).}
 
+\item{n_pilot}{Number of independent pilot chains used to estimate the
+posterior mean as a starting point for the main run (default
+\code{1000L}). Applies only to non-Gaussian families: for those, the
+ICM posterior mode (\code{coef.mode}) is below the posterior mean due
+to likelihood skewness, causing the main-run sample mean to be biased
+toward the mode when the chain starts there. The pilot stage runs
+\code{n_pilot} separate chains, each started at \code{coef.mode}, each
+returning one stored draw after \code{m_convergence_pilot} inner sweeps, and
+takes the column-means across those final draws as
+\code{coef.pilot.mean} -- the starting point for the main run.
+Set \code{n_pilot = NULL} to skip the pilot and start the main run from
+the ICM mode (as in the Gaussian case). Ignored for
+\code{family = gaussian()}, where mode = mean exactly.}
+
 \item{tv_tol}{Total variation tolerance per stored draw, in (0, 1)
 (default \code{0.01}).  For \code{family = gaussian()} the joint
 posterior is exactly multivariate normal and the number of inner Gibbs
@@ -91,6 +107,13 @@ requested sweep count but is never allowed below the derived minimum:
 \code{max(m_convergence, m_min)} is used, with a warning if the value
 had to be raised.  Typical use is to pick a \emph{larger} number for
 non-Gaussian families (e.g. double the derived lower bound).}
+
+\item{m_convergence_pilot}{Optional integer number of inner Gibbs sweeps
+used in each independent pilot chain.  Applies only when
+\code{n_pilot} is not \code{NULL} and \code{family} is non-Gaussian.
+When \code{NULL} (default), pilot chains use \code{m_convergence}.
+Set this larger than \code{m_convergence} to reduce pilot centering bias
+from short transitions.}
 
 \item{simulate}{Logical (default \code{TRUE}).  When \code{TRUE} the
 two-block Gibbs sampler is run for \code{n} iterations and posterior draws
@@ -134,8 +157,14 @@ When \code{NULL} (default), iter-0 means are taken from the
 }
 \value{
 Object of class \code{"glmerb"}: same structure as \code{"lmerb"},
-with additional \code{family} and \code{glmer} (reference
-\code{\link[lme4]{glmer}} fit) components instead of \code{lmer}.
+with additional \code{family}, \code{glmer} (reference
+\code{\link[lme4]{glmer}} fit), \code{coef.pilot.mean} (estimated
+posterior mean from the pilot run, used as the main-run starting point;
+\code{NULL} for Gaussian or when \code{n_pilot = NULL}), and
+\code{pilot_mode_test} (multivariate Wald test of pilot mean against
+ICM mode: \code{Q}, \code{df}, \code{p_value},
+\code{n_pilot}; \code{NULL} when no pilot) components instead of
+\code{lmer}.
 }
 \description{
 Draft entry point for \pkg{lmebayes} GLMM models with a \code{glmer}-like
@@ -185,10 +214,43 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
     data         = dat,
     family       = poisson(),
     pfamily_list = pfamily_list(ps),
-    n            = 1000L,
+    n            = 2000L,
+    n_pilot      = 2000L,
     seed         = 42L
   )
   summary(fit)
+  cat("m_convergence used:", fit$convergence$m_convergence, "\n")
+  cat(sprintf(
+    "Pilot vs mode (chi-squared): p = \%.4g\n",
+    fit$pilot_mode_test$p_value
+  ))
+
+  ## Overall centering diagnostics: posterior mean vs pilot mean and mode.
+  re_names <- fit$model_setup$re_coef_names
+  X <- do.call(cbind, lapply(re_names, function(k) fit$fixef_draws[[k]]))
+  cn <- unlist(lapply(re_names, function(k) {
+    paste0(k, "::", colnames(fit$fixef_draws[[k]]))
+  }))
+  colnames(X) <- cn
+  beta_bar <- colMeans(X)
+  theta_pilot <- unlist(lapply(re_names, function(k) fit$coef.pilot.mean[[k]]))
+  theta_mode  <- unlist(lapply(re_names, function(k) fit$coef.mode[[k]]))
+  names(theta_pilot) <- cn
+  names(theta_mode)  <- cn
+
+  S <- stats::cov(X)
+  V <- S / nrow(X)
+  V_inv <- solve(V)
+  d_pilot <- beta_bar - theta_pilot
+  d_mode  <- beta_bar - theta_mode
+  Q_pilot <- as.numeric(t(d_pilot) \%*\% V_inv \%*\% d_pilot)
+  Q_mode  <- as.numeric(t(d_mode)  \%*\% V_inv \%*\% d_mode)
+  p_pilot <- stats::pchisq(Q_pilot, df = ncol(X), lower.tail = FALSE)
+  p_mode  <- stats::pchisq(Q_mode,  df = ncol(X), lower.tail = FALSE)
+  cat(sprintf(
+    "Overall centering (chi-squared): p(mean=pilot)=\%.4g, p(mean=mode)=\%.4g\n",
+    p_pilot, p_mode
+  ))
 
   ## Level-2 posterior means alongside the classical glmer reference.
   fit$coef.means

@@ -1,5 +1,19 @@
 # lmebayes (development version)
 
+* **Two-phase Gibbs sampling in `glmerb` (new `n_pilot` argument):** for
+  non-Gaussian families the ICM posterior mode is below the true posterior
+  mean due to likelihood skewness (e.g. Poisson).  Starting the main sampler
+  from the mode causes all stored draws to drift toward the mode, biasing the
+  sample mean.  `glmerb` now runs a pilot stage of `n_pilot = 1000`
+  independent short chains (default), all started at the same mode, and
+  takes the column-means of their final draws as the
+  estimated posterior mean (`coef.pilot.mean`), and then runs the main `n`
+  draws starting from that estimate.  Because the main chain starts near the
+  posterior mean from draw 1, the stored draws are near-iid in the right
+  region and the sample mean is an accurate estimator of the posterior mean.
+  Set `n_pilot = NULL` to restore the original single-phase behaviour.
+  Ignored for `family = gaussian()` (mode = mean exactly).
+
 * **ING `tau^2` truncation window now uses limiting-posterior quantiles
   (was: prior quantiles):** the default `disp_lower`/`disp_upper` for
   `dIndependent_Normal_Gamma` components are the 0.01/0.99 quantiles of the

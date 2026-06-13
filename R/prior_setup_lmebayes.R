@@ -179,7 +179,7 @@ Prior_Setup_lmebayes <- function(formula,
     formula = formula,
     data = data,
     family = family,
-    control = if (is_gaussian) ctrl else lme4::lmerControl()
+    control = ctrl
   )
 
   ## Full-rank status is a per-group DESIGN CHECK only (reported by print();

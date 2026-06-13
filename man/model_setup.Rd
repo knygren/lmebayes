@@ -10,7 +10,7 @@ model_setup(
   vcov_formula = NULL,
   family = gaussian(),
   REML = TRUE,
-  control = lme4::lmerControl(),
+  control = NULL,
   start = NULL,
   verbose = 0L,
   subset,

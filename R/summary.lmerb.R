@@ -38,6 +38,7 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
   simulated <- !is.null(object$coefficients)
   n_draws   <- if (simulated) nrow(object$fixef_draws[[re_names[1L]]]) else NULL
   mer_fit   <- .lmerb_reference_fit(object)
+  mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
 
   fixef_parts <- stats::setNames(
     lapply(re_names, function(k) {
@@ -51,6 +52,7 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     formula       = object$formula,
     n             = n_draws,
     simulated     = simulated,
+    mer_label     = mer_label,
     mer           = mer_fit,
     varcor        = lme4::VarCorr(mer_fit),
     dispersion    = object$prior$dispersion_ranef,
@@ -94,10 +96,17 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
   cat("Formula:", deparse1(x$formula), "\n\n")
 
+  mer_label <- if (!is.null(x$mer_label)) x$mer_label else "lmer"
   if (isTRUE(x$any_ing)) {
-    cat("Random effects (lmer reference; tau^2 sampled for ING components):\n")
+    cat(sprintf(
+      "Random effects (%s reference; tau^2 sampled for ING components):\n",
+      mer_label
+    ))
   } else {
-    cat("Random effects (variance components fixed at lmer estimates):\n")
+    cat(sprintf(
+      "Random effects (variance components fixed at %s estimates):\n",
+      mer_label
+    ))
   }
   print(x$varcor, comp = "Std.Dev.", digits = digits)
   cat(sprintf(
@@ -129,7 +138,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     part <- x$fixef[[k]]
     cat("--- RE component:", k, "---\n\n")
 
-    cat("Prior and lmer reference:\n\n")
+    cat(sprintf("Prior and %s reference:\n\n", mer_label))
     if (!is.null(part$coefficients1)) {
       stats::printCoefmat(part$coefficients1, digits = digits, quote = FALSE)
     }
@@ -228,17 +237,18 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   prior_mean <- unname(pl_k$mu_fixef)
   prior_sd   <- sqrt(diag(pl_k$Sigma_fixef))
 
-  lmer_ref <- lapply(par, function(nm) {
+  mer_ref <- lapply(par, function(nm) {
     .lmerb_lmer_fixef_lookup(.lmerb_reference_fit(object), k, nm)
   })
-  lmer_est <- vapply(lmer_ref, `[[`, numeric(1), "estimate")
-  lmer_se  <- vapply(lmer_ref, `[[`, numeric(1), "se")
+  mer_est <- vapply(mer_ref, `[[`, numeric(1), "estimate")
+  mer_se  <- vapply(mer_ref, `[[`, numeric(1), "se")
+  mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
 
   Tab1 <- cbind(
     "Prior Mean" = prior_mean,
     "Prior.sd"   = prior_sd,
-    "lmer"       = lmer_est,
-    "lmer.se"    = lmer_se
+    stats::setNames(mer_est, mer_label),
+    stats::setNames(mer_se, paste0(mer_label, ".se"))
   )
   rownames(Tab1) <- par
 
