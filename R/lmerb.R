@@ -201,10 +201,7 @@
 #'       minimum sweeps), and \code{m_convergence} (sweeps actually used).
 #'       \code{NULL} when \code{simulate = FALSE}.}
 #'   }
-#' @examples
-#' \donttest{
-#'   source(system.file("examples", "Ex_lmerb.R", package = "lmebayes"))
-#' }
+#' @example inst/examples/Ex_lmerb.R
 #' @seealso \code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
 #'   \code{\link[glmbayesCore]{build_mu_all}},
 #'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}},

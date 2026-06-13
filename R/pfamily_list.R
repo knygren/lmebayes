@@ -19,8 +19,8 @@
 #'     effective prior sample size \eqn{n_0} is taken from
 #'     \code{object$n_prior_dispersion[[k]]} (set by
 #'     \code{\link{Prior_Setup_lmebayes}} via \code{pwt_dispersion} /
-#'     \code{n_prior_dispersion}, defaulting to a flat weight of 0.2,
-#'     i.e. \eqn{n_0 = J/4} with \eqn{J} groups).  Then
+#'     \code{n_prior_dispersion}, derived from \code{pwt} by default).
+#'     Then
 #'     \deqn{shape = (n_0 + 1 + p_k)/2, \qquad
 #'           rate = \tau^2_k \, (n_0 + p_k - 1)/2,}
 #'     where \eqn{p_k} is the number of Block-2 coefficients for
@@ -39,10 +39,23 @@
 #'     \eqn{J/2}; a prior-dominated calibration would invalidate it).
 #'
 #'     \code{disp_lower} and \code{disp_upper} default to the 0.01 and
-#'     0.99 quantiles of the implied inverse-Gamma dispersion prior:
-#'     \deqn{disp\_lower = 1 / q_{\Gamma}(0.99;\; shape,\; rate), \qquad
-#'           disp\_upper = 1 / q_{\Gamma}(0.01;\; shape,\; rate),}
-#'     i.e. the central 98\% prior-mass window for \eqn{\tau^2_k}.  These
+#'     0.99 quantiles of the \emph{limiting posterior} for \eqn{\tau^2_k}
+#'     -- the weak-prior (\eqn{n_0 \to 0}) limit of the Block-2 posterior
+#'     Gamma for the precision (glmbayesCore Chapter A12, Theorem 2),
+#'     \eqn{\Gamma(a_\infty, b_\infty)} with
+#'     \deqn{a_\infty = (J+1)/2, \qquad b_\infty = \tau^2_k\,(J-1)/2,}
+#'     inverted to a \eqn{\tau^2} interval:
+#'     \deqn{disp\_lower = 1 / q_{\Gamma}(0.99;\; a_\infty, b_\infty),
+#'           \qquad
+#'           disp\_upper = 1 / q_{\Gamma}(0.01;\; a_\infty, b_\infty).}
+#'     Quantiles of the limiting posterior -- rather than of the prior --
+#'     make the window independent of \eqn{n_0}: prior quantiles stretch
+#'     without bound as the dispersion prior weakens (collapsing the
+#'     envelope acceptance rate), whereas this window covers at least
+#'     ~98\% of the exact posterior for every \eqn{n_0} (the finite-
+#'     \eqn{n_0} posterior is strictly more concentrated than the limit)
+#'     and keeps sampling cost stable.  See
+#'     \code{inst/ING_TRUNCATION_WINDOW.md} for the derivation.  The
 #'     values are computed once by \code{\link{Prior_Setup_lmebayes}}
 #'     (stored in its \code{ing_prior} field and shown by its print
 #'     method); this function reads them from the object.  During
@@ -53,12 +66,7 @@
 #'     \code{\link{lmerb}} and \code{\link{glmerb}} use \code{disp_lower}
 #'     as the conservative \eqn{\tau^2_k} plug-in for their eigenvalue /
 #'     TV convergence calibration, so the resulting bound holds over the
-#'     chain's entire (truncated) dispersion support.  Note that with the
-#'     diffuse default calibration (small \code{pwt}) the lower quantile
-#'     can be far below \eqn{\hat\tau^2_k}, giving conservative (large)
-#'     sweep counts, while the upper quantile can be very large (heavy
-#'     inverse-Gamma tail), making the upper truncation effectively
-#'     non-binding.
+#'     chain's entire (truncated) dispersion support.
 #' }
 #'
 #' @param object An object of class \code{"lmebayes_prior_setup"} as
@@ -217,24 +225,29 @@ pfamily_list.lmebayes_prior_setup <- function(object,
           )
         }
         ## Gamma shape/rate and the default tau^2 truncation window (central
-        ## 98% prior-mass interval) come from object$ing_prior, computed once
-        ## by Prior_Setup_lmebayes() and shown by its print() method; the
-        ## formulas are re-derived here only for legacy objects that predate
-        ## the ing_prior field.  Fixed bounds keep the tau^2_k truncation
-        ## identical across all inner Gibbs sweeps, so the disp_lower-based
-        ## lambda* upper bound holds over the chain's entire dispersion
-        ## support.
+        ## 98% mass of the limiting n0 -> 0 posterior; see
+        ## inst/ING_TRUNCATION_WINDOW.md) come from object$ing_prior,
+        ## computed once by Prior_Setup_lmebayes() and shown by its print()
+        ## method; the formulas are re-derived here only for legacy objects
+        ## that predate the ing_prior field.  Fixed bounds keep the tau^2_k
+        ## truncation identical across all inner Gibbs sweeps, so the
+        ## disp_lower-based lambda* upper bound holds over the chain's
+        ## entire dispersion support.
         ing_k <- object$ing_prior[[k]]
         if (is.null(ing_k)) {
           shape_k <- (n_prior_k + 1) / 2 + p_k / 2
           rate_k  <- d_k * (n_prior_k + p_k - 1) / 2
+          ## Truncation window from the limiting (n0 -> 0) posterior Gamma
+          ## (glmbayesCore Ch. A12, Thm 2), matching Prior_Setup_lmebayes().
+          a_inf <- (J + 1) / 2
+          b_inf <- d_k * (J - 1) / 2
           ing_k <- list(
             shape      = shape_k,
             rate       = rate_k,
-            disp_lower = 1 / stats::qgamma(0.99, shape = shape_k,
-                                           rate = rate_k),
-            disp_upper = 1 / stats::qgamma(0.01, shape = shape_k,
-                                           rate = rate_k)
+            disp_lower = 1 / stats::qgamma(0.99, shape = a_inf,
+                                           rate = b_inf),
+            disp_upper = 1 / stats::qgamma(0.01, shape = a_inf,
+                                           rate = b_inf)
           )
         }
         glmbayesCore::dIndependent_Normal_Gamma(

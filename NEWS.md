@@ -1,18 +1,30 @@
 # lmebayes (development version)
 
-* **`pwt_dispersion` now defaults to 0.2 (was: derived from `pwt`):** when
-  neither `pwt_dispersion` nor `n_prior_dispersion` is supplied,
-  `Prior_Setup_lmebayes()` uses a flat 0.2 per component (`n_k = J/4`)
-  instead of inheriting the coefficient `pwt`.  Rationale: with weak
-  coefficient priors (e.g. `pwt = 0.01`) the inherited dispersion prior is
-  so heavy-tailed that the default ING `tau^2` truncation window becomes
-  very wide and the joint `(gamma_k, tau^2_k)` envelope sampler rejects
-  heavily (`Cand/draw` grew ~5-6x per halving of `pwt_dispersion`: ~4.6 at
-  0.4, ~28 at 0.2, ~159 at 0.1 on the schools example) while the `tau^2`
-  posterior was essentially unchanged once `J` dominates.  0.2 keeps the
-  window moderate and clearly data-dominated; supply `pwt_dispersion` /
-  `n_prior_dispersion` explicitly to override in either direction (subject
-  to the `<= 0.5` guard).
+* **ING `tau^2` truncation window now uses limiting-posterior quantiles
+  (was: prior quantiles):** the default `disp_lower`/`disp_upper` for
+  `dIndependent_Normal_Gamma` components are the 0.01/0.99 quantiles of the
+  *limiting posterior* `Gamma((J+1)/2, tau2_k*(J-1)/2)` -- the weak-prior
+  (`n_prior_dispersion -> 0`) limit of the Block-2 posterior Gamma for the
+  precision (glmbayesCore Chapter A12, Theorem 2), inverted to the `tau^2`
+  scale.  Prior-quantile windows stretch without bound as the dispersion
+  prior weakens, collapsing the envelope acceptance rate while covering
+  posterior mass the chain never visits; the limiting-posterior window is
+  identical for every `n_prior_dispersion`, mean-matched at the classical
+  `tau^2_k`, covers >= ~98% of the exact posterior for every prior
+  strength (asymptotically exactly 98%), and keeps the envelope
+  candidates-per-draw roughly constant as priors weaken (schools example,
+  J = 47: width ratio ~2.6 vs 5.9/11.7 for the prior window at
+  `pwt_dispersion` 0.2/0.1).  Derivation and trade-offs documented in
+  `inst/ING_TRUNCATION_WINDOW.md`.  Note the hard truncation now clips
+  ~1% of posterior mass per tail, and the higher default `disp_lower`
+  makes the TV calibration less conservative (smaller `m_min`) -- still
+  valid since the truncation bounds the chain's support by construction.
+  Because the window no longer depends on the dispersion-prior strength,
+  weak dispersion priors carry no computational penalty, so the
+  `pwt_dispersion` default in `Prior_Setup_lmebayes()` remains derived
+  from `pwt` (an interim flat-0.2 default, introduced earlier in this
+  development cycle to keep the prior-quantile window moderate, has been
+  reverted).
 
 * **Block-2 candidate counts in `lmerb()`/`glmerb()` fits:** fits now carry
   `$iters_draws` (`n x p_re` matrix of total Block-2 candidates generated

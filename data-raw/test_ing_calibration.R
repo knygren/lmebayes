@@ -59,8 +59,9 @@ lambda_dn <- fit_dn$convergence$lambda_star
 m_min_dn  <- fit_dn$convergence$m_min
 
 ## --- ING pfamilies with disp_lower = tau^2_k / 2 ----------------------------
-## disp_upper keeps the default 0.99 prior dispersion quantile: both bounds
-## are required for sampling (fixed truncation window across Gibbs sweeps).
+## disp_upper keeps the default upper bound (0.99 limiting-posterior tau^2
+## quantile): both bounds are required for sampling (fixed truncation window
+## across Gibbs sweeps).
 pf_ing0 <- pfamily_list(ps, ptypes = "dIndependent_Normal_Gamma")
 pf_ing <- stats::setNames(lapply(re_names, function(k) {
   pr <- pf_ing0[[k]]$prior_list
@@ -166,15 +167,28 @@ err2 <- tryCatch(
 stopifnot(is.character(err2), grepl("disp_upper", err2))
 cat("4a. Missing disp_upper rejected: OK\n")
 
-## 4b. pfamily_list() default disp_lower (0.01 dispersion quantile =
-##     1/qgamma(0.99, shape, rate)) passes lmerb validation end-to-end and
-##     samples.  With the diffuse default calibration the quantile sits far
-##     below tau^2, so lambda* should exceed the tau^2/2 case.
+## 4b. pfamily_list() default window (0.01/0.99 quantiles of the *limiting
+##     posterior* Gamma((J+1)/2, tau2*(J-1)/2); glmbayesCore Ch. A12 Thm 2,
+##     see inst/ING_TRUNCATION_WINDOW.md) passes lmerb validation
+##     end-to-end and samples.  The limiting-posterior disp_lower sits
+##     above tau^2/2 for moderate J (ratio ~ 0.63 at J = 47), so lambda*
+##     should be *below* the tau^2/2 case.
+J_cal <- nlevels(ps$design$groups)
 for (k in re_names) {
-  pr <- pf_ing0[[k]]$prior_list
-  stopifnot(isTRUE(all.equal(
-    pr$disp_lower, 1 / stats::qgamma(0.99, shape = pr$shape, rate = pr$rate)
-  )))
+  pr     <- pf_ing0[[k]]$prior_list
+  tau2_k <- unname(ps$prior_list[[k]]$dispersion_fixef)
+  a_inf  <- (J_cal + 1) / 2
+  b_inf  <- tau2_k * (J_cal - 1) / 2
+  stopifnot(
+    isTRUE(all.equal(
+      pr$disp_lower, 1 / stats::qgamma(0.99, shape = a_inf, rate = b_inf)
+    )),
+    isTRUE(all.equal(
+      pr$disp_upper, 1 / stats::qgamma(0.01, shape = a_inf, rate = b_inf)
+    )),
+    ## mean-matched limiting law => window brackets the classical estimate
+    pr$disp_lower < tau2_k, pr$disp_upper > tau2_k
+  )
 }
 out_def <- capture.output(
   fit_def <- lmerb(form_lmer, data = dat,
@@ -185,8 +199,8 @@ out_def <- capture.output(
 stopifnot(
   !is.null(fit_def$coefficients),
   identical(fit_def$convergence$method, "disp_lower_bound"),
-  fit_def$convergence$lambda_star > fit_ing$convergence$lambda_star,
-  fit_def$convergence$m_min >= fit_ing$convergence$m_min
+  fit_def$convergence$lambda_star < fit_ing$convergence$lambda_star,
+  fit_def$convergence$m_min <= fit_ing$convergence$m_min
 )
 ratios <- vapply(re_names, function(k) {
   pf_ing0[[k]]$prior_list$disp_lower /

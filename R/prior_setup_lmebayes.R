@@ -53,12 +53,13 @@
 #'   random-effect component (named or positional).  Converted internally to
 #'   an effective prior sample size \eqn{n_k = J\,w_k/(1-w_k)} where \eqn{J}
 #'   is the number of groups.  At most one of \code{pwt_dispersion} and
-#'   \code{n_prior_dispersion} may be supplied; when neither is, a default
-#'   of \eqn{0.2} is used for every component (\eqn{n_k = J/4}; deliberately
-#'   \emph{not} derived from \code{pwt}, since very weak coefficient priors
-#'   would imply a heavy-tailed dispersion prior whose wide \eqn{\tau^2}
-#'   truncation window makes the \code{dIndependent_Normal_Gamma} envelope
-#'   sampler reject heavily without changing the posterior appreciably).
+#'   \code{n_prior_dispersion} may be supplied; when neither is, the value
+#'   is derived from \code{pwt} (the mean across a component's predictors),
+#'   keeping the dispersion prior consistent with the coefficient prior
+#'   strength.  Weak values carry no computational penalty for
+#'   \code{dIndependent_Normal_Gamma} sampling: the \eqn{\tau^2} truncation
+#'   window comes from limiting-posterior quantiles independent of the
+#'   prior strength (see \code{ing_prior} below).
 #' @param n_prior_dispersion Optional \emph{absolute} effective prior sample
 #'   size(s) (in group units) for the Block~2 dispersion prior.  A positive
 #'   scalar, or a list / numeric vector with one value per random-effect
@@ -94,8 +95,15 @@
 #'       \code{rate} \eqn{= \hat\tau^2_k (\code{shape} - 1)}, the implied
 #'       inverse-Gamma prior on \eqn{\tau^2_k} has mean exactly
 #'       \eqn{\hat\tau^2_k}), and the default \eqn{\tau^2_k} truncation
-#'       window \code{disp_lower} / \code{disp_upper} (0.01 / 0.99 quantiles
-#'       of that prior, i.e. its central 98\% prior-mass interval).  Used by
+#'       window \code{disp_lower} / \code{disp_upper}: the 0.01 / 0.99
+#'       quantiles of the \emph{limiting posterior}
+#'       \eqn{\Gamma((J+1)/2,\; \hat\tau^2_k (J-1)/2)} -- the weak-prior
+#'       (\eqn{n_0 \to 0}) limit of the Block~2 posterior Gamma for the
+#'       precision (glmbayesCore Chapter A12, Theorem 2; inverted to a
+#'       \eqn{\tau^2} interval).  This window is identical for all
+#'       \eqn{n_0}, covers \eqn{\ge} ~98\% of the exact posterior for every
+#'       prior strength, and keeps the envelope sampler's cost stable as
+#'       priors weaken; see \code{inst/ING_TRUNCATION_WINDOW.md}.  Used by
 #'       \code{\link{pfamily_list}} when
 #'       \code{ptypes = "dIndependent_Normal_Gamma"}; ignored for
 #'       \code{dNormal} priors.}
@@ -289,7 +297,8 @@ Prior_Setup_lmebayes <- function(formula,
     pwt_dispersion     = pwt_dispersion,
     n_prior_dispersion = n_prior_dispersion,
     J                  = J_groups,
-    re_names           = re_names
+    re_names           = re_names,
+    pwt_list           = pwt_list
   )
 
   prior_list <- stats::setNames(
@@ -330,10 +339,22 @@ Prior_Setup_lmebayes <- function(formula,
   ## calibration (compute_gaussian_prior() with k = 1):
   ##   shape_ING = (n0 + 1 + p_k)/2,  b_0 = tau2_k * (n0 + p_k - 1)/2.
   ## Since b_0 = tau2_k * (shape_ING - 1), the implied inverse-Gamma prior on
-  ## tau^2_k has mean exactly tau2_k for every n0 and p_k.  Also stored: the
-  ## default tau^2 truncation window = central 98% prior-mass interval of
-  ## that prior (0.01 / 0.99 quantiles).  Stored here so print() can display
-  ## the window and pfamily_list() consumes one source of truth.
+  ## tau^2_k has mean exactly tau2_k for every n0 and p_k.
+  ##
+  ## The tau^2 truncation window (disp_lower / disp_upper) uses the
+  ## *limiting posterior* of glmbayesCore Chapter A12, Theorem 2 -- the
+  ## weak-prior (n0 -> 0) limit of the Block 2 posterior Gamma:
+  ##   a_inf = (J + 1)/2,  b_inf = tau2_k * (J - 1)/2
+  ## (so b_inf/(a_inf - 1) = tau2_k: mean-matched, like the prior).  The
+  ## window is its central 98% mass (0.01/0.99 quantiles).  Quantiles of the
+  ## *prior* would stretch without bound as n0 -> 0 (posterior coverage ->
+  ## 100%, envelope acceptance -> 0); the limiting-posterior window instead
+  ## has coverage >= ~98% of the exact posterior for every n0 (the finite-n0
+  ## posterior is strictly more concentrated than the limit), is identical
+  ## for all n0, and keeps the envelope sampler's candidates-per-draw
+  ## roughly constant as priors weaken.  See inst/ING_TRUNCATION_WINDOW.md.
+  ## Stored here so print() can display the window and pfamily_list()
+  ## consumes one source of truth.
   ing_prior <- stats::setNames(
     lapply(re_names, function(k) {
       n0_k    <- unname(disp$n_prior_dispersion[[k]])
@@ -341,11 +362,13 @@ Prior_Setup_lmebayes <- function(formula,
       tau2_k  <- unname(prior_list[[k]]$dispersion_fixef)
       shape_k <- (n0_k + 1) / 2 + p_k / 2
       rate_k  <- tau2_k * (n0_k + p_k - 1) / 2
+      a_inf   <- (J_groups + 1) / 2
+      b_inf   <- tau2_k * (J_groups - 1) / 2
       list(
         shape      = shape_k,
         rate       = rate_k,
-        disp_lower = 1 / stats::qgamma(0.99, shape = shape_k, rate = rate_k),
-        disp_upper = 1 / stats::qgamma(0.01, shape = shape_k, rate = rate_k)
+        disp_lower = 1 / stats::qgamma(0.99, shape = a_inf, rate = b_inf),
+        disp_upper = 1 / stats::qgamma(0.01, shape = a_inf, rate = b_inf)
       )
     }),
     re_names
@@ -458,7 +481,8 @@ Prior_Setup_lmebayes <- function(formula,
 .lmebayes_resolve_disp_prior <- function(pwt_dispersion,
                                          n_prior_dispersion,
                                          J,
-                                         re_names) {
+                                         re_names,
+                                         pwt_list) {
 
   p_re <- length(re_names)
 
@@ -520,15 +544,17 @@ Prior_Setup_lmebayes <- function(formula,
     w   <- n / (n + J)
     src <- "user-supplied (n_prior_dispersion)"
   } else {
-    ## Default 0.2 (not derived from pwt): weak coefficient priors (small
-    ## pwt) would otherwise produce a heavy-tailed dispersion prior whose
-    ## wide tau^2 truncation window collapses the ING envelope acceptance
-    ## rate (Cand/draw grows ~5-6x per halving of pwt_dispersion), at no
-    ## inferential gain once J dominates.  0.2 keeps the window moderate
-    ## while staying clearly data-dominated (n_k = J/4).
-    w   <- rep(0.2, p_re)
+    ## Default: derive from the coefficient pwt (mean across predictors per
+    ## component), keeping the dispersion prior consistent with the
+    ## coefficient prior strength.  This was briefly replaced by a fixed
+    ## 0.2 when the ING tau^2 truncation window came from *prior*
+    ## quantiles (weak priors widened the window and collapsed envelope
+    ## acceptance); the window now uses limiting-posterior quantiles
+    ## independent of n0 (inst/ING_TRUNCATION_WINDOW.md), so weak
+    ## dispersion priors no longer carry a computational penalty.
+    w <- vapply(re_names, function(k) mean(pwt_list[[k]]), numeric(1L))
     n   <- J * w / (1 - w)
-    src <- "default (0.2)"
+    src <- "derived from pwt"
   }
 
   w <- stats::setNames(w, re_names)
@@ -604,7 +630,7 @@ print.lmebayes_prior_setup <- function(x, digits = 4L, ...) {
     ing_k <- x$ing_prior[[nm]]
     if (!is.null(ing_k)) {
       cat(sprintf(
-        "  ING tau^2 window: [%.4g, %.4g]  (0.01/0.99 prior quantiles; upper/tau2 = %.3g)\n",
+        "  ING tau^2 window: [%.4g, %.4g]  (0.01/0.99 limiting-posterior quantiles; upper/tau2 = %.3g)\n",
         ing_k$disp_lower, ing_k$disp_upper,
         ing_k$disp_upper / unname(pl$dispersion_fixef)
       ))

@@ -134,15 +134,16 @@ hyperpriors.
 
 The example uses \code{big_word_club} from the Suggested package
 \pkg{bayesrules} (see \code{?bayesrules::big_word_club}) and the same
-formula as \code{\link{lmerb}} in \file{inst/examples/Ex_lmerb.R}.
+formula as the full \code{\link{lmerb}} demo
+(\code{demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")}).
 }
 \examples{
 \dontshow{if (requireNamespace("bayesrules", quietly = TRUE)) withAutoprint(\{ # examplesIf}
 \dontshow{\}) # examplesIf}
 ## model_setup() on bayesrules::big_word_club
 ##
-## Same model as inst/examples/Ex_lmerb.R (see also Prior_Setup_lmebayes /
-## lmerb development scripts in data-raw/).
+## Same model as the full lmerb demo, demo/Ex_12_lmerb_BigWordClub.R (see
+## also Prior_Setup_lmebayes / lmerb development scripts in data-raw/).
 ##
 ## Level 1 (students):
 ##   y ~ b0[j] + b_ppvt[j]*distracted_ppvt + b_a1[j]*distracted_a1

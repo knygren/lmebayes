@@ -45,8 +45,8 @@ as known.
 effective prior sample size \eqn{n_0} is taken from
 \code{object$n_prior_dispersion[[k]]} (set by
 \code{\link{Prior_Setup_lmebayes}} via \code{pwt_dispersion} /
-\code{n_prior_dispersion}, defaulting to a flat weight of 0.2,
-i.e. \eqn{n_0 = J/4} with \eqn{J} groups).  Then
+\code{n_prior_dispersion}, derived from \code{pwt} by default).
+Then
 \deqn{shape = (n_0 + 1 + p_k)/2, \qquad
           rate = \tau^2_k \, (n_0 + p_k - 1)/2,}
 where \eqn{p_k} is the number of Block-2 coefficients for
@@ -65,10 +65,23 @@ dispersion envelope caps its log-tilt at the data contribution
 \eqn{J/2}; a prior-dominated calibration would invalidate it).
 
 \code{disp_lower} and \code{disp_upper} default to the 0.01 and
-0.99 quantiles of the implied inverse-Gamma dispersion prior:
-\deqn{disp\_lower = 1 / q_{\Gamma}(0.99;\; shape,\; rate), \qquad
-          disp\_upper = 1 / q_{\Gamma}(0.01;\; shape,\; rate),}
-i.e. the central 98\\\% prior-mass window for \eqn{\tau^2_k}.  These
+0.99 quantiles of the \\emph\{limiting posterior\} for \eqn{\tau^2_k}
+-- the weak-prior (\eqn{n_0 \to 0}) limit of the Block-2 posterior
+Gamma for the precision (glmbayesCore Chapter A12, Theorem 2),
+\eqn{\Gamma(a_\infty, b_\infty)} with
+\deqn{a_\infty = (J+1)/2, \qquad b_\infty = \tau^2_k\,(J-1)/2,}
+inverted to a \eqn{\tau^2} interval:
+\deqn{disp\_lower = 1 / q_{\Gamma}(0.99;\; a_\infty, b_\infty),
+          \qquad
+          disp\_upper = 1 / q_{\Gamma}(0.01;\; a_\infty, b_\infty).}
+Quantiles of the limiting posterior -- rather than of the prior --
+make the window independent of \eqn{n_0}: prior quantiles stretch
+without bound as the dispersion prior weakens (collapsing the
+envelope acceptance rate), whereas this window covers at least
+~98\\\% of the exact posterior for every \eqn{n_0} (the finite-
+\eqn{n_0} posterior is strictly more concentrated than the limit)
+and keeps sampling cost stable.  See
+\code{inst/ING_TRUNCATION_WINDOW.md} for the derivation.  The
 values are computed once by \code{\link{Prior_Setup_lmebayes}}
 (stored in its \code{ing_prior} field and shown by its print
 method); this function reads them from the object.  During
@@ -79,12 +92,7 @@ than re-derived per sweep from a surrogate posterior.
 \code{\link{lmerb}} and \code{\link{glmerb}} use \code{disp_lower}
 as the conservative \eqn{\tau^2_k} plug-in for their eigenvalue /
 TV convergence calibration, so the resulting bound holds over the
-chain's entire (truncated) dispersion support.  Note that with the
-diffuse default calibration (small \code{pwt}) the lower quantile
-can be far below \eqn{\hat\tau^2_k}, giving conservative (large)
-sweep counts, while the upper quantile can be very large (heavy
-inverse-Gamma tail), making the upper truncation effectively
-non-binding.
+chain's entire (truncated) dispersion support.
 }\if{html}{\out{</div>}}
 
 }

@@ -22,8 +22,8 @@ if (!requireNamespace("pkgload", quietly = TRUE)) {
 if (!requireNamespace("bayesrules", quietly = TRUE)) {
   stop("Install bayesrules.", call. = FALSE)
 }
-pkgload::load_all("../glmbayesCore", export_all = FALSE, quiet = TRUE)
-pkgload::load_all(export_all = FALSE)
+#pkgload::load_all("../glmbayesCore", export_all = FALSE, quiet = TRUE)
+#pkgload::load_all(export_all = FALSE)
 
 ## --- 1. lmerb gaussian: tau^2 posterior centered near the reference -----------
 data(big_word_club, package = "bayesrules")

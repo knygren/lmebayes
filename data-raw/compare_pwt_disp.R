@@ -49,7 +49,7 @@ run_case <- function(label, ...) {
   invisible(fit$convergence)
 }
 
-cv1 <- run_case("Default pwt_disp (0.2)")
+cv1 <- run_case("Default pwt_disp (derived from pwt)")
 cv2 <- run_case("pwt_dispersion = 0.2", pwt_dispersion = 0.2)
 
 cat(sprintf(

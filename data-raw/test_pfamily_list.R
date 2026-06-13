@@ -45,9 +45,10 @@ re_names <- names(ps$prior_list)
 stopifnot(length(re_names) == 3L)
 
 J       <- nlevels(ps$design$groups)
-## Default dispersion-prior weight is a flat 0.2 (decoupled from pwt), so
-## n_prior_dispersion defaults to J * 0.2 / 0.8 = J/4 per component.
-n_prior <- J * 0.2 / (1 - 0.2)
+## Default dispersion-prior weight is derived from pwt (mean across each
+## component's predictors; scalar pwt = 0.01 here), so n_prior_dispersion
+## defaults to J * 0.01 / 0.99 per component.
+n_prior <- J * 0.01 / (1 - 0.01)
 
 stopifnot(
   is.numeric(ps$n_prior_dispersion),
@@ -90,11 +91,14 @@ for (k in re_names) {
   ## glmbayesCore default rate b_0 = tau2 * (n_prior + p_k - 1)/2
   ##                              = tau2 * (shape_ING - 1): mean-matched.
   rate_exp  <- unname(pl$dispersion_fixef) * (n_prior + p_k - 1) / 2
-  ## Default truncation window: central 98% prior-mass interval for the
-  ## inverse-Gamma dispersion (0.01 and 0.99 quantiles); both bounds are
-  ## required for sampling so the tau^2 window is fixed across Gibbs sweeps.
-  disp_lower_exp <- 1 / stats::qgamma(0.99, shape = shape_exp, rate = rate_exp)
-  disp_upper_exp <- 1 / stats::qgamma(0.01, shape = shape_exp, rate = rate_exp)
+  ## Default truncation window: central 98% mass of the *limiting posterior*
+  ## Gamma((J+1)/2, tau2*(J-1)/2) (weak-prior limit, glmbayesCore Ch. A12
+  ## Thm 2), independent of n0 and p_k; both bounds are required for
+  ## sampling so the tau^2 window is fixed across Gibbs sweeps.
+  a_inf <- (J + 1) / 2
+  b_inf <- unname(pl$dispersion_fixef) * (J - 1) / 2
+  disp_lower_exp <- 1 / stats::qgamma(0.99, shape = a_inf, rate = b_inf)
+  disp_upper_exp <- 1 / stats::qgamma(0.01, shape = a_inf, rate = b_inf)
   stopifnot(
     isTRUE(all.equal(as.numeric(pr$mu), unname(pl$mu_fixef))),
     isTRUE(all.equal(unname(as.matrix(pr$Sigma)), unname(pl$Sigma_fixef))),

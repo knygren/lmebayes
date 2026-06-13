@@ -65,7 +65,8 @@
 #'
 #' The example uses \code{big_word_club} from the Suggested package
 #' \pkg{bayesrules} (see \code{?bayesrules::big_word_club}) and the same
-#' formula as \code{\link{lmerb}} in \file{inst/examples/Ex_lmerb.R}.
+#' formula as the full \code{\link{lmerb}} demo
+#' (\code{demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")}).
 #'
 #' @param formula Mixed-model formula for design extraction and the reference
 #'   \code{lmer}/\code{glmer} fit (fixed effects / hyper calibration).

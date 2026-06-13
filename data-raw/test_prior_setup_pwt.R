@@ -3,8 +3,8 @@
 #
 # Checks:
 #   - scalar pwt: unchanged behavior; $pwt stays scalar; n_prior_dispersion
-#     and pwt_dispersion default to a flat 0.2 (n_k = J/4), decoupled from
-#     pwt.
+#     and pwt_dispersion default to values derived from pwt (mean across
+#     each component's predictors).
 #   - list pwt (per-component scalars, named/scrambled and positional):
 #     Sigma_fixef scaled per component by (1-w_k)/w_k.
 #   - vector pwt within a component (named, scrambled): elementwise
@@ -65,12 +65,13 @@ stopifnot(
   identical(names(ps0$n_prior_dispersion), re_names),
   is.numeric(ps0$pwt_dispersion),
   identical(names(ps0$pwt_dispersion), re_names),
-  identical(attr(ps0$n_prior_dispersion, "source"), "default (0.2)")
+  identical(attr(ps0$n_prior_dispersion, "source"), "derived from pwt")
 )
-## Default dispersion weight is a flat 0.2 (n_k = J/4), decoupled from pwt:
-## weak coefficient priors would otherwise stretch the ING tau^2 window and
-## collapse the envelope acceptance rate.
-wd_def <- 0.2
+## Default dispersion weight is derived from pwt (mean across each
+## component's predictors; scalar here, so w_d = pwt).  Weak values carry no
+## computational penalty now that the ING tau^2 window uses
+## limiting-posterior quantiles independent of the prior strength.
+wd_def <- w0
 n_exp  <- J * wd_def / (1 - wd_def)
 stopifnot(
   isTRUE(all.equal(as.vector(ps0$n_prior_dispersion), rep(n_exp, 3L))),
@@ -123,9 +124,13 @@ for (k in re_names) {
     ps0$prior_list[[k]]$Sigma_fixef * (s_k / s0)
   )))
 }
-## dispersion prior stays at the flat 0.2 default regardless of pwt
+## dispersion prior derives from each component's pwt
+n_exp_c <- vapply(re_names, function(k) {
+  wk <- w_by_comp[[k]]
+  J * wk / (1 - wk)
+}, numeric(1L))
 stopifnot(isTRUE(all.equal(
-  as.vector(ps_c$n_prior_dispersion), rep(n_exp, 3L)
+  as.vector(ps_c$n_prior_dispersion), unname(n_exp_c)
 )))
 cat("Per-component scalar pwt: OK\n")
 
@@ -155,9 +160,11 @@ for (k in re_names[-1L]) {
     ps_v$prior_list[[k]]$Sigma_fixef, ps0$prior_list[[k]]$Sigma_fixef
   )))
 }
-## n_prior_dispersion stays at the flat 0.2 default (decoupled from pwt)
+## n_prior_dispersion derives from the mean pwt across the component's
+## predictors
+w_mean <- mean(w_vec)
 stopifnot(isTRUE(all.equal(
-  unname(ps_v$n_prior_dispersion[[k1]]), n_exp
+  unname(ps_v$n_prior_dispersion[[k1]]), J * w_mean / (1 - w_mean)
 )))
 cat("Per-predictor vector pwt: OK\n")
 

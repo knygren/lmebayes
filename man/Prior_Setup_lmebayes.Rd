@@ -45,12 +45,13 @@ elementwise
 random-effect component (named or positional).  Converted internally to
 an effective prior sample size \eqn{n_k = J\,w_k/(1-w_k)} where \eqn{J}
 is the number of groups.  At most one of \code{pwt_dispersion} and
-\code{n_prior_dispersion} may be supplied; when neither is, a default
-of \eqn{0.2} is used for every component (\eqn{n_k = J/4}; deliberately
-\emph{not} derived from \code{pwt}, since very weak coefficient priors
-would imply a heavy-tailed dispersion prior whose wide \eqn{\tau^2}
-truncation window makes the \code{dIndependent_Normal_Gamma} envelope
-sampler reject heavily without changing the posterior appreciably).}
+\code{n_prior_dispersion} may be supplied; when neither is, the value
+is derived from \code{pwt} (the mean across a component's predictors),
+keeping the dispersion prior consistent with the coefficient prior
+strength.  Weak values carry no computational penalty for
+\code{dIndependent_Normal_Gamma} sampling: the \eqn{\tau^2} truncation
+window comes from limiting-posterior quantiles independent of the
+prior strength (see \code{ing_prior} below).}
 
 \item{n_prior_dispersion}{Optional \emph{absolute} effective prior sample
 size(s) (in group units) for the Block~2 dispersion prior.  A positive
@@ -88,8 +89,15 @@ calibration with \eqn{n_0 =} \code{n_prior_dispersion}; since
 \code{rate} \eqn{= \hat\tau^2_k (\code{shape} - 1)}, the implied
 inverse-Gamma prior on \eqn{\tau^2_k} has mean exactly
 \eqn{\hat\tau^2_k}), and the default \eqn{\tau^2_k} truncation
-window \code{disp_lower} / \code{disp_upper} (0.01 / 0.99 quantiles
-of that prior, i.e. its central 98\\% prior-mass interval).  Used by
+window \code{disp_lower} / \code{disp_upper}: the 0.01 / 0.99
+quantiles of the \emph{limiting posterior}
+\eqn{\Gamma((J+1)/2,\; \hat\tau^2_k (J-1)/2)} -- the weak-prior
+(\eqn{n_0 \to 0}) limit of the Block~2 posterior Gamma for the
+precision (glmbayesCore Chapter A12, Theorem 2; inverted to a
+\eqn{\tau^2} interval).  This window is identical for all
+\eqn{n_0}, covers \eqn{\ge} ~98\\% of the exact posterior for every
+prior strength, and keeps the envelope sampler's cost stable as
+priors weaken; see \code{inst/ING_TRUNCATION_WINDOW.md}.  Used by
 \code{\link{pfamily_list}} when
 \code{ptypes = "dIndependent_Normal_Gamma"}; ignored for
 \code{dNormal} priors.}

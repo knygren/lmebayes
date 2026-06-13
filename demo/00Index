@@ -11,3 +11,5 @@ Ex_A1_Methods          Illustrates the methods used in building the envelope
 Ex_A2_BG_vs_rindep_norm_gamma_reg         Illustrates the methods used in building the envelope
 Ex_10_Prior_Setup_gaussian_calibration   Prior_Setup: same Gamma calibration for dNormal_Gamma and dIndependent_Normal_Gamma
 Ex_11_Cars                   mtcars: default Prior_Setup; dNormal_Gamma vs dIndependent_Normal_Gamma (shape_ING)
+Ex_12_lmerb_BigWordClub      lmerb full workflow on big_word_club (school random effects; replica of the ?lmerb example)
+Ex_13_glmerb_Airbnb          glmerb Poisson full workflow on airbnb (neighborhood random effects; replica of the ?glmerb example)

@@ -1,7 +1,7 @@
 ## model_setup() on bayesrules::big_word_club
 ##
-## Same model as inst/examples/Ex_lmerb.R (see also Prior_Setup_lmebayes /
-## lmerb development scripts in data-raw/).
+## Same model as the full lmerb demo, demo/Ex_12_lmerb_BigWordClub.R (see
+## also Prior_Setup_lmebayes / lmerb development scripts in data-raw/).
 ##
 ## Level 1 (students):
 ##   y ~ b0[j] + b_ppvt[j]*distracted_ppvt + b_a1[j]*distracted_a1
