@@ -423,30 +423,25 @@ lmerb <- function(
     m_convergence = m_convergence
   )
 
-  # The v2 driver consumes the pfamily list directly: dNormal components get
-  # the conjugate gamma_k draw at fixed tau^2_k (identical to the v1 path),
-  # ING components make a joint (gamma_k, tau^2_k) draw via the
-  # likelihood-subgradient envelope sampler, with the sampled tau^2_k fed
-  # back into the Block 1 prior precision on the next inner step.
-  sampler <- glmbayesCore::two_block_rNormal_reg_v2(
-    n                 = n,
-    y                 = design$y,
-    x                 = design$Z,
-    block             = design$groups,
-    x_hyper           = design$X_hyper,
-    prior_list_block1 = block1_prior,
-    pfamily_list      = prior$pfamily_list,
-    fixef_start       = fixef_start,
-    re_coef_names     = re_names,
-    group_levels      = group_levels,
-    group_name        = design$group_name,
-    family            = gaussian(),
-    m_convergence     = m_convergence,
-    seed              = seed,
-    progbar           = TRUE
+  sampler <- rlmerb(
+    n             = n,
+    y             = design$y,
+    Z             = design$Z,
+    groups        = design$groups,
+    X_hyper       = design$X_hyper,
+    block1_prior  = block1_prior,
+    pfamily_list  = prior$pfamily_list,
+    fixef_start   = fixef_start,
+    family        = gaussian(),
+    re_names      = re_names,
+    group_levels  = group_levels,
+    group_name    = design$group_name,
+    m_convergence = m_convergence,
+    seed          = seed,
+    progbar       = TRUE
   )
 
-  tau2_draws <- sampler$dispersion_fixef_draws
+  tau2_draws  <- sampler$dispersion_fixef_draws
   iters_draws <- sampler$iters_fixef_draws
 
   structure(

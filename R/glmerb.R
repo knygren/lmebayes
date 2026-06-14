@@ -413,75 +413,6 @@ glmerb <- function(
   # This preserves near-iid semantics of stored draws and avoids serial
   # dependence from long-chain sampling in skewed posteriors.
 
-  run_short_chains <- function(
-      n_chains,
-      start_fixef,
-      inner_sweeps,
-      seed_offset = 0L,
-      collect_block1 = TRUE
-  ) {
-    fe_draws <- lapply(start_fixef, function(beta0) {
-      mat <- matrix(NA_real_, nrow = n_chains, ncol = length(beta0))
-      colnames(mat) <- names(beta0)
-      mat
-    })
-    names(fe_draws) <- names(start_fixef)
-
-    tau2_draws_local <- matrix(NA_real_, nrow = n_chains, ncol = length(re_names))
-    colnames(tau2_draws_local) <- re_names
-    iters_draws_local <- matrix(NA_real_, nrow = n_chains, ncol = length(re_names))
-    colnames(iters_draws_local) <- re_names
-
-    coef_rows <- if (collect_block1) vector("list", n_chains) else NULL
-    mu_last <- NULL
-
-    for (i in seq_len(n_chains)) {
-      seed_i <- if (!is.null(seed)) as.integer(seed + seed_offset + i) else NULL
-      out_i <- glmbayesCore::two_block_rNormal_reg_v2(
-        n                 = 1L,
-        y                 = design$y,
-        x                 = design$Z,
-        block             = design$groups,
-        x_hyper           = design$X_hyper,
-        prior_list_block1 = block1_prior,
-        pfamily_list      = prior$pfamily_list,
-        fixef_start       = start_fixef,
-        re_coef_names     = re_names,
-        group_levels      = group_levels,
-        group_name        = design$group_name,
-        family            = family,
-        m_convergence     = inner_sweeps,
-        seed              = seed_i,
-        progbar           = FALSE
-      )
-      for (k in re_names) {
-        fe_draws[[k]][i, ] <- out_i$fixef_draws[[k]][1L, ]
-      }
-      tau2_draws_local[i, ] <- out_i$dispersion_fixef_draws[1L, re_names]
-      iters_draws_local[i, ] <- out_i$iters_fixef_draws[1L, re_names]
-      if (collect_block1) {
-        coef_rows[[i]] <- out_i$coefficients
-      }
-      mu_last <- out_i$mu_all_last
-    }
-
-    coefficients_local <- if (collect_block1) {
-      out <- do.call(rbind, coef_rows)
-      rownames(out) <- NULL
-      out
-    } else {
-      NULL
-    }
-
-    list(
-      fixef_draws = fe_draws,
-      dispersion_fixef_draws = tau2_draws_local,
-      iters_fixef_draws = iters_draws_local,
-      coefficients = coefficients_local,
-      mu_all_last = mu_last
-    )
-  }
-
   fixef_main_start <- fixef_start   # ICM mode; overwritten below for pilot
   pilot_mode_test <- NULL
 
@@ -493,10 +424,17 @@ glmerb <- function(
     ))
 
     pilot <- run_short_chains(
-      n_chains = n_pilot,
-      start_fixef = fixef_start,
-      inner_sweeps = m_convergence_pilot,
-      seed_offset = 0L,
+      n_chains       = n_pilot,
+      start_fixef    = fixef_start,
+      inner_sweeps   = m_convergence_pilot,
+      design         = design,
+      block1_prior   = block1_prior,
+      pfamily_list   = prior$pfamily_list,
+      family         = family,
+      re_names       = re_names,
+      group_levels   = group_levels,
+      seed_offset    = 0L,
+      seed           = seed,
       collect_block1 = TRUE
     )
     # Direct pilot-vs-mode diagnostic:
@@ -635,10 +573,17 @@ glmerb <- function(
   }
 
   sampler <- run_short_chains(
-    n_chains = n,
-    start_fixef = fixef_main_start,
-    inner_sweeps = m_convergence,
-    seed_offset = if (run_pilot) n_pilot else 0L,
+    n_chains       = n,
+    start_fixef    = fixef_main_start,
+    inner_sweeps   = m_convergence,
+    design         = design,
+    block1_prior   = block1_prior,
+    pfamily_list   = prior$pfamily_list,
+    family         = family,
+    re_names       = re_names,
+    group_levels   = group_levels,
+    seed_offset    = if (run_pilot) n_pilot else 0L,
+    seed           = seed,
     collect_block1 = TRUE
   )
 
