@@ -319,50 +319,40 @@ lmerb <- function(
     names(fixef) <- design$re_coef_names
   }
 
-  # Common starting state for every inner Gibbs run.  The TV bound in Nygren
-  # (2020) Corollary 1 is tightest when the chain starts at the joint posterior
-  # mean; using that point minimises the epsilon achievable in m_convergence
-  # steps.  Use lmerb_posterior_mean() to find the exact posterior mean via ICM.
-  fixef_lmer <- fixef   # lmer-derived starting values (for diagnostic printing)
-  pm <- glmbayesCore::lmerb_posterior_mean(design, prior)
-  fixef_start <- pm$fixef
-
-  # Diagnostic table: lmer start vs ICM posterior mean, one row per parameter
-  hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
-                 "RE component", "parameter", "lmer (start)", "post mean (ICM)")
-  sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
-  cat("--- lmerb: Block 2 fixed effects ---\n")
-  cat(hdr, "\n")
-  cat(sep, "\n")
-  for (k in design$re_coef_names) {
-    nms_k  <- names(fixef_lmer[[k]])
-    lmer_v <- fixef_lmer[[k]]
-    pm_v   <- fixef_start[[k]]
-    for (nm in nms_k) {
-      cat(sprintf("  %-18s  %-30s  %12.4f  %12.4f\n",
-                  k, nm, lmer_v[[nm]], pm_v[[nm]]))
-    }
-  }
-  cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
-              pm$converged, pm$iterations, pm$delta))
-
-  block1_prior <- .lmebayes_block1_prior_list(prior)
-
-  # When simulate=FALSE return only the ICM posterior means immediately.
   if (!isTRUE(simulate)) {
+    fixef_lmer  <- fixef
+    pm          <- glmbayesCore::lmerb_posterior_mean(design, prior)
+    fixef_start <- pm$fixef
+    hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
+                   "RE component", "parameter", "lmer (start)", "post mean (ICM)")
+    sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
+    cat("--- lmerb: Block 2 fixed effects ---\n")
+    cat(hdr, "\n")
+    cat(sep, "\n")
+    for (k in design$re_coef_names) {
+      nms_k  <- names(fixef_lmer[[k]])
+      lmer_v <- fixef_lmer[[k]]
+      pm_v   <- fixef_start[[k]]
+      for (nm in nms_k) {
+        cat(sprintf("  %-18s  %-30s  %12.4f  %12.4f\n",
+                    k, nm, lmer_v[[nm]], pm_v[[nm]]))
+      }
+    }
+    cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
+                pm$converged, pm$iterations, pm$delta))
     return(structure(
       list(
-        call        = cl,
-        formula     = formula,
-        lmer        = lmer_fit,
-        prior       = prior,
-        model_setup = design,
-        coef.mode   = fixef_start,
-        ranef.mode  = pm$b_mean,
-        coef.means  = NULL,
-        fixef_draws = NULL,
+        call         = cl,
+        formula      = formula,
+        lmer         = lmer_fit,
+        prior        = prior,
+        model_setup  = design,
+        coef.mode    = fixef_start,
+        ranef.mode   = pm$b_mean,
+        coef.means   = NULL,
+        fixef_draws  = NULL,
         coefficients = NULL,
-        mu_all      = as.matrix(
+        mu_all       = as.matrix(
           glmbayesCore::build_mu_all(design, fixef_start)$mu_all
         )
       ),
@@ -370,79 +360,25 @@ lmerb <- function(
     ))
   }
 
-  re_names     <- design$re_coef_names
-  group_levels <- levels(design$groups)
-
-  # TV-calibrated number of inner Gibbs sweeps per stored draw.  With fixed
-  # variance components the joint posterior is exactly multivariate normal,
-  # so the Remark 8 spectrum (Nygren 2020) gives the exact Theorem 3 TV bound
-  # for the l-step kernel.  Every replicate chain starts at the joint
-  # posterior mean (fixef_start, via ICM), so the mean term vanishes (D0 = 0).
-  # The bound applies to the block updated second (gamma); the stored b draw
-  # lags by a half-step, hence the + 1L.  For ING components the rate uses
-  # the conservative disp_lower plug-in, making lambda* an upper bound over
-  # the truncated tau^2 support.
-  rate <- glmbayesCore::two_block_rate_v2(
-    x                 = design$Z,
-    block             = design$groups,
-    x_hyper           = design$X_hyper,
-    prior_list_block1 = block1_prior,
-    pfamily_list      = prior$pfamily_list,
-    family            = gaussian(),
-    group_levels      = group_levels
-  )
-  m_min <- glmbayesCore::two_block_l_for_tv(
-    rate, tv_tol, method = "theorem3"
-  ) + 1L
-  if (is.null(m_convergence)) {
-    m_convergence <- m_min
-  } else if (m_convergence < m_min) {
-    warning(
-      "lmerb: m_convergence = ", m_convergence, " is below the derived ",
-      "minimum m_min = ", m_min, " for tv_tol = ", tv_tol,
-      "; using m_min instead.",
-      call. = FALSE
-    )
-    m_convergence <- m_min
-  }
-  calib_label <- if (prior$any_ing) {
-    "conservative: ING tau^2_k = disp_lower"
-  } else {
-    "exact"
-  }
-  cat(sprintf(
-    "--- lmerb: convergence calibration [%s]: lambda* = %.4f, tv_tol = %g => m_min = %d, using m_convergence = %d ---\n\n",
-    calib_label, rate$lambda_star, tv_tol, m_min, m_convergence
-  ))
-  convergence_info <- list(
-    method        = if (prior$any_ing) "disp_lower_bound" else "exact",
-    tv_tol        = tv_tol,
-    lambda_star   = rate$lambda_star,
-    eigenvalues   = rate$eigenvalues,
-    m_min         = m_min,
-    m_convergence = m_convergence
-  )
-
+  # ICM posterior mean, block1_prior, convergence calibration, and sampling
+  # are all handled inside rlmerb.
   sampler <- rlmerb(
     n             = n,
-    y             = design$y,
-    Z             = design$Z,
-    groups        = design$groups,
-    X_hyper       = design$X_hyper,
-    block1_prior  = block1_prior,
-    pfamily_list  = prior$pfamily_list,
-    fixef_start   = fixef_start,
-    family        = gaussian(),
-    re_names      = re_names,
-    group_levels  = group_levels,
-    group_name    = design$group_name,
-    m_convergence = m_convergence,
+    design        = design,
+    prior         = prior,
+    fixef_start   = NULL,          # computed internally from design + prior
+    m_convergence = m_convergence, # NULL => derived from tv_tol
+    tv_tol        = tv_tol,
     seed          = seed,
-    progbar       = TRUE
+    progbar       = TRUE,
+    verbose       = TRUE
   )
 
-  tau2_draws  <- sampler$dispersion_fixef_draws
-  iters_draws <- sampler$iters_fixef_draws
+  convergence_info <- sampler$convergence_info
+  fixef_start      <- sampler$coef.mode
+  tau2_draws       <- sampler$dispersion_fixef_draws
+  iters_draws      <- sampler$iters_fixef_draws
+  m_convergence    <- sampler$m_convergence_used
 
   structure(
     list(
@@ -452,7 +388,7 @@ lmerb <- function(
       prior        = prior,
       model_setup  = design,
       coef.mode    = fixef_start,
-      ranef.mode   = pm$b_mean,
+      ranef.mode   = sampler$ranef.mode,
       coef.means   = lapply(sampler$fixef_draws, colMeans),
       fixef_draws  = sampler$fixef_draws,
       coefficients = sampler$coefficients,

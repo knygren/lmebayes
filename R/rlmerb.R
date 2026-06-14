@@ -1,111 +1,213 @@
 #' Raw two-block Gibbs sampler for Bayesian linear mixed models
 #'
-#' Matrix-level sampling engine for the two-block Gibbs sampler, parallel to
-#' \code{\link[glmbayes]{rlmb}} in \pkg{glmbayes}.  Takes raw numeric inputs
-#' (no formula, no data frame, no \code{\link[lme4]{lmer}} call) and returns a
-#' lean \code{"rlmerb"} object containing the Block 1 and Block 2 posterior
-#' draws.
+#' Full sampling engine for Gaussian linear mixed models, parallel to
+#' \code{\link[glmbayes]{rlmb}} in \pkg{glmbayes} and \code{\link{rglmerb}}
+#' in \pkg{lmebayes}.  Takes structured \code{design} and \code{prior} objects,
+#' computes the ICM posterior mean internally, performs TV-calibrated
+#' convergence calibration, and runs the two-block Gibbs sampler.
 #'
-#' \code{rlmerb} is a thin wrapper over
-#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}.  It is called
-#' internally by \code{\link{lmerb}} after \code{\link{model_setup}} and prior
-#' construction are complete.  It can also be called directly in simulation or
-#' Gibbs-sampling workflows where formula parsing and model-fit overhead are
-#' unnecessary.
+#' \code{rlmerb} is called internally by \code{\link{lmerb}} after
+#' \code{\link{model_setup}} and prior construction are complete.  It can also
+#' be called directly in simulation or Gibbs-sampling workflows where formula
+#' parsing and model-fit overhead are unnecessary.  It encapsulates:
+#' \enumerate{
+#'   \item ICM posterior mean (\code{\link[glmbayesCore]{lmerb_posterior_mean}})
+#'   \item Block 1 prior construction (\code{.lmebayes_block1_prior_list})
+#'   \item TV-calibrated convergence constants
+#'         (\code{\link[glmbayesCore]{two_block_rate_v2}},
+#'          \code{\link[glmbayesCore]{two_block_l_for_tv}})
+#'   \item The two-block Gibbs sampler
+#'         (\code{\link[glmbayesCore]{two_block_rNormal_reg_v2}})
+#' }
 #'
 #' @param n Integer. Number of stored draws (each draw is one full pass through
 #'   \code{m_convergence} inner Gibbs sweeps).
-#' @param y Numeric response vector of length \code{nrow(Z)}.
-#' @param Z Level-1 random-effects design matrix (\code{l2 x p_re}).  Passed
-#'   as \code{x} to \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}.
-#' @param groups Factor of length \code{nrow(Z)} giving the group membership
-#'   for each observation.
-#' @param X_hyper Named list of group-level design matrices (\code{J x q_k}),
-#'   one per RE coefficient.  Names must match \code{re_names}.
-#' @param block1_prior Block 1 prior list as returned by
-#'   \code{.lmebayes_block1_prior_list()}: contains \code{P} or \code{Sigma}
-#'   and (for Gaussian) \code{dispersion}.
-#' @param pfamily_list Named list of \code{\link[glmbayesCore]{pfamily}}
-#'   objects (one per RE component), specifying Block 2 hyperpriors.
-#' @param fixef_start Named list of starting hyper-parameter vectors, one per
-#'   RE component (Block 2 initialisation).
-#' @param family A \code{\link[stats]{family}} object for the response model.
-#'   Default \code{gaussian()}.
-#' @param re_names Character vector of RE coefficient names.  Default
-#'   \code{names(pfamily_list)}.
-#' @param group_levels Character vector defining the row order of Block 1
-#'   draws (group levels).  Default \code{levels(groups)}.
-#' @param group_name Optional character(1): name of the grouping variable,
-#'   stored as a column label in \code{coefficients}.  Default \code{NULL}.
-#' @param m_convergence Integer. Number of inner Gibbs sweeps per stored draw.
-#'   Default \code{10L}.
+#' @param design A \code{\link{model_setup}} object as returned by
+#'   \code{\link{model_setup}}, supplying \code{y}, \code{Z}, \code{groups},
+#'   \code{X_hyper}, \code{group_name}, and \code{re_coef_names}.
+#' @param prior A \code{lmebayes_prior_setup} object as returned by
+#'   \code{\link{.lmebayes_priors_from_pfamily_list}}.
+#' @param fixef_start Optional named list of starting hyper-parameter vectors
+#'   (one per RE component).  When \code{NULL} (default), the ICM posterior
+#'   mean is computed internally via
+#'   \code{\link[glmbayesCore]{lmerb_posterior_mean}}.
+#' @param m_convergence Optional integer. Number of inner Gibbs sweeps per
+#'   stored draw.  When \code{NULL} (default), derived from \code{tv_tol} via
+#'   Theorem 3 (Nygren 2020) and floored at the derived \code{m_min}.  A
+#'   user-supplied value is floored at \code{m_min} with a warning if it had
+#'   to be raised.
+#' @param tv_tol Single numeric in \code{(0, 1)}. Total variation tolerance
+#'   used for convergence calibration.  Default \code{0.01}.
 #' @param seed Optional integer RNG seed.  Default \code{NULL}.
-#' @param progbar Logical. Show a text progress bar.  Default \code{TRUE}.
-#' @return An object of class \code{"rlmerb"}: a list with components:
+#' @param progbar Logical. Show a text progress bar during sampling.
+#'   Default \code{TRUE}.
+#' @param verbose Logical. Print the lmer-vs-ICM table and the convergence
+#'   calibration line.  Default \code{TRUE}.
+#' @return An object of class \code{c("rlmerb", "list")} with components:
 #'   \describe{
-#'     \item{\code{call}}{The matched call.}
+#'     \item{\code{call}}{Matched call.}
 #'     \item{\code{fixef_draws}}{Named list of \code{n x q_k} matrices of
 #'       Block 2 (hyper-parameter) draws, one per RE component.}
-#'     \item{\code{coefficients}}{Matrix or data frame of Block 1 (random-effect)
-#'       endpoint draws as returned by \code{two_block_rNormal_reg_v2}.}
+#'     \item{\code{coefficients}}{Matrix or data frame of Block 1
+#'       (random-effect) endpoint draws as returned by
+#'       \code{two_block_rNormal_reg_v2}.}
 #'     \item{\code{dispersion_fixef_draws}}{\code{n x p_re} matrix of
 #'       \eqn{\tau^2_k} draws per stored draw.}
 #'     \item{\code{iters_fixef_draws}}{\code{n x p_re} matrix of total Block 2
 #'       envelope candidates per stored draw.}
 #'     \item{\code{mu_all_last}}{Per-observation fitted means at the final
 #'       Gibbs state.}
-#'     \item{\code{coef.mode}}{\code{fixef_start} echoed: the Block 2 starting
-#'       point (typically the ICM posterior mean from \code{lmerb}).}
-#'     \item{\code{Prior}}{List with \code{block1_prior} and \code{pfamily_list}
-#'       echoed.}
-#'     \item{\code{y}}{Response vector echoed.}
-#'     \item{\code{x}}{\code{Z} echoed (mirrors \code{rlmb$x}).}
-#'     \item{\code{groups}}{Grouping factor echoed.}
+#'     \item{\code{coef.mode}}{ICM posterior mean (\code{fixef_start}).}
+#'     \item{\code{ranef.mode}}{\code{pm$b_mean}: Block 1 posterior mean, or
+#'       \code{NULL} if \code{fixef_start} was user-supplied.}
+#'     \item{\code{m_convergence_used}}{The \code{m_convergence} value
+#'       actually used (may differ from user input if floored at
+#'       \code{m_min}).}
+#'     \item{\code{convergence_info}}{List with \code{method}, \code{tv_tol},
+#'       \code{lambda_star}, \code{eigenvalues}, \code{m_min},
+#'       \code{m_convergence}.}
+#'     \item{\code{Prior}}{List with \code{block1_prior} and
+#'       \code{pfamily_list}.}
+#'     \item{\code{design}}{\code{design} echoed.}
 #'   }
-#' @seealso \code{\link{lmerb}}, \code{\link[glmbayes]{rlmb}},
+#' @seealso \code{\link{lmerb}}, \code{\link{rglmerb}},
+#'   \code{\link[glmbayes]{rlmb}},
 #'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
 #' @export
 rlmerb <- function(
     n,
-    y,
-    Z,
-    groups,
-    X_hyper,
-    block1_prior,
-    pfamily_list,
-    fixef_start,
-    family        = gaussian(),
-    re_names      = names(pfamily_list),
-    group_levels  = levels(groups),
-    group_name    = NULL,
-    m_convergence = 10L,
+    design,
+    prior,
+    fixef_start   = NULL,
+    m_convergence = NULL,
+    tv_tol        = 0.01,
     seed          = NULL,
-    progbar       = TRUE
+    progbar       = TRUE,
+    verbose       = TRUE
 ) {
   cl <- match.call()
 
+  # ---- argument validation --------------------------------------------------
   if (length(n) > 1L) n <- length(n)
   n <- as.integer(n[1L])
   if (n < 1L) stop("'n' must be at least 1.", call. = FALSE)
 
-  m_convergence <- as.integer(m_convergence[1L])
-  if (m_convergence < 1L) {
-    stop("'m_convergence' must be at least 1.", call. = FALSE)
+  if (!inherits(design, "model_setup")) {
+    stop("'design' must be a model_setup object.", call. = FALSE)
   }
 
+  if (!is.numeric(tv_tol) || length(tv_tol) != 1L ||
+      !is.finite(tv_tol) || tv_tol <= 0 || tv_tol >= 1) {
+    stop("'tv_tol' must be a single value in (0, 1).", call. = FALSE)
+  }
+
+  if (!is.null(m_convergence)) {
+    if (!is.numeric(m_convergence) || length(m_convergence) != 1L ||
+        !is.finite(m_convergence) || m_convergence < 1) {
+      stop("'m_convergence' must be NULL or a single integer >= 1.",
+           call. = FALSE)
+    }
+    m_convergence <- as.integer(m_convergence)
+  }
+
+  # ---- helpers --------------------------------------------------------------
+  re_names     <- design$re_coef_names
+  group_levels <- levels(design$groups)
+
+  # ---- ICM posterior mean ---------------------------------------------------
+  ranef_mode <- NULL
+  if (is.null(fixef_start)) {
+    pm          <- glmbayesCore::lmerb_posterior_mean(design, prior)
+    fixef_start <- pm$fixef
+    ranef_mode  <- pm$b_mean
+
+    if (verbose) {
+      fixef_lmer <- lapply(prior$prior_list, `[[`, "mu_fixef")
+      names(fixef_lmer) <- re_names
+      hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
+                     "RE component", "parameter", "lmer (start)", "post mean (ICM)")
+      sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
+      cat("--- lmerb: Block 2 fixed effects ---\n")
+      cat(hdr, "\n")
+      cat(sep, "\n")
+      for (k in re_names) {
+        nms_k  <- names(fixef_lmer[[k]])
+        lmer_v <- fixef_lmer[[k]]
+        pm_v   <- fixef_start[[k]]
+        for (nm in nms_k) {
+          cat(sprintf("  %-18s  %-30s  %12.4f  %12.4f\n",
+                      k, nm, lmer_v[[nm]], pm_v[[nm]]))
+        }
+      }
+      cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
+                  pm$converged, pm$iterations, pm$delta))
+    }
+  }
+
+  # ---- block 1 prior --------------------------------------------------------
+  block1_prior <- .lmebayes_block1_prior_list(prior)
+
+  # ---- convergence calibration ----------------------------------------------
+  rate <- glmbayesCore::two_block_rate_v2(
+    x                 = design$Z,
+    block             = design$groups,
+    x_hyper           = design$X_hyper,
+    prior_list_block1 = block1_prior,
+    pfamily_list      = prior$pfamily_list,
+    family            = gaussian(),
+    group_levels      = group_levels
+  )
+  m_min <- glmbayesCore::two_block_l_for_tv(
+    rate, tv_tol, method = "theorem3"
+  ) + 1L
+
+  if (is.null(m_convergence)) {
+    m_convergence <- m_min
+  } else if (m_convergence < m_min) {
+    warning(
+      "rlmerb: m_convergence = ", m_convergence, " is below the derived ",
+      "minimum m_min = ", m_min, " for tv_tol = ", tv_tol,
+      "; using m_min instead.",
+      call. = FALSE
+    )
+    m_convergence <- m_min
+  }
+
+  calib_label <- if (prior$any_ing) {
+    "conservative: ING tau^2_k = disp_lower"
+  } else {
+    "exact"
+  }
+  if (verbose) {
+    cat(sprintf(
+      "--- lmerb: convergence calibration [%s]: lambda* = %.4f, tv_tol = %g => m_min = %d, using m_convergence = %d ---\n\n",
+      calib_label, rate$lambda_star, tv_tol, m_min, m_convergence
+    ))
+  }
+
+  convergence_info <- list(
+    method        = if (prior$any_ing) "disp_lower_bound" else "exact",
+    tv_tol        = tv_tol,
+    lambda_star   = rate$lambda_star,
+    eigenvalues   = rate$eigenvalues,
+    m_min         = m_min,
+    m_convergence = m_convergence
+  )
+
+  # ---- sampling -------------------------------------------------------------
   out <- glmbayesCore::two_block_rNormal_reg_v2(
     n                 = n,
-    y                 = y,
-    x                 = Z,
-    block             = groups,
-    x_hyper           = X_hyper,
+    y                 = design$y,
+    x                 = design$Z,
+    block             = design$groups,
+    x_hyper           = design$X_hyper,
     prior_list_block1 = block1_prior,
-    pfamily_list      = pfamily_list,
+    pfamily_list      = prior$pfamily_list,
     fixef_start       = fixef_start,
     re_coef_names     = re_names,
     group_levels      = group_levels,
-    group_name        = group_name,
-    family            = family,
+    group_name        = design$group_name,
+    family            = gaussian(),
     m_convergence     = m_convergence,
     seed              = seed,
     progbar           = progbar
@@ -120,11 +222,12 @@ rlmerb <- function(
       iters_fixef_draws      = out$iters_fixef_draws,
       mu_all_last            = out$mu_all_last,
       coef.mode              = fixef_start,
+      ranef.mode             = ranef_mode,
+      m_convergence_used     = m_convergence,
+      convergence_info       = convergence_info,
       Prior                  = list(block1_prior = block1_prior,
-                                    pfamily_list = pfamily_list),
-      y                      = y,
-      x                      = Z,
-      groups                 = groups
+                                    pfamily_list = prior$pfamily_list),
+      design                 = design
     ),
     class = c("rlmerb", "list")
   )

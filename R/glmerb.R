@@ -234,45 +234,41 @@ glmerb <- function(
     names(fixef) <- design$re_coef_names
   }
 
-  fixef_glmer <- fixef
-  pm <- glmbayesCore::glmerb_posterior_mode(design, family, prior)
-  fixef_start <- pm$fixef
-
-  hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
-                 "RE component", "parameter", "glmer (start)", "post mode (ICM)")
-  sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
-  cat("--- glmerb: Block 2 fixed effects ---\n")
-  cat(hdr, "\n")
-  cat(sep, "\n")
-  for (k in design$re_coef_names) {
-    nms_k   <- names(fixef_glmer[[k]])
-    glmer_v <- fixef_glmer[[k]]
-    pm_v    <- fixef_start[[k]]
-    for (nm in nms_k) {
-      cat(sprintf("  %-18s  %-30s  %12.4f  %12.4f\n",
-                  k, nm, glmer_v[[nm]], pm_v[[nm]]))
-    }
-  }
-  cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
-              pm$converged, pm$iterations, pm$delta))
-
-  block1_prior <- .lmebayes_block1_prior_list(prior)
-
   if (!isTRUE(simulate)) {
+    fixef_glmer <- fixef
+    pm          <- glmbayesCore::glmerb_posterior_mode(design, family, prior)
+    fixef_start <- pm$fixef
+    hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
+                   "RE component", "parameter", "glmer (start)", "post mode (ICM)")
+    sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
+    cat("--- glmerb: Block 2 fixed effects ---\n")
+    cat(hdr, "\n")
+    cat(sep, "\n")
+    for (k in design$re_coef_names) {
+      nms_k   <- names(fixef_glmer[[k]])
+      glmer_v <- fixef_glmer[[k]]
+      pm_v    <- fixef_start[[k]]
+      for (nm in nms_k) {
+        cat(sprintf("  %-18s  %-30s  %12.4f  %12.4f\n",
+                    k, nm, glmer_v[[nm]], pm_v[[nm]]))
+      }
+    }
+    cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
+                pm$converged, pm$iterations, pm$delta))
     return(structure(
       list(
-        call        = cl,
-        formula     = formula,
-        family      = family,
-        glmer       = glmer_fit,
-        prior       = prior,
-        model_setup = design,
-        coef.mode   = fixef_start,
-        ranef.mode  = pm$b_mean,
-        coef.means  = NULL,
-        fixef_draws = NULL,
+        call         = cl,
+        formula      = formula,
+        family       = family,
+        glmer        = glmer_fit,
+        prior        = prior,
+        model_setup  = design,
+        coef.mode    = fixef_start,
+        ranef.mode   = pm$b_mean,
+        coef.means   = NULL,
+        fixef_draws  = NULL,
         coefficients = NULL,
-        mu_all      = as.matrix(
+        mu_all       = as.matrix(
           glmbayesCore::build_mu_all(design, fixef_start)$mu_all
         )
       ),
@@ -280,315 +276,34 @@ glmerb <- function(
     ))
   }
 
-  re_names     <- design$re_coef_names
-  group_levels <- levels(design$groups)
+  run_pilot <- !identical(family$family, "gaussian") && !is.null(n_pilot)
 
-  # TV-calibrated number of inner Gibbs sweeps per stored draw.  Exact for
-  # gaussian(), where the joint posterior is multivariate normal and the
-  # Theorem 3 bound (Nygren 2020) applies.  For non-Gaussian families the
-  # same machinery runs on the local-Gaussian approximation at the ICM
-  # posterior mode (per-observation IRLS/Fisher weights at pm$b_mean), so the
-  # derived m_min is the minimum number of sweeps required to converge to
-  # that hypothetical multivariate normal approximation -- a lower bound for
-  # the true posterior.  Chains start at the joint posterior mode (= the mean
-  # of the approximating normal), so D0 = 0; + 1L covers the half-step lag of
-  # the stored b draw.  A user-supplied m_convergence is floored at m_min.
-  # ING components enter through the conservative disp_lower plug-in, making
-  # lambda* an upper bound over the truncated tau^2 support.
-  is_gaussian <- identical(family$family, "gaussian")
-  if (is_gaussian) {
-    rate <- glmbayesCore::two_block_rate_v2(
-      x                 = design$Z,
-      block             = design$groups,
-      x_hyper           = design$X_hyper,
-      prior_list_block1 = block1_prior,
-      pfamily_list      = prior$pfamily_list,
-      family            = gaussian(),
-      group_levels      = group_levels
-    )
-  } else {
-    mode_w <- glmbayesCore::two_block_mode_weights(
-      x            = design$Z,
-      block        = design$groups,
-      b_mode       = pm$b_mean,
-      family       = family,
-      group_levels = group_levels
-    )
-    rate <- glmbayesCore::two_block_rate_v2(
-      x                 = design$Z,
-      block             = design$groups,
-      x_hyper           = design$X_hyper,
-      prior_list_block1 = block1_prior,
-      pfamily_list      = prior$pfamily_list,
-      weights           = mode_w$weights,
-      family            = family,
-      group_levels      = group_levels
-    )
-  }
-  m_min <- glmbayesCore::two_block_l_for_tv(
-    rate, tv_tol, method = "theorem3"
-  ) + 1L
-  if (is.null(m_convergence)) {
-    m_convergence <- m_min
-  } else if (m_convergence < m_min) {
-    warning(
-      "glmerb: m_convergence = ", m_convergence, " is below the derived ",
-      "minimum m_min = ", m_min, " for tv_tol = ", tv_tol,
-      "; using m_min instead.",
-      call. = FALSE
-    )
-    m_convergence <- m_min
-  }
-  run_pilot <- !is_gaussian && !is.null(n_pilot)
-  if (run_pilot && is.null(m_convergence_pilot)) {
-    # Derive m_convergence_pilot from mode_gap_max via Theorem 3 (Nygren 2020).
-    # Pilot chains start at the ICM mode, which is D0 = sqrt(p)*mode_gap_max
-    # Mahalanobis units from the posterior mean.  The mean-shift TV term,
-    #   erf1(0.5 * lambda*^l * D_max / sqrt(2)) <= tv_tol,
-    # solved for l gives the minimum pilot sweeps needed.
-    # erf1_inv(tv_tol) = qnorm((tv_tol+1)/2) / sqrt(2)  (1-D error function).
-    p_dim       <- sum(vapply(fixef_start, length, integer(1L)))
-    D_max       <- if (!is.null(mode_gap_max)) sqrt(p_dim) * mode_gap_max else 0
-    erf1_inv_tv <- stats::qnorm((tv_tol + 1) / 2) / sqrt(2)
-    c_tol       <- erf1_inv_tv * 2 * sqrt(2)
-    m_pilot_from_gap <- if (D_max <= c_tol || rate$lambda_star <= 0) {
-      m_min
-    } else {
-      as.integer(ceiling(log(D_max / c_tol) / log(1 / rate$lambda_star)))
-    }
-    m_convergence_pilot <- max(m_min, m_pilot_from_gap)
-  } else {
-    p_dim            <- sum(vapply(fixef_start, length, integer(1L)))
-    D_max            <- if (!is.null(mode_gap_max)) sqrt(p_dim) * mode_gap_max else 0
-    m_pilot_from_gap <- NULL
-  }
-
-  calib_label <- if (is_gaussian) {
-    "exact (Gaussian posterior)"
-  } else {
-    sprintf("approximate (local-Gaussian at mode, %s)", family$family)
-  }
-  if (prior$any_ing) {
-    calib_label <- paste0(calib_label, "; conservative: ING tau^2_k = disp_lower")
-  }
-  cat(sprintf(
-    "--- glmerb: convergence calibration [%s]:\n    lambda* = %.4f, tv_tol = %g => m_min = %d, using m_convergence = %d ---\n\n",
-    calib_label, rate$lambda_star, tv_tol, m_min, m_convergence
-  ))
-  if (run_pilot && !is.null(mode_gap_max) && !is.null(m_pilot_from_gap)) {
-    cat(sprintf(
-      "--- glmerb: pilot sweep calibration [mode_gap_max = %g SD/dim, p = %d, D_max = %.4f]:\n    m_min = %d, lambda* = %.4f => m_convergence_pilot = %d ---\n\n",
-      mode_gap_max, p_dim, D_max, m_min, rate$lambda_star, m_convergence_pilot
-    ))
-  }
-  method_label <- if (is_gaussian) "exact" else "local_gaussian_mode"
-  if (prior$any_ing) {
-    method_label <- paste0(method_label, "+disp_lower_bound")
-  }
-  convergence_info <- list(
-    method              = method_label,
+  # ICM mode, convergence calibration, pilot stage, and main stage are all
+  # handled inside rglmerb.  glmerb passes design + prior so that rglmerb can
+  # call glmerb_posterior_mode() internally.
+  sampler <- rglmerb(
+    n                   = n,
+    design              = design,
+    prior               = prior,
+    family              = family,
+    fixef_start         = NULL,           # computed internally from design + prior
+    m_convergence       = m_convergence,  # NULL => derived from tv_tol
+    n_pilot             = if (run_pilot) n_pilot else 0L,
+    m_convergence_pilot = m_convergence_pilot,
     tv_tol              = tv_tol,
-    lambda_star         = rate$lambda_star,
-    eigenvalues         = rate$eigenvalues,
-    m_min               = m_min,
-    m_convergence       = m_convergence,
-    m_convergence_pilot = if (run_pilot) m_convergence_pilot else NULL,
-    mode_gap_max        = if (run_pilot) mode_gap_max else NULL,
-    m_pilot_from_gap    = if (run_pilot) m_pilot_from_gap else NULL,
-    draw_engine         = "independent_short_chains"
+    mode_gap_max        = mode_gap_max,
+    seed                = seed,
+    collect_block1      = TRUE,
+    verbose             = TRUE
   )
 
-  # The v2 driver consumes the pfamily list directly: dNormal components get
-  # the conjugate gamma_k draw at fixed tau^2_k (identical to the v1 path),
-  # ING components make a joint (gamma_k, tau^2_k) draw via the
-  # likelihood-subgradient envelope sampler, with the sampled tau^2_k fed
-  # back into the Block 1 prior precision on the next inner step.
-  #
-  # glmerb stores draws from independent short chains (not one long chain):
-  # - pilot stage: n_pilot independent chains from ICM mode, each with
-  #   m_convergence_pilot inner sweeps, one stored draw per chain.
-  # - main stage: n independent chains from pilot mean, each with
-  #   m_convergence inner sweeps, one stored draw per chain.
-  #
-  # This preserves near-iid semantics of stored draws and avoids serial
-  # dependence from long-chain sampling in skewed posteriors.
-
-  fixef_main_start <- fixef_start   # ICM mode; overwritten below for pilot
-  pilot_mode_test <- NULL
-
-  if (run_pilot) {
-    cat(sprintf(
-      "--- glmerb: pilot stage (%d independent chains from ICM mode; m_convergence_pilot = %d) ---\n\n",
-      n_pilot,
-      m_convergence_pilot
-    ))
-
-    pilot <- run_short_chains(
-      n_chains       = n_pilot,
-      start_fixef    = fixef_start,
-      inner_sweeps   = m_convergence_pilot,
-      design         = design,
-      block1_prior   = block1_prior,
-      pfamily_list   = prior$pfamily_list,
-      family         = family,
-      re_names       = re_names,
-      group_levels   = group_levels,
-      seed_offset    = 0L,
-      seed           = seed,
-      collect_block1 = TRUE
-    )
-    # Direct pilot-vs-mode diagnostic:
-    # H0: E[pilot endpoint draw] = ICM mode.
-    X_pilot <- do.call(cbind, lapply(re_names, function(k) pilot$fixef_draws[[k]]))
-    pnames <- unlist(lapply(re_names, function(k) {
-      paste0(k, "::", colnames(pilot$fixef_draws[[k]]))
-    }))
-    colnames(X_pilot) <- pnames
-    mu_pilot <- colMeans(X_pilot)
-    mode_vec <- unlist(lapply(re_names, function(k) fixef_start[[k]]))
-    names(mode_vec) <- pnames
-    d_pm <- mu_pilot - mode_vec
-    S_pilot <- stats::cov(X_pilot)
-    p_dim <- ncol(X_pilot)
-    # Robust inverse (ridge fallback) in case pilot covariance is near-singular.
-    S_inv <- tryCatch(
-      solve(S_pilot),
-      error = function(e) {
-        ridge <- 1e-8 * mean(diag(S_pilot))
-        solve(S_pilot + diag(ridge, p_dim))
-      }
-    )
-    Q_pm <- as.numeric(n_pilot * t(d_pm) %*% S_inv %*% d_pm)
-    p_pm <- stats::pchisq(Q_pm, df = p_dim, lower.tail = FALSE)
-    pilot_mode_test <- list(
-      Q = Q_pm,
-      df = p_dim,
-      p_value = p_pm,
-      n_pilot = n_pilot
-    )
-    cat(sprintf(
-      "--- glmerb: pilot vs mode chi-squared test: p = %.4g (df = %d, n_pilot = %d) ---\n\n",
-      p_pm, p_dim, n_pilot
-    ))
-    fixef_main_start <- lapply(pilot$fixef_draws, colMeans)
-
-    # -------------------------------------------------------------------------
-    # Post-pilot upper bound: evaluate Theorem 3 convergence constants at each
-    # of the n_pilot Block 1 endpoint draws.  pilot$coefficients has n_pilot *
-    # n_grp rows (chains stacked); rows ((i-1)*n_grp+1):(i*n_grp) give the
-    # Block 1 draw for chain i.  We track only the worst-case (max lambda*)
-    # across all draws — no need to store all n_pilot rate objects.
-    # -------------------------------------------------------------------------
-    n_grp            <- nlevels(design$groups)
-    re_col_names     <- colnames(design$Z)   # exclude any group-label column
-    grp_col_name     <- design$group_name    # NULL when not stored; non-NULL = label col
-    n_eigs           <- length(rate$eigenvalues)
-    lambda_star_vec  <- numeric(n_pilot)
-    max_eigenvalues  <- rep(-Inf, n_eigs)    # per-position max across all draws
-    rate_upper       <- NULL
-    lambda_star_best <- -Inf
-    i_max_rate       <- NA_integer_
-
-    for (i in seq_len(n_pilot)) {
-      rows_i <- ((i - 1L) * n_grp + 1L):(i * n_grp)
-      block_df <- pilot$coefficients[rows_i, , drop = FALSE]
-      if (!is.null(grp_col_name) && grp_col_name %in% colnames(block_df)) {
-        # reorder rows to group_levels order using the stored label column
-        ord <- match(group_levels, block_df[[grp_col_name]])
-        b_i <- as.matrix(block_df[ord, re_col_names, drop = FALSE])
-      } else {
-        # rows already in group_levels order (positional)
-        b_i <- as.matrix(block_df[, re_col_names, drop = FALSE])
-      }
-      rownames(b_i) <- group_levels
-      mode_w_i <- glmbayesCore::two_block_mode_weights(
-        x            = design$Z,
-        block        = design$groups,
-        b_mode       = b_i,
-        family       = family,
-        group_levels = group_levels
-      )
-      rate_i <- glmbayesCore::two_block_rate_v2(
-        x                 = design$Z,
-        block             = design$groups,
-        x_hyper           = design$X_hyper,
-        prior_list_block1 = block1_prior,
-        pfamily_list      = prior$pfamily_list,
-        weights           = mode_w_i$weights,
-        family            = family,
-        group_levels      = group_levels
-      )
-      lambda_star_vec[i]  <- rate_i$lambda_star
-      max_eigenvalues     <- pmax(max_eigenvalues, rate_i$eigenvalues)
-      if (rate_i$lambda_star > lambda_star_best) {
-        lambda_star_best <- rate_i$lambda_star
-        rate_upper       <- rate_i
-        i_max_rate       <- i
-      }
-    }
-
-    # Build a pseudo-rate object with per-eigenvalue maxima (different eigenvalues
-    # may peak at different draws; this gives the tightest per-component bound).
-    rate_upper_eig             <- rate_upper
-    rate_upper_eig$eigenvalues <- max_eigenvalues
-    rate_upper_eig$lambda_star <- max_eigenvalues[1L]  # sorted descending, max is [1]
-
-    m_min_upper <- glmbayesCore::two_block_l_for_tv(
-      rate_upper_eig, tv_tol, method = "theorem3"
-    ) + 1L
-
-    # Recompute m_convergence from the pilot upper bound; update if larger.
-    m_convergence_upper <- m_min_upper
-    if (m_convergence_upper > m_convergence) {
-      m_convergence <- m_convergence_upper
-    }
-
-    convergence_info$lambda_star_upper <- rate_upper_eig$lambda_star
-    convergence_info$eigenvalues_upper <- max_eigenvalues
-    convergence_info$m_min_upper       <- m_min_upper
-    convergence_info$i_max_rate        <- i_max_rate
-    convergence_info$lambda_star_vec   <- lambda_star_vec
-    convergence_info$m_convergence     <- m_convergence   # update in case it grew
-
-    .fmt_eigs <- function(ev) paste(sprintf("%.4f", ev), collapse = ", ")
-    cat(sprintf(
-      "--- glmerb: post-pilot convergence bounds (%d pilot draws) ---\n    ML estimate (local-Gaussian at mode):    lambda* = %.4f, m_min = %d, eigenvalues = [%s]\n    Pilot upper bound (per-eig max, #%d/%d): lambda* = %.4f, m_min = %d, eigenvalues = [%s]\n    => using m_convergence = %d ---\n\n",
-      n_pilot,
-      rate$lambda_star,          m_min,       .fmt_eigs(rate$eigenvalues),
-      i_max_rate, n_pilot,
-      rate_upper_eig$lambda_star, m_min_upper, .fmt_eigs(max_eigenvalues),
-      m_convergence
-    ))
-    cat(sprintf(
-      "--- glmerb: pilot complete; main stage (%d independent chains from pilot mean; m_convergence = %d) ---\n\n",
-      n,
-      m_convergence
-    ))
-  } else {
-    cat(sprintf(
-      "--- glmerb: main stage (%d independent chains from ICM mode; m_convergence = %d) ---\n\n",
-      n,
-      m_convergence
-    ))
-  }
-
-  sampler <- run_short_chains(
-    n_chains       = n,
-    start_fixef    = fixef_main_start,
-    inner_sweeps   = m_convergence,
-    design         = design,
-    block1_prior   = block1_prior,
-    pfamily_list   = prior$pfamily_list,
-    family         = family,
-    re_names       = re_names,
-    group_levels   = group_levels,
-    seed_offset    = if (run_pilot) n_pilot else 0L,
-    seed           = seed,
-    collect_block1 = TRUE
-  )
-
-  tau2_draws  <- sampler$dispersion_fixef_draws
-  iters_draws <- sampler$iters_fixef_draws
+  convergence_info <- sampler$convergence_info
+  pilot_mode_test  <- sampler$pilot_mode_test
+  fixef_start      <- sampler$coef.mode
+  fixef_main_start <- sampler$fixef_main_start
+  tau2_draws       <- sampler$dispersion_fixef_draws
+  iters_draws      <- sampler$iters_fixef_draws
+  m_convergence    <- sampler$m_convergence_used
 
   structure(
     list(
@@ -600,7 +315,7 @@ glmerb <- function(
       model_setup       = design,
       coef.mode         = fixef_start,
       coef.pilot.mean   = if (run_pilot) fixef_main_start else NULL,
-      ranef.mode        = pm$b_mean,
+      ranef.mode        = sampler$ranef.mode,
       coef.means        = lapply(sampler$fixef_draws, colMeans),
       fixef_draws       = sampler$fixef_draws,
       coefficients      = sampler$coefficients,
