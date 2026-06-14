@@ -23,8 +23,11 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
   form <- reviews ~ walk_c + rating_c + (1 + rating_c || neighborhood)
 
   ## Default hyperpriors calibrated from a reference glmer fit (weak prior).
-  ps <- Prior_Setup_lmebayes(form, data = dat, family = poisson(),
-                             pwt = 0.01)
+  ps <- Prior_Setup_lmebayes(form, data = dat, family = poisson(), pwt = 0.01)
+  
+  # Inflate tau^2 by e.g. 25x to stress-test
+  ps$Sigma_ranef <- ps$Sigma_ranef * 25
+  
 
   fit <- glmerb(
     form,
@@ -34,7 +37,6 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
     n            = 2000L,
     seed         = 42L
   )
-  summary(fit)
   cat("m_convergence used:", fit$convergence$m_convergence, "\n")
   cat(sprintf(
     "Pilot vs mode (chi-squared): p = %.4g\n",
@@ -69,6 +71,10 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
   ))
 
   ## Level-2 posterior means alongside the classical glmer reference.
-  fit$coef.means
+  print_coef_means(fit)
   lme4::fixef(fit$glmer)
+
+  ## Full print and summary.
+  print(fit)
+  summary(fit)
 }

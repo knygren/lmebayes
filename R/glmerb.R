@@ -497,7 +497,7 @@ glmerb <- function(
       start_fixef = fixef_start,
       inner_sweeps = m_convergence_pilot,
       seed_offset = 0L,
-      collect_block1 = FALSE
+      collect_block1 = TRUE
     )
     # Direct pilot-vs-mode diagnostic:
     # H0: E[pilot endpoint draw] = ICM mode.
@@ -533,6 +533,94 @@ glmerb <- function(
       p_pm, p_dim, n_pilot
     ))
     fixef_main_start <- lapply(pilot$fixef_draws, colMeans)
+
+    # -------------------------------------------------------------------------
+    # Post-pilot upper bound: evaluate Theorem 3 convergence constants at each
+    # of the n_pilot Block 1 endpoint draws.  pilot$coefficients has n_pilot *
+    # n_grp rows (chains stacked); rows ((i-1)*n_grp+1):(i*n_grp) give the
+    # Block 1 draw for chain i.  We track only the worst-case (max lambda*)
+    # across all draws — no need to store all n_pilot rate objects.
+    # -------------------------------------------------------------------------
+    n_grp            <- nlevels(design$groups)
+    re_col_names     <- colnames(design$Z)   # exclude any group-label column
+    grp_col_name     <- design$group_name    # NULL when not stored; non-NULL = label col
+    n_eigs           <- length(rate$eigenvalues)
+    lambda_star_vec  <- numeric(n_pilot)
+    max_eigenvalues  <- rep(-Inf, n_eigs)    # per-position max across all draws
+    rate_upper       <- NULL
+    lambda_star_best <- -Inf
+    i_max_rate       <- NA_integer_
+
+    for (i in seq_len(n_pilot)) {
+      rows_i <- ((i - 1L) * n_grp + 1L):(i * n_grp)
+      block_df <- pilot$coefficients[rows_i, , drop = FALSE]
+      if (!is.null(grp_col_name) && grp_col_name %in% colnames(block_df)) {
+        # reorder rows to group_levels order using the stored label column
+        ord <- match(group_levels, block_df[[grp_col_name]])
+        b_i <- as.matrix(block_df[ord, re_col_names, drop = FALSE])
+      } else {
+        # rows already in group_levels order (positional)
+        b_i <- as.matrix(block_df[, re_col_names, drop = FALSE])
+      }
+      rownames(b_i) <- group_levels
+      mode_w_i <- glmbayesCore::two_block_mode_weights(
+        x            = design$Z,
+        block        = design$groups,
+        b_mode       = b_i,
+        family       = family,
+        group_levels = group_levels
+      )
+      rate_i <- glmbayesCore::two_block_rate_v2(
+        x                 = design$Z,
+        block             = design$groups,
+        x_hyper           = design$X_hyper,
+        prior_list_block1 = block1_prior,
+        pfamily_list      = prior$pfamily_list,
+        weights           = mode_w_i$weights,
+        family            = family,
+        group_levels      = group_levels
+      )
+      lambda_star_vec[i]  <- rate_i$lambda_star
+      max_eigenvalues     <- pmax(max_eigenvalues, rate_i$eigenvalues)
+      if (rate_i$lambda_star > lambda_star_best) {
+        lambda_star_best <- rate_i$lambda_star
+        rate_upper       <- rate_i
+        i_max_rate       <- i
+      }
+    }
+
+    # Build a pseudo-rate object with per-eigenvalue maxima (different eigenvalues
+    # may peak at different draws; this gives the tightest per-component bound).
+    rate_upper_eig             <- rate_upper
+    rate_upper_eig$eigenvalues <- max_eigenvalues
+    rate_upper_eig$lambda_star <- max_eigenvalues[1L]  # sorted descending, max is [1]
+
+    m_min_upper <- glmbayesCore::two_block_l_for_tv(
+      rate_upper_eig, tv_tol, method = "theorem3"
+    ) + 1L
+
+    # Recompute m_convergence from the pilot upper bound; update if larger.
+    m_convergence_upper <- m_min_upper
+    if (m_convergence_upper > m_convergence) {
+      m_convergence <- m_convergence_upper
+    }
+
+    convergence_info$lambda_star_upper <- rate_upper_eig$lambda_star
+    convergence_info$eigenvalues_upper <- max_eigenvalues
+    convergence_info$m_min_upper       <- m_min_upper
+    convergence_info$i_max_rate        <- i_max_rate
+    convergence_info$lambda_star_vec   <- lambda_star_vec
+    convergence_info$m_convergence     <- m_convergence   # update in case it grew
+
+    .fmt_eigs <- function(ev) paste(sprintf("%.4f", ev), collapse = ", ")
+    cat(sprintf(
+      "--- glmerb: post-pilot convergence bounds (%d pilot draws) ---\n    ML estimate (local-Gaussian at mode):    lambda* = %.4f, m_min = %d, eigenvalues = [%s]\n    Pilot upper bound (per-eig max, #%d/%d): lambda* = %.4f, m_min = %d, eigenvalues = [%s]\n    => using m_convergence = %d ---\n\n",
+      n_pilot,
+      rate$lambda_star,          m_min,       .fmt_eigs(rate$eigenvalues),
+      i_max_rate, n_pilot,
+      rate_upper_eig$lambda_star, m_min_upper, .fmt_eigs(max_eigenvalues),
+      m_convergence
+    ))
     cat(sprintf(
       "--- glmerb: pilot complete; main stage (%d independent chains from pilot mean; m_convergence = %d) ---\n\n",
       n,
@@ -583,6 +671,92 @@ glmerb <- function(
     ),
     class = c("glmerb", "list")
   )
+}
+
+#' Print posterior estimates by RE component for a glmerb / lmerb fit
+#'
+#' Displays a side-by-side table of the glmer MLE, posterior mode
+#' (\code{coef.mode}), and posterior mean (\code{coef.means}) for every
+#' (RE-component, parameter) pair.  When \code{x} is a bare \code{coef.means}
+#' list rather than a full fit object, only the posterior mean column is shown.
+#'
+#' @param x A \code{glmerb} or \code{lmerb} object, or a bare \code{coef.means}
+#'   list.
+#' @param digits Number of decimal places for numeric columns.
+#' @param ... Ignored.
+#' @return \code{x} invisibly.
+#' @export
+print_coef_means <- function(x, digits = 4L, ...) {
+  is_fit <- inherits(x, c("glmerb", "lmerb"))
+  cm     <- if (is_fit) x$coef.means else x
+  if (is.null(cm)) {
+    cat("coef.means: NULL (simulation not yet run)\n")
+    return(invisible(x))
+  }
+
+  rows <- do.call(rbind, lapply(names(cm), function(k) {
+    v <- cm[[k]]
+    data.frame(component = k, parameter = names(v),
+               post_mean = unname(v), stringsAsFactors = FALSE)
+  }))
+
+  # Add glmer MLE and posterior mode columns when a full fit is available.
+  has_glmer <- is_fit && !is.null(x$glmer)
+  has_mode  <- is_fit && !is.null(x$coef.mode)
+  if (has_glmer) {
+    glmer_v <- lme4::fixef(x$glmer)
+    # Map (component, parameter) -> fixef name using the same convention as
+    # fe_name_for() in Prior_Setup_lmebayes:
+    #   (Intercept) component, col X  -> fixef["X"]
+    #   component K, (Intercept) col  -> fixef["K"]
+    #   component K, col X            -> fixef["X:K"] or fixef["K:X"]
+    rows$glmer <- mapply(function(k, col) {
+      nm <- if (k == "(Intercept)") {
+        col
+      } else if (col == "(Intercept)") {
+        k
+      } else {
+        cand <- c(paste0(col, ":", k), paste0(k, ":", col))
+        hit  <- cand[cand %in% names(glmer_v)]
+        if (length(hit)) hit[1L] else NA_character_
+      }
+      if (!is.na(nm) && nm %in% names(glmer_v)) unname(glmer_v[nm]) else NA_real_
+    }, rows$component, rows$parameter)
+  }
+  if (has_mode) {
+    rows$post_mode <- unlist(lapply(names(x$coef.mode), function(k) {
+      unname(x$coef.mode[[k]])
+    }))
+  }
+
+  w_c <- max(nchar(rows$component), nchar("RE component"))
+  w_p <- max(nchar(rows$parameter),  nchar("parameter"))
+  w_v <- digits + 4L
+
+  cols <- character(0)
+  if (has_glmer) cols <- c(cols, "glmer")
+  if (has_mode)  cols <- c(cols, "post.mode")
+  cols <- c(cols, "post.mean")
+  n_val <- length(cols)
+
+  # Pre-format numeric values so the outer sprintf only ever sees %s.
+  num_fmt <- sprintf("%%%d.%df", w_v, digits)   # e.g. "%8.4f"
+  val_hdr <- paste(formatC(cols, width = w_v, flag = " "), collapse = "  ")
+  val_sep <- paste(rep(strrep("-", w_v), n_val), collapse = "  ")
+
+  cat(sprintf("  %-*s  %-*s  %s\n", w_c, "RE component", w_p, "parameter", val_hdr))
+  cat(sprintf("  %-*s  %-*s  %s\n", w_c, strrep("-", w_c), w_p, strrep("-", w_p), val_sep))
+  for (i in seq_len(nrow(rows))) {
+    vals <- character(0L)
+    if (has_glmer) vals <- c(vals, sprintf(num_fmt, rows$glmer[i]))
+    if (has_mode)  vals <- c(vals, sprintf(num_fmt, rows$post_mode[i]))
+    vals <- c(vals, sprintf(num_fmt, rows$post_mean[i]))
+    cat(sprintf("  %-*s  %-*s  %s\n",
+                w_c, rows$component[i],
+                w_p, rows$parameter[i],
+                paste(vals, collapse = "  ")))
+  }
+  invisible(x)
 }
 
 #' Print method for glmerb objects (draft)

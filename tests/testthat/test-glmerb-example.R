@@ -201,6 +201,12 @@ test_that("glmerb: overall posterior mean is closer to pilot mean than mode", {
   expect_false(any(grepl("pilot_vs_mode", out_print, fixed = TRUE)))
   expect_false(any(grepl("pilot.mean", out_print, fixed = TRUE)))
 
+  message("glmerb coef.means by component (test-only):")
+  message(paste(capture.output(print_coef_means(fit)), collapse = "\n"))
+
+  message("glmerb print(fit) (test-only):")
+  message(paste(capture.output(print(fit)), collapse = "\n"))
+
   message("glmerb summary(fit) (test-only):")
   out_sum_text <- .print_glmerb_test_summary(fit)
   message(out_sum_text)
