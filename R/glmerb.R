@@ -335,10 +335,17 @@ glmerb <- function(
 
 #' Print posterior estimates by RE component for a glmerb / lmerb fit
 #'
-#' Displays a side-by-side table of the glmer MLE, posterior mode
-#' (\code{coef.mode}), and posterior mean (\code{coef.means}) for every
-#' (RE-component, parameter) pair.  When \code{x} is a bare \code{coef.means}
-#' list rather than a full fit object, only the posterior mean column is shown.
+#' Displays a side-by-side table of the lmer/glmer MLE reference, posterior
+#' mode or ICM mean (\code{coef.mode}), and posterior mean (\code{coef.means})
+#' for every (RE-component, parameter) pair.  When \code{x} is a bare
+#' \code{coef.means} list rather than a full fit object, only the posterior
+#' mean column is shown.
+#'
+#' For \code{lmerb} objects the reference column is labelled \code{"lmer"} and
+#' the \code{coef.mode} column is labelled \code{"ICM.mean"} (the Gaussian
+#' posterior mean and mode coincide exactly).  For \code{glmerb} objects the
+#' reference column is labelled \code{"glmer"} and the \code{coef.mode} column
+#' is labelled \code{"post.mode"}.
 #'
 #' @param x A \code{glmerb} or \code{lmerb} object, or a bare \code{coef.means}
 #'   list.
@@ -347,8 +354,9 @@ glmerb <- function(
 #' @return \code{x} invisibly.
 #' @export
 print_coef_means <- function(x, digits = 4L, ...) {
-  is_fit <- inherits(x, c("glmerb", "lmerb"))
-  cm     <- if (is_fit) x$coef.means else x
+  is_fit    <- inherits(x, c("glmerb", "lmerb"))
+  is_lmerb  <- inherits(x, "lmerb")
+  cm        <- if (is_fit) x$coef.means else x
   if (is.null(cm)) {
     cat("coef.means: NULL (simulation not yet run)\n")
     return(invisible(x))
@@ -360,31 +368,38 @@ print_coef_means <- function(x, digits = 4L, ...) {
                post_mean = unname(v), stringsAsFactors = FALSE)
   }))
 
-  # Add glmer MLE and posterior mode columns when a full fit is available.
-  has_glmer <- is_fit && !is.null(x$glmer)
-  has_mode  <- is_fit && !is.null(x$coef.mode)
-  if (has_glmer) {
-    glmer_v <- lme4::fixef(x$glmer)
+  # Reference MLE column: glmer for glmerb, lmer for lmerb.
+  mer_fit   <- if (is_fit) (if (is_lmerb) x$lmer else x$glmer) else NULL
+  has_mer   <- !is.null(mer_fit)
+  mer_label <- if (is_lmerb) "lmer" else "glmer"
+
+  if (has_mer) {
+    mer_v <- lme4::fixef(mer_fit)
     # Map (component, parameter) -> fixef name using the same convention as
     # fe_name_for() in Prior_Setup_lmebayes:
     #   (Intercept) component, col X  -> fixef["X"]
     #   component K, (Intercept) col  -> fixef["K"]
     #   component K, col X            -> fixef["X:K"] or fixef["K:X"]
-    rows$glmer <- mapply(function(k, col) {
+    rows[[mer_label]] <- mapply(function(k, col) {
       nm <- if (k == "(Intercept)") {
         col
       } else if (col == "(Intercept)") {
         k
       } else {
         cand <- c(paste0(col, ":", k), paste0(k, ":", col))
-        hit  <- cand[cand %in% names(glmer_v)]
+        hit  <- cand[cand %in% names(mer_v)]
         if (length(hit)) hit[1L] else NA_character_
       }
-      if (!is.na(nm) && nm %in% names(glmer_v)) unname(glmer_v[nm]) else NA_real_
+      if (!is.na(nm) && nm %in% names(mer_v)) unname(mer_v[nm]) else NA_real_
     }, rows$component, rows$parameter)
   }
+
+  # coef.mode column: "ICM.mean" for lmerb (exact posterior mean), "post.mode"
+  # for glmerb (posterior mode from ICM optimisation).
+  has_mode   <- is_fit && !is.null(x$coef.mode)
+  mode_label <- if (is_lmerb) "ICM.mean" else "post.mode"
   if (has_mode) {
-    rows$post_mode <- unlist(lapply(names(x$coef.mode), function(k) {
+    rows[[mode_label]] <- unlist(lapply(names(x$coef.mode), function(k) {
       unname(x$coef.mode[[k]])
     }))
   }
@@ -394,8 +409,8 @@ print_coef_means <- function(x, digits = 4L, ...) {
   w_v <- digits + 4L
 
   cols <- character(0)
-  if (has_glmer) cols <- c(cols, "glmer")
-  if (has_mode)  cols <- c(cols, "post.mode")
+  if (has_mer)  cols <- c(cols, mer_label)
+  if (has_mode) cols <- c(cols, mode_label)
   cols <- c(cols, "post.mean")
   n_val <- length(cols)
 
@@ -408,8 +423,8 @@ print_coef_means <- function(x, digits = 4L, ...) {
   cat(sprintf("  %-*s  %-*s  %s\n", w_c, strrep("-", w_c), w_p, strrep("-", w_p), val_sep))
   for (i in seq_len(nrow(rows))) {
     vals <- character(0L)
-    if (has_glmer) vals <- c(vals, sprintf(num_fmt, rows$glmer[i]))
-    if (has_mode)  vals <- c(vals, sprintf(num_fmt, rows$post_mode[i]))
+    if (has_mer)  vals <- c(vals, sprintf(num_fmt, rows[[mer_label]][i]))
+    if (has_mode) vals <- c(vals, sprintf(num_fmt, rows[[mode_label]][i]))
     vals <- c(vals, sprintf(num_fmt, rows$post_mean[i]))
     cat(sprintf("  %-*s  %-*s  %s\n",
                 w_c, rows$component[i],

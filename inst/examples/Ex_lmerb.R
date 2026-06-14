@@ -31,9 +31,8 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
     n                = 1000L,
     seed             = 1L
   )
+  ## Block 2 posterior means alongside lmer MLE and ICM posterior mean.
+  print_coef_means(fit)
+  print(fit)
   summary(fit)
-
-  ## Block 2 posterior means alongside the classical lmer reference.
-  fit$coef.means
-  lme4::fixef(fit$lmer)
 }

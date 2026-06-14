@@ -126,7 +126,12 @@ Prior_Setup_lmebayes <- function(formula,
                                  family = gaussian(),
                                  pwt    = 0.01,
                                  pwt_dispersion = NULL,
-                                 n_prior_dispersion = NULL) {
+                                 n_prior_dispersion = NULL,
+                                 intercept_source = c("null_model", "full_model"),
+                                 effects_source   = c("null_effects", "full_model")) {
+
+  intercept_source <- match.arg(intercept_source)
+  effects_source   <- match.arg(effects_source)
 
   if (!inherits(formula, "formula")) {
     stop("'formula' must be a formula.", call. = FALSE)
@@ -301,6 +306,36 @@ Prior_Setup_lmebayes <- function(formula,
     pwt_list           = pwt_list
   )
 
+  # ---- null model for prior means ------------------------------------------
+  # Level-2 predictors: non-intercept columns of X_hyper[["(Intercept)"]] that
+  # are NOT individual-level random slopes (random slopes appear in re_names).
+  random_slopes <- setdiff(re_names, "(Intercept)")
+  lvl2_preds <- if ("(Intercept)" %in% re_names) {
+    setdiff(
+      colnames(design$X_hyper[["(Intercept)"]]),
+      c("(Intercept)", random_slopes)
+    )
+  } else {
+    character(0L)
+  }
+
+  fe_null <- fe   # default: fall back to full model
+  if (intercept_source == "null_model" && length(lvl2_preds) > 0L) {
+    null_formula <- formula
+    for (v in lvl2_preds) {
+      null_formula <- stats::update(
+        null_formula,
+        stats::as.formula(paste(". ~ . -", v))
+      )
+    }
+    null_fit <- if (is_gaussian) {
+      lme4::lmer(null_formula, data = data, REML = TRUE, control = ctrl)
+    } else {
+      lme4::glmer(null_formula, family = family, data = data)
+    }
+    fe_null <- lme4::fixef(null_fit)
+  }
+
   prior_list <- stats::setNames(
     lapply(re_names, function(k) {
       X_k    <- design$X_hyper[[k]]
@@ -312,7 +347,19 @@ Prior_Setup_lmebayes <- function(formula,
       fe_idx <- fe_nms
 
       mu_fixef <- vapply(seq_len(p_k), function(i) {
-        unname(fe[fe_nms[i]])
+        col <- cols_k[i]
+        if (col == "(Intercept)") {
+          nm_i <- fe_name_for(k, col)
+          if (intercept_source == "null_model" && !is.na(nm_i) &&
+              nm_i %in% names(fe_null)) {
+            unname(fe_null[nm_i])
+          } else {
+            unname(fe[fe_nms[i]])
+          }
+        } else {
+          if (effects_source == "null_effects") 0
+          else unname(fe[fe_nms[i]])
+        }
       }, numeric(1L))
       names(mu_fixef) <- cols_k
 
@@ -381,6 +428,8 @@ Prior_Setup_lmebayes <- function(formula,
       pwt                = pwt_out,
       pwt_dispersion     = disp$pwt_dispersion,
       n_prior_dispersion = disp$n_prior_dispersion,
+      intercept_source   = intercept_source,
+      effects_source     = effects_source,
       design             = design,
       fit_ref            = fit_ref,
       dispersion_ranef   = dispersion_ranef,
@@ -582,6 +631,10 @@ print.lmebayes_prior_setup <- function(x, digits = 4L, ...) {
   cat("Call: Prior_Setup_lmebayes()\n\n")
   cat(sprintf("  family           : %s (%s link)\n",
               x$family$family, x$family$link))
+  cat(sprintf("  intercept_source : %s\n",
+              if (!is.null(x$intercept_source)) x$intercept_source else "full_model"))
+  cat(sprintf("  effects_source   : %s\n",
+              if (!is.null(x$effects_source)) x$effects_source else "full_model"))
   if (!is.null(x$dispersion_ranef)) {
     cat(sprintf(
       "  dispersion_ranef : %.4f  (sigma2, fixed from all %d %s)\n",

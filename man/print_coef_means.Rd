@@ -18,8 +18,16 @@ list.}
 \code{x} invisibly.
 }
 \description{
-Displays a side-by-side table of the glmer MLE, posterior mode
-(\code{coef.mode}), and posterior mean (\code{coef.means}) for every
-(RE-component, parameter) pair.  When \code{x} is a bare \code{coef.means}
-list rather than a full fit object, only the posterior mean column is shown.
+Displays a side-by-side table of the lmer/glmer MLE reference, posterior
+mode or ICM mean (\code{coef.mode}), and posterior mean (\code{coef.means})
+for every (RE-component, parameter) pair.  When \code{x} is a bare
+\code{coef.means} list rather than a full fit object, only the posterior
+mean column is shown.
+}
+\details{
+For \code{lmerb} objects the reference column is labelled \code{"lmer"} and
+the \code{coef.mode} column is labelled \code{"ICM.mean"} (the Gaussian
+posterior mean and mode coincide exactly).  For \code{glmerb} objects the
+reference column is labelled \code{"glmer"} and the \code{coef.mode} column
+is labelled \code{"post.mode"}.
 }
