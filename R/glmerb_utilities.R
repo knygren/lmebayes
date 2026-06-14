@@ -4,7 +4,7 @@
 #' @param data Data frame passed to \code{\link[lme4]{lFormula}}.
 #' @param ... Passed to \code{\link[lme4]{lFormula}}.
 #' @return Logical: \code{TRUE} if exactly one grouping factor is present.
-#' @export
+#' @keywords internal
 is_single_factor_model <- function(formula, data, ...) {
   
   # 1. Use the reformulas package to extract random effects bars
@@ -46,7 +46,7 @@ is_single_factor_model <- function(formula, data, ...) {
 #' @param data Optional data frame.
 #' @param ... Passed to \code{\link[lme4]{lFormula}} when \code{data} is given.
 #' @return Logical: \code{TRUE} if no \code{|} random-effects terms are present.
-#' @export
+#' @keywords internal
 is_fixed_effects_only <- function(formula, data = NULL, ...) {
   
   # Use the dedicated reformulas package to extract random effects bars
@@ -206,7 +206,7 @@ is_fixed_effects_only <- function(formula, data = NULL, ...) {
 #' @param max_rows Maximum observation row labels to print.
 #' @param max_cols Maximum random-effect column labels to print.
 #' @return Invisibly, a list with \code{rownames} and \code{colnames} vectors.
-#' @export
+#' @keywords internal
 show_lme4_Z_random <- function(
     matrices_list,
     max_rows = 10L,
@@ -272,7 +272,7 @@ show_lme4_Z_random <- function(
 #' View(lme4_comps$Z_random_row_map)
 #' }
 #' @seealso \code{\link{show_lme4_Z_random}}
-#' @export
+#' @keywords internal
 get_lme4_components <- function(formula, data, ...) {
   # Parse formula into modular lme4 elements
   parsed_formula <- lme4::lFormula(formula = formula, data = data, ...)
@@ -319,7 +319,7 @@ get_lme4_components <- function(formula, data, ...) {
 #' @param group_factor Grouping factor aligned with rows of \code{X_fixed}.
 #' @return A list with \code{level1_cols}, \code{level2_cols}, and named
 #'   logical \code{level2_flags}.
-#' @export
+#' @keywords internal
 classify_lme4_fixed_columns <- function(X_fixed, group_factor) {
   x_colnames <- colnames(X_fixed)
   if (is.null(x_colnames) || length(x_colnames) == 0L) {
@@ -376,7 +376,7 @@ classify_lme4_fixed_columns <- function(X_fixed, group_factor) {
 #'   \code{slope_mean_cols} (main fixed effects that are random slope names,
 #'   i.e. population mean slope terms), and
 #'   \code{disallowed_level1_cols} (level-1 fixed not explained as either).
-#' @export
+#' @keywords internal
 classify_crosslevel_re_moderation <- function(
     level1_cols,
     level2_cols,
@@ -491,7 +491,7 @@ classify_crosslevel_re_moderation <- function(
 #'   }
 #' @seealso \code{\link{model_setup}}, \code{\link{extract_lme4_fixed_group_matrix}},
 #'   \code{\link{extract_re_Z_obs}}
-#' @export
+#' @keywords internal
 extract_re_hyper_matrices <- function(formula, data = NULL, ...) {
   if (!is_single_factor_model(formula, data = data, ...)) {
     stop("extract_re_hyper_matrices() requires exactly one grouping factor.",
@@ -617,7 +617,7 @@ extract_re_hyper_matrices <- function(formula, data = NULL, ...) {
 #'
 #' @inheritParams extract_re_hyper_matrices
 #' @return Formula suitable for \code{\link[lme4]{lmer}} variance calibration.
-#' @export
+#' @keywords internal
 lmerb_default_vcov_formula <- function(formula, data = NULL, ...) {
   if (!is_single_factor_model(formula, data = data, ...)) {
     stop("lmerb_default_vcov_formula() requires exactly one grouping factor.",
@@ -670,7 +670,7 @@ lmerb_default_vcov_formula <- function(formula, data = NULL, ...) {
 #' @param fit Object of class \code{"lmerMod"} from \code{\link[lme4]{lmer}}.
 #' @param re_coef_names Random coefficient names (as in \code{reTrms$cnms}).
 #' @return List with \code{varcorr}, \code{vcov_re}, and \code{residual_var}.
-#' @export
+#' @keywords internal
 extract_lmer_variance_components <- function(fit, re_coef_names) {
   if (!inherits(fit, "lmerMod")) {
     stop("fit must be an lmerMod object.", call. = FALSE)
@@ -981,7 +981,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
 #'   (as in \code{reTrms$cnms}).
 #' @return Numeric matrix \code{n_obs x length(re_coef_names)} with
 #'   \code{colnames = re_coef_names}.
-#' @export
+#' @keywords internal
 extract_re_Z_obs <- function(matrices_list, group_name, re_coef_names) {
   Z_sparse <- matrices_list$Z_random_sparse
   col_map <- matrices_list$Z_random_column_map
@@ -1049,7 +1049,7 @@ extract_re_Z_obs <- function(matrices_list, group_name, re_coef_names) {
 #' @param target_level Level of \code{group_name} to slice.
 #' @return List with per-group \code{X_fixed_level1}, \code{Z_random_level1},
 #'   and school-constant \code{X_fixed_level2}.
-#' @export
+#' @keywords internal
 extract_lme4_submatrices <- function(matrices_list, group_name, target_level) {
   X_fixed <- matrices_list$X_fixed
   Z_random_sparse <- matrices_list$Z_random_sparse
@@ -1088,7 +1088,7 @@ extract_lme4_submatrices <- function(matrices_list, group_name, target_level) {
 #' @param matrices_list List from \code{\link{get_lme4_components}}.
 #' @param group_name Name of the grouping factor.
 #' @return Matrix with one row per group level and school-constant fixed columns.
-#' @export
+#' @keywords internal
 extract_lme4_fixed_group_matrix <- function(matrices_list, group_name) {
   X_fixed <- matrices_list$X_fixed
   group_factor <- matrices_list$groups[[group_name]]

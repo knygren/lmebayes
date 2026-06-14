@@ -76,6 +76,18 @@ two_block_rNormal_reg <- glmbayesCore::two_block_rNormal_reg
 #' @export
 multi_rNormal_reg <- glmbayesCore::multi_rNormal_reg
 
+#' @inherit glmbayesCore::multi_rlmb
+#' @export
+multi_rlmb <- glmbayesCore::multi_rlmb
+
+#' @inherit glmbayesCore::multi_rNormalGamma_reg
+#' @export
+multi_rNormalGamma_reg <- glmbayesCore::multi_rNormalGamma_reg
+
+#' @inherit glmbayesCore::multi_rindepNormalGamma_reg
+#' @export
+multi_rindepNormalGamma_reg <- glmbayesCore::multi_rindepNormalGamma_reg
+
 ## C++ callback symbols re-exported for search-path lookup when lmebayes is
 ## attached. glmbayesCore C++ resolves these by unqualified name
 ## (Rcpp::Function("EnvelopeOpt"), etc.).
