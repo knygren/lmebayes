@@ -13,3 +13,5 @@ Ex_10_Prior_Setup_gaussian_calibration   Prior_Setup: same Gamma calibration for
 Ex_11_Cars                   mtcars: default Prior_Setup; dNormal_Gamma vs dIndependent_Normal_Gamma (shape_ING)
 Ex_12_lmerb_BigWordClub      lmerb full workflow on big_word_club (school random effects; replica of the ?lmerb example)
 Ex_13_glmerb_Airbnb          glmerb Poisson full workflow on airbnb (neighborhood random effects; replica of the ?glmerb example)
+Ex_14_glmerb_airbnb_small    glmerb Poisson full workflow on airbnb_small (replica of the pre-ICM-only ?glmerb example)
+Ex_15_glmerb_centering_test  glmerb Poisson pilot/main centering test on airbnb_small subset (replica of former testthat)

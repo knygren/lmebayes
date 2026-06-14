@@ -65,6 +65,7 @@ Block 2 of \code{\link[glmbayesCore]{two_block_rNormal_reg}}.
 \code{\link[glmbayesCore]{rNormal_reg}}, \code{\link[glmbayesCore]{two_block_rNormal_reg}}
 
 glmbayes Simulation Functions
+\code{\link[glmbayesCore]{multi_rlmb}()},
 \code{\link[glmbayesCore]{simfuncs}},
 \code{\link[glmbayesCore]{two_block_l_for_tv}()},
 \code{\link[glmbayesCore]{two_block_mode_weights}()},

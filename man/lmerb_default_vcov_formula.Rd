@@ -27,3 +27,4 @@ returns a formula with:
 (\code{||} notation), without cross-level fixed interactions.
 }
 }
+\keyword{internal}

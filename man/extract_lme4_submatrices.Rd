@@ -20,3 +20,4 @@ and school-constant \code{X_fixed_level2}.
 \description{
 Extract per-group submatrices from lme4 design components
 }
+\keyword{internal}

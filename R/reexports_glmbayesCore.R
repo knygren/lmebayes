@@ -77,6 +77,11 @@ two_block_rNormal_reg <- glmbayesCore::two_block_rNormal_reg
 multi_rNormal_reg <- glmbayesCore::multi_rNormal_reg
 
 #' @inherit glmbayesCore::multi_rlmb
+#' @examples
+#' \dontrun{
+#' ## Full runnable examples are maintained in \pkg{glmbayesCore}:
+#' example(multi_rlmb, package = "glmbayesCore", ask = FALSE, echo = TRUE)
+#' }
 #' @export
 multi_rlmb <- glmbayesCore::multi_rlmb
 
@@ -87,6 +92,20 @@ multi_rNormalGamma_reg <- glmbayesCore::multi_rNormalGamma_reg
 #' @inherit glmbayesCore::multi_rindepNormalGamma_reg
 #' @export
 multi_rindepNormalGamma_reg <- glmbayesCore::multi_rindepNormalGamma_reg
+
+#' @inherit glmbayesCore::summary.mrglmb
+#' @param ... Additional optional arguments passed to
+#'   \code{\link[glmbayesCore]{summary.rglmb}}.
+#' @export
+#' @method summary mrglmb
+summary.mrglmb <- getFromNamespace("summary.mrglmb", "glmbayesCore")
+
+#' @inherit glmbayesCore::print.summary.mrglmb
+#' @param ... Additional optional arguments passed to
+#'   \code{\link[glmbayesCore]{print.summary.rglmb}}.
+#' @export
+#' @method print summary.mrglmb
+print.summary.mrglmb <- getFromNamespace("print.summary.mrglmb", "glmbayesCore")
 
 ## C++ callback symbols re-exported for search-path lookup when lmebayes is
 ## attached. glmbayesCore C++ resolves these by unqualified name

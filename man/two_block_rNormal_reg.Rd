@@ -94,6 +94,7 @@ Block~1 follows the same path as \code{\link[glmbayesCore]{rNormal_reg}}:
 
 glmbayes Simulation Functions
 \code{\link[glmbayesCore]{multi_rNormal_reg}()},
+\code{\link[glmbayesCore]{multi_rlmb}()},
 \code{\link[glmbayesCore]{simfuncs}},
 \code{\link[glmbayesCore]{two_block_l_for_tv}()},
 \code{\link[glmbayesCore]{two_block_mode_weights}()},

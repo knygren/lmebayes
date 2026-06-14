@@ -91,7 +91,8 @@
 #'   (the per-coordinate gap tolerance used to derive
 #'   \code{m_convergence_pilot}) components instead of \code{lmer}.
 #' @seealso \code{\link{lmerb}}, \code{\link[glmbayesCore]{glmerb_posterior_mode}},
-#'   \code{\link{glmb}}
+#'   \code{\link{glmb}}; \code{\link[utils]{demo}} for the full sampling workflow
+#'   (\code{demo("Ex_14_glmerb_airbnb_small", package = "lmebayes")}).
 #' @examplesIf requireNamespace("bayesrules", quietly = TRUE)
 #' @example inst/examples/Ex_glmerb.R
 #' @export

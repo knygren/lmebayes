@@ -19,3 +19,4 @@ Logical: \code{TRUE} if exactly one grouping factor is present.
 \description{
 Check for a single grouping factor in a mixed model formula
 }
+\keyword{internal}

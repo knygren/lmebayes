@@ -53,3 +53,4 @@ formula, with explicit intercept column: e.g.
 \code{\link{model_setup}}, \code{\link{extract_lme4_fixed_group_matrix}},
 \code{\link{extract_re_Z_obs}}
 }
+\keyword{internal}

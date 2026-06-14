@@ -22,3 +22,4 @@ Prefer \code{View(lme4_comps$Z_random_column_map)} and
 \code{View(lme4_comps$Z_random_row_map)} from
 \code{\link{get_lme4_components}}; use this helper for a quick console summary.
 }
+\keyword{internal}

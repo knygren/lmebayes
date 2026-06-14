@@ -37,3 +37,4 @@ mean slope} (gamma_10) and is also allowed. These are returned in
 the corresponding \code{fixef()} coefficient is the hyper-model intercept for
 that slope.
 }
+\keyword{internal}

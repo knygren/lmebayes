@@ -152,7 +152,6 @@ summary(out_blmb)
 }
 \seealso{
 glmbayes Modeling Functions
-\code{\link{block_glmb}()},
-\code{\link{multi_rlmb}()}
+\code{\link{block_glmb}()}
 }
 \concept{modelfuns}

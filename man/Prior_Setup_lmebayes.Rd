@@ -59,6 +59,20 @@ prior strength (see \code{ing_prior} below).}
 size(s) (in group units) for the Block~2 dispersion prior.  A positive
 scalar, or a list / numeric vector with one value per random-effect
 component (named or positional).  See \code{pwt_dispersion}.}
+
+\item{intercept_source}{Character string controlling the prior mean for
+intercept terms.  One of \code{"null_model"} (default) or
+\code{"full_model"}.  When \code{"null_model"}, the prior mean for each
+component intercept is taken from a null (intercept-only) fit that omits
+level-2 predictors, making the \code{Pr(Prior_tail)} tests more
+informative.  When \code{"full_model"}, the full-model MLE intercept is
+used.}
+
+\item{effects_source}{Character string controlling the prior mean for
+non-intercept fixed-effect terms.  One of \code{"null_effects"} (default)
+or \code{"full_model"}.  When \code{"null_effects"}, the prior mean for
+all non-intercept coefficients is set to zero (a neutral shrinkage prior).
+When \code{"full_model"}, the full-model MLE slopes are used.}
 }
 \value{
 Object of class \code{"lmebayes_prior_setup"} with fields:

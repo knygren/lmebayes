@@ -17,3 +17,4 @@ Matrix with one row per group level and school-constant fixed columns.
 \description{
 Extract the group-constant fixed-effects matrix (level-2 X)
 }
+\keyword{internal}

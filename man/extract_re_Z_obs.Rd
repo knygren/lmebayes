@@ -25,3 +25,4 @@ are the random coefficient names (\code{(Intercept)}, slopes, etc.). Row
 \code{i} contains the loadings on the within-group random vector for
 observation \code{i}'s group.
 }
+\keyword{internal}

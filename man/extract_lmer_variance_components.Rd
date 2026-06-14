@@ -18,3 +18,4 @@ List with \code{varcorr}, \code{vcov_re}, and \code{residual_var}.
 Maps \code{lme4::VarCorr()} output to a named vector of random-effect
 variances (aligned with \code{re_coef_names}) plus residual variance.
 }
+\keyword{internal}

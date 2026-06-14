@@ -20,3 +20,4 @@ Level-2 columns are constant within each level of \code{group_factor}
 (including \code{(Intercept)}). Level-1 columns vary within at least one
 group level.
 }
+\keyword{internal}

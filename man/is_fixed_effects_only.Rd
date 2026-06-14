@@ -19,3 +19,4 @@ Logical: \code{TRUE} if no \code{|} random-effects terms are present.
 \description{
 Check whether a formula has no random-effects terms
 }
+\keyword{internal}

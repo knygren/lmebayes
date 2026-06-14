@@ -109,7 +109,6 @@ print/summary methods and \code{\link[glmbayesCore]{block_rNormalGLM}} for Gibbs
 }}
 \seealso{
 glmbayes Modeling Functions
-\code{\link{block_lmb}()},
-\code{\link{multi_rlmb}()}
+\code{\link{block_lmb}()}
 }
 \concept{modelfuns}
