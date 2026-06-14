@@ -10,7 +10,9 @@ Prior_Setup_lmebayes(
   family = gaussian(),
   pwt = 0.01,
   pwt_dispersion = NULL,
-  n_prior_dispersion = NULL
+  n_prior_dispersion = NULL,
+  intercept_source = c("null_model", "full_model"),
+  effects_source = c("null_effects", "full_model")
 )
 }
 \arguments{
