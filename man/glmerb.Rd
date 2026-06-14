@@ -11,7 +11,8 @@ glmerb(
   pfamily_list,
   dispersion_ranef = NULL,
   n = 1000L,
-  n_pilot = 1000L,
+  gap_tol = 0.0196,
+  mode_gap_max = 1,
   tv_tol = 0.01,
   m_convergence = NULL,
   m_convergence_pilot = NULL,
@@ -72,19 +73,35 @@ dispersion parameter (e.g. \code{gaussian()}); must be \code{NULL}
 
 \item{n}{Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).}
 
-\item{n_pilot}{Number of independent pilot chains used to estimate the
-posterior mean as a starting point for the main run (default
-\code{1000L}). Applies only to non-Gaussian families: for those, the
-ICM posterior mode (\code{coef.mode}) is below the posterior mean due
-to likelihood skewness, causing the main-run sample mean to be biased
-toward the mode when the chain starts there. The pilot stage runs
-\code{n_pilot} separate chains, each started at \code{coef.mode}, each
-returning one stored draw after \code{m_convergence_pilot} inner sweeps, and
-takes the column-means across those final draws as
-\code{coef.pilot.mean} -- the starting point for the main run.
-Set \code{n_pilot = NULL} to skip the pilot and start the main run from
-the ICM mode (as in the Gaussian case). Ignored for
-\code{family = gaussian()}, where mode = mean exactly.}
+\item{gap_tol}{Tolerated mode--mean gap in units of posterior standard
+deviations (default \code{0.0196}).  Applies only to non-Gaussian
+families.  The number of pilot chains is derived from this tolerance as
+\code{n_pilot = ceiling((qnorm(0.975) / gap_tol)^2)}, which ensures
+that a gap larger than \code{gap_tol} posterior SDs is detected with
+95\\% power (two-sided, \eqn{\alpha = 0.05}).  The default
+\code{gap_tol = 0.0196 = 1.96 / 100} gives \code{n_pilot = 10000}.
+The pilot stage runs \code{n_pilot} independent chains from the ICM
+mode, each returning one stored draw after \code{m_convergence_pilot}
+inner sweeps, and takes the column-means as \code{coef.pilot.mean} --
+the starting point for the main run.  Set \code{gap_tol = NULL} to
+skip the pilot entirely and start the main run from the ICM mode (as
+in the Gaussian case).  Ignored for \code{family = gaussian()}, where
+mode equals mean exactly.}
+
+\item{mode_gap_max}{Maximum per-coordinate mode--mean gap (in posterior
+standard deviation units) that \code{m_convergence_pilot} is calibrated
+to cover (default \code{1.0}).  Applies only to non-Gaussian families
+when \code{gap_tol} is not \code{NULL} and \code{m_convergence_pilot}
+is \code{NULL}.  The pilot chains start at the ICM mode, which is at
+Mahalanobis distance \eqn{D_{\max} = \sqrt{p}\,\times\,\texttt{mode\_gap\_max}}
+from the posterior mean (assuming \code{mode_gap_max} SDs per coordinate
+across \eqn{p} fixed-effect dimensions).  The number of pilot sweeps is
+the smallest \eqn{l} satisfying
+\eqn{\mathrm{erf}_1(0.5\,\lambda^{*l}\,D_{\max}/\sqrt{2}) \le
+  \texttt{tv\_tol}} (Nygren 2020, Theorem 3 mean-shift term), floored at
+\code{m_min}.  Set \code{mode_gap_max = NULL} to fall back to
+\code{m_convergence} (pre-v0.2 behaviour).  Ignored for
+\code{family = gaussian()}.}
 
 \item{tv_tol}{Total variation tolerance per stored draw, in (0, 1)
 (default \code{0.01}).  For \code{family = gaussian()} the joint
@@ -108,12 +125,14 @@ requested sweep count but is never allowed below the derived minimum:
 had to be raised.  Typical use is to pick a \emph{larger} number for
 non-Gaussian families (e.g. double the derived lower bound).}
 
-\item{m_convergence_pilot}{Optional integer number of inner Gibbs sweeps
-used in each independent pilot chain.  Applies only when
-\code{n_pilot} is not \code{NULL} and \code{family} is non-Gaussian.
-When \code{NULL} (default), pilot chains use \code{m_convergence}.
-Set this larger than \code{m_convergence} to reduce pilot centering bias
-from short transitions.}
+\item{m_convergence_pilot}{Optional integer override for the number of
+inner Gibbs sweeps used in each independent pilot chain.  Applies only
+when \code{gap_tol} is not \code{NULL} and \code{family} is
+non-Gaussian.  When \code{NULL} (default), the sweep count is derived
+automatically from \code{mode_gap_max}, \code{tv_tol}, and
+\code{rate$lambda_star} via Theorem 3 (see \code{mode_gap_max}).
+A supplied value is used as-is (no floor is applied beyond what the
+user intends) and overrides the \code{mode_gap_max} derivation.}
 
 \item{simulate}{Logical (default \code{TRUE}).  When \code{TRUE} the
 two-block Gibbs sampler is run for \code{n} iterations and posterior draws
@@ -163,8 +182,10 @@ posterior mean from the pilot run, used as the main-run starting point;
 \code{NULL} for Gaussian or when \code{n_pilot = NULL}), and
 \code{pilot_mode_test} (multivariate Wald test of pilot mean against
 ICM mode: \code{Q}, \code{df}, \code{p_value},
-\code{n_pilot}; \code{NULL} when no pilot) components instead of
-\code{lmer}.
+\code{n_pilot}; \code{NULL} when no pilot), \code{gap_tol}
+(the tolerance used to derive \code{n_pilot}), and \code{mode_gap_max}
+(the per-coordinate gap tolerance used to derive
+\code{m_convergence_pilot}) components instead of \code{lmer}.
 }
 \description{
 Draft entry point for \pkg{lmebayes} GLMM models with a \code{glmer}-like
@@ -215,7 +236,6 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
     family       = poisson(),
     pfamily_list = pfamily_list(ps),
     n            = 2000L,
-    n_pilot      = 2000L,
     seed         = 42L
   )
   summary(fit)

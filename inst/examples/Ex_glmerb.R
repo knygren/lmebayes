@@ -32,7 +32,6 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
     family       = poisson(),
     pfamily_list = pfamily_list(ps),
     n            = 2000L,
-    n_pilot      = 2000L,
     seed         = 42L
   )
   summary(fit)

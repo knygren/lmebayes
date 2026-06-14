@@ -1,5 +1,24 @@
-# glmerb (Poisson) on bayesrules::airbnb_small -- same model as the ?glmerb
-# example, with an overall (multivariate) centering test.
+# glmerb (Poisson) on a subset of bayesrules::airbnb_small, with an overall
+# (multivariate) centering test.
+#
+# WHY A SUBSET:
+#   The full airbnb_small has 17 neighborhood levels (J=17).  By a CLT-like
+#   argument over J groups, the marginal posterior of the fixed-effect
+#   hyperparameter gamma is approximately normal for large J, making the mode
+#   nearly equal to the mean and rendering the pilot-vs-mode comparison
+#   insensitive.  The commonly cited threshold is J ~ 30; at J=17 we are
+#   already close to the normal regime.
+#
+#   To make the mode-vs-mean gap detectable we keep only the smallest
+#   neighborhoods (5-20 observations, J=6, 72 rows total).
+#   Two criteria amplify Poisson non-normality:
+#     1. Few groups (J small) → posterior of gamma far from normal.
+#     2. Small counts per observation → individual Poisson posteriors skewed;
+#        ~43% of the review counts in these groups are single-digit.
+#   Larger groups (>20 obs) and the very large ones (Logan Square n=330,
+#   Rogers Park n=123) are excluded because for large n_j the Poisson
+#   likelihood is well-approximated by a Gaussian, reducing skewness.
+#   For Poisson (concave h): ICM mode < E[gamma|y] < gamma* (Banach fixed pt).
 #
 # The sampler uses a pilot stage of independent chains from the ICM mode to
 # estimate the posterior mean (coef.pilot.mean), then runs the main n draws
@@ -41,6 +60,19 @@ test_that("glmerb: overall posterior mean is closer to pilot mean than mode", {
                                     "neighborhood")]), ]
   dat$neighborhood <- droplevels(factor(dat$neighborhood))
 
+  # Subset to the smallest neighborhoods (<= 20 obs) to maximise Poisson
+  # non-normality: few groups (small J) AND small per-observation counts.
+  # Drop singletons and pairs (n=1,2) as they are too sparse to fit random
+  # slopes reliably; keep groups with 5-20 observations.
+  grp_counts  <- table(dat$neighborhood)
+  keep_groups <- names(grp_counts[grp_counts >= 5L & grp_counts <= 20L])
+  dat <- dat[dat$neighborhood %in% keep_groups, ]
+  dat$neighborhood <- droplevels(factor(dat$neighborhood))
+  # Sanity: expect exactly 6 groups (Montclare 5, O'Hare 5, North Park 7,
+  # Lincoln Square 15, Jefferson Park 20, Portage Park 20) after subsetting.
+  # 72 rows total, ~44% of review counts are single-digit.
+  stopifnot(nlevels(dat$neighborhood) == 6L)
+
   form <- reviews ~ walk_c + rating_c + (1 + rating_c || neighborhood)
 
   ps <- Prior_Setup_lmebayes(form, data = dat, family = poisson(),
@@ -51,8 +83,9 @@ test_that("glmerb: overall posterior mean is closer to pilot mean than mode", {
     data         = dat,
     family       = poisson(),
     pfamily_list = pfamily_list(ps),
-    n            = 2000L,
-    n_pilot      = 2000L,
+    n            = 10000L,
+    gap_tol      = 0.0196,  # default; gives n_pilot = 10000
+    mode_gap_max = 1.0,     # default; gives m_convergence_pilot = 9 for p=3, lambda*~0.596
     seed         = 42L
   )
 
@@ -61,19 +94,21 @@ test_that("glmerb: overall posterior mean is closer to pilot mean than mode", {
   expect_identical(re_names, c("(Intercept)", "rating_c"))
 
   n_draws <- nrow(fit$fixef_draws[[re_names[1L]]])
-  expect_identical(n_draws, 2000L)
+  expect_identical(n_draws, 10000L)
 
   # pilot mean and convergence metadata must have been computed
   expect_false(is.null(fit$coef.pilot.mean))
   expect_true(is.list(fit$convergence))
   expect_true(is.finite(fit$convergence$m_convergence))
-  expect_identical(
-    fit$convergence$m_convergence_pilot,
-    fit$convergence$m_convergence
-  )
+  # gap_tol = 0.0196 => n_pilot = ceiling((qnorm(0.975)/0.0196)^2) = 10000
+  expect_identical(fit$pilot_mode_test$n_pilot, 10000L)
+  # mode_gap_max = 1, p = 3, lambda* ~ 0.596, tv_tol = 0.01:
+  #   D_max = sqrt(3), c_tol = qnorm(0.505)/sqrt(2)*2*sqrt(2) ~ 0.0251
+  #   l = ceil(log(1.732/0.0251)/log(1/0.596)) = ceil(8.19) = 9
+  expect_identical(fit$convergence$m_convergence_pilot, 9L)
+  expect_identical(fit$convergence$mode_gap_max, 1.0)
   expect_true(is.list(fit$pilot_mode_test))
   expect_true(is.finite(fit$pilot_mode_test$p_value))
-  expect_identical(fit$pilot_mode_test$n_pilot, 2000L)
 
   X <- do.call(cbind, lapply(re_names, function(k) fit$fixef_draws[[k]]))
   cn <- unlist(lapply(re_names, function(k) {
@@ -161,7 +196,8 @@ test_that("glmerb: overall posterior mean is closer to pilot mean than mode", {
   )
 
   out_print <- capture.output(print(fit))
-  expect_false(any(grepl("m_convergence", out_print, fixed = TRUE)))
+  # "m_convergence" standalone (not part of "m_convergence_pilot") must not appear
+  expect_false(any(grepl("m_convergence(?!_)", out_print, perl = TRUE)))
   expect_false(any(grepl("pilot_vs_mode", out_print, fixed = TRUE)))
   expect_false(any(grepl("pilot.mean", out_print, fixed = TRUE)))
 
@@ -172,6 +208,7 @@ test_that("glmerb: overall posterior mean is closer to pilot mean than mode", {
   expect_s3_class(summary(fit), "summary.lmerb")
   expect_true(any(grepl("Block 2", out_sum, fixed = TRUE)))
   expect_true(any(grepl("coef.mode", out_sum, fixed = TRUE)))
-  expect_false(any(grepl("m_convergence", out_sum, fixed = TRUE)))
+  # "m_convergence" standalone (not part of "m_convergence_pilot") must not appear
+  expect_false(any(grepl("m_convergence(?!_)", out_sum, perl = TRUE)))
   expect_false(any(grepl("Pilot vs mode", out_sum, fixed = TRUE)))
 })

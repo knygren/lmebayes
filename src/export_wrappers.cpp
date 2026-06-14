@@ -1,11 +1,7 @@
 #include "RcppArmadillo.h"
-#include "Envelopefuncs.h"
 #include "openclPort.h"
-#include "simfuncs.h"
 
 using namespace openclPort;
-using namespace glmbayes::env;
-using namespace glmbayes::sim;
 
 
 // =============================================================================
