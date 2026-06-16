@@ -1,106 +1,21 @@
-#' Raw two-stage Gibbs sampler for Bayesian generalized linear mixed models
+#' Raw two-stage Gibbs sampler (v3 short-chain driver)
 #'
-#' Full sampling engine for non-Gaussian (and Gaussian) generalized linear
-#' mixed models, parallel to \code{\link[glmbayes]{rglmb}} in \pkg{glmbayes}
-#' and \code{\link{rlmerb}} in \pkg{lmebayes}.  Unlike \code{rlmerb}, which
-#' runs a single sequential chain, \code{rglmerb} runs \code{n} independent
-#' short chains and optionally precedes the main run with a pilot stage (also
-#' independent chains) to locate the posterior mean for non-Gaussian models.
+#' Same workflow as \code{\link{rglmerb_v2}}, but pilot and main sampling call
+#' \code{\link{run_short_chains_v3}} (a single
+#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v3}} call per stage with
+#' per-chain reseeding in C++) instead of the v2 R-loop driver
+#' (\code{\link{run_short_chains_v2}}).
 #'
-#' \code{rglmerb} is the legacy R-loop driver (\code{\link{run_short_chains}}).
-#' \code{\link{glmerb}} uses \code{\link{rglmerb_v2}} (same R-loop driver as
-#' \code{rglmerb}).  For the v3 development chain, see \code{\link{rglmerb_v3}}.  It encapsulates:
-#' \enumerate{
-#'   \item ICM posterior mode (\code{\link[glmbayesCore]{glmerb_posterior_mode}})
-#'   \item Block 1 prior construction (\code{.lmebayes_block1_prior_list})
-#'   \item TV-calibrated convergence constants
-#'         (\code{\link[glmbayesCore]{two_block_rate_v2}},
-#'          \code{\link[glmbayesCore]{two_block_l_for_tv}})
-#'   \item Pilot stage, chi-squared test, and per-draw eigenvalue upper bounds
-#'   \item Main sampling via repeated \code{\link{run_short_chains}} calls
-#' }
+#' Development track; \code{\link{glmerb}} uses the v2 chain
+#' (\code{\link{rglmerb_v2}}).
 #'
-#' @param n Integer. Number of independent chains in the main stage.  Each
-#'   chain stores one draw after \code{m_convergence} inner Gibbs sweeps.
-#' @param design A \code{\link{model_setup}} object as returned by
-#'   \code{\link{model_setup}}, supplying \code{y}, \code{Z}, \code{groups},
-#'   \code{X_hyper}, \code{group_name}, and \code{re_coef_names}.
-#' @param prior A \code{lmebayes_prior_setup} object as returned by
-#'   \code{\link{.lmebayes_priors_from_pfamily_list}}.
-#' @param family A \code{\link[stats]{family}} object for the response model.
-#'   Default \code{poisson()}.
-#' @param fixef_start Optional named list of starting hyper-parameter vectors
-#'   (one per RE component).  When \code{NULL} (default), the ICM posterior
-#'   mode is computed internally via
-#'   \code{\link[glmbayesCore]{glmerb_posterior_mode}}.
-#' @param m_convergence Optional integer. Number of inner Gibbs sweeps per
-#'   stored main-stage draw.  When \code{NULL} (default), derived from
-#'   \code{tv_tol} via Theorem 3 (Nygren 2020) and floored at the derived
-#'   \code{m_min}.  A user-supplied value is floored at \code{m_min} with a
-#'   warning if it had to be raised.  The final value may be further increased
-#'   by the pilot upper-bound step.
-#' @param n_pilot Integer. Number of independent chains in the pilot stage.
-#'   \code{0} or \code{NULL} skips the pilot and starts the main stage from
-#'   \code{fixef_start}.  Default \code{NULL}.
-#' @param m_convergence_pilot Optional integer. Number of inner Gibbs sweeps
-#'   per pilot chain.  When \code{NULL} (default) and \code{n_pilot > 0},
-#'   derived from \code{mode_gap_max} via Theorem 3; floored at \code{m_min}.
-#'   A user-supplied value is used as-is.
-#' @param tv_tol Single numeric in \code{(0, 1)}. Total variation tolerance
-#'   used for convergence calibration.  Default \code{0.01}.
-#' @param mode_gap_max Single positive numeric. Maximum per-coordinate
-#'   mode--mean gap (in posterior SD units) that \code{m_convergence_pilot} is
-#'   calibrated to cover.  Default \code{1.0}.  Ignored when
-#'   \code{m_convergence_pilot} is user-supplied.
-#' @param seed Optional integer RNG seed passed to \code{\link{run_short_chains}}.
-#'   Default \code{NULL} (no seeding).
-#' @param collect_block1 Logical. If \code{TRUE}, collect and row-bind the
-#'   Block 1 (\code{coefficients}) matrix from every main-stage chain.
-#'   Default \code{TRUE}.
-#' @param verbose Logical. Print stage headers and convergence diagnostics.
-#'   Default \code{TRUE}.
-#' @param progbar Logical. Passed to \code{\link{run_short_chains}}; when
-#'   \code{TRUE}, shows chain-level progress bars during pilot and main
-#'   sampling. Default \code{FALSE}.
-#' @return An object of class \code{c("rglmerb", "list")} with components:
-#'   \describe{
-#'     \item{\code{call}}{Matched call.}
-#'     \item{\code{fixef_draws}}{Named list of \code{n x q_k} matrices of
-#'       Block 2 draws from the main stage, one per RE component.}
-#'     \item{\code{coefficients}}{Block 1 endpoint draws stacked from the main
-#'       stage, or \code{NULL} if \code{collect_block1 = FALSE}.}
-#'     \item{\code{dispersion_fixef_draws}}{\code{n x p_re} matrix of
-#'       \eqn{\tau^2_k} draws from the main stage.}
-#'     \item{\code{iters_fixef_draws}}{\code{n x p_re} matrix of envelope
-#'       candidate counts from the main stage.}
-#'     \item{\code{mu_all_last}}{Per-observation fitted means from the last
-#'       main-stage chain.}
-#'     \item{\code{coef.mode}}{ICM posterior mode (\code{fixef_start}).}
-#'     \item{\code{ranef.mode}}{Block 1 posterior mode \code{pm$b_mean}, or
-#'       \code{NULL} if \code{fixef_start} was user-supplied.}
-#'     \item{\code{fixef_main_start}}{Starting point actually used for the
-#'       main stage: pilot mean when a pilot was run, else \code{fixef_start}.}
-#'     \item{\code{pilot}}{Pilot-stage sampler result in legacy
-#'       \code{fixef_draws} layout, or \code{NULL}.}
-#'     \item{\code{pilot_mode_test}}{List with \code{Q}, \code{df},
-#'       \code{p_value}, \code{n_pilot}; or \code{NULL}.}
-#'     \item{\code{m_convergence_used}}{The \code{m_convergence} value
-#'       actually used for the main stage.}
-#'     \item{\code{convergence_info}}{List with convergence diagnostics:
-#'       \code{method}, \code{tv_tol}, \code{lambda_star},
-#'       \code{eigenvalues}, \code{m_min}, \code{m_convergence},
-#'       \code{m_convergence_pilot}, \code{mode_gap_max},
-#'       \code{m_pilot_from_gap}, \code{draw_engine}, and (when a pilot was
-#'       run) \code{lambda_star_upper}, \code{eigenvalues_upper},
-#'       \code{m_min_upper}, \code{i_max_rate}, \code{lambda_star_vec}.}
-#'     \item{\code{Prior}}{List with \code{block1_prior} and
-#'       \code{pfamily_list}.}
-#'     \item{\code{design}}{\code{design} echoed.}
-#'   }
-#' @seealso \code{\link{glmerb}}, \code{\link{rlmerb}}, \code{\link{rglmerb_v2}},
-#'   \code{\link{rglmerb_experimental}}, \code{\link[glmbayes]{rglmb}}
+#' @inheritParams rglmerb_v2
+#' @return An object of class \code{c("rglmerb_v3", "list")} with the same
+#'   components as \code{\link{rglmerb_v2}}.
+#' @seealso \code{\link{rglmerb_v2}}, \code{\link{rglmerb}}, \code{\link{glmerb}},
+#'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v3}}
 #' @export
-rglmerb <- function(
+rglmerb_v3 <- function(
     n,
     design,
     prior,
@@ -118,7 +33,6 @@ rglmerb <- function(
 ) {
   cl <- match.call()
 
-  # ---- argument validation --------------------------------------------------
   if (length(n) > 1L) n <- length(n)
   n <- as.integer(n[1L])
   if (n < 1L) stop("'n' must be at least 1.", call. = FALSE)
@@ -170,7 +84,6 @@ rglmerb <- function(
   group_levels <- levels(design$groups)
   is_gaussian  <- identical(family$family, "gaussian")
 
-  # ---- ICM posterior mode ---------------------------------------------------
   ranef_mode <- NULL
   if (is.null(fixef_start)) {
     pm          <- glmbayesCore::glmerb_posterior_mode(design, family, prior)
@@ -202,7 +115,6 @@ rglmerb <- function(
 
   block1_prior <- .lmebayes_block1_prior_list(prior)
 
-  # ---- convergence calibration ----------------------------------------------
   if (is_gaussian) {
     rate <- glmbayesCore::two_block_rate_v2(
       x                 = design$Z,
@@ -239,7 +151,7 @@ rglmerb <- function(
     m_convergence <- m_min
   } else if (m_convergence < m_min) {
     warning(
-      "rglmerb: m_convergence = ", m_convergence, " is below the derived ",
+      "rglmerb_v3: m_convergence = ", m_convergence, " is below the derived ",
       "minimum m_min = ", m_min, " for tv_tol = ", tv_tol,
       "; using m_min instead.",
       call. = FALSE
@@ -297,10 +209,9 @@ rglmerb <- function(
     m_convergence_pilot = if (run_pilot) m_convergence_pilot else NULL,
     mode_gap_max        = if (run_pilot) mode_gap_max else NULL,
     m_pilot_from_gap    = if (run_pilot) m_pilot_from_gap else NULL,
-    draw_engine         = "independent_short_chains"
+    draw_engine         = "two_block_rNormal_reg_v3"
   )
 
-  # ---- pilot stage ----------------------------------------------------------
   pilot           <- NULL
   pilot_mode_test <- NULL
   fixef_main_start <- fixef_start
@@ -313,7 +224,7 @@ rglmerb <- function(
       ))
     }
 
-    pilot <- run_short_chains(
+    pilot <- run_short_chains_v3(
       n_chains       = n_pilot_int,
       start_fixef    = fixef_start,
       inner_sweeps   = m_convergence_pilot,
@@ -455,8 +366,7 @@ rglmerb <- function(
     }
   }
 
-  # ---- main stage -----------------------------------------------------------
-  sampler <- run_short_chains(
+  sampler <- run_short_chains_v3(
     n_chains       = n,
     start_fixef    = fixef_main_start,
     inner_sweeps   = m_convergence,
@@ -491,6 +401,6 @@ rglmerb <- function(
                                     pfamily_list = prior$pfamily_list),
       design                 = design
     ),
-    class = c("rglmerb", "list")
+    class = c("rglmerb_v3", "list")
   )
 }

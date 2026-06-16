@@ -31,6 +31,10 @@
 #' @param collect_block1 Logical. If \code{TRUE}, collect and rbind the
 #'   Block 1 (\code{coefficients}) matrix from every chain.  Default
 #'   \code{TRUE}.
+#' @param progbar Logical. When \code{TRUE} and \code{n_chains > 1}, show a
+#'   text progress bar over independent chains. When \code{n_chains == 1},
+#'   passed through to \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
+#'   (inner Gibbs sweeps). Default \code{FALSE}.
 #' @return A list with components:
 #'   \describe{
 #'     \item{\code{fixef_draws}}{Named list of \code{n_chains x q_k} matrices,
@@ -58,7 +62,8 @@ run_short_chains <- function(
     group_levels,
     seed_offset    = 0L,
     seed           = NULL,
-    collect_block1 = TRUE
+    collect_block1 = TRUE,
+    progbar        = FALSE
 ) {
   fe_draws <- lapply(start_fixef, function(beta0) {
     mat <- matrix(NA_real_, nrow = n_chains, ncol = length(beta0))
@@ -75,7 +80,13 @@ run_short_chains <- function(
   coef_rows <- if (collect_block1) vector("list", n_chains) else NULL
   mu_last   <- NULL
 
+  show_chain_bar <- isTRUE(progbar) && n_chains > 1L
+  inner_progbar  <- isTRUE(progbar) && n_chains == 1L
+
   for (i in seq_len(n_chains)) {
+    if (show_chain_bar) {
+      .lmebayes_progress_bar(i, n_chains)
+    }
     seed_i <- if (!is.null(seed)) as.integer(seed + seed_offset + i) else NULL
     out_i  <- glmbayesCore::two_block_rNormal_reg_v2(
       n                 = 1L,
@@ -92,7 +103,7 @@ run_short_chains <- function(
       family            = family,
       m_convergence     = inner_sweeps,
       seed              = seed_i,
-      progbar           = FALSE
+      progbar           = inner_progbar
     )
     for (k in re_names) {
       fe_draws[[k]][i, ] <- out_i$fixef_draws[[k]][1L, ]
@@ -103,6 +114,10 @@ run_short_chains <- function(
       coef_rows[[i]] <- out_i$coefficients
     }
     mu_last <- out_i$mu_all_last
+  }
+
+  if (show_chain_bar) {
+    .lmebayes_progress_bar_finish()
   }
 
   coefficients_local <- if (collect_block1) {
@@ -120,4 +135,29 @@ run_short_chains <- function(
     coefficients           = coefficients_local,
     mu_all_last            = mu_last
   )
+}
+
+#' Text progress bar matching \pkg{glmbayesCore} C++ style
+#' @param current Completed step (1-based, up to \code{total}).
+#' @param total Total number of steps.
+#' @noRd
+.lmebayes_progress_bar <- function(current, total) {
+  if (total <= 0L) {
+    return(invisible())
+  }
+  totaldotz <- 40L
+  fraction  <- current / total
+  dotz      <- round(fraction * totaldotz)
+  cat("\r", strrep(" ", 80L), "\r", sep = "")
+  cat(sprintf("%3.0f%% [", fraction * 100), sep = "")
+  cat(paste0(rep("=", dotz), collapse = ""))
+  cat(paste0(rep(" ", totaldotz - dotz), collapse = ""))
+  cat("]", sep = "")
+  utils::flush.console()
+}
+
+#' Finish a progress bar started by \code{.lmebayes_progress_bar}
+#' @noRd
+.lmebayes_progress_bar_finish <- function() {
+  cat("\n")
 }

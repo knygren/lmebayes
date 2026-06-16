@@ -72,6 +72,10 @@ glmerb_posterior_mode <- glmbayesCore::glmerb_posterior_mode
 #' @export
 two_block_rNormal_reg <- glmbayesCore::two_block_rNormal_reg
 
+#' @inherit glmbayesCore::rGLMM
+#' @export
+rGLMM <- glmbayesCore::rGLMM
+
 #' @inherit glmbayesCore::multi_rNormal_reg
 #' @export
 multi_rNormal_reg <- glmbayesCore::multi_rNormal_reg

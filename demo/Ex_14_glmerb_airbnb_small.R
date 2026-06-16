@@ -34,7 +34,7 @@ form <- reviews ~ walk_c + rating_c + (1 + rating_c || neighborhood)
 ps <- Prior_Setup_lmebayes(form, data = dat, family = poisson(), pwt = 0.01)
 
 ## Inflate tau^2 to stress-test convergence calibration (optional).
-ps$Sigma_ranef <- ps$Sigma_ranef * 25
+#ps$Sigma_ranef <- ps$Sigma_ranef * 25
 
 fit <- glmerb(
   form,
@@ -42,7 +42,8 @@ fit <- glmerb(
   family       = poisson(),
   pfamily_list = pfamily_list(ps),
   n            = 2000L,
-  seed         = 42L
+  seed         = 42L,
+  progbar=TRUE
 )
 cat("m_convergence used:", fit$convergence$m_convergence, "\n")
 cat(sprintf(

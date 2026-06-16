@@ -17,7 +17,8 @@ rglmerb(
   mode_gap_max = 1,
   seed = NULL,
   collect_block1 = TRUE,
-  verbose = TRUE
+  verbose = TRUE,
+  progbar = FALSE
 )
 }
 \arguments{
@@ -63,9 +64,8 @@ mode--mean gap (in posterior SD units) that \code{m_convergence_pilot} is
 calibrated to cover.  Default \code{1.0}.  Ignored when
 \code{m_convergence_pilot} is user-supplied.}
 
-\item{seed}{Optional integer RNG seed.  Chain \code{i} of the pilot uses
-seed \code{seed + i}; chain \code{j} of the main stage uses
-\code{seed + n_pilot + j}.  Default \code{NULL} (no seeding).}
+\item{seed}{Optional integer RNG seed passed to \code{\link{run_short_chains}}.
+Default \code{NULL} (no seeding).}
 
 \item{collect_block1}{Logical. If \code{TRUE}, collect and row-bind the
 Block 1 (\code{coefficients}) matrix from every main-stage chain.
@@ -73,6 +73,10 @@ Default \code{TRUE}.}
 
 \item{verbose}{Logical. Print stage headers and convergence diagnostics.
 Default \code{TRUE}.}
+
+\item{progbar}{Logical. Passed to \code{\link{run_short_chains}}; when
+\code{TRUE}, shows chain-level progress bars during pilot and main
+sampling. Default \code{FALSE}.}
 }
 \value{
 An object of class \code{c("rglmerb", "list")} with components:
@@ -93,8 +97,8 @@ main-stage chain.}
 \code{NULL} if \code{fixef_start} was user-supplied.}
 \item{\code{fixef_main_start}}{Starting point actually used for the
 main stage: pilot mean when a pilot was run, else \code{fixef_start}.}
-\item{\code{pilot}}{Pilot \code{run_short_chains} result, or
-\code{NULL}.}
+\item{\code{pilot}}{Pilot-stage sampler result in legacy
+\code{fixef_draws} layout, or \code{NULL}.}
 \item{\code{pilot_mode_test}}{List with \code{Q}, \code{df},
 \code{p_value}, \code{n_pilot}; or \code{NULL}.}
 \item{\code{m_convergence_used}}{The \code{m_convergence} value
@@ -120,9 +124,9 @@ short chains and optionally precedes the main run with a pilot stage (also
 independent chains) to locate the posterior mean for non-Gaussian models.
 }
 \details{
-\code{rglmerb} is called internally by \code{\link{glmerb}} after
-\code{\link[lme4]{glmer}} and \code{\link{model_setup}} are complete.  It
-may also be called directly in simulation workflows.  It encapsulates:
+\code{rglmerb} is the legacy R-loop driver (\code{\link{run_short_chains}}).
+\code{\link{glmerb}} uses \code{\link{rglmerb_v2}} (same R-loop driver as
+\code{rglmerb}).  For the v3 development chain, see \code{\link{rglmerb_v3}}.  It encapsulates:
 \enumerate{
 \item ICM posterior mode (\code{\link[glmbayesCore]{glmerb_posterior_mode}})
 \item Block 1 prior construction (\code{.lmebayes_block1_prior_list})
@@ -130,11 +134,10 @@ may also be called directly in simulation workflows.  It encapsulates:
 (\code{\link[glmbayesCore]{two_block_rate_v2}},
 \code{\link[glmbayesCore]{two_block_l_for_tv}})
 \item Pilot stage, chi-squared test, and per-draw eigenvalue upper bounds
-\item Main sampling stage
+\item Main sampling via repeated \code{\link{run_short_chains}} calls
 }
 }
 \seealso{
-\code{\link{glmerb}}, \code{\link{rlmerb}},
-\code{\link[glmbayes]{rglmb}},
-\code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
+\code{\link{glmerb}}, \code{\link{rlmerb}}, \code{\link{rglmerb_v2}},
+\code{\link{rglmerb_experimental}}, \code{\link[glmbayes]{rglmb}}
 }
