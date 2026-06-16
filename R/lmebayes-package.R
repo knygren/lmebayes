@@ -51,6 +51,7 @@
 #' @importFrom MASS mvrnorm
 #' @importFrom Rdpack reprompt
 #' @importFrom RcppParallel RcppParallelLibs
+#' @importFrom utils flush.console
 #' @importFrom glmbayes glmb.covratio glmb.dffits glmb.influence.measures
 #' @importFrom glmbayes extractDIC directional_tail
 #' @importFrom glmbayes has_opencl get_opencl_core_count
