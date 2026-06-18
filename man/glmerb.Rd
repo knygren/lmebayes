@@ -174,7 +174,7 @@ When \code{NULL} (default), iter-0 means are taken from the
 \item{seed}{Optional; sets the RNG seed before sampling.}
 
 \item{progbar}{Logical. When \code{TRUE}, show text progress bars during
-pilot and main replicate sampling inside \code{\link{rglmerb_v2}}. Default
+pilot and main replicate sampling inside \code{\link{rglmerb_v3}}. Default
 \code{FALSE}.}
 
 \item{...}{Reserved for future use.}
