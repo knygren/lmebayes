@@ -1,20 +1,22 @@
-#' Raw two-stage Gibbs sampler (v3 short-chain driver)
+#' Raw two-stage Gibbs sampler (v4 short-chain driver, pre-allocated state)
 #'
-#' Same workflow as \code{\link{rglmerb_v2}}, but pilot and main sampling call
-#' \code{\link{run_short_chains_v3}} (a single
-#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v3}} call per stage with
-#' the chain loop in C++) instead of the v2 R-loop driver
-#' (\code{\link{run_short_chains_v2}}).
+#' Same workflow as \code{\link{rglmerb_v3}}, but pilot and main sampling call
+#' \code{\link{run_short_chains_v4}} (a single
+#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v4}} call per stage with
+#' pre-allocated per-chain C++ state) instead of \code{\link{run_short_chains_v3}}.
 #'
-#' For the v4 driver used by \code{\link{glmerb}}, see \code{\link{rglmerb_v4}}.
+#' Development driver with \code{fixef_temp} in C++.
+#' \code{\link{glmerb}} calls \code{rglmerb_v4} for Poisson/non-Gaussian sampling.
+#' For the v3 chain-outer C++ driver, see \code{\link{rglmerb_v3}}.
+#' For the v2 R-loop reference, see \code{\link{rglmerb_v2}}.
 #'
 #' @inheritParams rglmerb_v2
-#' @return An object of class \code{c("rglmerb_v3", "list")} with the same
-#'   components as \code{\link{rglmerb_v2}}.
-#' @seealso \code{\link{rglmerb_v2}}, \code{\link{rglmerb}}, \code{\link{glmerb}},
-#'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v3}}
+#' @return An object of class \code{c("rglmerb_v4", "list")} with the same
+#'   components as \code{\link{rglmerb_v3}}.
+#' @seealso \code{\link{rglmerb_v3}}, \code{\link{rglmerb_v2}}, \code{\link{rglmerb}},
+#'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v4}}
 #' @export
-rglmerb_v3 <- function(
+rglmerb_v4 <- function(
     n,
     design,
     prior,
@@ -150,7 +152,7 @@ rglmerb_v3 <- function(
     m_convergence <- m_min
   } else if (m_convergence < m_min) {
     warning(
-      "rglmerb_v3: m_convergence = ", m_convergence, " is below the derived ",
+      "rglmerb_v4: m_convergence = ", m_convergence, " is below the derived ",
       "minimum m_min = ", m_min, " for tv_tol = ", tv_tol,
       "; using m_min instead.",
       call. = FALSE
@@ -208,7 +210,7 @@ rglmerb_v3 <- function(
     m_convergence_pilot = if (run_pilot) m_convergence_pilot else NULL,
     mode_gap_max        = if (run_pilot) mode_gap_max else NULL,
     m_pilot_from_gap    = if (run_pilot) m_pilot_from_gap else NULL,
-    draw_engine         = "two_block_rNormal_reg_v3"
+    draw_engine         = "two_block_rNormal_reg_v4"
   )
 
   pilot           <- NULL
@@ -218,12 +220,12 @@ rglmerb_v3 <- function(
   if (run_pilot) {
     if (verbose) {
       cat(sprintf(
-        "--- glmerb: pilot stage (%d independent chains from ICM mode; m_convergence_pilot = %d) ---\n\n",
+        "--- glmerb [v4 / two_block_rNormal_reg_v4]: pilot stage (%d independent chains from ICM mode; m_convergence_pilot = %d) ---\n\n",
         n_pilot_int, m_convergence_pilot
       ))
     }
 
-    pilot <- run_short_chains_v3(
+    pilot <- run_short_chains_v4(
       n_chains       = n_pilot_int,
       start_fixef    = fixef_start,
       inner_sweeps   = m_convergence_pilot,
@@ -352,20 +354,20 @@ rglmerb_v3 <- function(
         m_convergence
       ))
       cat(sprintf(
-        "--- glmerb: pilot complete; main stage (%d independent chains from pilot mean; m_convergence = %d) ---\n\n",
+        "--- glmerb [v4 / two_block_rNormal_reg_v4]: pilot complete; main stage (%d independent chains from pilot mean; m_convergence = %d) ---\n\n",
         n, m_convergence
       ))
     }
   } else {
     if (verbose) {
       cat(sprintf(
-        "--- glmerb: main stage (%d independent chains from ICM mode; m_convergence = %d) ---\n\n",
+        "--- glmerb [v4 / two_block_rNormal_reg_v4]: main stage (%d independent chains from ICM mode; m_convergence = %d) ---\n\n",
         n, m_convergence
       ))
     }
   }
 
-  sampler <- run_short_chains_v3(
+  sampler <- run_short_chains_v4(
     n_chains       = n,
     start_fixef    = fixef_main_start,
     inner_sweeps   = m_convergence,
@@ -400,6 +402,6 @@ rglmerb_v3 <- function(
                                     pfamily_list = prior$pfamily_list),
       design                 = design
     ),
-    class = c("rglmerb_v3", "list")
+    class = c("rglmerb_v4", "list")
   )
 }

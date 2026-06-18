@@ -80,7 +80,7 @@
 #'   shortcut to \code{lmer} does not accept an explicit \code{glmerControl};
 #'   leave \code{control = NULL} or pass \code{\link[lme4]{lmerControl}}.
 #' @param progbar Logical. When \code{TRUE}, show text progress bars during
-#'   pilot and main replicate sampling inside \code{\link{rglmerb_v3}}. Default
+#'   pilot and main replicate sampling inside \code{\link{rglmerb_v4}}. Default
 #'   \code{FALSE}.
 #' @return Object of class \code{"glmerb"}: same structure as \code{"lmerb"},
 #'   with additional \code{family}, \code{glmer} (reference
@@ -284,8 +284,8 @@ glmerb <- function(
   run_pilot <- !identical(family$family, "gaussian") && !is.null(n_pilot)
 
   # ICM mode, convergence calibration, pilot stage, and main stage are all
-  # handled inside rglmerb_v3 (C++ chain-outer short-chain driver).
-  sampler <- rglmerb_v3(
+  # handled inside rglmerb_v4 (v4 C++ chain-outer short-chain driver).
+  sampler <- rglmerb_v4(
     n                   = n,
     design              = design,
     prior               = prior,
@@ -296,10 +296,10 @@ glmerb <- function(
     m_convergence_pilot = m_convergence_pilot,
     tv_tol              = tv_tol,
     mode_gap_max        = mode_gap_max,
-    seed                = seed,
     collect_block1      = TRUE,
     verbose             = TRUE,
-    progbar             = progbar
+    progbar             = progbar,
+    seed                = seed
   )
 
   convergence_info <- sampler$convergence_info

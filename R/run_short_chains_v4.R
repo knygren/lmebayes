@@ -1,15 +1,14 @@
-#' Run independent short Gibbs chains via \code{two_block_rNormal_reg_v3}
+#' Run independent short Gibbs chains via \code{two_block_rNormal_reg_v4}
 #'
-#' Same contract as \code{\link{run_short_chains_v2}}, but the chain loop is
-#' in C++ via a single call to
-#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v3}}.
-#'
-#' Development track parallel to \code{\link{run_short_chains_v2}} (v2 R loop).
+#' Same contract as \code{\link{run_short_chains_v3}}, but calls
+#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v4}} (v4 C++ driver with
+#' per-chain \code{fixef_temp} / \code{tau2_temp} state buffers).
+#' Used by \code{\link{rglmerb_v4}} and \code{\link{glmerb}}.
 #'
 #' @inheritParams run_short_chains
 #' @return As \code{\link{run_short_chains}}.
 #' @keywords internal
-run_short_chains_v3 <- function(
+run_short_chains_v4 <- function(
     n_chains,
     start_fixef,
     inner_sweeps,
@@ -24,7 +23,7 @@ run_short_chains_v3 <- function(
     collect_block1 = TRUE,
     progbar        = FALSE
 ) {
-  out <- glmbayesCore::two_block_rNormal_reg_v3(
+  out <- glmbayesCore::two_block_rNormal_reg_v4(
     n                 = n_chains,
     y                 = design$y,
     x                 = design$Z,
