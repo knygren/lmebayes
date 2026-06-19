@@ -1,9 +1,16 @@
-# lmebayes (development version)
+﻿# lmebayes (development version)
 
-* **Removed legacy GLMM sampler drivers:** dropped development exports
-  `rglmerb`, `rglmerb_v2`--`rglmerb_v5`, `rglmerb_experimental`, and internal
-  `run_short_chains`--`run_short_chains_v5`.  `glmerb()` now uses only
-  `rglmerb_v6` with `glmbayesCore::run_sweep_outer_chains_v6`.
+* **Extract GLMM engine to `rGLMM_temp`:** replicate-chain orchestration
+  (TV calibration, pilot chi-squared, post-pilot eigenvalue upper bound,
+  main-stage sweep-outer sampling) moved from `rglmerb` into exported
+  `rGLMM_temp`, mirroring glmbayesCore `rGLMM` signature and `fixef.*`
+  return layout.  `rglmerb` is now a thin `model_setup` wrapper (ICM mode,
+  priors, field mapping for `glmerb`).
+* **Removed legacy GLMM sampler drivers and renamed to `rglmerb`:** dropped
+  development exports `rglmerb_v2`--`rglmerb_v5`, `rglmerb_experimental`, and
+  internal `run_short_chains`--`run_short_chains_v5`.  The sweep-outer GLMM
+  engine (formerly `rglmerb_v6`) is now `rglmerb` / class `"rglmerb"`, called
+  by `glmerb()` via `glmbayesCore::run_sweep_outer_chains_v6`.
 
 * **Two-phase Gibbs sampling in `glmerb` (new `n_pilot` argument):** for
   non-Gaussian families the ICM posterior mode is below the true posterior
@@ -233,18 +240,18 @@
 
 * **Conjugate GLM priors (Poisson, binomial, Gamma):** New closed-form IID
   sampling paths for intercept-only models with identity links. **`dBeta()`**
-  with **`rBeta_reg()`** supports Beta–Binomial(identity) conjugate updates;
+  with **`rBeta_reg()`** supports Betaâ€“Binomial(identity) conjugate updates;
   **`dGamma(Inv_Dispersion = FALSE)`** with **`rGamma_Conjugate_reg()`**
-  supports Gamma–Poisson(identity) and Gamma–Gamma(identity) rate priors.
+  supports Gammaâ€“Poisson(identity) and Gammaâ€“Gamma(identity) rate priors.
   **`Prior_Setup()`** can calibrate conjugate hyperparameters for these
   families (weighted Poisson rate and binomial probability defaults). See
-  **`?dBeta`**, **`?dGamma`**, and the Chapter 02 / Chapter 07–11 vignettes.
+  **`?dBeta`**, **`?dGamma`**, and the Chapter 02 / Chapter 07â€“11 vignettes.
 
 * **Vignette structure:** Reworked **Chapter 00** as a roadmap across five
   main parts plus technical appendices. **Chapter 02** is now a conceptual
   introduction to single-parameter conjugacy; worked examples move to
-  **Chapter 02-S01** through **Chapter 02-S05** (Beta–Binomial, Normal–Normal,
-  Gamma–Poisson, exposure-weighted Poisson, and related topics). A **Companion
+  **Chapter 02-S01** through **Chapter 02-S05** (Betaâ€“Binomial, Normalâ€“Normal,
+  Gammaâ€“Poisson, exposure-weighted Poisson, and related topics). A **Companion
   textbooks** section in Chapter 00 indexes optional Bayes Rules! and `LearnBayes`
   appendices tied to the main GLM chapters.
 
@@ -252,20 +259,20 @@
   (`detect_*`, PATH helpers, environment checks) now live in the **`opencltools`**
   package (`Imports`, >= 0.8.0). **glmbayes** keeps package-specific entry
   points (`has_opencl()`, `diagnose_glmbayes()`) that report compile-time
-  OpenCL status for this build while delegating shared GPU/runtime checks—reducing
+  OpenCL status for this build while delegating shared GPU/runtime checksâ€”reducing
   duplicated maintenance in **glmbayes**.
 
 * **Bayes Rules! companion examples:** Optional vignette appendices reproduce
   book datasets and published posterior summaries using **`lmb()`**, **`glmb()`**,
   **`Prior_Setup()`**, and **`dNormal()`** (suggested package **`bayesrules`** for
-  data only). Coverage includes **`bikes`** (Ch. 03), **`weather_perth`** (Ch. 08–09),
-  **`equality_index`** (Ch. 10), Gamma–Poisson conjugacy (Ch. 02-S04), and a
+  data only). Coverage includes **`bikes`** (Ch. 03), **`weather_perth`** (Ch. 08â€“09),
+  **`equality_index`** (Ch. 10), Gammaâ€“Poisson conjugacy (Ch. 02-S04), and a
   scope note for Gamma regression (Ch. 11). Comparison tables use **printed book
-  values**, not live **`rstanarm`** fits. See **Chapter 00** § Companion textbooks.
+  values**, not live **`rstanarm`** fits. See **Chapter 00** Â§ Companion textbooks.
 
 * **`LearnBayes` examples:** **Chapter 02-S04**, Appendix A, maps the
   **`hearttransplants`** example from Albert (2009) / `LearnBayes` (exposure-weighted
-  Gamma–Poisson conjugacy) to **`glmb()`** with analytic Albert posteriors for
+  Gammaâ€“Poisson conjugacy) to **`glmb()`** with analytic Albert posteriors for
   verification (suggested package **`LearnBayes`**).
 
 ## Other changes
@@ -296,15 +303,15 @@
 
 * **OpenCL program assembly:** Reworked loading so the full OpenCL program is
   built from explicit fragments (global header, `nmath` closure, family/link
-  kernels) rather than ad hoc concatenation—clearer ownership of what enters
+  kernels) rather than ad hoc concatenationâ€”clearer ownership of what enters
   GPU compilation and easier parity with CPU paths.
 
 * **Tests:** Added and expanded **testthat** coverage aimed at OpenCL code
   paths (including binomial examples that exercise GPU envelope evaluation),
   complementing existing Cleveland-style checks.
 
-* **Bug fix — binomial OpenCL:** Binomial `f2_f3` OpenCL kernels now evaluate
-  the data log-likelihood with the same **proportion × trial-count**
+* **Bug fix â€” binomial OpenCL:** Binomial `f2_f3` OpenCL kernels now evaluate
+  the data log-likelihood with the same **proportion Ã— trial-count**
   semantics as **`dbinom_glmb`** on the CPU (`round` successes and trials,
   clamped probability). This fixes envelope / PLSD failures for aggregated
   binomial data (e.g. `cbind(successes, failures)` / `MASS::menarche`) where
@@ -358,8 +365,8 @@ near-complete feature set relative to earlier development builds.
   and `link` functions play for the likelihoods. Specifically, we
   have the following:
 
-  **Supported Priors:** Normal (all families/links), Normal–Gamma and 
-  independent Normal–Gamma (gaussian families), and Gamma-on-precision 
+  **Supported Priors:** Normal (all families/links), Normalâ€“Gamma and 
+  independent Normalâ€“Gamma (gaussian families), and Gamma-on-precision 
   (gaussian and Gamma families).
   
 ### Prior_Setup function:
