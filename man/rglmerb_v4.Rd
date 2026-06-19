@@ -90,7 +90,8 @@ pre-allocated per-chain C++ state) instead of \code{\link{run_short_chains_v3}}.
 }
 \details{
 Development driver with \code{fixef_temp} in C++.
-\code{\link{glmerb}} calls \code{rglmerb_v4} for Poisson/non-Gaussian sampling.
+\code{\link{glmerb}} uses \code{\link{rglmerb_v5}}; see \code{rglmerb_v5} for
+the current sampling path. This v4 driver remains the chain-outer reference.
 For the v3 chain-outer C++ driver, see \code{\link{rglmerb_v3}}.
 For the v2 R-loop reference, see \code{\link{rglmerb_v2}}.
 }

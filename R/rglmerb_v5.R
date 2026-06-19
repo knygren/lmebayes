@@ -1,23 +1,23 @@
-#' Raw two-stage Gibbs sampler (v4 short-chain driver, pre-allocated state)
+#' Raw two-stage Gibbs sampler (v5 short-chain driver, sweep-outer loop)
 #'
-#' Same workflow as \code{\link{rglmerb_v3}}, but pilot and main sampling call
-#' \code{\link{run_short_chains_v4}} (a single
-#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v4}} call per stage with
-#' pre-allocated per-chain C++ state) instead of \code{\link{run_short_chains_v3}}.
+#' Same workflow as \code{\link{rglmerb_v4}}, but pilot and main sampling call
+#' \code{\link{run_short_chains_v5}} (a single
+#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v5}} call per stage with
+#' sweep-outer C++ loop order and per-sweep chain progress bars).
 #'
 #' Development driver with \code{fixef_temp} in C++.
-#' For the default \code{\link{glmerb}} driver, see \code{\link{rglmerb_v6}}.
-#' For the v5 sweep-outer C++ driver, see \code{\link{rglmerb_v5}}.
+#' \code{\link{glmerb}} calls \code{rglmerb_v5} for Poisson/non-Gaussian sampling.
+#' For the v4 chain-outer C++ driver, see \code{\link{rglmerb_v4}}.
 #' For the v3 chain-outer C++ driver, see \code{\link{rglmerb_v3}}.
 #' For the v2 R-loop reference, see \code{\link{rglmerb_v2}}.
 #'
 #' @inheritParams rglmerb_v2
-#' @return An object of class \code{c("rglmerb_v4", "list")} with the same
-#'   components as \code{\link{rglmerb_v3}}.
-#' @seealso \code{\link{rglmerb_v3}}, \code{\link{rglmerb_v2}}, \code{\link{rglmerb}},
-#'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v4}}
+#' @return An object of class \code{c("rglmerb_v5", "list")} with the same
+#'   components as \code{\link{rglmerb_v4}}.
+#' @seealso \code{\link{rglmerb_v4}}, \code{\link{rglmerb_v3}}, \code{\link{rglmerb_v2}}, \code{\link{rglmerb}},
+#'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v5}}
 #' @export
-rglmerb_v4 <- function(
+rglmerb_v5 <- function(
     n,
     design,
     prior,
@@ -161,7 +161,7 @@ rglmerb_v4 <- function(
     m_convergence <- m_min
   } else if (m_convergence < m_min) {
     warning(
-      "rglmerb_v4: m_convergence = ", m_convergence, " is below the derived ",
+      "rglmerb_v5: m_convergence = ", m_convergence, " is below the derived ",
       "minimum m_min = ", m_min, " for tv_tol = ", tv_tol,
       "; using m_min instead.",
       call. = FALSE
@@ -219,7 +219,7 @@ rglmerb_v4 <- function(
     m_convergence_pilot = if (run_pilot) m_convergence_pilot else NULL,
     mode_gap_max        = if (run_pilot) mode_gap_max else NULL,
     m_pilot_from_gap    = if (run_pilot) m_pilot_from_gap else NULL,
-    draw_engine         = "two_block_rNormal_reg_v4"
+    draw_engine         = "two_block_rNormal_reg_v5"
   )
 
   pilot           <- NULL
@@ -229,12 +229,12 @@ rglmerb_v4 <- function(
   if (run_pilot) {
     if (verbose) {
       cat(sprintf(
-        "--- glmerb [v4 / two_block_rNormal_reg_v4]: pilot stage (%d independent chains from ICM mode; m_convergence_pilot = %d) ---\n\n",
+        "--- glmerb [v5 / two_block_rNormal_reg_v5]: pilot stage (%d independent chains from ICM mode; m_convergence_pilot = %d) ---\n\n",
         n_pilot_int, m_convergence_pilot
       ))
     }
 
-    pilot <- run_short_chains_v4(
+    pilot <- run_short_chains_v5(
       n_chains       = n_pilot_int,
       start_fixef    = fixef_start,
       inner_sweeps   = m_convergence_pilot,
@@ -371,20 +371,20 @@ rglmerb_v4 <- function(
         m_convergence
       ))
       cat(sprintf(
-        "--- glmerb [v4 / two_block_rNormal_reg_v4]: pilot complete; main stage (%d independent chains from pilot mean; m_convergence = %d) ---\n\n",
+        "--- glmerb [v5 / two_block_rNormal_reg_v5]: pilot complete; main stage (%d independent chains from pilot mean; m_convergence = %d) ---\n\n",
         n, m_convergence
       ))
     }
   } else {
     if (verbose) {
       cat(sprintf(
-        "--- glmerb [v4 / two_block_rNormal_reg_v4]: main stage (%d independent chains from ICM mode; m_convergence = %d) ---\n\n",
+        "--- glmerb [v5 / two_block_rNormal_reg_v5]: main stage (%d independent chains from ICM mode; m_convergence = %d) ---\n\n",
         n, m_convergence
       ))
     }
   }
 
-  sampler <- run_short_chains_v4(
+  sampler <- run_short_chains_v5(
     n_chains       = n,
     start_fixef    = fixef_main_start,
     inner_sweeps   = m_convergence,
@@ -423,6 +423,6 @@ rglmerb_v4 <- function(
                                     pfamily_list = prior$pfamily_list),
       design                 = design
     ),
-    class = c("rglmerb_v4", "list")
+    class = c("rglmerb_v5", "list")
   )
 }

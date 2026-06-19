@@ -284,8 +284,8 @@ glmerb <- function(
   run_pilot <- !identical(family$family, "gaussian") && !is.null(n_pilot)
 
   # ICM mode, convergence calibration, pilot stage, and main stage are all
-  # handled inside rglmerb_v4 (v4 C++ chain-outer short-chain driver).
-  sampler <- rglmerb_v4(
+  # handled inside rglmerb_v6 (v6 R sweep-outer short-chain driver).
+  sampler <- rglmerb_v6(
     n                   = n,
     design              = design,
     prior               = prior,

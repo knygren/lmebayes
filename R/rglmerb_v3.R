@@ -6,7 +6,7 @@
 #' the chain loop in C++) instead of the v2 R-loop driver
 #' (\code{\link{run_short_chains_v2}}).
 #'
-#' For the v4 driver used by \code{\link{glmerb}}, see \code{\link{rglmerb_v4}}.
+#' For the v5 driver used by \code{\link{glmerb}}, see \code{\link{rglmerb_v5}}.
 #'
 #' @inheritParams rglmerb_v2
 #' @return An object of class \code{c("rglmerb_v3", "list")} with the same

@@ -43,7 +43,7 @@ fit <- glmerb(
   pfamily_list = pfamily_list(ps),
   n            = 2000L,
   seed         = 42L,
-  progbar=TRUE
+  progbar=FALSE
 )
 cat("m_convergence used:", fit$convergence$m_convergence, "\n")
 cat(sprintf(

@@ -1,14 +1,14 @@
-#' Run independent short Gibbs chains via \code{two_block_rNormal_reg_v4}
+#' Run independent short Gibbs chains via \code{two_block_rNormal_reg_v5}
 #'
-#' Same contract as \code{\link{run_short_chains_v3}}, but calls
-#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v4}} (v4 C++ driver with
-#' per-chain \code{fixef_temp} / \code{tau2_temp} state buffers).
-#' Used by \code{\link{rglmerb_v4}} and \code{\link{glmerb}}.
+#' Same contract as \code{\link{run_short_chains_v4}}, but calls
+#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v5}} (v5 C++ driver with
+#' sweep-outer loop order and per-sweep chain progress bars).
+#' Used by \code{\link{rglmerb_v5}} and \code{\link{glmerb}}.
 #'
 #' @inheritParams run_short_chains
 #' @return As \code{\link{run_short_chains}}.
 #' @keywords internal
-run_short_chains_v4 <- function(
+run_short_chains_v5 <- function(
     n_chains,
     start_fixef,
     inner_sweeps,
@@ -18,16 +18,16 @@ run_short_chains_v4 <- function(
     family,
     re_names,
     group_levels,
-    seed_offset    = 0L,
-    seed           = NULL,
+    seed = NULL,
+    seed_offset = 0L,
     collect_block1 = TRUE,
-    progbar        = FALSE,
-    stage_label    = "",
-    diag_sweeps    = FALSE,
-    fixef_mode     = NULL,
-    b_mode         = NULL
+    progbar = FALSE,
+    stage_label = "",
+    diag_sweeps = FALSE,
+    fixef_mode = NULL,
+    b_mode = NULL
 ) {
-  out <- glmbayesCore::two_block_rNormal_reg_v4(
+  out <- glmbayesCore::two_block_rNormal_reg_v5(
     n                 = n_chains,
     y                 = design$y,
     x                 = design$Z,

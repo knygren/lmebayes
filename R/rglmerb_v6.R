@@ -1,23 +1,21 @@
-#' Raw two-stage Gibbs sampler (v4 short-chain driver, pre-allocated state)
+#' Raw two-stage Gibbs sampler (v6 R sweep-outer short-chain driver)
 #'
-#' Same workflow as \code{\link{rglmerb_v3}}, but pilot and main sampling call
-#' \code{\link{run_short_chains_v4}} (a single
-#' \code{\link[glmbayesCore]{two_block_rNormal_reg_v4}} call per stage with
-#' pre-allocated per-chain C++ state) instead of \code{\link{run_short_chains_v3}}.
+#' Same workflow as \code{\link{rglmerb_v4}}, but pilot and main sampling call
+#' \code{\link{run_sweep_outer_chains_v6}} (pure-R sweep-outer loop: all-chain
+#' Block~1, then all-chain Block~2, per sweep) instead of the v4 C++ chain-outer
+#' driver.
 #'
-#' Development driver with \code{fixef_temp} in C++.
-#' For the default \code{\link{glmerb}} driver, see \code{\link{rglmerb_v6}}.
+#' \code{\link{glmerb}} calls \code{rglmerb_v6} for Poisson/non-Gaussian sampling.
 #' For the v5 sweep-outer C++ driver, see \code{\link{rglmerb_v5}}.
-#' For the v3 chain-outer C++ driver, see \code{\link{rglmerb_v3}}.
-#' For the v2 R-loop reference, see \code{\link{rglmerb_v2}}.
+#' For the v4 chain-outer C++ driver, see \code{\link{rglmerb_v4}}.
 #'
 #' @inheritParams rglmerb_v2
-#' @return An object of class \code{c("rglmerb_v4", "list")} with the same
-#'   components as \code{\link{rglmerb_v3}}.
-#' @seealso \code{\link{rglmerb_v3}}, \code{\link{rglmerb_v2}}, \code{\link{rglmerb}},
-#'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v4}}
+#' @return An object of class \code{c("rglmerb_v6", "list")} with the same
+#'   components as \code{\link{rglmerb_v4}}.
+#' @seealso \code{\link{rglmerb_v4}}, \code{\link{rglmerb_v5}}, \code{\link{glmerb}},
+#'   \code{\link{run_sweep_outer_chains_v6}}
 #' @export
-rglmerb_v4 <- function(
+rglmerb_v6 <- function(
     n,
     design,
     prior,
@@ -122,8 +120,10 @@ rglmerb_v4 <- function(
   fixef_mode_ref <- fixef_start
   b_mode_ref     <- ranef_mode
   diag_sweeps    <- isTRUE(verbose)
+  progbar_use    <- isTRUE(progbar) && !diag_sweeps
 
   block1_prior <- .lmebayes_block1_prior_list(prior)
+  ptypes       <- prior$ptypes
 
   if (is_gaussian) {
     rate <- glmbayesCore::two_block_rate_v2(
@@ -161,7 +161,7 @@ rglmerb_v4 <- function(
     m_convergence <- m_min
   } else if (m_convergence < m_min) {
     warning(
-      "rglmerb_v4: m_convergence = ", m_convergence, " is below the derived ",
+      "rglmerb_v6: m_convergence = ", m_convergence, " is below the derived ",
       "minimum m_min = ", m_min, " for tv_tol = ", tv_tol,
       "; using m_min instead.",
       call. = FALSE
@@ -219,39 +219,51 @@ rglmerb_v4 <- function(
     m_convergence_pilot = if (run_pilot) m_convergence_pilot else NULL,
     mode_gap_max        = if (run_pilot) mode_gap_max else NULL,
     m_pilot_from_gap    = if (run_pilot) m_pilot_from_gap else NULL,
-    draw_engine         = "two_block_rNormal_reg_v4"
+    draw_engine         = "run_sweep_outer_chains_v6"
   )
 
-  pilot           <- NULL
-  pilot_mode_test <- NULL
+  pilot            <- NULL
+  pilot_mode_test  <- NULL
   fixef_main_start <- fixef_start
 
-  if (run_pilot) {
-    if (verbose) {
-      cat(sprintf(
-        "--- glmerb [v4 / two_block_rNormal_reg_v4]: pilot stage (%d independent chains from ICM mode; m_convergence_pilot = %d) ---\n\n",
-        n_pilot_int, m_convergence_pilot
-      ))
-    }
-
-    pilot <- run_short_chains_v4(
-      n_chains       = n_pilot_int,
-      start_fixef    = fixef_start,
-      inner_sweeps   = m_convergence_pilot,
+  run_v6 <- function(n_chains, start_fixef, inner_sweeps, seed_offset, stage_label) {
+    run_sweep_outer_chains_v6(
+      n_chains       = n_chains,
+      start_fixef    = start_fixef,
+      inner_sweeps   = inner_sweeps,
       design         = design,
       block1_prior   = block1_prior,
       pfamily_list   = prior$pfamily_list,
       family         = family,
       re_names       = re_names,
       group_levels   = group_levels,
-      seed_offset    = 0L,
+      seed_offset    = seed_offset,
       seed           = seed,
-      collect_block1 = TRUE,
-      progbar        = progbar,
-      stage_label    = "pilot",
+      collect_block1 = collect_block1,
+      progbar        = progbar_use,
+      stage_label    = stage_label,
       diag_sweeps    = diag_sweeps,
       fixef_mode     = fixef_mode_ref,
-      b_mode         = b_mode_ref
+      b_mode         = b_mode_ref,
+      b_start        = b_mode_ref,
+      ptypes         = ptypes
+    )
+  }
+
+  if (run_pilot) {
+    if (verbose) {
+      cat(sprintf(
+        "--- glmerb [v6 / R sweep-outer]: pilot stage (%d independent chains from ICM mode; m_convergence_pilot = %d) ---\n\n",
+        n_pilot_int, m_convergence_pilot
+      ))
+    }
+
+    pilot <- run_v6(
+      n_chains     = n_pilot_int,
+      start_fixef  = fixef_start,
+      inner_sweeps = m_convergence_pilot,
+      seed_offset  = 0L,
+      stage_label  = "pilot"
     )
 
     X_pilot <- do.call(cbind, lapply(re_names, function(k) pilot$fixef_draws[[k]]))
@@ -371,37 +383,25 @@ rglmerb_v4 <- function(
         m_convergence
       ))
       cat(sprintf(
-        "--- glmerb [v4 / two_block_rNormal_reg_v4]: pilot complete; main stage (%d independent chains from pilot mean; m_convergence = %d) ---\n\n",
+        "--- glmerb [v6 / R sweep-outer]: pilot complete; main stage (%d independent chains from pilot mean; m_convergence = %d) ---\n\n",
         n, m_convergence
       ))
     }
   } else {
     if (verbose) {
       cat(sprintf(
-        "--- glmerb [v4 / two_block_rNormal_reg_v4]: main stage (%d independent chains from ICM mode; m_convergence = %d) ---\n\n",
+        "--- glmerb [v6 / R sweep-outer]: main stage (%d independent chains from ICM mode; m_convergence = %d) ---\n\n",
         n, m_convergence
       ))
     }
   }
 
-  sampler <- run_short_chains_v4(
-    n_chains       = n,
-    start_fixef    = fixef_main_start,
-    inner_sweeps   = m_convergence,
-    design         = design,
-    block1_prior   = block1_prior,
-    pfamily_list   = prior$pfamily_list,
-    family         = family,
-    re_names       = re_names,
-    group_levels   = group_levels,
-    seed_offset    = if (run_pilot) n_pilot_int else 0L,
-    seed           = seed,
-    collect_block1 = collect_block1,
-    progbar        = progbar,
-    stage_label    = "main",
-    diag_sweeps    = diag_sweeps,
-    fixef_mode     = fixef_mode_ref,
-    b_mode         = b_mode_ref
+  sampler <- run_v6(
+    n_chains     = n,
+    start_fixef  = fixef_main_start,
+    inner_sweeps = m_convergence,
+    seed_offset  = if (run_pilot) n_pilot_int else 0L,
+    stage_label  = "main"
   )
 
   structure(
@@ -423,6 +423,6 @@ rglmerb_v4 <- function(
                                     pfamily_list = prior$pfamily_list),
       design                 = design
     ),
-    class = c("rglmerb_v4", "list")
+    class = c("rglmerb_v6", "list")
   )
 }
