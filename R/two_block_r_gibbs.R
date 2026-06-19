@@ -7,8 +7,9 @@
 #             update hyperparameters via rglmb (one call per RE component).
 #
 # v6 runs ALL chains through Block 1, then ALL chains through Block 2, for each
-# inner sweep (sweep-outer). State for n independent short chains lives in a
-# single "batch" list updated in place.
+# inner sweep (sweep-outer). Block 1 is split into prep (mu_all + prior_list per
+# chain) and draw (block_rNormalGLM / block_rNormalReg per chain); both phases
+# are embarrassingly parallel over chains (optional n_cores on Unix/macOS).
 
 
 #' Initialize batch state for sweep-outer R Gibbs driver (v6)
@@ -128,6 +129,173 @@
   out
 }
 
+#' One-chain Block 1 prep: fixef -> mu_all -> prior_list (no sampling)
+#' @noRd
+.lmebayes_block1_prep_one_chain <- function(
+    batch,
+    i,
+    design,
+    block1_prior,
+    ptypes
+) {
+  fixef_i <- .lmebayes_batch_fixef_chain(batch, i)
+  mu_all  <- as.matrix(glmbayesCore::build_mu_all(
+    design, fixef_i, batch$group_levels
+  )$mu_all)
+  tau2_i  <- batch$tau2[i, ]
+  prior_list <- .lmebayes_block1_prior_with_tau2(
+    block1_prior, tau2_i, ptypes, batch$re_names, mu_all
+  )
+  list(mu_all = mu_all, prior_list = prior_list)
+}
+
+#' All-chain Block 1 prep: mu_all and prior_list for every chain
+#'
+#' Embarrassingly parallel over chain index (optional \code{n_cores}).
+#' @noRd
+block1_prep_all_chains <- function(
+    batch,
+    design,
+    block1_prior,
+    ptypes,
+    n_cores = NULL,
+    progbar = FALSE
+) {
+  n <- batch$n
+  show_bar <- isTRUE(progbar) && n > 1L &&
+    (is.null(n_cores) || as.integer(n_cores[1L]) < 2L)
+
+  prep_i <- function(i) {
+    if (show_bar) .lmebayes_progress_bar(i, n)
+    .lmebayes_block1_prep_one_chain(
+      batch        = batch,
+      i            = i,
+      design       = design,
+      block1_prior = block1_prior,
+      ptypes       = ptypes
+    )
+  }
+
+  prep_list <- .lmebayes_lapply_chains(n, prep_i, n_cores = n_cores)
+  if (show_bar) .lmebayes_progress_bar_finish()
+
+  structure(
+    list(
+      mu_all      = lapply(prep_list, `[[`, "mu_all"),
+      prior_lists = lapply(prep_list, `[[`, "prior_list")
+    ),
+    class = "lmebayes_block1_prep"
+  )
+}
+
+#' One-chain Block 1 draw given a prepared prior_list
+#' @noRd
+.lmebayes_block1_draw_one_chain <- function(
+    prior_list,
+    design,
+    family,
+    is_gaussian,
+    group_levels
+) {
+  if (is_gaussian) {
+    block_out <- glmbayesCore::block_rNormalReg(
+      n          = 1L,
+      y          = design$y,
+      x          = design$Z,
+      block      = design$groups,
+      prior_list = prior_list
+    )
+  } else {
+    block_out <- glmbayesCore::block_rNormalGLM(
+      n            = 1L,
+      y            = design$y,
+      x            = design$Z,
+      block        = design$groups,
+      prior_list   = prior_list,
+      family       = family,
+      use_parallel = FALSE,
+      verbose      = FALSE,
+      progbar      = FALSE
+    )
+  }
+
+  b_draw <- block_out$coefficients
+  rn <- rownames(b_draw)
+  if (!is.null(rn)) {
+    ord <- match(group_levels, rn)
+    if (any(is.na(ord))) {
+      stop("Block 1 group ids do not match group_levels.", call. = FALSE)
+    }
+    b_draw <- b_draw[ord, , drop = FALSE]
+  }
+  b_draw
+}
+
+#' All-chain Block 1 draw from prepared prior_lists
+#'
+#' Embarrassingly parallel over chain index (optional \code{n_cores}).
+#' Updates \code{batch$b} in place.
+#' @noRd
+block1_draw_all_chains <- function(
+    batch,
+    prep,
+    design,
+    family,
+    n_cores = NULL,
+    progbar = FALSE
+) {
+  is_gaussian <- identical(family$family, "gaussian")
+  n <- batch$n
+  show_bar <- isTRUE(progbar) && n > 1L &&
+    (is.null(n_cores) || as.integer(n_cores[1L]) < 2L)
+  prior_lists <- prep$prior_lists
+  if (length(prior_lists) != n) {
+    stop("length(prep$prior_lists) must equal batch$n.", call. = FALSE)
+  }
+
+  draw_i <- function(i) {
+    if (show_bar) .lmebayes_progress_bar(i, n)
+    .lmebayes_block1_draw_one_chain(
+      prior_list   = prior_lists[[i]],
+      design       = design,
+      family       = family,
+      is_gaussian  = is_gaussian,
+      group_levels = batch$group_levels
+    )
+  }
+
+  b_draws <- .lmebayes_lapply_chains(n, draw_i, n_cores = n_cores)
+  if (show_bar) .lmebayes_progress_bar_finish()
+
+  for (i in seq_len(n)) {
+    batch$b[, , i] <- b_draws[[i]]
+  }
+  batch
+}
+
+#' Apply FUN to each chain index, optionally in parallel (Unix/macOS only)
+#' @noRd
+.lmebayes_lapply_chains <- function(n, FUN, n_cores = NULL) {
+  idx <- seq_len(n)
+  if (is.null(n_cores)) {
+    return(lapply(idx, FUN))
+  }
+  n_cores <- as.integer(n_cores[1L])
+  if (!is.finite(n_cores) || n_cores < 2L) {
+    return(lapply(idx, FUN))
+  }
+  n_cores <- min(n_cores, n)
+  if (.Platform$OS.type == "windows") {
+    warning(
+      "Chain-parallel Block 1 (n_cores > 1) is not supported on Windows; ",
+      "using sequential lapply.",
+      call. = FALSE
+    )
+    return(lapply(idx, FUN))
+  }
+  parallel::mclapply(idx, FUN, mc.cores = n_cores)
+}
+
 #' One-chain Block 1 update (writes batch$b[,,i])
 #' @noRd
 .lmebayes_block1_one_chain <- function(
@@ -139,62 +307,20 @@
     ptypes,
     is_gaussian
 ) {
-  # --- Current hyperparameters for chain i -----------------------------------
-  # fixef_i: list of gamma vectors (Block-2 draws from the previous sweep).
-  fixef_i <- .lmebayes_batch_fixef_chain(batch, i)
-
-  # mu_all[j, k] = X_hyper[j, ] %*% gamma_k: prior mean of b_j under current gamma.
-  # This is what block_rNormalGLM uses as the center of the RE prior.
-  mu_all  <- as.matrix(glmbayesCore::build_mu_all(
-    design, fixef_i, batch$group_levels
-  )$mu_all)
-
-  # tau2_i: current ING dispersion draws for this chain (ignored if all dNormal).
-  tau2_i <- batch$tau2[i, ]
-
-  # Merge mu_all and refreshed P into the prior_list expected by block_rNormalGLM.
-  pl1    <- .lmebayes_block1_prior_with_tau2(
-    block1_prior, tau2_i, ptypes, batch$re_names, mu_all
+  prep <- .lmebayes_block1_prep_one_chain(
+    batch        = batch,
+    i            = i,
+    design       = design,
+    block1_prior = block1_prior,
+    ptypes       = ptypes
   )
-
-  # --- Draw b | y, Z, gamma, tau2 ------------------------------------------
-  # One Gibbs step: sample all group-level RE vectors jointly (blocked by
-  # neighborhood). n = 1 because we want a single draw per chain per sweep.
-  # Unit observation weights throughout (default in block_rNormalGLM / v4 C++ driver).
-  # two_block_mode_weights() is only for m_convergence calibration, not Block 1.
-  if (is_gaussian) {
-    block_out <- glmbayesCore::block_rNormalReg(
-      n          = 1L,
-      y          = design$y,
-      x          = design$Z,
-      block      = design$groups,
-      prior_list = pl1
-    )
-  } else {
-    block_out <- glmbayesCore::block_rNormalGLM(
-      n            = 1L,
-      y            = design$y,
-      x            = design$Z,
-      block        = design$groups,
-      prior_list   = pl1,
-      family       = family,
-      use_parallel = FALSE,  # sequential path; batch loop is already over chains
-      verbose      = FALSE,
-      progbar      = FALSE
-    )
-  }
-
-  # --- Store draw in canonical group order ---------------------------------
-  # block_rNormalGLM may return rows in factor order; reorder to group_levels.
-  b_draw <- block_out$coefficients
-  rn <- rownames(b_draw)
-  if (!is.null(rn)) {
-    ord <- match(batch$group_levels, rn)
-    if (any(is.na(ord))) {
-      stop("Block 1 group ids do not match group_levels.", call. = FALSE)
-    }
-    b_draw <- b_draw[ord, , drop = FALSE]
-  }
+  b_draw <- .lmebayes_block1_draw_one_chain(
+    prior_list   = prep$prior_list,
+    design       = design,
+    family       = family,
+    is_gaussian  = is_gaussian,
+    group_levels = batch$group_levels
+  )
   batch$b[, , i] <- b_draw
   batch
 }
@@ -309,26 +435,32 @@ block1_all_chains <- function(
     block1_prior,
     family,
     ptypes,
+    n_cores = NULL,
     progbar = FALSE
 ) {
-  # Sweep-outer step: every chain gets one Block-1 draw before any Block-2 work.
-  is_gaussian <- identical(family$family, "gaussian")
   n <- batch$n
-  show_bar <- isTRUE(progbar) && n > 1L
-
-  for (i in seq_len(n)) {
-    if (show_bar) .lmebayes_progress_bar(i, n)
-    batch <- .lmebayes_block1_one_chain(
-      batch        = batch,
-      i            = i,
-      design       = design,
-      block1_prior = block1_prior,
-      family       = family,
-      ptypes       = ptypes,
-      is_gaussian  = is_gaussian
-    )
-  }
-  if (show_bar) .lmebayes_progress_bar_finish()
+  .lmebayes_print_block1_phase("prep", "enter", n)
+  # Phase 1 — prep (embarrassingly parallel): mu_all + prior_list per chain.
+  prep <- block1_prep_all_chains(
+    batch        = batch,
+    design       = design,
+    block1_prior = block1_prior,
+    ptypes       = ptypes,
+    n_cores      = n_cores,
+    progbar      = FALSE
+  )
+  .lmebayes_print_block1_phase("prep", "exit", n)
+  .lmebayes_print_block1_phase("draw", "enter", n)
+  # Phase 2 — draw (embarrassingly parallel): block_rNormalReg / block_rNormalGLM.
+  batch <- block1_draw_all_chains(
+    batch   = batch,
+    prep    = prep,
+    design  = design,
+    family  = family,
+    n_cores = n_cores,
+    progbar = progbar
+  )
+  .lmebayes_print_block1_phase("draw", "exit", n)
   batch
 }
 

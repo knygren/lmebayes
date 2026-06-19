@@ -50,6 +50,28 @@
   invisible(NULL)
 }
 
+#' Print Block 1 prep/draw sub-phase boundary with wall-clock timestamp
+#' @noRd
+.lmebayes_print_block1_phase <- function(phase, boundary, n_chains) {
+  phase <- as.character(phase)[1L]
+  boundary <- as.character(boundary)[1L]
+  action <- if (identical(boundary, "enter")) "Entering" else "Exiting"
+  phase_label <- if (identical(phase, "prep")) {
+    "Block1 prep (mu_all + prior_list)"
+  } else if (identical(phase, "draw")) {
+    "Block1 draw (block_rNormalGLM / block_rNormalReg)"
+  } else {
+    phase
+  }
+  ts <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  cat(sprintf(
+    "[Block1] %s %s, n=%d chains (%s)\n",
+    action, phase_label, as.integer(n_chains)[1L], ts
+  ))
+  utils::flush.console()
+  invisible(NULL)
+}
+
 #' Print sweep/block enter or exit line with wall-clock timestamp
 #' @noRd
 .lmebayes_print_sweep_boundary <- function(
