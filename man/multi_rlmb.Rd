@@ -112,6 +112,7 @@ glmbayes Modeling Functions
 glmbayes Simulation Functions
 \code{\link[glmbayesCore]{multi_rNormal_reg}()},
 \code{\link[glmbayesCore]{rGLMM}()},
+\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}()},
 \code{\link[glmbayesCore]{simfuncs}},
 \code{\link[glmbayesCore]{two_block_l_for_tv}()},
 \code{\link[glmbayesCore]{two_block_mode_weights}()},
@@ -119,6 +120,7 @@ glmbayes Simulation Functions
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}()},
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v3}()},
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v4}()},
+\code{\link[glmbayesCore]{two_block_rNormal_reg_v5}()},
 \code{\link[glmbayesCore]{two_block_rate}()},
 \code{\link[glmbayesCore]{two_block_rate_v2}()},
 \code{\link[glmbayesCore]{two_block_tv_bound}()}
@@ -126,6 +128,7 @@ glmbayes Simulation Functions
 glmbayes Simulation Functions
 \code{\link[glmbayesCore]{multi_rNormal_reg}()},
 \code{\link[glmbayesCore]{rGLMM}()},
+\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}()},
 \code{\link[glmbayesCore]{simfuncs}},
 \code{\link[glmbayesCore]{two_block_l_for_tv}()},
 \code{\link[glmbayesCore]{two_block_mode_weights}()},
@@ -133,6 +136,7 @@ glmbayes Simulation Functions
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}()},
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v3}()},
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v4}()},
+\code{\link[glmbayesCore]{two_block_rNormal_reg_v5}()},
 \code{\link[glmbayesCore]{two_block_rate}()},
 \code{\link[glmbayesCore]{two_block_rate_v2}()},
 \code{\link[glmbayesCore]{two_block_tv_bound}()}

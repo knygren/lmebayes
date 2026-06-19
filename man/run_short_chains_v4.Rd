@@ -17,7 +17,11 @@ run_short_chains_v4(
   seed_offset = 0L,
   seed = NULL,
   collect_block1 = TRUE,
-  progbar = FALSE
+  progbar = FALSE,
+  stage_label = "",
+  diag_sweeps = FALSE,
+  fixef_mode = NULL,
+  b_mode = NULL
 )
 }
 \arguments{

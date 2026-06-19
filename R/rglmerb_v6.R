@@ -1,7 +1,7 @@
 #' Raw two-stage Gibbs sampler (v6 R sweep-outer short-chain driver)
 #'
 #' Same workflow as \code{\link{rglmerb_v4}}, but pilot and main sampling call
-#' \code{\link{run_sweep_outer_chains_v6}} (pure-R sweep-outer loop: all-chain
+#' \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}} (pure-R sweep-outer loop: all-chain
 #' Block~1, then all-chain Block~2, per sweep) instead of the v4 C++ chain-outer
 #' driver.
 #'
@@ -13,7 +13,7 @@
 #' @return An object of class \code{c("rglmerb_v6", "list")} with the same
 #'   components as \code{\link{rglmerb_v4}}.
 #' @seealso \code{\link{rglmerb_v4}}, \code{\link{rglmerb_v5}}, \code{\link{glmerb}},
-#'   \code{\link{run_sweep_outer_chains_v6}}
+#'   \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}
 #' @export
 rglmerb_v6 <- function(
     n,
@@ -226,7 +226,7 @@ rglmerb_v6 <- function(
   fixef_main_start <- fixef_start
 
   run_v6 <- function(n_chains, start_fixef, inner_sweeps, stage_label) {
-    run_sweep_outer_chains_v6(
+    glmbayesCore::run_sweep_outer_chains_v6(
       n_chains       = n_chains,
       start_fixef    = start_fixef,
       inner_sweeps   = inner_sweeps,

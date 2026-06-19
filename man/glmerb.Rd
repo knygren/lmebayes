@@ -28,7 +28,6 @@ glmerb(
   contrasts = NULL,
   devFunOnly = FALSE,
   fixef = NULL,
-  seed = NULL,
   progbar = FALSE,
   ...
 )
@@ -171,10 +170,8 @@ leave \code{control = NULL} or pass \code{\link[lme4]{lmerControl}}.}
 When \code{NULL} (default), iter-0 means are taken from the
 \code{pfamily_list} prior means.}
 
-\item{seed}{Optional; sets the RNG seed before sampling.}
-
 \item{progbar}{Logical. When \code{TRUE}, show text progress bars during
-pilot and main replicate sampling inside \code{\link{rglmerb_v5}}. Default
+pilot and main replicate sampling inside \code{\link{rglmerb_v4}}. Default
 \code{FALSE}.}
 
 \item{...}{Reserved for future use.}

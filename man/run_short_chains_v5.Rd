@@ -14,10 +14,14 @@ run_short_chains_v5(
   family,
   re_names,
   group_levels,
-  seed_offset = 0L,
   seed = NULL,
+  seed_offset = 0L,
   collect_block1 = TRUE,
-  progbar = FALSE
+  progbar = FALSE,
+  stage_label = "",
+  diag_sweeps = FALSE,
+  fixef_mode = NULL,
+  b_mode = NULL
 )
 }
 \arguments{
@@ -47,11 +51,11 @@ objects (one per RE component), as supplied to \code{\link{glmerb}}.}
 \item{group_levels}{Character vector of group levels
 (\code{levels(design$groups)}).}
 
-\item{seed_offset}{Integer added to \code{seed} for each chain
-(\code{seed + seed_offset + i}).  Default \code{0L}.}
-
 \item{seed}{Base RNG seed, or \code{NULL} for no seeding.  Default
 \code{NULL}.}
+
+\item{seed_offset}{Integer added to \code{seed} for each chain
+(\code{seed + seed_offset + i}).  Default \code{0L}.}
 
 \item{collect_block1}{Logical. If \code{TRUE}, collect and rbind the
 Block 1 (\code{coefficients}) matrix from every chain.  Default
