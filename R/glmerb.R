@@ -123,7 +123,6 @@ glmerb <- function(
     contrasts = NULL,
     devFunOnly = FALSE,
     fixef = NULL,
-    seed = NULL,
     progbar = FALSE,
     ...
 ) {
@@ -298,8 +297,7 @@ glmerb <- function(
     mode_gap_max        = mode_gap_max,
     collect_block1      = TRUE,
     verbose             = TRUE,
-    progbar             = progbar,
-    seed                = seed
+    progbar             = progbar
   )
 
   convergence_info <- sampler$convergence_info

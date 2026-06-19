@@ -23,8 +23,6 @@ run_sweep_outer_chains_v6 <- function(
     family,
     re_names,
     group_levels,
-    seed_offset    = 0L,
-    seed           = NULL,
     collect_block1 = TRUE,
     progbar        = FALSE,
     stage_label    = "",
@@ -73,9 +71,6 @@ run_sweep_outer_chains_v6 <- function(
       block1_prior = block1_prior,
       family       = family,
       ptypes       = ptypes,
-      sweep_m      = m,
-      seed         = seed,
-      seed_offset  = seed_offset,
       progbar      = progbar_use
     )
     .lmebayes_print_sweep_boundary(

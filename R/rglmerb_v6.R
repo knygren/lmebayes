@@ -28,8 +28,7 @@ rglmerb_v6 <- function(
     mode_gap_max        = 1.0,
     collect_block1      = TRUE,
     verbose             = TRUE,
-    progbar             = FALSE,
-    seed                = NULL
+    progbar             = FALSE
 ) {
   cl <- match.call()
 
@@ -226,7 +225,7 @@ rglmerb_v6 <- function(
   pilot_mode_test  <- NULL
   fixef_main_start <- fixef_start
 
-  run_v6 <- function(n_chains, start_fixef, inner_sweeps, seed_offset, stage_label) {
+  run_v6 <- function(n_chains, start_fixef, inner_sweeps, stage_label) {
     run_sweep_outer_chains_v6(
       n_chains       = n_chains,
       start_fixef    = start_fixef,
@@ -237,8 +236,6 @@ rglmerb_v6 <- function(
       family         = family,
       re_names       = re_names,
       group_levels   = group_levels,
-      seed_offset    = seed_offset,
-      seed           = seed,
       collect_block1 = collect_block1,
       progbar        = progbar_use,
       stage_label    = stage_label,
@@ -262,7 +259,6 @@ rglmerb_v6 <- function(
       n_chains     = n_pilot_int,
       start_fixef  = fixef_start,
       inner_sweeps = m_convergence_pilot,
-      seed_offset  = 0L,
       stage_label  = "pilot"
     )
 
@@ -400,7 +396,6 @@ rglmerb_v6 <- function(
     n_chains     = n,
     start_fixef  = fixef_main_start,
     inner_sweeps = m_convergence,
-    seed_offset  = if (run_pilot) n_pilot_int else 0L,
     stage_label  = "main"
   )
 
