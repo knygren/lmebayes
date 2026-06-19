@@ -80,9 +80,9 @@ actually used (may differ from user input if floored at
 }
 \description{
 Full sampling engine for Gaussian linear mixed models, parallel to
-\code{\link[glmbayes]{rlmb}} in \pkg{glmbayes} and \code{\link{rglmerb}}
-in \pkg{lmebayes}.  Takes structured \code{design} and \code{prior} objects,
-computes the ICM posterior mean internally, performs TV-calibrated
+\code{\link[glmbayes]{rlmb}} in \pkg{glmbayes} and \code{\link{rglmerb_v6}}
+/ \code{\link{glmerb}} in \pkg{lmebayes}.  Takes structured \code{design}
+and \code{prior} objects, computes the ICM posterior mean internally, performs TV-calibrated
 convergence calibration, and runs the two-block Gibbs sampler.
 }
 \details{
@@ -101,7 +101,7 @@ parsing and model-fit overhead are unnecessary.  It encapsulates:
 }
 }
 \seealso{
-\code{\link{lmerb}}, \code{\link{rglmerb}},
+\code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{rglmerb_v6}},
 \code{\link[glmbayes]{rlmb}},
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
 }

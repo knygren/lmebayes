@@ -1,9 +1,9 @@
 #' Raw two-block Gibbs sampler for Bayesian linear mixed models
 #'
 #' Full sampling engine for Gaussian linear mixed models, parallel to
-#' \code{\link[glmbayes]{rlmb}} in \pkg{glmbayes} and \code{\link{rglmerb}}
-#' in \pkg{lmebayes}.  Takes structured \code{design} and \code{prior} objects,
-#' computes the ICM posterior mean internally, performs TV-calibrated
+#' \code{\link[glmbayes]{rlmb}} in \pkg{glmbayes} and \code{\link{rglmerb_v6}}
+#' / \code{\link{glmerb}} in \pkg{lmebayes}.  Takes structured \code{design}
+#' and \code{prior} objects, computes the ICM posterior mean internally, performs TV-calibrated
 #' convergence calibration, and runs the two-block Gibbs sampler.
 #'
 #' \code{rlmerb} is called internally by \code{\link{lmerb}} after
@@ -70,7 +70,7 @@
 #'       \code{pfamily_list}.}
 #'     \item{\code{design}}{\code{design} echoed.}
 #'   }
-#' @seealso \code{\link{lmerb}}, \code{\link{rglmerb}},
+#' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{rglmerb_v6}},
 #'   \code{\link[glmbayes]{rlmb}},
 #'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
 #' @export

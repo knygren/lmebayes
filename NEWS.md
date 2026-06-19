@@ -1,5 +1,10 @@
 # lmebayes (development version)
 
+* **Removed legacy GLMM sampler drivers:** dropped development exports
+  `rglmerb`, `rglmerb_v2`--`rglmerb_v5`, `rglmerb_experimental`, and internal
+  `run_short_chains`--`run_short_chains_v5`.  `glmerb()` now uses only
+  `rglmerb_v6` with `glmbayesCore::run_sweep_outer_chains_v6`.
+
 * **Two-phase Gibbs sampling in `glmerb` (new `n_pilot` argument):** for
   non-Gaussian families the ICM posterior mode is below the true posterior
   mean due to likelihood skewness (e.g. Poisson).  Starting the main sampler

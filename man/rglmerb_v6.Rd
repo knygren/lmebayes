@@ -2,7 +2,7 @@
 % Please edit documentation in R/rglmerb_v6.R
 \name{rglmerb_v6}
 \alias{rglmerb_v6}
-\title{Raw two-stage Gibbs sampler (v6 R sweep-outer short-chain driver)}
+\title{Raw two-stage Gibbs sampler for Bayesian GLMMs (sweep-outer short chains)}
 \usage{
 rglmerb_v6(
   n,
@@ -70,26 +70,59 @@ Default \code{TRUE}.}
 \item{verbose}{Logical. Print stage headers and convergence diagnostics.
 Default \code{TRUE}.}
 
-\item{progbar}{Logical. Passed to \code{\link{run_short_chains_v2}}; when
-\code{TRUE}, shows chain-level progress bars during pilot and main
-sampling. Default \code{FALSE}.}
+\item{progbar}{Logical. When \code{TRUE} and \code{verbose} is \code{FALSE},
+show text progress bars during pilot and main sampling inside
+\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}. Default \code{FALSE}.}
 }
 \value{
-An object of class \code{c("rglmerb_v6", "list")} with the same
-components as \code{\link{rglmerb_v4}}.
+An object of class \code{c("rglmerb_v6", "list")} with components:
+\describe{
+\item{\code{call}}{Matched call.}
+\item{\code{fixef_draws}}{Named list of \code{n x q_k} matrices of
+Block 2 draws from the main stage, one per RE component.}
+\item{\code{coefficients}}{Block 1 endpoint draws stacked from the main
+stage, or \code{NULL} if \code{collect_block1 = FALSE}.}
+\item{\code{dispersion_fixef_draws}}{\code{n x p_re} matrix of
+\eqn{\tau^2_k} draws from the main stage.}
+\item{\code{iters_fixef_draws}}{\code{n x p_re} matrix of envelope
+candidate counts from the main stage.}
+\item{\code{mu_all_last}}{Per-observation fitted means from the last
+main-stage chain.}
+\item{\code{coef.mode}}{ICM posterior mode (\code{fixef_start}).}
+\item{\code{ranef.mode}}{Block 1 posterior mode \code{pm$b_mean}, or
+\code{NULL} if \code{fixef_start} was user-supplied.}
+\item{\code{fixef_main_start}}{Starting point actually used for the
+main stage: pilot mean when a pilot was run, else \code{fixef_start}.}
+\item{\code{pilot}}{Pilot-stage sampler result, or \code{NULL}.}
+\item{\code{pilot_mode_test}}{List with \code{Q}, \code{df},
+\code{p_value}, \code{n_pilot}; or \code{NULL}.}
+\item{\code{m_convergence_used}}{The \code{m_convergence} value
+actually used for the main stage.}
+\item{\code{convergence_info}}{List with convergence diagnostics
+(\code{draw_engine = "run_sweep_outer_chains_v6"}, plus
+\code{lambda_star}, \code{m_min}, pilot upper-bound fields when
+applicable).}
+\item{\code{Prior}}{List with \code{block1_prior} and
+\code{pfamily_list}.}
+\item{\code{design}}{\code{design} echoed.}
+}
 }
 \description{
-Same workflow as \code{\link{rglmerb_v4}}, but pilot and main sampling call
-\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}} (pure-R sweep-outer loop: all-chain
-Block~1, then all-chain Block~2, per sweep) instead of the v4 C++ chain-outer
-driver.
+Full sampling engine for non-Gaussian (and Gaussian) generalized linear
+mixed models, parallel to \code{\link{rlmerb}} for the LMM path.
+Unlike \code{rlmerb}, which runs a single sequential chain,
+\code{rglmerb_v6} runs \code{n} independent short chains and optionally
+precedes the main run with a pilot stage (also independent chains) to
+locate the posterior mean for non-Gaussian models.
 }
 \details{
-\code{\link{glmerb}} calls \code{rglmerb_v6} for Poisson/non-Gaussian sampling.
-For the v5 sweep-outer C++ driver, see \code{\link{rglmerb_v5}}.
-For the v4 chain-outer C++ driver, see \code{\link{rglmerb_v4}}.
+Pilot and main sampling call
+\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}} (pure-R sweep-outer
+loop: all-chain Block~1, then all-chain Block~2, per sweep).
+\code{\link{glmerb}} calls \code{rglmerb_v6} internally after
+\code{\link[lme4]{glmer}} and \code{\link{model_setup}} are complete.
 }
 \seealso{
-\code{\link{rglmerb_v4}}, \code{\link{rglmerb_v5}}, \code{\link{glmerb}},
+\code{\link{glmerb}}, \code{\link{rlmerb}},
 \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}
 }
