@@ -50,8 +50,8 @@ out1 <- capture.output(
                n = 300L, seed = 42L)
 )
 
-t2_draws <- fit$tau2_draws[, "(Intercept)"]
-t2_mean  <- fit$tau2.means[["(Intercept)"]]
+t2_draws <- fit$fixef.dispersion[, "(Intercept)"]
+t2_mean  <- fit$fixef.dispersion.mean[["(Intercept)"]]
 pr_int   <- pf[["(Intercept)"]]$prior_list
 stopifnot(
   length(t2_draws) == 300L,
@@ -75,9 +75,9 @@ if (t2_mean < tau2_hat / 5 || t2_mean > tau2_hat * 5) {
 }
 ## gamma posterior means should track the (fixed-tau^2) ICM mode loosely:
 ## tau^2 is sampled here, so allow a couple of posterior SDs of slack.
-g_means <- fit$coef.means[["(Intercept)"]]
-g_mode  <- fit$coef.mode[["(Intercept)"]]
-g_sd    <- apply(fit$fixef_draws[["(Intercept)"]], 2L, stats::sd)
+g_means <- fit$fixef.means[["(Intercept)"]]
+g_mode  <- fit$fixef.mode[["(Intercept)"]]
+g_sd    <- apply(fit$fixef[["(Intercept)"]], 2L, stats::sd)
 stopifnot(all(abs(g_means - g_mode) < 3 * g_sd))
 cat(sprintf(
   "1. lmerb ING sampling: tau^2 mean = %.2f (reference %.2f), gamma means track mode: OK\n",
@@ -132,17 +132,17 @@ pr_p <- pf_p[["(Intercept)"]]$prior_list
 stopifnot(
   inherits(fit_p, "glmerb"),
   !is.null(fit_p$coefficients),
-  is.matrix(fit_p$tau2_draws),
-  nrow(fit_p$tau2_draws) == 25L,
-  all(is.finite(fit_p$tau2_draws)), all(fit_p$tau2_draws > 0),
-  all(fit_p$tau2_draws[, "(Intercept)"] >= pr_p$disp_lower),
-  all(fit_p$tau2_draws[, "(Intercept)"] <= pr_p$disp_upper),
-  stats::sd(fit_p$tau2_draws[, "(Intercept)"]) > 0,
-  all(is.finite(unlist(fit_p$coef.means)))
+  is.matrix(fit_p$fixef.dispersion),
+  nrow(fit_p$fixef.dispersion) == 25L,
+  all(is.finite(fit_p$fixef.dispersion)), all(fit_p$fixef.dispersion > 0),
+  all(fit_p$fixef.dispersion[, "(Intercept)"] >= pr_p$disp_lower),
+  all(fit_p$fixef.dispersion[, "(Intercept)"] <= pr_p$disp_upper),
+  stats::sd(fit_p$fixef.dispersion[, "(Intercept)"]) > 0,
+  all(is.finite(unlist(fit_p$fixef.means)))
 )
 cat(sprintf(
   "3. glmerb poisson ING smoke: tau^2 mean = %.3f (reference %.3f): OK\n",
-  fit_p$tau2.means[["(Intercept)"]],
+  fit_p$fixef.dispersion.mean[["(Intercept)"]],
   unname(ps_p$prior_list[["(Intercept)"]]$dispersion_fixef)
 ))
 

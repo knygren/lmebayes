@@ -43,33 +43,13 @@
 #'   Default \code{TRUE}.
 #' @param verbose Logical. Print the lmer-vs-ICM table and the convergence
 #'   calibration line.  Default \code{TRUE}.
-#' @return An object of class \code{c("rlmerb", "list")} with components:
-#'   \describe{
-#'     \item{\code{call}}{Matched call.}
-#'     \item{\code{fixef_draws}}{Named list of \code{n x q_k} matrices of
-#'       Block 2 (hyper-parameter) draws, one per RE component.}
-#'     \item{\code{coefficients}}{Matrix or data frame of Block 1
-#'       (random-effect) endpoint draws as returned by
-#'       \code{two_block_rNormal_reg_v2}.}
-#'     \item{\code{dispersion_fixef_draws}}{\code{n x p_re} matrix of
-#'       \eqn{\tau^2_k} draws per stored draw.}
-#'     \item{\code{iters_fixef_draws}}{\code{n x p_re} matrix of total Block 2
-#'       envelope candidates per stored draw.}
-#'     \item{\code{mu_all_last}}{Per-observation fitted means at the final
-#'       Gibbs state.}
-#'     \item{\code{coef.mode}}{ICM posterior mean (\code{fixef_start}).}
-#'     \item{\code{ranef.mode}}{\code{pm$b_mean}: Block 1 posterior mean, or
-#'       \code{NULL} if \code{fixef_start} was user-supplied.}
-#'     \item{\code{m_convergence_used}}{The \code{m_convergence} value
-#'       actually used (may differ from user input if floored at
-#'       \code{m_min}).}
-#'     \item{\code{convergence_info}}{List with \code{method}, \code{tv_tol},
-#'       \code{lambda_star}, \code{eigenvalues}, \code{m_min},
-#'       \code{m_convergence}.}
-#'     \item{\code{Prior}}{List with \code{block1_prior} and
-#'       \code{pfamily_list}.}
-#'     \item{\code{design}}{\code{design} echoed.}
-#'   }
+#' @return An object of class \code{c("rlmerb", "list")} with Block~2 fields in
+#'   the \code{fixef.*} namespace (as \code{\link[glmbayesCore]{rGLMM}}):
+#'   \code{fixef}, \code{fixef.mode}, \code{fixef.init}, \code{fixef.means},
+#'   \code{fixef.dispersion}, \code{fixef.dispersion.mean}, \code{fixef.iters},
+#'   \code{fixef.iters.mean}, \code{fixef.mu}; Block~1 draws in
+#'   \code{coefficients}; \code{ranef.mode}; \code{m_convergence};
+#'   \code{convergence}; \code{Prior}; \code{design}.
 #' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{rglmerb}},
 #'   \code{\link[glmbayes]{rlmb}},
 #'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
@@ -213,22 +193,24 @@ rlmerb <- function(
     progbar           = progbar
   )
 
-  structure(
-    list(
-      call                   = cl,
-      fixef_draws            = out$fixef_draws,
-      coefficients           = out$coefficients,
-      dispersion_fixef_draws = out$dispersion_fixef_draws,
-      iters_fixef_draws      = out$iters_fixef_draws,
-      mu_all_last            = out$mu_all_last,
-      coef.mode              = fixef_start,
-      ranef.mode             = ranef_mode,
-      m_convergence_used     = m_convergence,
-      convergence_info       = convergence_info,
-      Prior                  = list(block1_prior = block1_prior,
-                                    pfamily_list = prior$pfamily_list),
-      design                 = design
-    ),
-    class = c("rlmerb", "list")
+  staged <- .lmebayes_stage_v2_fixef(
+    out          = out,
+    fixef_mode   = fixef_start,
+    fixef_init   = fixef_start,
+    re_names     = re_names,
+    group_levels = group_levels,
+    n            = n
   )
+  staged <- .lmebayes_add_fixef_summaries(staged)
+  staged$call        <- cl
+  staged$ranef.mode  <- ranef_mode
+  staged$convergence <- convergence_info
+  staged$Prior       <- list(
+    block1_prior = block1_prior,
+    pfamily_list = prior$pfamily_list
+  )
+  staged$design      <- design
+
+  class(staged) <- c("rlmerb", "list")
+  staged
 }

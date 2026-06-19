@@ -87,19 +87,19 @@ out_ing <- capture.output(
 stopifnot(
   inherits(fit_ing, "lmerb"),
   !is.null(fit_ing$coefficients),
-  !is.null(fit_ing$fixef_draws),
-  !is.null(fit_ing$coef.means),
-  !is.null(fit_ing$coef.mode),
+  !is.null(fit_ing$fixef),
+  !is.null(fit_ing$fixef.means),
+  !is.null(fit_ing$fixef.mode),
   !is.null(fit_ing$convergence),
   identical(fit_ing$convergence$method, "disp_lower_bound")
 )
 stopifnot(
-  is.matrix(fit_ing$tau2_draws),
-  nrow(fit_ing$tau2_draws) == 10L,
-  identical(colnames(fit_ing$tau2_draws), re_names),
-  all(is.finite(fit_ing$tau2_draws)), all(fit_ing$tau2_draws > 0),
-  all(apply(fit_ing$tau2_draws, 2L, stats::sd) > 0),
-  identical(names(fit_ing$tau2.means), re_names)
+  is.matrix(fit_ing$fixef.dispersion),
+  nrow(fit_ing$fixef.dispersion) == 10L,
+  identical(colnames(fit_ing$fixef.dispersion), re_names),
+  all(is.finite(fit_ing$fixef.dispersion)), all(fit_ing$fixef.dispersion > 0),
+  all(apply(fit_ing$fixef.dispersion, 2L, stats::sd) > 0),
+  identical(names(fit_ing$fixef.dispersion.mean), re_names)
 )
 stopifnot(
   any(grepl("conservative: ING tau\\^2_k = disp_lower", out_ing)),
@@ -226,10 +226,10 @@ stopifnot(
   !is.null(fit_mix$coefficients),
   identical(fit_mix$convergence$method, "disp_lower_bound"),
   fit_mix$convergence$lambda_star > lambda_dn,
-  stats::sd(fit_mix$tau2_draws[, re_names[2L]]) > 0,
-  all(fit_mix$tau2_draws[, re_names[1L]] ==
+  stats::sd(fit_mix$fixef.dispersion[, re_names[2L]]) > 0,
+  all(fit_mix$fixef.dispersion[, re_names[1L]] ==
         unname(ps$prior_list[[re_names[1L]]]$dispersion_fixef)),
-  all(fit_mix$tau2_draws[, re_names[3L]] ==
+  all(fit_mix$fixef.dispersion[, re_names[3L]] ==
         unname(ps$prior_list[[re_names[3L]]]$dispersion_fixef))
 )
 cat("5. Mixed dNormal/ING list: sampled vs fixed tau^2 columns OK\n")
@@ -244,7 +244,7 @@ out_g <- capture.output(
 stopifnot(
   inherits(fit_g, "glmerb"),
   !is.null(fit_g$coefficients),
-  !is.null(fit_g$tau2_draws),
+  !is.null(fit_g$fixef.dispersion),
   identical(fit_g$convergence$method, "exact+disp_lower_bound"),
   isTRUE(all.equal(fit_g$convergence$lambda_star,
                    fit_ing$convergence$lambda_star))

@@ -32,21 +32,21 @@
   # invisible(NULL)
 }
 
-#' Print fixef_main_start (pilot colMeans) before main stage
+#' Print \code{fixef.init} (pilot colMeans) before main stage
 #' @noRd
-.lmebayes_print_fixef_main_start <- function(
-    fixef_main_start,
+.lmebayes_print_fixef_init <- function(
+    fixef_init,
     re_names,
     verbose
 ) {
   if (!isTRUE(verbose)) {
     return(invisible(NULL))
   }
-  cat("--- glmerb: main-stage fixef_start (pilot colMeans) ---\n")
+  cat("--- glmerb: main-stage fixef.init (pilot colMeans) ---\n")
   for (k in re_names) {
-    for (nm in names(fixef_main_start[[k]])) {
+    for (nm in names(fixef_init[[k]])) {
       cat(sprintf("  %-18s  %-30s  %12.4f\n",
-                  k, nm, fixef_main_start[[k]][[nm]]))
+                  k, nm, fixef_init[[k]][[nm]]))
     }
   }
   cat("\n")

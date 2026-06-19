@@ -137,9 +137,9 @@ user intends) and overrides the \code{mode_gap_max} derivation.}
 \item{simulate}{Logical (default \code{TRUE}).  When \code{TRUE} the
 two-block Gibbs sampler is run for \code{n} iterations and posterior draws
 are stored.  When \code{FALSE} only the ICM algorithm is run: the exact
-posterior means (\code{coef.mode}, \code{ranef.mode}) are computed and
+posterior means (\code{fixef.mode}, \code{ranef.mode}) are computed and
 returned immediately without any sampling.  Simulation-only fields
-(\code{coefficients}, \code{coef.means}, \code{fixef_draws}) are
+(\code{coefficients}, \code{fixef.means}, \code{fixef}) are
 \code{NULL} when \code{simulate = FALSE}.}
 
 \item{REML}{Logical; passed to \code{\link{model_setup}}.}
@@ -177,17 +177,12 @@ pilot and main replicate sampling inside \code{\link{rglmerb}}. Default
 \item{...}{Reserved for future use.}
 }
 \value{
-Object of class \code{"glmerb"}: same structure as \code{"lmerb"},
-with additional \code{family}, \code{glmer} (reference
-\code{\link[lme4]{glmer}} fit), \code{coef.pilot.mean} (estimated
-posterior mean from the pilot run, used as the main-run starting point;
-\code{NULL} for Gaussian or when \code{n_pilot = NULL}), and
-\code{pilot_mode_test} (multivariate Wald test of pilot mean against
-ICM mode: \code{Q}, \code{df}, \code{p_value},
-\code{n_pilot}; \code{NULL} when no pilot), \code{gap_tol}
-(the tolerance used to derive \code{n_pilot}), and \code{mode_gap_max}
-(the per-coordinate gap tolerance used to derive
-\code{m_convergence_pilot}) components instead of \code{lmer}.
+Object of class \code{"glmerb"}: same \code{fixef.*} structure as
+\code{"lmerb"}, with additional \code{family}, \code{glmer} (reference
+\code{\link[lme4]{glmer}} fit), \code{fixef.init} (main-chain start from
+pilot colMeans when a pilot runs; \code{NULL} for Gaussian or when
+\code{n_pilot = NULL}), \code{pilot_chisq} (Hotelling chi-squared test of
+pilot mean vs ICM mode), \code{gap_tol}, and \code{mode_gap_max}.
 }
 \description{
 Draft entry point for \pkg{lmebayes} GLMM models with a \code{glmer}-like

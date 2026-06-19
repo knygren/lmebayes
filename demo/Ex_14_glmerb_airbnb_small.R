@@ -48,19 +48,19 @@ fit <- glmerb(
 cat("m_convergence used:", fit$convergence$m_convergence, "\n")
 cat(sprintf(
   "Pilot vs mode (chi-squared): p = %.4g\n",
-  fit$pilot_mode_test$p_value
+  fit$pilot_chisq$p_value
 ))
 
 ## Overall centering diagnostics: posterior mean vs pilot mean and mode.
 re_names <- fit$model_setup$re_coef_names
-X <- do.call(cbind, lapply(re_names, function(k) fit$fixef_draws[[k]]))
+X <- do.call(cbind, lapply(re_names, function(k) fit$fixef[[k]]))
 cn <- unlist(lapply(re_names, function(k) {
-  paste0(k, "::", colnames(fit$fixef_draws[[k]]))
+  paste0(k, "::", colnames(fit$fixef[[k]]))
 }))
 colnames(X) <- cn
 beta_bar <- colMeans(X)
-theta_pilot <- unlist(lapply(re_names, function(k) fit$coef.pilot.mean[[k]]))
-theta_mode  <- unlist(lapply(re_names, function(k) fit$coef.mode[[k]]))
+theta_pilot <- unlist(lapply(re_names, function(k) fit$fixef.init[[k]]))
+theta_mode  <- unlist(lapply(re_names, function(k) fit$fixef.mode[[k]]))
 names(theta_pilot) <- cn
 names(theta_mode)  <- cn
 

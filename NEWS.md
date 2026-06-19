@@ -1,5 +1,11 @@
 ﻿# lmebayes (development version)
 
+* **Unified Block~2 return names (`fixef.*`):** `lmerb`, `glmerb`, `rlmerb`, and
+  `rglmerb` now use the same `fixef.*` namespace as `rGLMM` / `rGLMM_temp`
+  (`fixef`, `fixef.mode`, `fixef.means`, `fixef.dispersion`, `fixef.iters`,
+  `fixef.mu`, `fixef.init`, `pilot_chisq`).  Legacy names (`fixef_draws`,
+  `coef.mode`, `tau2_draws`, `pilot_mode_test`, etc.) are removed.
+
 * **Extract GLMM engine to `rGLMM_temp`:** replicate-chain orchestration
   (TV calibration, pilot chi-squared, post-pilot eigenvalue upper bound,
   main-stage sweep-outer sampling) moved from `rglmerb` into exported

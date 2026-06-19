@@ -21,7 +21,10 @@
 #' @param collect_block1 Collect Block~1 \code{coefficients} from main chains.
 #' @param verbose Print stage headers and diagnostics.
 #' @param progbar Progress bars when \code{verbose} is \code{FALSE}.
-#' @return Object of class \code{c("rglmerb", "list")}; see \code{\link{glmerb}}.
+#' @return Object of class \code{c("rglmerb", "list")} with Block~2 fields in
+#'   the \code{fixef.*} namespace (as \code{\link{rGLMM_temp}} and
+#'   \code{\link[glmbayesCore]{rGLMM}}), plus \code{ranef.mode}, \code{Prior},
+#'   and \code{design}.
 #' @seealso \code{\link{glmerb}}, \code{\link{rGLMM_temp}},
 #'   \code{\link[glmbayesCore]{rGLMM}}
 #' @export
@@ -138,7 +141,7 @@ rglmerb <- function(
     ))
   }
 
-  engine <- rGLMM_temp(
+  out <- rGLMM_temp(
     n                   = n,
     y                   = design$y,
     x                   = design$Z,
@@ -164,47 +167,20 @@ rglmerb <- function(
     any_ing             = isTRUE(prior$any_ing)
   )
 
-  fixef_main_start <- engine$fixef.init
   if (n_pilot_int > 0L) {
-    .lmebayes_print_fixef_main_start(fixef_main_start, re_names, verbose)
+    .lmebayes_print_fixef_init(out$fixef.init, re_names, verbose)
   }
 
-  pilot_out <- NULL
-  if (!is.null(engine$pilot)) {
-    pilot_out <- .rglmerb_map_staged_sampler(engine$pilot)
-  }
-
-  structure(
-    list(
-      call                   = cl,
-      fixef_draws            = engine$fixef,
-      coefficients           = engine$coefficients,
-      dispersion_fixef_draws = engine$fixef.dispersion,
-      iters_fixef_draws      = engine$fixef.iters,
-      mu_all_last            = engine$fixef.mu,
-      coef.mode              = fixef_start,
-      ranef.mode             = ranef_mode,
-      fixef_main_start       = fixef_main_start,
-      pilot                  = pilot_out,
-      pilot_mode_test        = engine$pilot_chisq,
-      m_convergence_used     = engine$m_convergence,
-      convergence_info       = engine$convergence_info,
-      Prior                  = list(block1_prior = block1_prior,
-                                    pfamily_list = prior$pfamily_list),
-      design                 = design
-    ),
-    class = c("rglmerb", "list")
+  out <- .lmebayes_add_fixef_summaries(out)
+  out$call       <- cl
+  out$ranef.mode <- ranef_mode
+  out$convergence <- out$convergence_info
+  out$Prior      <- list(
+    block1_prior   = block1_prior,
+    pfamily_list   = prior$pfamily_list
   )
-}
+  out$design     <- design
 
-#' Map staged \code{rGLMM_temp} fields to legacy \code{rglmerb} v6 names
-#' @noRd
-.rglmerb_map_staged_sampler <- function(staged) {
-  list(
-    fixef_draws            = staged$fixef,
-    coefficients           = staged$coefficients,
-    dispersion_fixef_draws = staged$fixef.dispersion,
-    iters_fixef_draws      = staged$fixef.iters,
-    mu_all_last            = staged$fixef.mu
-  )
+  class(out) <- c("rglmerb", "list")
+  out
 }

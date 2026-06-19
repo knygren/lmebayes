@@ -67,9 +67,9 @@ fit <- glmerb(
 )
 
 stopifnot(inherits(fit, "glmerb"))
-stopifnot(length(fit$coef.mode) == 3L)
+stopifnot(length(fit$fixef.mode) == 3L)
 re_names <- fit$model_setup$re_coef_names
-stopifnot(nrow(fit$fixef_draws[[re_names[1L]]]) == n_draw)
+stopifnot(nrow(fit$fixef[[re_names[1L]]]) == n_draw)
 
 print(summary(fit))
 
@@ -89,11 +89,11 @@ grp_col  <- fit$model_setup$group_name
 grp_levs <- rownames(coef(fit$glmer)[[grp_col]])
 J        <- length(grp_levs)
 icm_b    <- fit$ranef.mode   # J x p_re, rownames = group levels
-n_draws  <- nrow(fit$fixef_draws[[re_names[1L]]])
+n_draws  <- nrow(fit$fixef[[re_names[1L]]])
 
 ## --- Label consistency across all returned objects -------------------------
 stopifnot(setequal(rownames(icm_b), grp_levs))
-stopifnot(setequal(colnames(fit$mu_all), grp_levs))
+stopifnot(setequal(colnames(fit$fixef.mu), grp_levs))
 stopifnot(setequal(unique(as.character(fit$coefficients[[grp_col]])), grp_levs))
 stopifnot(identical(sort(table(as.character(fit$coefficients[[grp_col]]))),
                     sort(table(rep(grp_levs, n_draws)))))

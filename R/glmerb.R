@@ -82,17 +82,12 @@
 #' @param progbar Logical. When \code{TRUE}, show text progress bars during
 #'   pilot and main replicate sampling inside \code{\link{rglmerb}}. Default
 #'   \code{FALSE}.
-#' @return Object of class \code{"glmerb"}: same structure as \code{"lmerb"},
-#'   with additional \code{family}, \code{glmer} (reference
-#'   \code{\link[lme4]{glmer}} fit), \code{coef.pilot.mean} (estimated
-#'   posterior mean from the pilot run, used as the main-run starting point;
-#'   \code{NULL} for Gaussian or when \code{n_pilot = NULL}), and
-#'   \code{pilot_mode_test} (multivariate Wald test of pilot mean against
-#'   ICM mode: \code{Q}, \code{df}, \code{p_value},
-#'   \code{n_pilot}; \code{NULL} when no pilot), \code{gap_tol}
-#'   (the tolerance used to derive \code{n_pilot}), and \code{mode_gap_max}
-#'   (the per-coordinate gap tolerance used to derive
-#'   \code{m_convergence_pilot}) components instead of \code{lmer}.
+#' @return Object of class \code{"glmerb"}: same \code{fixef.*} structure as
+#'   \code{"lmerb"}, with additional \code{family}, \code{glmer} (reference
+#'   \code{\link[lme4]{glmer}} fit), \code{fixef.init} (main-chain start from
+#'   pilot colMeans when a pilot runs; \code{NULL} for Gaussian or when
+#'   \code{n_pilot = NULL}), \code{pilot_chisq} (Hotelling chi-squared test of
+#'   pilot mean vs ICM mode), \code{gap_tol}, and \code{mode_gap_max}.
 #' @seealso \code{\link{lmerb}}, \code{\link[glmbayesCore]{glmerb_posterior_mode}},
 #'   \code{\link{glmb}}; \code{\link[utils]{demo}} for the full sampling workflow
 #'   (\code{demo("Ex_14_glmerb_airbnb_small", package = "lmebayes")}).
@@ -267,12 +262,12 @@ glmerb <- function(
         glmer        = glmer_fit,
         prior        = prior,
         model_setup  = design,
-        coef.mode    = fixef_start,
+        fixef.mode   = fixef_start,
         ranef.mode   = pm$b_mean,
-        coef.means   = NULL,
-        fixef_draws  = NULL,
+        fixef.means  = NULL,
+        fixef        = NULL,
         coefficients = NULL,
-        mu_all       = as.matrix(
+        fixef.mu     = as.matrix(
           glmbayesCore::build_mu_all(design, fixef_start)$mu_all
         )
       ),
@@ -299,37 +294,30 @@ glmerb <- function(
     progbar             = progbar
   )
 
-  convergence_info <- sampler$convergence_info
-  pilot_mode_test  <- sampler$pilot_mode_test
-  fixef_start      <- sampler$coef.mode
-  fixef_main_start <- sampler$fixef_main_start
-  tau2_draws       <- sampler$dispersion_fixef_draws
-  iters_draws      <- sampler$iters_fixef_draws
-  m_convergence    <- sampler$m_convergence_used
-
   structure(
     list(
-      call              = cl,
-      formula           = formula,
-      family            = family,
-      glmer             = glmer_fit,
-      prior             = prior,
-      model_setup       = design,
-      coef.mode         = fixef_start,
-      coef.pilot.mean   = if (run_pilot) fixef_main_start else NULL,
-      ranef.mode        = sampler$ranef.mode,
-      coef.means        = lapply(sampler$fixef_draws, colMeans),
-      fixef_draws       = sampler$fixef_draws,
-      coefficients      = sampler$coefficients,
-      tau2_draws        = tau2_draws,
-      tau2.means        = colMeans(tau2_draws),
-      iters_draws       = iters_draws,
-      iters.means       = colMeans(iters_draws) / m_convergence,
-      mu_all            = sampler$mu_all_last,
-      pilot_mode_test   = pilot_mode_test,
-      gap_tol           = gap_tol,
-      mode_gap_max      = mode_gap_max,
-      convergence       = convergence_info
+      call                  = cl,
+      formula               = formula,
+      family                = family,
+      glmer                 = glmer_fit,
+      prior                 = prior,
+      model_setup           = design,
+      fixef.mode            = sampler$fixef.mode,
+      fixef.init            = if (run_pilot) sampler$fixef.init else NULL,
+      ranef.mode            = sampler$ranef.mode,
+      fixef.means           = sampler$fixef.means,
+      fixef                 = sampler$fixef,
+      coefficients          = sampler$coefficients,
+      fixef.dispersion      = sampler$fixef.dispersion,
+      fixef.dispersion.mean = sampler$fixef.dispersion.mean,
+      fixef.iters           = sampler$fixef.iters,
+      fixef.iters.mean      = sampler$fixef.iters.mean,
+      fixef.mu              = sampler$fixef.mu,
+      m_convergence         = sampler$m_convergence,
+      pilot_chisq           = sampler$pilot_chisq,
+      gap_tol               = gap_tol,
+      mode_gap_max          = mode_gap_max,
+      convergence           = sampler$convergence
     ),
     class = c("glmerb", "list")
   )
@@ -338,18 +326,18 @@ glmerb <- function(
 #' Print posterior estimates by RE component for a glmerb / lmerb fit
 #'
 #' Displays a side-by-side table of the lmer/glmer MLE reference, posterior
-#' mode or ICM mean (\code{coef.mode}), and posterior mean (\code{coef.means})
+#' mode or ICM mean (\code{fixef.mode}), and posterior mean (\code{fixef.means})
 #' for every (RE-component, parameter) pair.  When \code{x} is a bare
-#' \code{coef.means} list rather than a full fit object, only the posterior
+#' \code{fixef.means} list rather than a full fit object, only the posterior
 #' mean column is shown.
 #'
 #' For \code{lmerb} objects the reference column is labelled \code{"lmer"} and
-#' the \code{coef.mode} column is labelled \code{"ICM.mean"} (the Gaussian
+#' the \code{fixef.mode} column is labelled \code{"ICM.mean"} (the Gaussian
 #' posterior mean and mode coincide exactly).  For \code{glmerb} objects the
-#' reference column is labelled \code{"glmer"} and the \code{coef.mode} column
+#' reference column is labelled \code{"glmer"} and the \code{fixef.mode} column
 #' is labelled \code{"post.mode"}.
 #'
-#' @param x A \code{glmerb} or \code{lmerb} object, or a bare \code{coef.means}
+#' @param x A \code{glmerb} or \code{lmerb} object, or a bare \code{fixef.means}
 #'   list.
 #' @param digits Number of decimal places for numeric columns.
 #' @param ... Ignored.
@@ -358,9 +346,9 @@ glmerb <- function(
 print_coef_means <- function(x, digits = 4L, ...) {
   is_fit    <- inherits(x, c("glmerb", "lmerb"))
   is_lmerb  <- inherits(x, "lmerb")
-  cm        <- if (is_fit) x$coef.means else x
+  cm        <- if (is_fit) x$fixef.means else x
   if (is.null(cm)) {
-    cat("coef.means: NULL (simulation not yet run)\n")
+    cat("fixef.means: NULL (simulation not yet run)\n")
     return(invisible(x))
   }
 
@@ -396,13 +384,13 @@ print_coef_means <- function(x, digits = 4L, ...) {
     }, rows$component, rows$parameter)
   }
 
-  # coef.mode column: "ICM.mean" for lmerb (exact posterior mean), "post.mode"
+  # fixef.mode column: "ICM.mean" for lmerb (exact posterior mean), "post.mode"
   # for glmerb (posterior mode from ICM optimisation).
-  has_mode   <- is_fit && !is.null(x$coef.mode)
+  has_mode   <- is_fit && !is.null(x$fixef.mode)
   mode_label <- if (is_lmerb) "ICM.mean" else "post.mode"
   if (has_mode) {
-    rows[[mode_label]] <- unlist(lapply(names(x$coef.mode), function(k) {
-      unname(x$coef.mode[[k]])
+    rows[[mode_label]] <- unlist(lapply(names(x$fixef.mode), function(k) {
+      unname(x$fixef.mode[[k]])
     }))
   }
 
@@ -457,7 +445,7 @@ print.glmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   cat("\n\n")
 
   if (simulated) {
-    n_draws <- nrow(x$fixef_draws[[re_names[1L]]])
+    n_draws <- nrow(x$fixef[[re_names[1L]]])
     cat(sprintf(
       "Bayesian generalized linear mixed model  [%s; %d draws, two-block Gibbs]\n",
       fam, n_draws))
@@ -475,9 +463,10 @@ print.glmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   }
   print(lme4::VarCorr(x$glmer), comp = "Std.Dev.", digits = digits)
   cat(sprintf("Number of obs: %d,  groups: %s, %d\n\n", n_obs, grp, n_grp))
-  if (any_ing && !is.null(x$tau2.means)) {
+  if (any_ing && !is.null(x$fixef.dispersion.mean)) {
     cat("Posterior mean tau^2_k: ",
-        paste(sprintf("%s = %.4g", names(x$tau2.means), x$tau2.means),
+        paste(sprintf("%s = %.4g", names(x$fixef.dispersion.mean),
+                      x$fixef.dispersion.mean),
               collapse = ", "),
         "\n\n", sep = "")
   }
@@ -485,11 +474,11 @@ print.glmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")
 
   rows <- do.call(rbind, lapply(re_names, function(k) {
-    nms <- names(x$coef.mode[[k]])
+    nms <- names(x$fixef.mode[[k]])
     data.frame(
       re  = k,
       par = nms,
-      mode = unname(x$coef.mode[[k]]),
+      mode = unname(x$fixef.mode[[k]]),
       stringsAsFactors = FALSE
     )
   }))
@@ -499,7 +488,7 @@ print.glmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
 
   if (!simulated) {
     cat(sprintf("  %-*s  %-*s  %12s\n",
-                w_re, "RE component", w_par, "parameter", "coef.mode"))
+                w_re, "RE component", w_par, "parameter", "fixef.mode"))
     cat(sprintf("  %s  %s  %s\n",
                 strrep("-", w_re), strrep("-", w_par), strrep("-", 12L)))
     for (i in seq_len(nrow(rows))) {
@@ -509,14 +498,14 @@ print.glmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
     }
     cat("\n")
   } else {
-    rows$means <- unlist(lapply(re_names, function(k) unname(x$coef.means[[k]])))
+    rows$means <- unlist(lapply(re_names, function(k) unname(x$fixef.means[[k]])))
     rows$sd    <- unlist(lapply(re_names, function(k) {
-      apply(x$fixef_draws[[k]], 2L, sd)
+      apply(x$fixef[[k]], 2L, sd)
     }))
 
     cat(sprintf("  %-*s  %-*s  %12s  %12s  %10s\n",
                 w_re, "RE component", w_par, "parameter",
-                "coef.mode", "coef.means", "draws SD"))
+                "fixef.mode", "fixef.means", "draws SD"))
     cat(sprintf("  %s  %s  %s  %s  %s\n",
                 strrep("-", w_re), strrep("-", w_par),
                 strrep("-", 12L), strrep("-", 12L), strrep("-", 10L)))

@@ -758,6 +758,48 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   }
 }
 
+#' Stage v2 sampler output to the \code{fixef.*} namespace
+#' @keywords internal
+.lmebayes_stage_v2_fixef <- function(
+    out,
+    fixef_mode,
+    fixef_init,
+    re_names,
+    group_levels,
+    n
+) {
+  x <- list(
+    fixef_draws            = out$fixef_draws,
+    coefficients           = out$coefficients,
+    dispersion_fixef_draws = out$dispersion_fixef_draws,
+    iters_fixef_draws      = out$iters_fixef_draws,
+    mu_all_last            = out$mu_all_last,
+    re_coef_names          = re_names,
+    group_levels           = group_levels,
+    n                      = n
+  )
+  glmbayesCore:::.two_block_as_staged_names(
+    x,
+    fixef_mode = fixef_mode,
+    fixef_init = fixef_init
+  )
+}
+
+#' Add \code{fixef.means} and related summary fields to a staged sampler object
+#' @keywords internal
+.lmebayes_add_fixef_summaries <- function(x) {
+  if (!is.null(x$fixef)) {
+    x$fixef.means <- lapply(x$fixef, colMeans)
+  }
+  if (!is.null(x$fixef.dispersion)) {
+    x$fixef.dispersion.mean <- colMeans(x$fixef.dispersion)
+  }
+  if (!is.null(x$fixef.iters) && !is.null(x$m_convergence)) {
+    x$fixef.iters.mean <- colMeans(x$fixef.iters) / x$m_convergence
+  }
+  x
+}
+
 #' Normalize a pfamily list + dispersion into the internal prior container
 #'
 #' Validates the \code{pfamily_list} / \code{dispersion_ranef} arguments of

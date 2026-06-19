@@ -51,7 +51,10 @@ is \code{NULL}.}
 \item{progbar}{Progress bars when \code{verbose} is \code{FALSE}.}
 }
 \value{
-Object of class \code{c("rglmerb", "list")}; see \code{\link{glmerb}}.
+Object of class \code{c("rglmerb", "list")} with Block~2 fields in
+the \code{fixef.*} namespace (as \code{\link{rGLMM_temp}} and
+\code{\link[glmbayesCore]{rGLMM}}), plus \code{ranef.mode}, \code{Prior},
+and \code{design}.
 }
 \description{
 Full sampling engine for non-Gaussian (and Gaussian) generalized linear

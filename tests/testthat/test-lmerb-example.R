@@ -40,13 +40,13 @@ test_that("lmerb: simulated Block 2 means match the exact posterior mean", {
   expect_s3_class(fit, "lmerb")
   re_names <- fit$model_setup$re_coef_names
   expect_identical(re_names, c("(Intercept)", "distracted_ppvt"))
-  n_draws <- nrow(fit$fixef_draws[[re_names[1L]]])
+  n_draws <- nrow(fit$fixef[[re_names[1L]]])
   expect_identical(n_draws, 1000L)
 
   for (k in re_names) {
-    draws <- fit$fixef_draws[[k]]
-    dm    <- fit$coef.means[[k]]
-    icm   <- fit$coef.mode[[k]]
+    draws <- fit$fixef[[k]]
+    dm    <- fit$fixef.means[[k]]
+    icm   <- fit$fixef.mode[[k]]
     sd_k  <- apply(draws, 2L, sd)
     expect_true(all(is.finite(draws)))
     expect_true(all(sd_k > 0))

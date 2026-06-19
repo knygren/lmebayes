@@ -77,24 +77,24 @@ fit <- glmerb(
 re_names <- fit$model_setup$re_coef_names
 stopifnot(identical(re_names, c("(Intercept)", "rating_c")))
 
-n_draws <- nrow(fit$fixef_draws[[re_names[1L]]])
+n_draws <- nrow(fit$fixef[[re_names[1L]]])
 stopifnot(identical(n_draws, 10000L))
-stopifnot(!is.null(fit$coef.pilot.mean))
+stopifnot(!is.null(fit$fixef.init))
 stopifnot(is.list(fit$convergence), is.finite(fit$convergence$m_convergence))
-stopifnot(identical(fit$pilot_mode_test$n_pilot, 10000L))
+stopifnot(identical(fit$pilot_chisq$n_pilot, 10000L))
 stopifnot(identical(fit$convergence$m_convergence_pilot, 9L))
 stopifnot(identical(fit$convergence$mode_gap_max, 1.0))
 
-X <- do.call(cbind, lapply(re_names, function(k) fit$fixef_draws[[k]]))
+X <- do.call(cbind, lapply(re_names, function(k) fit$fixef[[k]]))
 cn <- unlist(lapply(re_names, function(k) {
-  paste0(k, "::", colnames(fit$fixef_draws[[k]]))
+  paste0(k, "::", colnames(fit$fixef[[k]]))
 }))
 colnames(X) <- cn
 stopifnot(all(is.finite(X)))
 
 beta_bar <- colMeans(X)
-theta_pilot <- unlist(lapply(re_names, function(k) fit$coef.pilot.mean[[k]]))
-theta_mode  <- unlist(lapply(re_names, function(k) fit$coef.mode[[k]]))
+theta_pilot <- unlist(lapply(re_names, function(k) fit$fixef.init[[k]]))
+theta_mode  <- unlist(lapply(re_names, function(k) fit$fixef.mode[[k]]))
 names(theta_pilot) <- cn
 names(theta_mode)  <- cn
 

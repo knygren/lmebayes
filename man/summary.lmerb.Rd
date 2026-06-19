@@ -33,9 +33,9 @@ returned.}
 \code{fixef_overview}, \code{fixef} (per-RE-component tables),
 \code{ranef_overview}, \code{any_ing}, \code{tau2} (per-component
 Block~2 dispersion table: prior type, plug-in value, posterior
-mean / SD / quantiles from \code{tau2_draws} for sampled ING
+mean / SD / quantiles from \code{fixef.dispersion} for sampled ING
 components, and \code{Cand/draw}, the average number of Block~2
-candidates per accepted draw from \code{iters.means} -- 1 for
+candidates per accepted draw from \code{fixef.iters.mean} -- 1 for
 \code{dNormal}, roughly the reciprocal acceptance rate of the
 envelope sampler for ING), and optionally \code{ranef_groups}.
 }

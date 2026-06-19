@@ -82,12 +82,12 @@ re_names <- fit$model_setup$re_coef_names
 grp_levs <- rownames(coef(fit$glmer)[[grp_col]])
 
 ## --- Posterior means of fixed effects from Block 2 draws -----------------
-## fit$coef.means[[k]]: MCMC mean of the n Block 2 gamma_k draws.
+## fit$fixef.means[[k]]: MCMC mean of the n Block 2 gamma_k draws.
 ## Directly comparable to lme4::fixef() (same parameter scale).
-## fit$coef.mode: exact ICM posterior mean (used as H0 for z-test below).
+## fit$fixef.mode: exact ICM posterior mean (used as H0 for z-test below).
 ## z = (draws mean - ICM mean) / (draws SD / sqrt(n)); flag |z| > 2 with *.
 cat("\n=== Posterior means of fixed effects (from Block 2 draws) ===\n\n")
-n_draws     <- nrow(fit$fixef_draws[[re_names[1L]]])
+n_draws     <- nrow(fit$fixef[[re_names[1L]]])
 cat(sprintf("  %-18s  %-28s  %10s  %10s  %10s  %10s  %7s\n",
             "RE component", "parameter", "draws mean", "draws SD", "SE(mean)", "ICM mean", "z"))
 cat(sprintf("  %-18s  %-28s  %10s  %10s  %10s  %10s  %7s\n",
@@ -95,10 +95,10 @@ cat(sprintf("  %-18s  %-28s  %10s  %10s  %10s  %10s  %7s\n",
             strrep("-", 10L), strrep("-", 10L), strrep("-", 10L),
             strrep("-", 10L), strrep("-", 7L)))
 for (k in re_names) {
-  dm_k  <- fit$coef.means[[k]]
-  sd_k  <- apply(fit$fixef_draws[[k]], 2L, sd)
+  dm_k  <- fit$fixef.means[[k]]
+  sd_k  <- apply(fit$fixef[[k]], 2L, sd)
   se_k  <- sd_k / sqrt(n_draws)
-  icm_k <- fit$coef.mode[[k]]
+  icm_k <- fit$fixef.mode[[k]]
   for (nm in names(dm_k)) {
     z_val <- (dm_k[[nm]] - icm_k[[nm]]) / se_k[[nm]]
     flag  <- if (abs(z_val) > 2) " *" else "  "
@@ -181,7 +181,7 @@ coef_anchor <- vapply(re_names, function(k) {
   } else if (k %in% names(fe_glmer)) {
     unname(fe_glmer[k])
   } else {
-    unname(fit$coef.mode[[k]]["(Intercept)"])
+    unname(fit$fixef.mode[[k]]["(Intercept)"])
   }
 }, numeric(1L))
 
@@ -191,7 +191,7 @@ lmer_by_level[[grp_col]] <- factor(rownames(lmer_by_level), levels = grp_levs)
 rownames(lmer_by_level) <- NULL
 lmer_by_level <- rename_re_cols(lmer_by_level, re_names, "_lmer")
 
-mu_mat <- as.matrix(fit$mu_all)
+mu_mat <- as.matrix(fit$fixef.mu)
 mu_by_level <- as.data.frame(t(mu_mat), stringsAsFactors = FALSE)
 mu_by_level[[grp_col]] <- factor(rownames(mu_by_level), levels = grp_levs)
 rownames(mu_by_level) <- NULL
@@ -334,7 +334,7 @@ stopifnot(is.null(fit$lmer))
 stopifnot(!is.null(ps$dispersion_ranef))
 stopifnot(isTRUE(design$rank_ok))
 re_names <- fit$model_setup$re_coef_names
-stopifnot(nrow(fit$fixef_draws[[re_names[1L]]]) == n_draw)
+stopifnot(nrow(fit$fixef[[re_names[1L]]]) == n_draw)
 stopifnot(nrow(fit$coefficients) == n_draw * nlevels(design$groups))
 
 cat("\ntest_glmerb_big_word_club: OK\n")

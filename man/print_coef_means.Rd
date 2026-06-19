@@ -7,7 +7,7 @@
 print_coef_means(x, digits = 4L, ...)
 }
 \arguments{
-\item{x}{A \code{glmerb} or \code{lmerb} object, or a bare \code{coef.means}
+\item{x}{A \code{glmerb} or \code{lmerb} object, or a bare \code{fixef.means}
 list.}
 
 \item{digits}{Number of decimal places for numeric columns.}
@@ -19,15 +19,15 @@ list.}
 }
 \description{
 Displays a side-by-side table of the lmer/glmer MLE reference, posterior
-mode or ICM mean (\code{coef.mode}), and posterior mean (\code{coef.means})
+mode or ICM mean (\code{fixef.mode}), and posterior mean (\code{fixef.means})
 for every (RE-component, parameter) pair.  When \code{x} is a bare
-\code{coef.means} list rather than a full fit object, only the posterior
+\code{fixef.means} list rather than a full fit object, only the posterior
 mean column is shown.
 }
 \details{
 For \code{lmerb} objects the reference column is labelled \code{"lmer"} and
-the \code{coef.mode} column is labelled \code{"ICM.mean"} (the Gaussian
+the \code{fixef.mode} column is labelled \code{"ICM.mean"} (the Gaussian
 posterior mean and mode coincide exactly).  For \code{glmerb} objects the
-reference column is labelled \code{"glmer"} and the \code{coef.mode} column
+reference column is labelled \code{"glmer"} and the \code{fixef.mode} column
 is labelled \code{"post.mode"}.
 }

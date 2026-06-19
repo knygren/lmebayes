@@ -83,9 +83,9 @@ warning if the value had to be raised.}
 \item{simulate}{Logical (default \code{TRUE}).  When \code{TRUE} the
 two-block Gibbs sampler is run for \code{n} iterations and posterior draws
 are stored.  When \code{FALSE} only the ICM algorithm is run: the exact
-posterior means (\code{coef.mode}, \code{ranef.mode}) are computed and
+posterior means (\code{fixef.mode}, \code{ranef.mode}) are computed and
 returned immediately without any sampling.  Simulation-only fields
-(\code{coefficients}, \code{coef.means}, \code{fixef_draws}) are
+(\code{coefficients}, \code{fixef.means}, \code{fixef}) are
 \code{NULL} when \code{simulate = FALSE}.}
 
 \item{REML}{Logical; passed to \code{\link{model_setup}}.}
@@ -134,35 +134,33 @@ the per-component \code{prior_list} (\code{mu_fixef},
 \code{glmb$Prior}.}
 \item{\code{model_setup}}{The \code{\link{model_setup}} object built
 inside \code{lmerb} from \code{formula} and \code{data}.}
-\item{\code{coef.mode}}{Named list of exact posterior mode (= mean,
+\item{\code{fixef.mode}}{Named list of exact posterior mode (= mean,
 since the joint posterior is Gaussian) vectors for the level-2 fixed
 effects \eqn{\gamma_k}, computed by
-\code{\link[glmbayesCore]{lmerb_posterior_mean}}
-(ICM).  Analogous to \code{glmb$coef.mode}.}
+\code{\link[glmbayesCore]{lmerb_posterior_mean}} (ICM).}
 \item{\code{ranef.mode}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix
 of exact posterior mode random effects from ICM.  Rows are group
 levels (\code{levels(design$groups)}); columns are
 \code{design$re_coef_names}.}
-\item{\code{coef.means}}{Named list of posterior mean vectors computed
-as \code{colMeans(fixef_draws[[k]])} — the MCMC estimate of the
-level-2 fixed effects.  Analogous to \code{glmb$coef.means}.
-\code{NULL} when \code{simulate = FALSE}.}
-\item{\code{fixef_draws}}{Named list of \eqn{n \times q_k} matrices of
+\item{\code{fixef.means}}{Named list of posterior mean vectors computed
+as \code{colMeans(fixef[[k]])} — the MCMC estimate of the
+level-2 fixed effects.  \code{NULL} when \code{simulate = FALSE}.}
+\item{\code{fixef}}{Named list of \eqn{n \times q_k} matrices of
 Block 2 draws, one per RE component.  \code{NULL} when
 \code{simulate = FALSE}.}
 \item{\code{coefficients}}{\code{data.frame} with \code{n * J} rows:
 \code{draw}, the grouping-factor column, and one column per RE
 variable.  Average over \code{draw} within each group for posterior
 means (see Examples).  \code{NULL} when \code{simulate = FALSE}.}
-\item{\code{tau2_draws}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
+\item{\code{fixef.dispersion}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
 Block~2 dispersion (\eqn{\tau^2_k}) at each stored draw: sampled
 values for \code{dIndependent_Normal_Gamma} components, constant
 columns (the fixed \code{dispersion}) for \code{dNormal} components.
 \code{NULL} when \code{simulate = FALSE}.}
-\item{\code{tau2.means}}{Named vector of posterior means of
-\eqn{\tau^2_k} (\code{colMeans(tau2_draws)}).  \code{NULL} when
+\item{\code{fixef.dispersion.mean}}{Named vector of posterior means of
+\eqn{\tau^2_k} (\code{colMeans(fixef.dispersion)}).  \code{NULL} when
 \code{simulate = FALSE}.}
-\item{\code{iters_draws}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
+\item{\code{fixef.iters}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
 total number of Block~2 candidates generated per stored draw,
 summed over the \code{m_convergence} inner sweeps.
 \code{dIndependent_Normal_Gamma} components count envelope
@@ -170,13 +168,13 @@ accept-reject candidates until acceptance (as \code{iters} in
 \pkg{glmbayes} samplers); \code{dNormal} components count exactly
 one conjugate draw per sweep.  \code{NULL} when
 \code{simulate = FALSE}.}
-\item{\code{iters.means}}{Named vector of average candidates per
+\item{\code{fixef.iters.mean}}{Named vector of average candidates per
 accepted Block~2 draw
-(\code{colMeans(iters_draws)/m_convergence}; equals 1 for
+(\code{colMeans(fixef.iters)/m_convergence}; equals 1 for
 \code{dNormal} components, and approximately the reciprocal
 acceptance rate of the ING envelope sampler otherwise).
 \code{NULL} when \code{simulate = FALSE}.}
-\item{\code{mu_all}}{Numeric matrix \code{p_re x J} of Block 1 prior
+\item{\code{fixef.mu}}{Numeric matrix \code{p_re x J} of Block 1 prior
 means at the final Gibbs state (from
 \code{\link[glmbayesCore]{build_mu_all}}).}
 \item{\code{convergence}}{List describing the sweep-count calibration:

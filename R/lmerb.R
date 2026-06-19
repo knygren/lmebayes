@@ -123,9 +123,9 @@
 #' @param simulate Logical (default \code{TRUE}).  When \code{TRUE} the
 #'   two-block Gibbs sampler is run for \code{n} iterations and posterior draws
 #'   are stored.  When \code{FALSE} only the ICM algorithm is run: the exact
-#'   posterior means (\code{coef.mode}, \code{ranef.mode}) are computed and
+#'   posterior means (\code{fixef.mode}, \code{ranef.mode}) are computed and
 #'   returned immediately without any sampling.  Simulation-only fields
-#'   (\code{coefficients}, \code{coef.means}, \code{fixef_draws}) are
+#'   (\code{coefficients}, \code{fixef.means}, \code{fixef}) are
 #'   \code{NULL} when \code{simulate = FALSE}.
 #' @param fixef Optional named list of hyper-parameter vectors (Block 2 state).
 #'   When \code{NULL} (default), iter-0 means are taken from the
@@ -149,35 +149,33 @@
 #'       \code{glmb$Prior}.}
 #'     \item{\code{model_setup}}{The \code{\link{model_setup}} object built
 #'       inside \code{lmerb} from \code{formula} and \code{data}.}
-#'     \item{\code{coef.mode}}{Named list of exact posterior mode (= mean,
+#'     \item{\code{fixef.mode}}{Named list of exact posterior mode (= mean,
 #'       since the joint posterior is Gaussian) vectors for the level-2 fixed
 #'       effects \eqn{\gamma_k}, computed by
-#'       \code{\link[glmbayesCore]{lmerb_posterior_mean}}
-#'       (ICM).  Analogous to \code{glmb$coef.mode}.}
+#'       \code{\link[glmbayesCore]{lmerb_posterior_mean}} (ICM).}
 #'     \item{\code{ranef.mode}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix
 #'       of exact posterior mode random effects from ICM.  Rows are group
 #'       levels (\code{levels(design$groups)}); columns are
 #'       \code{design$re_coef_names}.}
-#'     \item{\code{coef.means}}{Named list of posterior mean vectors computed
-#'       as \code{colMeans(fixef_draws[[k]])} — the MCMC estimate of the
-#'       level-2 fixed effects.  Analogous to \code{glmb$coef.means}.
-#'       \code{NULL} when \code{simulate = FALSE}.}
-#'     \item{\code{fixef_draws}}{Named list of \eqn{n \times q_k} matrices of
+#'     \item{\code{fixef.means}}{Named list of posterior mean vectors computed
+#'       as \code{colMeans(fixef[[k]])} — the MCMC estimate of the
+#'       level-2 fixed effects.  \code{NULL} when \code{simulate = FALSE}.}
+#'     \item{\code{fixef}}{Named list of \eqn{n \times q_k} matrices of
 #'       Block 2 draws, one per RE component.  \code{NULL} when
 #'       \code{simulate = FALSE}.}
 #'     \item{\code{coefficients}}{\code{data.frame} with \code{n * J} rows:
 #'       \code{draw}, the grouping-factor column, and one column per RE
 #'       variable.  Average over \code{draw} within each group for posterior
 #'       means (see Examples).  \code{NULL} when \code{simulate = FALSE}.}
-#'     \item{\code{tau2_draws}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
+#'     \item{\code{fixef.dispersion}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
 #'       Block~2 dispersion (\eqn{\tau^2_k}) at each stored draw: sampled
 #'       values for \code{dIndependent_Normal_Gamma} components, constant
 #'       columns (the fixed \code{dispersion}) for \code{dNormal} components.
 #'       \code{NULL} when \code{simulate = FALSE}.}
-#'     \item{\code{tau2.means}}{Named vector of posterior means of
-#'       \eqn{\tau^2_k} (\code{colMeans(tau2_draws)}).  \code{NULL} when
+#'     \item{\code{fixef.dispersion.mean}}{Named vector of posterior means of
+#'       \eqn{\tau^2_k} (\code{colMeans(fixef.dispersion)}).  \code{NULL} when
 #'       \code{simulate = FALSE}.}
-#'     \item{\code{iters_draws}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
+#'     \item{\code{fixef.iters}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
 #'       total number of Block~2 candidates generated per stored draw,
 #'       summed over the \code{m_convergence} inner sweeps.
 #'       \code{dIndependent_Normal_Gamma} components count envelope
@@ -185,13 +183,13 @@
 #'       \pkg{glmbayes} samplers); \code{dNormal} components count exactly
 #'       one conjugate draw per sweep.  \code{NULL} when
 #'       \code{simulate = FALSE}.}
-#'     \item{\code{iters.means}}{Named vector of average candidates per
+#'     \item{\code{fixef.iters.mean}}{Named vector of average candidates per
 #'       accepted Block~2 draw
-#'       (\code{colMeans(iters_draws)/m_convergence}; equals 1 for
+#'       (\code{colMeans(fixef.iters)/m_convergence}; equals 1 for
 #'       \code{dNormal} components, and approximately the reciprocal
 #'       acceptance rate of the ING envelope sampler otherwise).
 #'       \code{NULL} when \code{simulate = FALSE}.}
-#'     \item{\code{mu_all}}{Numeric matrix \code{p_re x J} of Block 1 prior
+#'     \item{\code{fixef.mu}}{Numeric matrix \code{p_re x J} of Block 1 prior
 #'       means at the final Gibbs state (from
 #'       \code{\link[glmbayesCore]{build_mu_all}}).}
 #'     \item{\code{convergence}}{List describing the sweep-count calibration:
@@ -347,12 +345,12 @@ lmerb <- function(
         lmer         = lmer_fit,
         prior        = prior,
         model_setup  = design,
-        coef.mode    = fixef_start,
+        fixef.mode   = fixef_start,
         ranef.mode   = pm$b_mean,
-        coef.means   = NULL,
-        fixef_draws  = NULL,
+        fixef.means  = NULL,
+        fixef        = NULL,
         coefficients = NULL,
-        mu_all       = as.matrix(
+        fixef.mu     = as.matrix(
           glmbayesCore::build_mu_all(design, fixef_start)$mu_all
         )
       ),
@@ -374,30 +372,28 @@ lmerb <- function(
     verbose       = TRUE
   )
 
-  convergence_info <- sampler$convergence_info
-  fixef_start      <- sampler$coef.mode
-  tau2_draws       <- sampler$dispersion_fixef_draws
-  iters_draws      <- sampler$iters_fixef_draws
-  m_convergence    <- sampler$m_convergence_used
+  convergence_info <- sampler$convergence
+  m_convergence    <- sampler$m_convergence
 
   structure(
     list(
-      call         = cl,
-      formula      = formula,
-      lmer         = lmer_fit,
-      prior        = prior,
-      model_setup  = design,
-      coef.mode    = fixef_start,
-      ranef.mode   = sampler$ranef.mode,
-      coef.means   = lapply(sampler$fixef_draws, colMeans),
-      fixef_draws  = sampler$fixef_draws,
-      coefficients = sampler$coefficients,
-      tau2_draws   = tau2_draws,
-      tau2.means   = colMeans(tau2_draws),
-      iters_draws  = iters_draws,
-      iters.means  = colMeans(iters_draws) / m_convergence,
-      mu_all       = sampler$mu_all_last,
-      convergence  = convergence_info
+      call                  = cl,
+      formula               = formula,
+      lmer                  = lmer_fit,
+      prior                 = prior,
+      model_setup           = design,
+      fixef.mode            = sampler$fixef.mode,
+      ranef.mode            = sampler$ranef.mode,
+      fixef.means           = sampler$fixef.means,
+      fixef                 = sampler$fixef,
+      coefficients          = sampler$coefficients,
+      fixef.dispersion      = sampler$fixef.dispersion,
+      fixef.dispersion.mean = sampler$fixef.dispersion.mean,
+      fixef.iters           = sampler$fixef.iters,
+      fixef.iters.mean      = sampler$fixef.iters.mean,
+      fixef.mu              = sampler$fixef.mu,
+      m_convergence         = m_convergence,
+      convergence           = convergence_info
     ),
     class = c("lmerb", "list")
   )
@@ -426,7 +422,7 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
 
   # --- Header line ---
   if (simulated) {
-    n_draws <- nrow(x$fixef_draws[[re_names[1L]]])
+    n_draws <- nrow(x$fixef[[re_names[1L]]])
     cat(sprintf(
       "Bayesian linear mixed model  [%d draws, two-block Gibbs]\n", n_draws))
   } else {
@@ -443,9 +439,10 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   }
   print(lme4::VarCorr(x$lmer), comp = "Std.Dev.", digits = digits)
   cat(sprintf("Number of obs: %d,  groups: %s, %d\n\n", n_obs, grp, n_grp))
-  if (any_ing && !is.null(x$tau2.means)) {
+  if (any_ing && !is.null(x$fixef.dispersion.mean)) {
     cat("Posterior mean tau^2_k: ",
-        paste(sprintf("%s = %.4g", names(x$tau2.means), x$tau2.means),
+        paste(sprintf("%s = %.4g", names(x$fixef.dispersion.mean),
+                      x$fixef.dispersion.mean),
               collapse = ", "),
         "\n\n", sep = "")
   }
@@ -453,13 +450,12 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   # --- Posterior means table ---
   cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")
 
-  # Flatten coef.mode to a data frame for aligned printing
   rows <- do.call(rbind, lapply(re_names, function(k) {
-    nms <- names(x$coef.mode[[k]])
+    nms <- names(x$fixef.mode[[k]])
     data.frame(
       re  = k,
       par = nms,
-      mode = unname(x$coef.mode[[k]]),
+      mode = unname(x$fixef.mode[[k]]),
       stringsAsFactors = FALSE
     )
   }))
@@ -468,9 +464,8 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   w_par <- max(nchar(rows$par), nchar("parameter"))
 
   if (!simulated) {
-    # ICM-only: single value column
     cat(sprintf("  %-*s  %-*s  %12s\n",
-                w_re, "RE component", w_par, "parameter", "coef.mode"))
+                w_re, "RE component", w_par, "parameter", "fixef.mode"))
     cat(sprintf("  %s  %s  %s\n",
                 strrep("-", w_re), strrep("-", w_par), strrep("-", 12L)))
     for (i in seq_len(nrow(rows))) {
@@ -481,15 +476,14 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
     cat("\n")
 
   } else {
-    # Simulation: coef.mode + coef.means + draws SD side-by-side
-    rows$means <- unlist(lapply(re_names, function(k) unname(x$coef.means[[k]])))
+    rows$means <- unlist(lapply(re_names, function(k) unname(x$fixef.means[[k]])))
     rows$sd    <- unlist(lapply(re_names, function(k) {
-      apply(x$fixef_draws[[k]], 2L, sd)
+      apply(x$fixef[[k]], 2L, sd)
     }))
 
     cat(sprintf("  %-*s  %-*s  %12s  %12s  %10s\n",
                 w_re, "RE component", w_par, "parameter",
-                "coef.mode", "coef.means", "draws SD"))
+                "fixef.mode", "fixef.means", "draws SD"))
     cat(sprintf("  %s  %s  %s  %s  %s\n",
                 strrep("-", w_re), strrep("-", w_par),
                 strrep("-", 12L), strrep("-", 12L), strrep("-", 10L)))

@@ -50,33 +50,13 @@ Default \code{TRUE}.}
 calibration line.  Default \code{TRUE}.}
 }
 \value{
-An object of class \code{c("rlmerb", "list")} with components:
-\describe{
-\item{\code{call}}{Matched call.}
-\item{\code{fixef_draws}}{Named list of \code{n x q_k} matrices of
-Block 2 (hyper-parameter) draws, one per RE component.}
-\item{\code{coefficients}}{Matrix or data frame of Block 1
-(random-effect) endpoint draws as returned by
-\code{two_block_rNormal_reg_v2}.}
-\item{\code{dispersion_fixef_draws}}{\code{n x p_re} matrix of
-\eqn{\tau^2_k} draws per stored draw.}
-\item{\code{iters_fixef_draws}}{\code{n x p_re} matrix of total Block 2
-envelope candidates per stored draw.}
-\item{\code{mu_all_last}}{Per-observation fitted means at the final
-Gibbs state.}
-\item{\code{coef.mode}}{ICM posterior mean (\code{fixef_start}).}
-\item{\code{ranef.mode}}{\code{pm$b_mean}: Block 1 posterior mean, or
-\code{NULL} if \code{fixef_start} was user-supplied.}
-\item{\code{m_convergence_used}}{The \code{m_convergence} value
-actually used (may differ from user input if floored at
-\code{m_min}).}
-\item{\code{convergence_info}}{List with \code{method}, \code{tv_tol},
-\code{lambda_star}, \code{eigenvalues}, \code{m_min},
-\code{m_convergence}.}
-\item{\code{Prior}}{List with \code{block1_prior} and
-\code{pfamily_list}.}
-\item{\code{design}}{\code{design} echoed.}
-}
+An object of class \code{c("rlmerb", "list")} with Block~2 fields in
+the \code{fixef.*} namespace (as \code{\link[glmbayesCore]{rGLMM}}):
+\code{fixef}, \code{fixef.mode}, \code{fixef.init}, \code{fixef.means},
+\code{fixef.dispersion}, \code{fixef.dispersion.mean}, \code{fixef.iters},
+\code{fixef.iters.mean}, \code{fixef.mu}; Block~1 draws in
+\code{coefficients}; \code{ranef.mode}; \code{m_convergence};
+\code{convergence}; \code{Prior}; \code{design}.
 }
 \description{
 Full sampling engine for Gaussian linear mixed models, parallel to

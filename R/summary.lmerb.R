@@ -19,9 +19,9 @@
 #'   \code{fixef_overview}, \code{fixef} (per-RE-component tables),
 #'   \code{ranef_overview}, \code{any_ing}, \code{tau2} (per-component
 #'   Block~2 dispersion table: prior type, plug-in value, posterior
-#'   mean / SD / quantiles from \code{tau2_draws} for sampled ING
+#'   mean / SD / quantiles from \code{fixef.dispersion} for sampled ING
 #'   components, and \code{Cand/draw}, the average number of Block~2
-#'   candidates per accepted draw from \code{iters.means} -- 1 for
+#'   candidates per accepted draw from \code{fixef.iters.mean} -- 1 for
 #'   \code{dNormal}, roughly the reciprocal acceptance rate of the
 #'   envelope sampler for ING), and optionally \code{ranef_groups}.
 #' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
@@ -36,7 +36,7 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
 
   re_names  <- object$model_setup$re_coef_names
   simulated <- !is.null(object$coefficients)
-  n_draws   <- if (simulated) nrow(object$fixef_draws[[re_names[1L]]]) else NULL
+  n_draws   <- if (simulated) nrow(object$fixef[[re_names[1L]]]) else NULL
   mer_fit   <- .lmerb_reference_fit(object)
   mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
 
@@ -231,7 +231,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 .lmerb_fixef_component_summary <- function(object, k, n_draws, simulated) {
 
   pl_k   <- object$prior$prior_list[[k]]
-  par    <- names(object$coef.mode[[k]])
+  par    <- names(object$fixef.mode[[k]])
   q_k    <- length(par)
 
   prior_mean <- unname(pl_k$mu_fixef)
@@ -252,7 +252,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   )
   rownames(Tab1) <- par
 
-  post_mode <- unname(object$coef.mode[[k]])
+  post_mode <- unname(object$fixef.mode[[k]])
 
   if (!simulated) {
     TAB <- cbind("Post.Mode" = post_mode)
@@ -264,8 +264,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     ))
   }
 
-  draws <- object$fixef_draws[[k]]
-  post_mean <- unname(object$coef.means[[k]])
+  draws <- object$fixef[[k]]
+  post_mean <- unname(object$fixef.means[[k]])
   post_sd   <- apply(draws, 2L, stats::sd)
   mc_err    <- post_sd / sqrt(n_draws)
 
@@ -310,26 +310,26 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 
   re_names <- object$model_setup$re_coef_names
   rows <- do.call(rbind, lapply(re_names, function(k) {
-    nms <- names(object$coef.mode[[k]])
+    nms <- names(object$fixef.mode[[k]])
     data.frame(
       parameter = paste0(k, "::", nms),
-      coef.mode = unname(object$coef.mode[[k]]),
+      fixef.mode = unname(object$fixef.mode[[k]]),
       stringsAsFactors = FALSE
     )
   }))
   rownames(rows) <- rows$parameter
-  out <- rows[, "coef.mode", drop = FALSE]
-  colnames(out) <- "coef.mode"
+  out <- rows[, "fixef.mode", drop = FALSE]
+  colnames(out) <- "fixef.mode"
 
   if (simulated) {
-    means <- unlist(lapply(re_names, function(k) unname(object$coef.means[[k]])))
+    means <- unlist(lapply(re_names, function(k) unname(object$fixef.means[[k]])))
     sds   <- unlist(lapply(re_names, function(k) {
-      apply(object$fixef_draws[[k]], 2L, stats::sd)
+      apply(object$fixef[[k]], 2L, stats::sd)
     }))
-    n     <- nrow(object$fixef_draws[[re_names[1L]]])
+    n     <- nrow(object$fixef[[re_names[1L]]])
     out   <- cbind(
       out,
-      coef.means = means,
+      fixef.means = means,
       Post.Sd    = sds,
       MC.Error   = sds / sqrt(n)
     )
@@ -339,8 +339,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 }
 
 ## Per-component tau^2 summary: prior type and plug-in value always; posterior
-## mean/SD/quantiles from tau2_draws and average candidates per accepted
-## Block 2 draw (iters.means) for sampled fits.
+## mean/SD/quantiles from fixef.dispersion and average candidates per accepted
+## Block 2 draw (fixef.iters.mean) for sampled fits.
 #' @keywords internal
 .lmerb_tau2_summary <- function(object, simulated) {
 
@@ -361,7 +361,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     stringsAsFactors = FALSE
   )
 
-  td <- object$tau2_draws
+  td <- object$fixef.dispersion
   if (simulated && !is.null(td)) {
     tab$Post.Mean <- colMeans(td)[re_names]
     tab$Post.Sd   <- apply(td[, re_names, drop = FALSE], 2L, stats::sd)
@@ -373,8 +373,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
   ## Average envelope candidates per accepted Block 2 draw (1 for dNormal;
   ## ~1/acceptance-rate for ING): sampler-efficiency diagnostic.
-  if (simulated && !is.null(object$iters.means)) {
-    tab$`Cand/draw` <- unname(object$iters.means[re_names])
+  if (simulated && !is.null(object$fixef.iters.mean)) {
+    tab$`Cand/draw` <- unname(object$fixef.iters.mean[re_names])
   }
 
   tab
