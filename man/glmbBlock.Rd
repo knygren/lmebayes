@@ -18,6 +18,9 @@ glmbBlock(
   na.action,
   offset,
   contrasts = NULL,
+  model = TRUE,
+  x = FALSE,
+  y = TRUE,
   Gridtype = 2,
   n_envopt = NULL,
   use_parallel = TRUE,
@@ -81,6 +84,10 @@ sum is used.  See \code{model.offset}.}
 \item{contrasts}{an optional list. See the \code{contrasts.arg} of
 \code{model.matrix.default}.}
 
+\item{model, x, y}{For \code{glmbBlock}, logicals passed to each block
+\code{\link[glmbayes]{glmb}} fit (see \code{\link[stats]{glm}}). For
+\code{print}, \code{x} is the \code{"bglmb"} object.}
+
 \item{Gridtype}{an optional argument specifying the method used to determine the number of tangent points used to construct the enveloping function.}
 
 \item{n_envopt}{Effective sample size passed to EnvelopeOpt for grid
@@ -97,10 +104,6 @@ envelopes.}
     regression fitting functions (see below).}
 
 \item{digits}{Number of significant digits to use when printing.}
-
-\item{model, x, y}{For \code{glmbBlock}, logicals passed to each block
-\code{\link[glmbayes]{glmb}} fit (see \code{\link[stats]{glm}}). For
-\code{print}, \code{x} is the \code{"bglmb"} object.}
 }
 \value{
 A named list of class \code{"bglmb"} (list of \code{"glmb"} fits from \strong{glmbayes}).

@@ -1,4 +1,4 @@
-﻿#' Bayesian generalized linear mixed-effects model sampler (sweep-outer engine)
+#' Bayesian generalized linear mixed-effects model sampler (sweep-outer engine)
 #'
 #' Full sampling engine for non-Gaussian (and Gaussian) generalized linear
 #' mixed models, parallel to \code{\link{rlmerb}} for the LMM path.

@@ -76,17 +76,17 @@ rates, while larger values allow broader dispersion support but may increase env
 \item{Inv_Dispersion}{Logical (default \code{TRUE}).  Controls which of the two Gamma prior
 roles \code{dGamma()} plays:
 \itemize{
-\item \code{TRUE} (default) — prior on the \emph{inverse dispersion} (precision / shape
+\item \code{TRUE} (default): prior on inverse dispersion (precision / shape
 parameter \eqn{k = 1/\phi}).  This is the classical path used for dispersion estimation
 in Gaussian and \code{Gamma(log)} regression (\code{simfun = rGamma_reg}).
-\item \code{FALSE} — conjugate prior on the Gamma or Poisson \emph{rate} \eqn{\beta}
+\item \code{FALSE}: conjugate prior on the Gamma or Poisson rate \eqn{\beta}
 directly (intercept-only, identity link).  The posterior is a closed-form Gamma draw
 (\code{simfun = rGamma_Conjugate_reg}).
 }}
 
 \item{lik_shape}{Known shape parameter \eqn{k > 0} of the Gamma likelihood.  Only used when
 \code{Inv_Dispersion = FALSE} and \code{family = Gamma(link = "identity")}.  The intercept
-coefficient is then the Gamma \emph{rate} \eqn{\beta}, and the conjugate posterior is
+coefficient is then the Gamma rate \eqn{\beta}, and the conjugate posterior is
 \eqn{\beta \mid y \sim \mathrm{Gamma}(\alpha_0 + n k,\; \beta_0 + \sum y_i)}.
 Defaults to \code{1} (exponential distribution). Ignored for Poisson families and whenever
 \code{Inv_Dispersion = TRUE}.}

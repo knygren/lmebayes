@@ -259,7 +259,11 @@ total variation.
 ## share of free/reduced-lunch students (free_reduced_lunch, constant within
 ## school) is a level-2 predictor of the school intercepts.
 ##
-## The full workflow with factor-level diagnostics is preserved as a demo:
+## Fast man-page example: prior setup, lmer reference fit, and ICM posterior
+## mean only (simulate = FALSE).  No Gibbs draws — suitable for R CMD check.
+##
+## The full sampling workflow (1000 draws, factor-level diagnostics) is
+## preserved as a demo:
 ##   demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")
 
 if (requireNamespace("bayesrules", quietly = TRUE)) {
@@ -283,10 +287,9 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
     data             = dat,
     pfamily_list     = pfamily_list(ps),
     dispersion_ranef = ps$dispersion_ranef,
-    n                = 1000L,
-    seed             = 1L
+    simulate         = FALSE
   )
-  ## Block 2 posterior means alongside lmer MLE and ICM posterior mean.
+  ## lmer MLE vs ICM posterior mean (no MCMC means when simulate = FALSE).
   lmebayes:::print_coef_means(fit)
   print(fit)
   summary(fit)

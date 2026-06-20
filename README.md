@@ -1,27 +1,26 @@
-# glmbayes
+# lmebayes
 
-![CRAN status](https://www.r-pkg.org/badges/version/glmbayes)
-![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/glmbayes)
-![Monthly downloads](https://cranlogs.r-pkg.org/badges/glmbayes)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/knygren/glmbayes?label=version)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/knygren/lmebayes?label=version)
+![R-universe](https://knygren.r-universe.dev/badges/lmebayes)
 ![License: GPL-3](https://img.shields.io/badge/license-GPL--3-blue.svg)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/knygren/glmbayes/R-CMD-check.yaml?label=R%20CMD%20Check)
 
-glmbayes provides independent and identically distributed (iid) samples for Bayesian Generalized Linear Models (GLMs).
-Its primary interface, glmb(), serves as a Bayesian analogue to R's glm() function, supporting Gaussian, Poisson,
-Binomial, and Gamma families under log-concave likelihoods. Sampling for most models is performed using accept-reject
-methods based on likelihood subgradients (Nygren and Nygren, 2006). For Gaussian models, the package also includes
-lmb(), a Bayesian counterpart to R's lm().
+**lmebayes** provides near-independent posterior samples for Bayesian linear and generalized linear
+**mixed-effects** models via **two-block Gibbs sampling** (sampling engines in **glmbayesCore**).
+Its primary interfaces, `lmerb()` and `glmerb()`, are Bayesian analogues of **lme4** `lmer()` and
+`glmer()`, supporting Gaussian, Poisson, binomial, and Gamma response families under log-concave
+likelihoods. Row-block BY-style fits use `lmbBlock()` and `glmbBlock()`; matrix-level block samplers
+include `rNormalRegBlock()` and `rNormalGLMBlock()`.
 
-The package includes a rich set of supporting tools for prior specification, model diagnostics, and method functions
-that mirror those for lm() and glm(). Most functions are extensively documented.
-Background vignettes for the underlying samplers live in the **glmbayes** package (`browseVignettes("glmbayes")`).
-**lmebayes** vignettes are planned separately.
+Priors, `pfamily` objects, and iid GLM sampling within blocks come from the **glmbayes** dependency.
+Mixed-model methodology and background vignettes are in **glmbayes** (Chapters 17 and 18 for LMMs and
+GLMMs). **lmebayes** does not ship vignettes yet; use function help, this README, and the package
+demos. For Gaussian models, inner Gibbs sweep counts can be calibrated from a total-variation
+tolerance (`tv_tol`); non-Gaussian GLMMs may run a pilot stage when `gap_tol` is set (see `?glmerb`).
 
-This repository is **0.9.6** in development. The current **CRAN release is version 0.9.5**
-([CRAN](https://CRAN.R-project.org/package=glmbayes)).
-The [GitHub](https://github.com/knygren/glmbayes) repository holds the source; [R-Universe](https://knygren.r-universe.dev/glmbayes) builds binaries from it.
-See [NEWS.md](https://github.com/knygren/glmbayes/blob/main/NEWS.md) for changes.
+This repository is **0.1.0** in development.
+The [GitHub](https://github.com/knygren/lmebayes) repository holds the source;
+[R-Universe](https://knygren.r-universe.dev/lmebayes) builds binaries from it.
+See [NEWS.md](https://github.com/knygren/lmebayes/blob/main/NEWS.md) for changes.
 
 ## Installation
 
@@ -48,25 +47,43 @@ https://knygren.r-universe.dev/articles/glmbayes/Chapter-16.html
 
 ## Minimal Working Example
 
-    library(glmbayes)
+Requires the **bayesrules** package (`install.packages("bayesrules")`).
 
-    # Dobson (1990), p. 93: Randomized Controlled Trial
-    counts <- c(18,17,15,20,10,20,25,13,12)
-    outcome <- gl(3,1,9)
-    treatment <- gl(3,3)
-    print(d.AD <- data.frame(treatment, outcome, counts))
+    library(lmebayes)
 
-    ## Classical glm
-    glm.D93 <- glm(counts ~ outcome + treatment,
-                   family = poisson())
+    data(big_word_club, package = "bayesrules")
+    dat <- subset(
+      big_word_club,
+      !is.na(score_ppvt) & !is.na(invalid_ppvt) & invalid_ppvt == 0L
+    )
+    dat$school_id <- factor(dat$school_id)
+    dat <- dat[complete.cases(dat[, c("score_ppvt", "distracted_ppvt",
+                                      "free_reduced_lunch", "school_id")]), ]
 
-    ## Bayesian glmb (via glmbayes)
-    ps <- glmbayes::Prior_Setup(counts ~ outcome + treatment, family = poisson())
-    glmb.D93 <- glmbayes::glmb(counts ~ outcome + treatment,
-                     family = poisson(),
-                     pfamily = glmbayes::dNormal(mu = ps$mu, Sigma = ps$Sigma))
+    form <- score_ppvt ~ free_reduced_lunch + distracted_ppvt +
+      (1 + distracted_ppvt || school_id)
 
-    summary(glmb.D93)
+    ## Classical lmer (reference fit embedded in lmerb)
+    lme4::lmer(form, data = dat)
+
+    ## Bayesian lmerb — prior setup + ICM posterior mean/mode (no Gibbs draws)
+    ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+    fit <- lmerb(
+      form,
+      data             = dat,
+      pfamily_list     = pfamily_list(ps),
+      dispersion_ranef = ps$dispersion_ranef,
+      simulate         = FALSE
+    )
+
+    lmebayes:::print_coef_means(fit)
+    print(fit)
+    summary(fit)
+
+`Prior_Setup_lmebayes()` calibrates Block~2 hyperpriors from a weak-prior **lmer** fit;
+`lmerb(..., simulate = FALSE)` returns that reference fit plus exact **ICM** posterior
+mean/mode values (no stored draws). For iid Gibbs samples, set `simulate = TRUE` or run
+the demos listed below.
 
 ## Priors and GLM families (`glmbayes`)
 
@@ -77,45 +94,36 @@ samplers. See `?glmbayes::Prior_Setup`, `?glmbayes::pfamily`, and `vignette("Cha
 
 ## Examples and Demos
 
-Use `example()` and `demo()` to explore built-in examples and demos for supported families and links:
+Use `example()` for quick help-page examples (ICM / setup only; safe for `R CMD check`).
+Use `demo()` for full Gibbs workflows with stored draws (may take minutes).
 
-    ## Bayesian linear regression
+    ## Mixed-effects models — fast examples (no simulation)
+    example("lmerb")    ## big_word_club Gaussian LMM; ICM only
+    example("glmerb")   ## airbnb_small Poisson GLMM; ICM only
+
+    ## Mixed-effects models — full sampling demos
+    demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")
+    demo("Ex_14_glmerb_airbnb_small", package = "lmebayes")
+    demo("Ex_13_glmerb_Airbnb", package = "lmebayes")
+    demo("Ex_15_glmerb_centering_test", package = "lmebayes")
+
+    ## Design matrices, priors, and row-block BY models
+    example("Prior_Setup_lmebayes")
+    example("pfamily_list")
+    example("model_setup")
+    example("Prior_SetupBlock")
+    example("lmbBlock")
+
+    ## Matrix block samplers and lower-level engines
+    example("rNormalRegBlock")
+    example("rNormalGLMBlock")
+    example("rlmerb")
+    example("rglmerb")
+
+    ## Re-exported glmbayes utilities
     example("lmb")
-
-    ## Bayesian generalized linear models
     example("glmb")
-
-    ## Predictions for fitted glmb objects (newdata, type, etc.)
-    example("predict.glmb")
-
-    ## Deviance residuals and simulate() for posterior predictive checks (menarche)
-    example("residuals.glmb")
-
-    ## Default prior specification (glmbayes)
     example("Prior_Setup", package = "glmbayes")
-
-    ## Matrix-input GLM / LM samplers (glmbayes)
-    example("rglmb", package = "glmbayes")
-    example("rlmb", package = "glmbayes")
-
-    ## Two-step Boston example: dGamma priors via rGamma_reg (lmebayes) and glmbayes samplers
-    example("summary.rGamma_reg")
-
-    ## High-dimensional Gaussian model (14 predictors) with GPU acceleration (requires OpenCL)
-    example("Boston_centered")
-
-    ## High-dimensional binomial model (14 predictors) with GPU acceleration (requires OpenCL)
-    example("Cleveland")
-
-    ## Hierarchical models (demos; use glmbayes::rglmb / rlmb inside)
-    demo("Ex_07_Schools")
-    demo("Ex_09_BikeSharingPoisson")
-
-    ## Detailed simulation pipeline for rNormalGLM models (JASA 2006; glmbayes Chapter A05)
-    example("rNormalGLM_std")
-
-    ## Detailed simulation pipeline for rIndepNormalGammaReg models (glmbayes Chapter A07)
-    example("rIndepNormalGammaReg_std")
 
 ## Methodology
 
