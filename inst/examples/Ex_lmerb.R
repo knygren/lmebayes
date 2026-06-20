@@ -7,9 +7,9 @@
 ## Fast man-page example: prior setup, lmer reference fit, and ICM posterior
 ## mean only (simulate = FALSE).  No Gibbs draws — suitable for R CMD check.
 ##
-## The full sampling workflow (1000 draws, factor-level diagnostics) is
-## preserved as a demo:
-##   demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")
+## The full sampling workflows are preserved as demos:
+##   demo("Ex_14_lmerb_Sleepstudy", package = "lmebayes")   # lme4-style small model
+##   demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")  # full formula
 
 if (requireNamespace("bayesrules", quietly = TRUE)) {
 

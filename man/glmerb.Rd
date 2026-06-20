@@ -206,8 +206,6 @@ argument. When \code{family = gaussian()}, behaviour matches
 families use \code{rNormalGLMBlock} for Block~1 Gibbs updates.
 }
 \examples{
-\dontshow{if (requireNamespace("bayesrules", quietly = TRUE)) withAutoprint(\{ # examplesIf}
-\dontshow{\}) # examplesIf}
 ## glmerb: neighborhood random effects on bayesrules::airbnb_small (Poisson)
 ##
 ## Fast man-page example: prior setup, glmer reference fit, and ICM posterior

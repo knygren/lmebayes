@@ -97,33 +97,30 @@ samplers. See `?glmbayes::Prior_Setup`, `?glmbayes::pfamily`, and `vignette("Cha
 Use `example()` for quick help-page examples (ICM / setup only; safe for `R CMD check`).
 Use `demo()` for full Gibbs workflows with stored draws (may take minutes).
 
-    ## Mixed-effects models — fast examples (no simulation)
-    example("lmerb")    ## big_word_club Gaussian LMM; ICM only
-    example("glmerb")   ## airbnb_small Poisson GLMM; ICM only
+    ## Bayesian Linear Mixed-effects model (no Simulation) 
 
-    ## Mixed-effects models — full sampling demos
-    demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")
+    example("lmerb")    ## big_word_club Gaussian LMM (small formula)
+
+    ## Small lme4-style model with simulation (sleepstudy)
+
+    demo("Ex_14_lmerb_Sleepstudy", package = "lmebayes")
+
+    ## Bayesian Generalized Linear Mixed-effects model (no Simulation) 
+
+    example("glmerb")   ## airbnb_small Poisson GLMM
+
+    ## Same model with simulation
+  
     demo("Ex_14_glmerb_airbnb_small", package = "lmebayes")
+
+    ## Larger lmerb model
+
+    demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")
+
+    ## Larger glmerb model
+
     demo("Ex_13_glmerb_Airbnb", package = "lmebayes")
-    demo("Ex_15_glmerb_centering_test", package = "lmebayes")
 
-    ## Design matrices, priors, and row-block BY models
-    example("Prior_Setup_lmebayes")
-    example("pfamily_list")
-    example("model_setup")
-    example("Prior_SetupBlock")
-    example("lmbBlock")
-
-    ## Matrix block samplers and lower-level engines
-    example("rNormalRegBlock")
-    example("rNormalGLMBlock")
-    example("rlmerb")
-    example("rglmerb")
-
-    ## Re-exported glmbayes utilities
-    example("lmb")
-    example("glmb")
-    example("Prior_Setup", package = "glmbayes")
 
 ## Methodology
 

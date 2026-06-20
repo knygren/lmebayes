@@ -92,7 +92,6 @@
 #'   \code{\link{glmb}}; \code{\link[utils]{demo}} for the full sampling workflow
 #'   (\code{demo("Ex_14_glmerb_airbnb_small", package = "lmebayes")}).
 #' @param digits Number of significant digits to use when printing.
-#' @examplesIf requireNamespace("bayesrules", quietly = TRUE)
 #' @example inst/examples/Ex_glmerb.R
 #' @title Fit a Bayesian generalized linear mixed-effects model (GLMM) to data, via two-Block Gibbs sampling
 #' @aliases glmerb print.glmerb

@@ -1,12 +1,13 @@
 ## Demo: lmerb() full workflow on bayesrules::big_word_club
 ##
-## Replica of the original ?lmerb example before it was simplified (the
-## man-page example now fits a smaller intercept + free_reduced_lunch +
-## distracted_ppvt model).  Preserved as a demo because the full run (1000
-## draws plus the factor-level diagnostics) takes on the order of a minute.
-## This demo keeps the complete workflow: model_setup(),
-## Prior_Setup_lmebayes(), pfamily_list(), lmerb(), then draws-vs-ICM
-## z-tests and lmer/mu_all/lmerb factor-level comparisons.
+## Full model with cross-level moderation (not the simplified ?lmerb man-page
+## example).  Preserved as a demo because the run (1000 draws plus factor-level
+## diagnostics) takes on the order of a minute.  This demo keeps the complete
+## workflow: model_setup(), Prior_Setup_lmebayes(), pfamily_list(), lmerb(),
+## then draws-vs-ICM z-tests and lmer/mu_all/lmerb factor-level comparisons.
+##
+## For the lme4-style small model with simulation, see
+## demo("Ex_14_lmerb_Sleepstudy", package = "lmebayes").
 ##
 ##   demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")
 
