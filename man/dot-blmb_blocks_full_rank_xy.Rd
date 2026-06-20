@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{Numeric matrix \code{(l2 x l1)}: the full design matrix.}
 
-\item{block_info}{Block partition as returned by \code{normalize_block()}.}
+\item{block_info}{Block partition as returned by \code{\link[glmbayesCore]{normalize_block}()}.}
 }
 \value{
 A list with \code{keep}, \code{drop}, \code{table}.

@@ -273,7 +273,7 @@ block_lmb <- function(
 
   l2 <- nrow(mf)
   block_vec <- .blmb_resolve_block(block, data, mf, l2)
-  block_info <- normalize_block(block_vec, l2)
+  block_info <- glmbayesCore::normalize_block(block_vec, l2)
 
   mt <- attr(mf, "terms")
   x_mat <- stats::model.matrix(mt, mf, contrasts)
@@ -451,7 +451,7 @@ block_lmb <- function(
 #' \code{\link[glmbayesCore]{block_rNormalGLM}}.
 #'
 #' @param x Numeric matrix \code{(l2 x l1)}: the full design matrix.
-#' @param block_info Block partition as returned by \code{normalize_block()}.
+#' @param block_info Block partition as returned by \code{\link[glmbayesCore]{normalize_block}()}.
 #' @return A list with \code{keep}, \code{drop}, \code{table}.
 #' @keywords internal
 .blmb_blocks_full_rank_xy <- function(x, block_info) {
@@ -501,7 +501,7 @@ block_lmb <- function(
 #'
 #' @param x Numeric design matrix \code{(l2 x l1)}.
 #' @param block Block specification: factor, integer/character vector, or list
-#'   of row-index vectors.  Passed to \code{normalize_block()}.
+#'   of row-index vectors.  Passed to \code{\link[glmbayesCore]{normalize_block}()}.
 #' @param X_nbhd Optional \code{(k x q)} numeric matrix of group-level
 #'   covariates (one row per block, in block-id order or with matching
 #'   \code{rownames}).  \code{NULL} assumes an intercept-only hyper design.
@@ -520,7 +520,7 @@ block_check_identifiability_xy <- function(
   on_failure <- match.arg(on_failure)
   x <- as.matrix(x)
   l2 <- nrow(x)
-  block_info <- normalize_block(block, l2)
+  block_info <- glmbayesCore::normalize_block(block, l2)
   k  <- block_info$k
 
   ri   <- .blmb_blocks_full_rank_xy(x, block_info)

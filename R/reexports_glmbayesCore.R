@@ -44,50 +44,9 @@ block_rNormalGLM <- glmbayesCore::block_rNormalGLM
 #' @export
 block_rNormalReg <- glmbayesCore::block_rNormalReg
 
-#' @inherit glmbayesCore::normalize_block
-#' @export
-normalize_block <- glmbayesCore::normalize_block
-
-#' @inherit glmbayesCore::build_mu_all
-#' @export
-build_mu_all <- glmbayesCore::build_mu_all
-
-#' @inherit glmbayesCore::lmerb_posterior_mean
-#' @export
-lmerb_posterior_mean <- glmbayesCore::lmerb_posterior_mean
-
-#' @inherit glmbayesCore::glmerb_posterior_mode
-#' @export
-glmerb_posterior_mode <- glmbayesCore::glmerb_posterior_mode
-
-#' @inherit glmbayesCore::two_block_rNormal_reg
-#' @export
-two_block_rNormal_reg <- glmbayesCore::two_block_rNormal_reg
-
 #' @inherit glmbayesCore::rGLMM title description params return seealso
 #' @export
 rGLMM <- glmbayesCore::rGLMM
-
-#' @inherit glmbayesCore::multi_rNormal_reg
-#' @export
-multi_rNormal_reg <- glmbayesCore::multi_rNormal_reg
-
-#' @inherit glmbayesCore::multi_rlmb
-#' @examples
-#' \dontrun{
-#' ## Full runnable examples are maintained in \pkg{glmbayesCore}:
-#' example(multi_rlmb, package = "glmbayesCore", ask = FALSE, echo = TRUE)
-#' }
-#' @export
-multi_rlmb <- glmbayesCore::multi_rlmb
-
-#' @inherit glmbayesCore::multi_rNormalGamma_reg
-#' @export
-multi_rNormalGamma_reg <- glmbayesCore::multi_rNormalGamma_reg
-
-#' @inherit glmbayesCore::multi_rindepNormalGamma_reg
-#' @export
-multi_rindepNormalGamma_reg <- glmbayesCore::multi_rindepNormalGamma_reg
 
 #' @inherit glmbayesCore::summary.mrglmb
 #' @param ... Additional optional arguments passed to

@@ -15,7 +15,7 @@ block_check_identifiability_xy(
 \item{x}{Numeric design matrix \code{(l2 x l1)}.}
 
 \item{block}{Block specification: factor, integer/character vector, or list
-of row-index vectors.  Passed to \code{normalize_block()}.}
+of row-index vectors.  Passed to \code{\link[glmbayesCore]{normalize_block}()}.}
 
 \item{X_nbhd}{Optional \code{(k x q)} numeric matrix of group-level
 covariates (one row per block, in block-id order or with matching
