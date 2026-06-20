@@ -2,7 +2,7 @@
 % Please edit documentation in R/rglmerb.R
 \name{rglmerb}
 \alias{rglmerb}
-\title{Raw two-stage Gibbs sampler for Bayesian GLMMs (sweep-outer short chains)}
+\title{The Bayesian Generalized Linear Mixed-Effects Model Distribution}
 \usage{
 rglmerb(
   n,
@@ -56,6 +56,9 @@ the \code{fixef.*} namespace (as \code{\link{rGLMM}}), plus
 \code{ranef.mode}, \code{Prior}, and \code{design}.
 }
 \description{
+Bayesian generalized linear mixed-effects model sampler (sweep-outer engine)
+}
+\details{
 Full sampling engine for non-Gaussian (and Gaussian) generalized linear
 mixed models, parallel to \code{\link{rlmerb}} for the LMM path.
 \code{rglmerb} wraps \code{\link{rGLMM}} after ICM mode computation

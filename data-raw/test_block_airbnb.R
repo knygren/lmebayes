@@ -1,4 +1,4 @@
-# Smoke test: block_glmb (Poisson) BY neighborhood on bayesrules::airbnb (full default)
+# Smoke test: glmbBlock (Poisson) BY neighborhood on bayesrules::airbnb (full default)
 #
 # Default: full airbnb, n = 1000 draws per block. Poisson has no dispersion parameter;
 # priors come from per-block Prior_Setup(family = poisson()).
@@ -71,7 +71,7 @@ set.seed(42)
 n_draw <- if (run_quick) 50L else 1000L
 message("Posterior draws per block: n = ", n_draw)
 
-ps_block <- block_prior_setup(
+ps_block <- Prior_SetupBlock(
   form,
   block = "neighborhood",
   data = airbnb_dat,
@@ -83,7 +83,7 @@ pfamily_list <- lapply(ps_block, function(ps) {
   dNormal(mu = ps$mu, Sigma = ps$Sigma)
 })
 
-out_glmb <- block_glmb(
+out_glmb <- glmbBlock(
   form,
   block = "neighborhood",
   family = poisson(),

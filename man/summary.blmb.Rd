@@ -2,18 +2,15 @@
 % Please edit documentation in R/summary.blmb.R
 \name{summary.blmb}
 \alias{summary.blmb}
-\alias{print.blmb}
 \alias{print.summary.blmb}
-\title{Summarize and print blmb fits}
+\title{Summarize blmb fits}
 \usage{
 \method{summary}{blmb}(object, ...)
-
-\method{print}{blmb}(x, digits = max(3, getOption("digits") - 3), ...)
 
 \method{print}{summary.blmb}(x, digits = max(3, getOption("digits") - 3), ...)
 }
 \arguments{
-\item{object}{An object of class \code{"blmb"} from \code{\link{block_lmb}}.}
+\item{object}{An object of class \code{"blmb"} from \code{\link{lmbBlock}}.}
 
 \item{x}{An object of class \code{"summary.blmb"}.}
 
@@ -22,5 +19,5 @@
 \item{\ldots}{Passed to \code{\link[glmbayes]{summary.glmb}} or print methods.}
 }
 \description{
-Methods for row-block \code{\link[glmbayes]{lmb}} fits (class \code{"blmb"}).
+Summary method for row-block \code{\link[glmbayes]{lmb}} fits (class \code{"blmb"}).
 }

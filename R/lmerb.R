@@ -1,4 +1,4 @@
-#' Bayesian linear mixed model fit (draft)
+#' Bayesian linear mixed-effects model fit
 #'
 #' Entry point for \pkg{lmebayes} models with an \code{lmer}-like interface,
 #' analogous to \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects models.
@@ -204,8 +204,11 @@
 #'   \code{\link[glmbayesCore]{build_mu_all}},
 #'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}},
 #'   \code{\link[glmbayesCore]{lmerb_posterior_mean}},
-#'   \code{\link[glmbayesCore]{block_rNormalReg}},
+#'   \code{\link{rNormalRegBlock}},
 #'   \code{\link{lmb}}, \code{\link{glmb}}
+#' @param digits Number of significant digits to use when printing.
+#' @title Fit a Bayesian linear mixed-effects model (LMM) to data, via two-Block Gibbs sampling
+#' @aliases lmerb print.lmerb
 #' @export
 lmerb <- function(
     formula,
@@ -399,13 +402,9 @@ lmerb <- function(
   )
 }
 
-#' Print method for lmerb objects
-#'
+#' @rdname lmerb
+#' @method print lmerb
 #' @param x Object of class \code{"lmerb"}.
-#' @param digits Number of significant digits (default
-#'   \code{max(3, getOption("digits") - 3)}).
-#' @param ... Ignored.
-#' @return \code{x} invisibly.
 #' @export
 print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
 

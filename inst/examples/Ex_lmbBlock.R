@@ -3,7 +3,7 @@
 set.seed(42)
 data("iris", package = "datasets")
 
-ps_block <- block_prior_setup(
+ps_block <- Prior_SetupBlock(
   Sepal.Length ~ Sepal.Width + Petal.Length,
   block = "Species",
   data = iris,
@@ -16,7 +16,7 @@ pfamily_list <- lapply(ps_block, function(ps) {
   )
 })
 
-out_blmb <- block_lmb(
+out_blmb <- lmbBlock(
   Sepal.Length ~ Sepal.Width + Petal.Length,
   block = "Species",
   pfamily_list = pfamily_list,

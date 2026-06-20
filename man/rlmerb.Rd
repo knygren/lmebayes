@@ -2,7 +2,7 @@
 % Please edit documentation in R/rlmerb.R
 \name{rlmerb}
 \alias{rlmerb}
-\title{Raw two-block Gibbs sampler for Bayesian linear mixed models}
+\title{The Bayesian Linear Mixed-Effects Model Distribution}
 \usage{
 rlmerb(
   n,
@@ -59,13 +59,15 @@ the \code{fixef.*} namespace (as \code{\link{rGLMM}}):
 \code{convergence}; \code{Prior}; \code{design}.
 }
 \description{
+Bayesian linear mixed-effects model sampler (two-block Gibbs engine)
+}
+\details{
 Full sampling engine for Gaussian linear mixed models, parallel to
 \code{\link[glmbayes]{rlmb}} in \pkg{glmbayes} and \code{\link{rglmerb}}
 / \code{\link{glmerb}} in \pkg{lmebayes}.  Takes structured \code{design}
 and \code{prior} objects, computes the ICM posterior mean internally, performs TV-calibrated
 convergence calibration, and runs the two-block Gibbs sampler.
-}
-\details{
+
 \code{rlmerb} is called internally by \code{\link{lmerb}} after
 \code{\link{model_setup}} and prior construction are complete.  It can also
 be called directly in simulation or Gibbs-sampling workflows where formula

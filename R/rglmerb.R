@@ -1,4 +1,4 @@
-﻿#' Raw two-stage Gibbs sampler for Bayesian GLMMs (sweep-outer short chains)
+﻿#' Bayesian generalized linear mixed-effects model sampler (sweep-outer engine)
 #'
 #' Full sampling engine for non-Gaussian (and Gaussian) generalized linear
 #' mixed models, parallel to \code{\link{rlmerb}} for the LMM path.
@@ -26,6 +26,7 @@
 #'   \code{ranef.mode}, \code{Prior}, and \code{design}.
 #' @seealso \code{\link{glmerb}}, \code{\link{rGLMM}},
 #'   \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}
+#' @title The Bayesian Generalized Linear Mixed-Effects Model Distribution
 #' @export
 rglmerb <- function(
     n,

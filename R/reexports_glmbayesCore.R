@@ -37,12 +37,14 @@ dGamma <- glmbayesCore::dGamma
 glmbayesCore::pfamily_list
 
 #' @inherit glmbayesCore::block_rNormalGLM title description params return seealso
+#' @example inst/examples/Ex_rNormalGLMBlock.R
 #' @export
-block_rNormalGLM <- glmbayesCore::block_rNormalGLM
+rNormalGLMBlock <- glmbayesCore::block_rNormalGLM
 
 #' @inherit glmbayesCore::block_rNormalReg title description params return seealso
+#' @example inst/examples/Ex_rNormalRegBlock.R
 #' @export
-block_rNormalReg <- glmbayesCore::block_rNormalReg
+rNormalRegBlock <- glmbayesCore::block_rNormalReg
 
 #' @inherit glmbayesCore::rGLMM title description params return seealso
 #' @export

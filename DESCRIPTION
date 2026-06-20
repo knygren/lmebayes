@@ -21,14 +21,16 @@ Authors@R: c(
     person("Martin", "Maechler", role = "ctb",
            comment = "Portions of R Mathlib")
     )
-Description: Two-block Gibbs samplers for Bayesian linear and generalized
-    linear mixed-effects models, following lme4 notation (X/beta for fixed
-    effects, Z/b for random effects, D for the random-effects covariance).
-    Burn-in and thinning bounds are derived from eigenvalues of the
-    mixed-model precision matrix rather than from heuristic convergence
-    diagnostics. Gibbs sampling engines are provided by the 'glmbayes'
+Description: Provides Bayesian linear and generalized linear mixed-effects
+    model fitting with near-independent posterior samples. The main functions
+    mirror lme4's lmer() and glmer() interfaces (X/beta for fixed effects,
+    Z/b for random effects, D for the random-effects covariance) while adding
+    prior family specifications for Gaussian, Poisson, binomial, and Gamma
+    models with log-concave likelihoods. Sampling uses efficient two-block
+    Gibbs sampling procedures with parallel chains and theoretically driven
+    stopping rules. Gibbs sampling engines are provided by the 'glmbayesCore'
     package.
-License: GPL-2
+License: GPL (>= 2)
 URL: https://github.com/knygren/lmebayes
 BugReports: https://github.com/knygren/lmebayes/issues
 Imports:

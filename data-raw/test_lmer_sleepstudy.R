@@ -116,7 +116,7 @@ names(pfamily_list) <- rownames(re_sub)
 set.seed(42)
 n_draw <- 1000L
 
-out_blmb <- block_lmb(
+out_blmb <- lmbBlock(
   form_block,
   block = "Subject",
   pfamily_list = pfamily_list,

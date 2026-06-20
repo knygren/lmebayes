@@ -11,7 +11,7 @@ models, following \pkg{lme4} notation. Builds on \pkg{glmbayes} for iid GLM
 sampling within blocks.
 }
 \details{
-Row-block interfaces include \code{\link{block_lmb}} and \code{\link{block_glmb}};
+Row-block interfaces include \code{\link{lmbBlock}} and \code{\link{glmbBlock}};
 mixed-model setup from \pkg{lme4} formulas via \code{\link{model_setup}}.
 Lower-level simulation uses \code{\link[glmbayesCore]{simfunction}} and envelope
 utilities from \pkg{glmbayesCore}.
@@ -57,7 +57,7 @@ summary(rglmb.D93)
 \insertAllCited{}
 }
 \seealso{
-\code{\link{lmerb}}, \code{\link{model_setup}}, \code{\link{block_lmb}}, \code{\link{block_glmb}};
+\code{\link{lmerb}}, \code{\link{model_setup}}, \code{\link{lmbBlock}}, \code{\link{glmbBlock}};
 \code{\link[glmbayesCore]{simfunction}}, \code{\link[glmbayesCore]{EnvelopeBuild}};
 \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects-only Bayesian
 linear and generalized linear models;

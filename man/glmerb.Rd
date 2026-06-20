@@ -2,7 +2,8 @@
 % Please edit documentation in R/glmerb.R
 \name{glmerb}
 \alias{glmerb}
-\title{Bayesian generalized linear mixed model fit (draft)}
+\alias{print.glmerb}
+\title{Fit a Bayesian generalized linear mixed-effects model (GLMM) to data, via two-Block Gibbs sampling}
 \usage{
 glmerb(
   formula,
@@ -31,6 +32,8 @@ glmerb(
   progbar = FALSE,
   ...
 )
+
+\method{print}{glmerb}(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 \arguments{
 \item{formula}{Mixed-model formula (single grouping factor; same constraints
@@ -175,6 +178,10 @@ pilot and main replicate sampling inside \code{\link{rglmerb}}. Default
 \code{FALSE}.}
 
 \item{...}{Reserved for future use.}
+
+\item{x}{Object of class \code{"glmerb"}.}
+
+\item{digits}{Number of significant digits to use when printing.}
 }
 \value{
 Object of class \code{"glmerb"}: same \code{fixef.*} structure as
@@ -185,16 +192,18 @@ pilot colMeans when a pilot runs; \code{NULL} for Gaussian or when
 pilot mean vs ICM mode), \code{gap_tol}, and \code{mode_gap_max}.
 }
 \description{
+Bayesian generalized linear mixed-effects model fit
+}
+\details{
 Draft entry point for \pkg{lmebayes} GLMM models with a \code{glmer}-like
 interface, analogous to \code{\link{lmerb}} for Gaussian responses and to
 \code{\link{glmb}} for fixed-effects GLMs.
-}
-\details{
+
 Currently a copy of \code{\link{lmerb}} with an additional \code{family}
 argument. When \code{family = gaussian()}, behaviour matches
 \code{\link{lmerb}} except that the embedded reference fit is from
 \code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}. Non-Gaussian
-families use \code{block_rNormalGLM} for Block~1 Gibbs updates.
+families use \code{rNormalGLMBlock} for Block~1 Gibbs updates.
 }
 \examples{
 \dontshow{if (requireNamespace("bayesrules", quietly = TRUE)) withAutoprint(\{ # examplesIf}

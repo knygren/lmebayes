@@ -2,18 +2,15 @@
 % Please edit documentation in R/summary.bglmb.R
 \name{summary.bglmb}
 \alias{summary.bglmb}
-\alias{print.bglmb}
 \alias{print.summary.bglmb}
-\title{Summarize and print bglmb fits}
+\title{Summarize bglmb fits}
 \usage{
 \method{summary}{bglmb}(object, ...)
-
-\method{print}{bglmb}(x, digits = max(3, getOption("digits") - 3), ...)
 
 \method{print}{summary.bglmb}(x, digits = max(3, getOption("digits") - 3), ...)
 }
 \arguments{
-\item{object}{An object of class \code{"bglmb"} from \code{\link{block_glmb}}.}
+\item{object}{An object of class \code{"bglmb"} from \code{\link{glmbBlock}}.}
 
 \item{x}{An object of class \code{"summary.bglmb"}.}
 
@@ -26,13 +23,13 @@
 objects with class \code{"summary.bglmb"}.
 }
 \description{
-Methods for row-block \code{\link[glmbayes]{glmb}} fits (class \code{"bglmb"}).
+Summary method for row-block \code{\link[glmbayes]{glmb}} fits (class \code{"bglmb"}).
 \code{summary.bglmb} applies \code{\link[glmbayes]{summary.glmb}} to each block;
-printing follows \code{\link[glmbayes]{summary.mlmb}} / \code{\link{summary.blmb}} with
-per-block sections.
+\code{print.summary.bglmb} follows \code{\link[glmbayes]{summary.mlmb}} /
+\code{\link{summary.blmb}} with per-block sections.
 }
 \seealso{
-\code{\link{block_glmb}}, \code{\link{block_lmb}},
+\code{\link{glmbBlock}}, \code{\link{lmbBlock}},
 \code{\link[glmbayes]{summary.mlmb}}, \code{\link{summary.blmb}},
 \code{\link[glmbayes]{summary.glmb}}
 }

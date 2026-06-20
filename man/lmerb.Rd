@@ -2,7 +2,8 @@
 % Please edit documentation in R/lmerb.R
 \name{lmerb}
 \alias{lmerb}
-\title{Bayesian linear mixed model fit (draft)}
+\alias{print.lmerb}
+\title{Fit a Bayesian linear mixed-effects model (LMM) to data, via two-Block Gibbs sampling}
 \usage{
 lmerb(
   formula,
@@ -27,6 +28,8 @@ lmerb(
   seed = NULL,
   ...
 )
+
+\method{print}{lmerb}(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 \arguments{
 \item{formula}{Mixed-model formula (single grouping factor; same constraints
@@ -115,6 +118,10 @@ When \code{NULL} (default), iter-0 means are taken from the
 \item{seed}{Optional; sets the RNG seed before sampling.}
 
 \item{...}{Reserved for future use.}
+
+\item{x}{Object of class \code{"lmerb"}.}
+
+\item{digits}{Number of significant digits to use when printing.}
 }
 \value{
 Object of class \code{"lmerb"}: a list with the following
@@ -186,10 +193,12 @@ minimum sweeps), and \code{m_convergence} (sweeps actually used).
 }
 }
 \description{
-Entry point for \pkg{lmebayes} models with an \code{lmer}-like interface,
-analogous to \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects models.
+Bayesian linear mixed-effects model fit
 }
 \details{
+Entry point for \pkg{lmebayes} models with an \code{lmer}-like interface,
+analogous to \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects models.
+
 Calls \code{\link{model_setup}} on \code{formula} and \code{data} for design
 matrices (\code{y}, \code{Z}, \code{groups}, \code{X_hyper}, etc.) and embeds
 the resulting \code{\link[lme4]{lmer}} fit as \code{lmer}. Priors are
@@ -297,6 +306,6 @@ probability distributions via Markov chain Monte Carlo.
 \code{\link[glmbayesCore]{build_mu_all}},
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}},
 \code{\link[glmbayesCore]{lmerb_posterior_mean}},
-\code{\link[glmbayesCore]{block_rNormalReg}},
+\code{\link{rNormalRegBlock}},
 \code{\link{lmb}}, \code{\link{glmb}}
 }

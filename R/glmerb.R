@@ -1,4 +1,4 @@
-#' Bayesian generalized linear mixed model fit (draft)
+#' Bayesian generalized linear mixed-effects model fit
 #'
 #' Draft entry point for \pkg{lmebayes} GLMM models with a \code{glmer}-like
 #' interface, analogous to \code{\link{lmerb}} for Gaussian responses and to
@@ -8,7 +8,7 @@
 #' argument. When \code{family = gaussian()}, behaviour matches
 #' \code{\link{lmerb}} except that the embedded reference fit is from
 #' \code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}. Non-Gaussian
-#' families use \code{block_rNormalGLM} for Block~1 Gibbs updates.
+#' families use \code{rNormalGLMBlock} for Block~1 Gibbs updates.
 #'
 #' @inheritParams lmerb
 #' @param family A \code{\link[stats]{family}} object describing the response
@@ -91,8 +91,11 @@
 #' @seealso \code{\link{lmerb}}, \code{\link[glmbayesCore]{glmerb_posterior_mode}},
 #'   \code{\link{glmb}}; \code{\link[utils]{demo}} for the full sampling workflow
 #'   (\code{demo("Ex_14_glmerb_airbnb_small", package = "lmebayes")}).
+#' @param digits Number of significant digits to use when printing.
 #' @examplesIf requireNamespace("bayesrules", quietly = TRUE)
 #' @example inst/examples/Ex_glmerb.R
+#' @title Fit a Bayesian generalized linear mixed-effects model (GLMM) to data, via two-Block Gibbs sampling
+#' @aliases glmerb print.glmerb
 #' @export
 glmerb <- function(
     formula,
@@ -424,12 +427,9 @@ print_coef_means <- function(x, digits = 4L, ...) {
   invisible(x)
 }
 
-#' Print method for glmerb objects (draft)
-#'
+#' @rdname glmerb
+#' @method print glmerb
 #' @param x Object of class \code{"glmerb"}.
-#' @param digits Number of significant digits.
-#' @param ... Ignored.
-#' @return \code{x} invisibly.
 #' @export
 print.glmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
 

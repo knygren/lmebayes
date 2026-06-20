@@ -1,4 +1,4 @@
-#' Raw two-block Gibbs sampler for Bayesian linear mixed models
+#' Bayesian linear mixed-effects model sampler (two-block Gibbs engine)
 #'
 #' Full sampling engine for Gaussian linear mixed models, parallel to
 #' \code{\link[glmbayes]{rlmb}} in \pkg{glmbayes} and \code{\link{rglmerb}}
@@ -53,6 +53,7 @@
 #' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{rglmerb}},
 #'   \code{\link[glmbayes]{rlmb}},
 #'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
+#' @title The Bayesian Linear Mixed-Effects Model Distribution
 #' @export
 rlmerb <- function(
     n,

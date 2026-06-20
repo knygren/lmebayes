@@ -111,7 +111,7 @@ names(pfamily_list) <- levels(iris$Species)
 set.seed(42)
 n_draw <- 50L
 
-out_blmb <- block_lmb(
+out_blmb <- lmbBlock(
   form_block,
   block = "Species",
   pfamily_list = pfamily_list,

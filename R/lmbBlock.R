@@ -1,136 +1,32 @@
-#' Row-block (BY-style) Bayesian linear models
+#' @title Fitting Blocked Bayesian Linear Models
 #'
 #' @description
 #' Fits one \code{\link[glmbayes]{lmb}} per observation block (SAS \code{BY}-style split on
 #' rows), sharing the same formula on each subset. Contrast with
 #' \code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
-#' \code{\link[glmbayesCore]{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
+#' \code{\link{rNormalGLMBlock}} (Gibbs conditional draws, matrix API).
 #'
 #' @param block Block partition: \code{factor} or vector of length \code{nrow(data)}
 #'   (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
 #'   counts, or a list of row index vectors (see \code{\link[glmbayesCore]{normalize_block}}).
-#' @name block_lmb
+#' @name lmbBlock
 #' @family modelfuns
 NULL
 
-#' Prior setup for row-block \code{\link[glmbayes]{lmb}} / \code{block_glmb}
-#'
-#' Runs \code{\link[glmbayesCore]{Prior_Setup}} on each block subset of the data.
-#'
-#' @param formula A \code{\link{formula}} with a single response.
-#' @param block Block partition: \code{factor} or vector of length \code{nrow(data)}
-#'   (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-#'   counts, or a list of row index vectors (see \code{\link[glmbayesCore]{normalize_block}}).
-#' @inheritParams glmbayesCore::Prior_Setup
-#' @return A named list of class \code{"block_PriorSetup"}. Each element is a
-#'   \code{\link[glmbayesCore]{Prior_Setup}} result for one block.
-#' @family prior
-#' @seealso \code{\link{block_lmb}}, \code{\link[glmbayesCore]{multi_prior_setup}},
-#'   \code{\link[glmbayesCore]{normalize_block}}
-#' @export
-block_prior_setup <- function(
-    formula,
-    block,
-    family = gaussian(),
-    data = NULL,
-    weights = NULL,
-    subset = NULL,
-    na.action = na.fail,
-    offset = NULL,
-    contrasts = NULL,
-    pwt = NULL,
-    pwt_default_low = 0.01,
-    pwt_default_high = 0.05,
-    n_prior = NULL,
-    sd = NULL,
-    dispersion = NULL,
-    intercept_source = c("null_model", "full_model"),
-    effects_source = c("null_effects", "full_model"),
-    mu = NULL,
-    k = 1,
-    ...
-) {
-  call <- match.call()
-  if (is.character(family)) {
-    family <- get(family, mode = "function", envir = parent.frame())
-  }
-  if (is.function(family)) {
-    family <- family()
-  }
-  fam_ok <- family$family %in% c("gaussian", "poisson")
-  if (is.null(family$family) || !fam_ok) {
-    stop(
-      "block_prior_setup() supports family = gaussian() or poisson() only.",
-      call. = FALSE
-    )
-  }
-  if (missing(data)) {
-    data <- environment(formula)
-  }
-
-  meta <- .blmb_formula_block_meta(
-    formula = formula,
-    block = block,
-    data = data,
-    subset = if (!missing(subset)) subset else NULL,
-    weights = if (!missing(weights)) weights else NULL,
-    na.action = if (!missing(na.action)) na.action else NULL,
-    offset = if (!missing(offset)) offset else NULL,
-    contrasts = if (!missing(contrasts)) contrasts else NULL
-  )
-
-  ps_args <- list(
-    family = family,
-    data = data,
-    weights = weights,
-    na.action = na.action,
-    offset = offset,
-    contrasts = contrasts,
-    pwt = pwt,
-    pwt_default_low = pwt_default_low,
-    pwt_default_high = pwt_default_high,
-    n_prior = n_prior,
-    sd = sd,
-    dispersion = dispersion,
-    intercept_source = intercept_source,
-    effects_source = effects_source,
-    mu = mu,
-    k = k
-  )
-
-  setups <- vector("list", meta$block_info$k)
-  for (b in seq_len(meta$block_info$k)) {
-    rows_b <- .blmb_rows_to_data_subset(
-      meta$block_info$rows[[b]], meta$mf, data
-    )
-    setups[[b]] <- do.call(
-      Prior_Setup,
-      c(
-        list(formula = formula, subset = rows_b),
-        ps_args,
-        list(...)
-      )
-    )
-  }
-  names(setups) <- meta$block_info$ids
-
-  attr(setups, "call") <- call
-  attr(setups, "formula") <- formula
-  attr(setups, "block") <- block
-  attr(setups, "block_info") <- meta$block_info
-  class(setups) <- c("block_PriorSetup", "list")
-  setups
-}
-
-#' @describeIn block_lmb Gaussian \code{\link[glmbayes]{lmb}} fit per row block.
+#' @describeIn lmbBlock Gaussian \code{\link[glmbayes]{lmb}} fit per row block.
 #' @param pfamily A single \code{\link[glmbayes]{pfamily}} recycled to every block, or
 #'   use \code{pfamily_list} of length \code{k} (number of blocks).
 #' @param pfamily_list Optional list of \code{pfamily} objects, one per block.
 #' @inheritParams glmbayes::lmb
+#' @param model,x,y,qr For \code{lmbBlock}, logicals passed to each block
+#'   \code{\link[glmbayes]{lmb}} fit (see \code{\link[stats]{lm}}). For
+#'   \code{print}, \code{x} is the \code{"blmb"} object.
 #' @return A named list of class \code{"blmb"} (list of \code{"lmb"} fits).
-#' @example inst/examples/Ex_block_lmb.R
+#' @param digits Number of significant digits to use when printing.
+#' @example inst/examples/Ex_lmbBlock.R
+#' @aliases print.blmb
 #' @export
-block_lmb <- function(
+lmbBlock <- function(
     formula,
     block,
     pfamily = NULL,
@@ -386,7 +282,7 @@ block_lmb <- function(
 #' Saturated blocks (\code{n = p}) need \code{dispersion} in \code{\link[glmbayes]{Prior_Setup}}.
 #'
 #' @param formula Model formula shared across blocks.
-#' @inheritParams block_lmb
+#' @inheritParams lmbBlock
 #' @return A list with \code{keep} and \code{drop} (block id character vectors),
 #'   \code{table} (data frame with \code{id}, \code{n}, \code{rank}, \code{p},
 #'   \code{full_rank}), and \code{block_info}.
@@ -448,7 +344,7 @@ block_lmb <- function(
 #' pre-formed design matrix \code{x} and a block specification (factor, integer
 #' vector, or list of row-index vectors) rather than a formula and data frame.
 #' Used internally by \code{block_check_identifiability_xy} and by
-#' \code{\link[glmbayesCore]{block_rNormalGLM}}.
+#' \code{\link{rNormalGLMBlock}}.
 #'
 #' @param x Numeric matrix \code{(l2 x l1)}: the full design matrix.
 #' @param block_info Block partition as returned by \code{\link[glmbayesCore]{normalize_block}()}.
@@ -509,7 +405,7 @@ block_lmb <- function(
 #' @return Invisibly, the same list structure as
 #'   \code{block_check_identifiability()}.
 #' @seealso \code{block_check_identifiability()},
-#'   \code{\link[glmbayesCore]{block_rNormalGLM}}
+#'   \code{\link{rNormalGLMBlock}}
 #' @keywords internal
 block_check_identifiability_xy <- function(
     x,
@@ -616,12 +512,12 @@ block_check_identifiability_xy <- function(
 #' as "prior-draw" groups; they do not disrupt ergodicity once Level 2 holds.
 #' See \code{inst/BLOCK_GIBBS_ERGODICITY.md} for derivations.
 #'
-#' For BY-style independent fits (\code{\link{block_lmb}}, \code{\link{block_glmb}})
+#' For BY-style independent fits (\code{\link{lmbBlock}}, \code{\link{glmbBlock}})
 #' only Level 1 applies; non-identified blocks should be dropped before fitting.
 #'
 #' @param formula Model formula (data-level, shared across blocks).
 #' @param block Block specification: factor, column name, or list of row indices.
-#'   See \code{\link{block_lmb}}.
+#'   See \code{\link{lmbBlock}}.
 #' @param data A data frame.
 #' @param X_nbhd Optional numeric matrix with one row per block (in block-id order)
 #'   and \eqn{q} columns of group-level covariates.  If \code{NULL}, an
@@ -642,8 +538,8 @@ block_check_identifiability_xy <- function(
 #'     \item{level2_ok}{Logical: Level 2 satisfied?}
 #'     \item{action}{\code{"proceed"} or \code{"warn"} or \code{"stop"}.}
 #'   }
-#' @seealso \code{\link{block_lmb}}, \code{\link{block_prior_setup}},
-#'   \code{\link{block_glmb}}
+#' @seealso \code{\link{lmbBlock}}, \code{\link{Prior_SetupBlock}},
+#'   \code{\link{glmbBlock}}
 #' @keywords internal
 block_check_identifiability <- function(
     formula,
@@ -779,4 +675,58 @@ block_check_identifiability <- function(
   pD <- vapply(object, function(fit) fit$pD, numeric(1))
   dic <- vapply(object, function(fit) fit$DIC, numeric(1))
   cbind(pD = pD, DIC = dic)
+}
+
+#' @rdname lmbBlock
+#' @method print blmb
+#' @export
+print.blmb <- function(x, digits = max(3, getOption("digits") - 3), ...) {
+  cl <- attr(x, "call")
+  if (is.null(cl) && length(x) >= 1L) {
+    cl <- x[[1L]]$call
+  }
+  cat("\nCall:\n")
+  if (!is.null(cl)) {
+    if (is.call(cl)) {
+      cat(paste(deparse(cl, width.cutoff = 500L), collapse = "\n"), "\n")
+    } else {
+      print(cl)
+    }
+  } else {
+    cat("  (not recorded)\n")
+  }
+
+  cm <- .blmb_coef_means_matrix(x)
+  if (!is.null(cm) && length(cm)) {
+    cat("\nPosterior mean coefficients (rows = blocks):\n")
+    print.default(
+      format(cm, digits = digits),
+      print.gap = 2L,
+      quote = FALSE
+    )
+  } else {
+    cat("\nNo coefficients\n")
+  }
+
+  dic_tab <- .blmb_dic_table(x)
+  if (!is.null(dic_tab) && nrow(dic_tab) >= 1L) {
+    rownames(dic_tab) <- names(x)
+    cat("\nBayesian fit (per block; independent BY model):\n")
+    print.default(
+      format(dic_tab, digits = digits),
+      print.gap = 2L,
+      quote = FALSE
+    )
+    cat(
+      "Sum DIC:",
+      format(sum(dic_tab[, "DIC"]), digits = digits),
+      "  Sum pD:",
+      format(sum(dic_tab[, "pD"]), digits = digits),
+      "\n",
+      sep = ""
+    )
+  }
+
+  cat("\n")
+  invisible(x)
 }
