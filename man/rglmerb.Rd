@@ -65,6 +65,6 @@ mixed models, parallel to \code{\link{rlmerb}} for the LMM path.
 and \pkg{lmebayes} prior setup; see \code{\link{glmerb}} for the user API.
 }
 \seealso{
-\code{\link{glmerb}}, \code{\link{rGLMM}},
+\code{\link{glmerb}}, \code{\link{rGLMM}}, \code{\link{rLMM}},
 \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}
 }

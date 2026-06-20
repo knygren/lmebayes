@@ -51,7 +51,7 @@ calibration line.  Default \code{TRUE}.}
 }
 \value{
 An object of class \code{c("rlmerb", "list")} with Block~2 fields in
-the \code{fixef.*} namespace (as \code{\link{rGLMM}}):
+the \code{fixef.*} namespace (as \code{\link{rLMM}}):
 \code{fixef}, \code{fixef.mode}, \code{fixef.init}, \code{fixef.means},
 \code{fixef.dispersion}, \code{fixef.dispersion.mean}, \code{fixef.iters},
 \code{fixef.iters.mean}, \code{fixef.mu}; Block~1 draws in
@@ -65,25 +65,15 @@ Bayesian linear mixed-effects model sampler (two-block Gibbs engine)
 Full sampling engine for Gaussian linear mixed models, parallel to
 \code{\link[glmbayes]{rlmb}} in \pkg{glmbayes} and \code{\link{rglmerb}}
 / \code{\link{glmerb}} in \pkg{lmebayes}.  Takes structured \code{design}
-and \code{prior} objects, computes the ICM posterior mean internally, performs TV-calibrated
-convergence calibration, and runs the two-block Gibbs sampler.
+and \code{prior} objects, computes the ICM posterior mean internally, and
+delegates replicate-chain sampling to \code{\link{rLMM}}.
 
 \code{rlmerb} is called internally by \code{\link{lmerb}} after
 \code{\link{model_setup}} and prior construction are complete.  It can also
 be called directly in simulation or Gibbs-sampling workflows where formula
-parsing and model-fit overhead are unnecessary.  It encapsulates:
-\enumerate{
-\item ICM posterior mean (\code{\link[glmbayesCore]{lmerb_posterior_mean}})
-\item Block 1 prior construction (\code{.lmebayes_block1_prior_list})
-\item TV-calibrated convergence constants
-(\code{\link[glmbayesCore]{two_block_rate_v2}},
-\code{\link[glmbayesCore]{two_block_l_for_tv}})
-\item The two-block Gibbs sampler
-(\code{\link[glmbayesCore]{two_block_rNormal_reg_v2}})
-}
+parsing and model-fit overhead are unnecessary.
 }
 \seealso{
-\code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{rglmerb}},
-\code{\link[glmbayes]{rlmb}},
-\code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
+\code{\link{lmerb}}, \code{\link{rLMM}}, \code{\link{glmerb}},
+\code{\link{rglmerb}}, \code{\link[glmbayes]{rlmb}}
 }

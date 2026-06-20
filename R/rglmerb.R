@@ -24,7 +24,7 @@
 #' @return Object of class \code{c("rglmerb", "list")} with Block~2 fields in
 #'   the \code{fixef.*} namespace (as \code{\link{rGLMM}}), plus
 #'   \code{ranef.mode}, \code{Prior}, and \code{design}.
-#' @seealso \code{\link{glmerb}}, \code{\link{rGLMM}},
+#' @seealso \code{\link{glmerb}}, \code{\link{rGLMM}}, \code{\link{rLMM}},
 #'   \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}
 #' @title The Bayesian Generalized Linear Mixed-Effects Model Distribution
 #' @export
