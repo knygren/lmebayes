@@ -31,3 +31,4 @@ posterior mean and mode coincide exactly).  For \code{glmerb} objects the
 reference column is labelled \code{"glmer"} and the \code{fixef.mode} column
 is labelled \code{"post.mode"}.
 }
+\keyword{internal}

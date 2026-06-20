@@ -486,7 +486,7 @@ block_lmb <- function(
 #' Check block-level and hyper-level identifiability (matrix interface)
 #'
 #' @description
-#' Matrix-interface variant of \code{\link{block_check_identifiability}} for
+#' Matrix-interface variant of \code{block_check_identifiability()} for
 #' use when the design matrix \code{x} and response \code{y} are already formed
 #' (e.g. inside a Gibbs loop setup).  Applies the same two-level algorithm:
 #'
@@ -496,7 +496,7 @@ block_lmb <- function(
 #'     Level-1-identified blocks.
 #' }
 #'
-#' See \code{\link{block_check_identifiability}} and
+#' See \code{block_check_identifiability()} and
 #' \code{inst/BLOCK_GIBBS_ERGODICITY.md} for background.
 #'
 #' @param x Numeric design matrix \code{(l2 x l1)}.
@@ -507,10 +507,10 @@ block_lmb <- function(
 #'   \code{rownames}).  \code{NULL} assumes an intercept-only hyper design.
 #' @param on_failure One of \code{"warn"} (default) or \code{"stop"}.
 #' @return Invisibly, the same list structure as
-#'   \code{\link{block_check_identifiability}}.
-#' @seealso \code{\link{block_check_identifiability}},
+#'   \code{block_check_identifiability()}.
+#' @seealso \code{block_check_identifiability()},
 #'   \code{\link[glmbayesCore]{block_rNormalGLM}}
-#' @export
+#' @keywords internal
 block_check_identifiability_xy <- function(
     x,
     block,
@@ -644,7 +644,7 @@ block_check_identifiability_xy <- function(
 #'   }
 #' @seealso \code{\link{block_lmb}}, \code{\link{block_prior_setup}},
 #'   \code{\link{block_glmb}}
-#' @export
+#' @keywords internal
 block_check_identifiability <- function(
     formula,
     block,

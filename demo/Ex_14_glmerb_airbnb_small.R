@@ -79,7 +79,7 @@ cat(sprintf(
 ))
 
 ## Level-2 posterior means alongside the classical glmer reference.
-print_coef_means(fit)
+lmebayes:::print_coef_means(fit)
 lme4::fixef(fit$glmer)
 
 ## Full print and summary.

@@ -403,14 +403,14 @@ no Step 2 / Step 4.
 
 ```r
 # Simple case: intercept-only hyper (X_nbhd = NULL → all-ones assumed)
-chk <- block_check_identifiability(
+chk <- lmebayes:::block_check_identifiability(
   formula = reviews ~ rating_c,
   block   = "neighborhood",
   data    = airbnb_dat
 )
 
 # Richer hyper design: neighborhood-level covariates
-chk <- block_check_identifiability(
+chk <- lmebayes:::block_check_identifiability(
   formula = reviews ~ rating_c + room_type,
   block   = "neighborhood",
   data    = airbnb_dat,

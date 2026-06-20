@@ -25,10 +25,10 @@ covariates (one row per block, in block-id order or with matching
 }
 \value{
 Invisibly, the same list structure as
-\code{\link{block_check_identifiability}}.
+\code{block_check_identifiability()}.
 }
 \description{
-Matrix-interface variant of \code{\link{block_check_identifiability}} for
+Matrix-interface variant of \code{block_check_identifiability()} for
 use when the design matrix \code{x} and response \code{y} are already formed
 (e.g. inside a Gibbs loop setup).  Applies the same two-level algorithm:
 
@@ -38,10 +38,11 @@ use when the design matrix \code{x} and response \code{y} are already formed
 Level-1-identified blocks.
 }
 
-See \code{\link{block_check_identifiability}} and
+See \code{block_check_identifiability()} and
 \code{inst/BLOCK_GIBBS_ERGODICITY.md} for background.
 }
 \seealso{
-\code{\link{block_check_identifiability}},
+\code{block_check_identifiability()},
 \code{\link[glmbayesCore]{block_rNormalGLM}}
 }
+\keyword{internal}

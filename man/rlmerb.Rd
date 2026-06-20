@@ -51,7 +51,7 @@ calibration line.  Default \code{TRUE}.}
 }
 \value{
 An object of class \code{c("rlmerb", "list")} with Block~2 fields in
-the \code{fixef.*} namespace (as \code{\link[glmbayesCore]{rGLMM}}):
+the \code{fixef.*} namespace (as \code{\link{rGLMM}}):
 \code{fixef}, \code{fixef.mode}, \code{fixef.init}, \code{fixef.means},
 \code{fixef.dispersion}, \code{fixef.dispersion.mean}, \code{fixef.iters},
 \code{fixef.iters.mean}, \code{fixef.mu}; Block~1 draws in

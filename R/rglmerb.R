@@ -2,7 +2,7 @@
 #'
 #' Full sampling engine for non-Gaussian (and Gaussian) generalized linear
 #' mixed models, parallel to \code{\link{rlmerb}} for the LMM path.
-#' \code{rglmerb} wraps \code{\link{rGLMM_temp}} after ICM mode computation
+#' \code{rglmerb} wraps \code{\link{rGLMM}} after ICM mode computation
 #' and \pkg{lmebayes} prior setup; see \code{\link{glmerb}} for the user API.
 #'
 #' @param n Integer. Number of independent chains in the main stage.
@@ -22,11 +22,10 @@
 #' @param verbose Print stage headers and diagnostics.
 #' @param progbar Progress bars when \code{verbose} is \code{FALSE}.
 #' @return Object of class \code{c("rglmerb", "list")} with Block~2 fields in
-#'   the \code{fixef.*} namespace (as \code{\link{rGLMM_temp}} and
-#'   \code{\link[glmbayesCore]{rGLMM}}), plus \code{ranef.mode}, \code{Prior},
-#'   and \code{design}.
-#' @seealso \code{\link{glmerb}}, \code{\link{rGLMM_temp}},
-#'   \code{\link[glmbayesCore]{rGLMM}}
+#'   the \code{fixef.*} namespace (as \code{\link{rGLMM}}), plus
+#'   \code{ranef.mode}, \code{Prior}, and \code{design}.
+#' @seealso \code{\link{glmerb}}, \code{\link{rGLMM}},
+#'   \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}
 #' @export
 rglmerb <- function(
     n,
@@ -141,7 +140,7 @@ rglmerb <- function(
     ))
   }
 
-  out <- rGLMM_temp(
+  out <- glmbayesCore::rGLMM(
     n                   = n,
     y                   = design$y,
     x                   = design$Z,

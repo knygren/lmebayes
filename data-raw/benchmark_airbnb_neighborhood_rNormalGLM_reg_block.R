@@ -142,7 +142,7 @@ stopifnot(block_info$k == k)
 # --- Identifiability preflight -----------------------------------------------
 # Intercept-only hyper (X_nbhd = NULL): Level 2 requires at least one
 # full-rank block, which is automatic for any neighbourhood with n >= l1.
-id_check <- block_check_identifiability_xy(
+id_check <- lmebayes:::block_check_identifiability_xy(
   x          = X_full,
   block      = block_full,
   X_nbhd     = NULL,

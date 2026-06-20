@@ -7,3 +7,7 @@ lmb <- glmbayes::lmb
 #' @inherit glmbayes::glmb title description details params return seealso references examples
 #' @export
 glmb <- glmbayes::glmb
+
+#' @inherit glmbayes::directional_tail title description params return seealso references
+#' @export
+directional_tail <- glmbayes::directional_tail

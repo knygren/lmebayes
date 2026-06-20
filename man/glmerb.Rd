@@ -230,7 +230,7 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
     simulate     = FALSE
   )
 
-  print_coef_means(fit)
+  lmebayes:::print_coef_means(fit)
   print(fit)
   lme4::fixef(fit$glmer)
 }

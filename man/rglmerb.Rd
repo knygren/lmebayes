@@ -52,17 +52,16 @@ is \code{NULL}.}
 }
 \value{
 Object of class \code{c("rglmerb", "list")} with Block~2 fields in
-the \code{fixef.*} namespace (as \code{\link{rGLMM_temp}} and
-\code{\link[glmbayesCore]{rGLMM}}), plus \code{ranef.mode}, \code{Prior},
-and \code{design}.
+the \code{fixef.*} namespace (as \code{\link{rGLMM}}), plus
+\code{ranef.mode}, \code{Prior}, and \code{design}.
 }
 \description{
 Full sampling engine for non-Gaussian (and Gaussian) generalized linear
 mixed models, parallel to \code{\link{rlmerb}} for the LMM path.
-\code{rglmerb} wraps \code{\link{rGLMM_temp}} after ICM mode computation
+\code{rglmerb} wraps \code{\link{rGLMM}} after ICM mode computation
 and \pkg{lmebayes} prior setup; see \code{\link{glmerb}} for the user API.
 }
 \seealso{
-\code{\link{glmerb}}, \code{\link{rGLMM_temp}},
-\code{\link[glmbayesCore]{rGLMM}}
+\code{\link{glmerb}}, \code{\link{rGLMM}},
+\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}
 }

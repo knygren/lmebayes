@@ -222,7 +222,7 @@ message("Block 2: rNormalGLM_reg_block_update")
 message("Gibbs: n_burn = ", n_burn, ", n_sim = ", n_sim)
 
 # --- Identifiability preflight -----------------------------------------------
-id_check <- block_check_identifiability_xy(
+id_check <- lmebayes:::block_check_identifiability_xy(
   x          = X_full,
   block      = block_full,
   X_nbhd     = X_nbhd,

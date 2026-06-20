@@ -40,17 +40,9 @@ glmbayesCore::pfamily_list
 #' @export
 block_rNormalGLM <- glmbayesCore::block_rNormalGLM
 
-#' @inherit glmbayesCore::block_rNormalGLM_update title description params return seealso
-#' @export
-block_rNormalGLM_update <- glmbayesCore::block_rNormalGLM_update
-
 #' @inherit glmbayesCore::block_rNormalReg title description params return seealso
 #' @export
 block_rNormalReg <- glmbayesCore::block_rNormalReg
-
-#' @inherit glmbayesCore::block_rNormalReg_update title description params return seealso
-#' @export
-block_rNormalReg_update <- glmbayesCore::block_rNormalReg_update
 
 #' @inherit glmbayesCore::normalize_block
 #' @export
@@ -72,7 +64,7 @@ glmerb_posterior_mode <- glmbayesCore::glmerb_posterior_mode
 #' @export
 two_block_rNormal_reg <- glmbayesCore::two_block_rNormal_reg
 
-#' @inherit glmbayesCore::rGLMM
+#' @inherit glmbayesCore::rGLMM title description params return seealso
 #' @export
 rGLMM <- glmbayesCore::rGLMM
 

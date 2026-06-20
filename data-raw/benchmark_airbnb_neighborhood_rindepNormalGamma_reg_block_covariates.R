@@ -64,7 +64,7 @@ message("n = ", n, "  k = ", k, "  p = ", p, "  q = ", q,
         "  n_burn = ", n_burn, "  n_sim = ", n_sim)
 
 # --- Identifiability preflight -----------------------------------------------
-id_check <- block_check_identifiability_xy(Z, grp, X_nbhd = X, on_failure = "stop")
+id_check <- lmebayes:::block_check_identifiability_xy(Z, grp, X_nbhd = X, on_failure = "stop")
 stopifnot(id_check$action == "proceed")
 
 # --- Priors ------------------------------------------------------------------

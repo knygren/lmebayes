@@ -53,8 +53,8 @@
 #' @importFrom RcppParallel RcppParallelLibs
 #' @importFrom utils flush.console
 #' @importFrom glmbayes glmb.covratio glmb.dffits glmb.influence.measures
-#' @importFrom glmbayes extractDIC directional_tail
+#' @importFrom glmbayes extractDIC
 #' @importFrom glmbayes has_opencl get_opencl_core_count
-#' @importFrom glmbayesCore Prior_Setup dNormal dNormal_Gamma multi_prior_setup rlmb rglmb build_mu_all lmerb_posterior_mean glmerb_posterior_mode two_block_rNormal_reg rGLMM multi_rNormal_reg
+#' @importFrom glmbayesCore Prior_Setup dNormal dNormal_Gamma multi_prior_setup rlmb rglmb build_mu_all lmerb_posterior_mean glmerb_posterior_mode two_block_rNormal_reg multi_rNormal_reg
 #' @useDynLib lmebayes, .registration = TRUE
 "_PACKAGE"

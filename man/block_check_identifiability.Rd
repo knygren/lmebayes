@@ -78,3 +78,4 @@ only Level 1 applies; non-identified blocks should be dropped before fitting.
 \code{\link{block_lmb}}, \code{\link{block_prior_setup}},
 \code{\link{block_glmb}}
 }
+\keyword{internal}

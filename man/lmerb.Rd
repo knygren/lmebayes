@@ -278,7 +278,7 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
     seed             = 1L
   )
   ## Block 2 posterior means alongside lmer MLE and ICM posterior mean.
-  print_coef_means(fit)
+  lmebayes:::print_coef_means(fit)
   print(fit)
   summary(fit)
 }

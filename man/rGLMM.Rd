@@ -2,7 +2,7 @@
 % Please edit documentation in R/reexports_glmbayesCore.R
 \name{rGLMM}
 \alias{rGLMM}
-\title{Replicate-chain Gibbs sampling for Bayesian GLMMs}
+\title{Replicate-chain Gibbs sampling for Bayesian GLMMs (v6 sweep-outer driver)}
 \usage{
 rGLMM(
   n,
@@ -16,7 +16,7 @@ rGLMM(
   offset = NULL,
   weights = 1,
   family = gaussian(),
-  m_convergence = 10L,
+  m_convergence = NULL,
   re_coef_names = colnames(x),
   group_levels = levels(block),
   group_name = NULL,
@@ -31,7 +31,10 @@ rGLMM(
   verbose = FALSE,
   progbar = FALSE,
   stage_verbose = FALSE,
-  rate_calibration = NULL
+  rate_calibration = NULL,
+  b_start = NULL,
+  collect_block1 = TRUE,
+  any_ing = FALSE
 )
 }
 \arguments{
@@ -58,7 +61,9 @@ the pilot mean when \code{n_pilot > 0}).}
 
 \item{offset, weights, family}{Passed to Block~1 (length \code{l2} or recycled).}
 
-\item{m_convergence}{Inner Gibbs steps per main-stage stored draw.}
+\item{m_convergence}{Inner Gibbs steps per main-stage stored draw. When
+\code{NULL} and \code{tv_tol} is set, derived from Theorem~3 at \code{start};
+when \code{NULL} and \code{tv_tol} is \code{NULL}, defaults to \code{10L}.}
 
 \item{re_coef_names}{Character vector naming columns of \code{x}.}
 
@@ -69,56 +74,52 @@ the pilot mean when \code{n_pilot > 0}).}
 \item{n_pilot}{Number of pilot replicate chains (\code{0L} skips the pilot).}
 
 \item{m_convergence_pilot}{Inner Gibbs steps per pilot stored draw. Defaults
-to \code{m_convergence} when \code{n_pilot > 0}.}
+to \code{m_convergence} when \code{n_pilot > 0} and \code{tv_tol} is
+\code{NULL}.}
 
-\item{tv_tol}{When non-\code{NULL} and \code{n_pilot > 0}, run the
-post-pilot eigenvalue upper-bound calibration before the main stage.}
+\item{tv_tol}{When non-\code{NULL}, run Theorem~3 calibration at \code{start}
+and, when \code{n_pilot > 0}, post-pilot eigenvalue upper-bound calibration.}
 
-\item{mode_gap_max}{Reserved for pilot sweep calibration when
-\code{m_convergence_pilot} is \code{NULL} (not yet implemented).}
+\item{mode_gap_max}{When \code{m_convergence_pilot} is \code{NULL} and
+\code{n_pilot > 0}, used to derive pilot inner sweeps.}
 
-\item{Gridtype, n_envopt, use_parallel, use_opencl, verbose, progbar}{Passed to
-Block~1 when \code{family} is not Gaussian. \code{n_envopt} defaults to
-\code{n}. \code{progbar} controls progress bars for both pilot and main
-stages when a pilot runs.}
+\item{Gridtype, n_envopt, use_parallel, use_opencl}{Reserved for Block~1 GLM
+path (not yet forwarded to v6).}
 
-\item{stage_verbose}{When \code{TRUE}, print pilot chi-squared and
-post-pilot eigenvalue upper-bound diagnostics between the pilot and main
-sampling stages (UB calibration path).}
+\item{verbose}{Print stage headers and convergence calibration lines.}
+
+\item{progbar}{Progress bars during pilot and main sampling.}
+
+\item{stage_verbose}{Print pilot chi-squared and post-pilot UB diagnostics.}
 
 \item{rate_calibration}{Optional list with \code{lambda_star},
-\code{eigenvalues}, and \code{m_min} at the ICM mode; required for the
-post-pilot bounds line when \code{stage_verbose} is \code{TRUE}.}
+\code{eigenvalues}, and \code{m_min} at the mode for \code{stage_verbose}.}
+
+\item{b_start}{Optional \code{J x p_re} Block~1 mode matrix for
+\code{two_block_mode_weights} and v6 batch init.  Required for
+non-Gaussian families.}
+
+\item{collect_block1}{Logical. Collect Block~1 \code{coefficients} from each
+chain (needed for post-pilot eigenvalue upper bounds).}
+
+\item{any_ing}{Logical. Label convergence calibration as ING-conservative.}
 }
 \value{
-Object of class \code{c("rGLMM", "two_block_rNormal_reg_v2",
-  "two_block_rNormal_reg")}.  Main-stage Block~2 fields use the
-\code{fixef.*} namespace (\code{fixef}, \code{fixef.last}, \code{fixef.mu},
-\code{fixef.dispersion}, \code{fixef.iters}, \code{fixef.mode},
-\code{fixef.init}); Block~1 draws remain in \code{coefficients} and
-\code{coef.last}; layout metadata uses \code{coef.names}.  Also includes
-\code{m_convergence} (main stage), \code{n_pilot},
-\code{m_convergence_pilot} when a pilot runs, and, when applicable,
-\code{pilot}, \code{pilot_chisq}, \code{pilot_ub}.
+Object of class \code{c("rGLMM", "list")} with main-stage
+Block~2 fields in the \code{fixef.*} namespace (\code{fixef},
+\code{fixef.mode}, \code{fixef.init}, \code{fixef.dispersion},
+\code{fixef.iters}, \code{fixef.mu}), Block~1 draws in \code{coefficients},
+plus \code{draw_engine}, \code{convergence_info}, and optional \code{pilot},
+\code{pilot_chisq}, \code{pilot_ub}.
 }
 \description{
-Runs optional pilot replicate chains, an optional post-pilot eigenvalue
-upper-bound calibration, then main replicate chains for two-block mixed
-models. Block~2 priors follow the \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
-contract (\code{pfamily_list}).
-}
-\details{
-When \code{n_pilot = 0}, this reduces to a single main-stage v2 draw (via
-the staged C++ driver). When \code{n_pilot > 0} and \code{tv_tol} is
-\code{NULL}, pilot sampling, the Hotelling chi-squared test vs \code{start},
-and main sampling run in one C++ call. When \code{n_pilot > 0} and
-\code{tv_tol} is set, the pilot runs in C++, eigenvalue upper bounds are
-computed in R (\code{\link[glmbayesCore]{two_block_mode_weights}},
-\code{\link[glmbayesCore]{two_block_rate_v2}}, \code{\link[glmbayesCore]{two_block_l_for_tv}}), and the
-main stage is rerun with the updated \code{m_convergence}.
+Low-level matrix-level GLMM replicate-chain sampler using
+\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}} (pure-R sweep-outer Block~1 /
+Block~2). For formula-level fitting with ICM mode and priors, see
+\pkg{lmebayes} \code{rglmerb}.
 }
 \seealso{
-\code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
+\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}, \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
 
 glmbayes Simulation Functions
 \code{\link[glmbayesCore]{multi_rNormal_reg}()},

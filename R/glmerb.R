@@ -342,7 +342,7 @@ glmerb <- function(
 #' @param digits Number of decimal places for numeric columns.
 #' @param ... Ignored.
 #' @return \code{x} invisibly.
-#' @export
+#' @keywords internal
 print_coef_means <- function(x, digits = 4L, ...) {
   is_fit    <- inherits(x, c("glmerb", "lmerb"))
   is_lmerb  <- inherits(x, "lmerb")

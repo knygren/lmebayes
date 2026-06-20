@@ -1,15 +1,19 @@
 ﻿# lmebayes (development version)
 
+* **Move `rGLMM` to glmbayesCore:** matrix-level GLMM replicate-chain
+  orchestration now lives in **`glmbayesCore::rGLMM()`** (v6 sweep-outer
+  driver). Re-exported from lmebayes; **`rglmerb()`** calls Core directly.
+
 * **Unified Block~2 return names (`fixef.*`):** `lmerb`, `glmerb`, `rlmerb`, and
-  `rglmerb` now use the same `fixef.*` namespace as `rGLMM` / `rGLMM_temp`
+  `rglmerb` now use the same `fixef.*` namespace as `rGLMM`
   (`fixef`, `fixef.mode`, `fixef.means`, `fixef.dispersion`, `fixef.iters`,
   `fixef.mu`, `fixef.init`, `pilot_chisq`).  Legacy names (`fixef_draws`,
   `coef.mode`, `tau2_draws`, `pilot_mode_test`, etc.) are removed.
 
-* **Extract GLMM engine to `rGLMM_temp`:** replicate-chain orchestration
+* **Extract GLMM engine to `rGLMM` (glmbayesCore):** replicate-chain orchestration
   (TV calibration, pilot chi-squared, post-pilot eigenvalue upper bound,
-  main-stage sweep-outer sampling) moved from `rglmerb` into exported
-  `rGLMM_temp`, mirroring glmbayesCore `rGLMM` signature and `fixef.*`
+  main-stage sweep-outer sampling) moved from `rglmerb` into
+  **`glmbayesCore::rGLMM()`**, with matrix-level signature and `fixef.*`
   return layout.  `rglmerb` is now a thin `model_setup` wrapper (ICM mode,
   priors, field mapping for `glmerb`).
 * **Removed legacy GLMM sampler drivers and renamed to `rglmerb`:** dropped

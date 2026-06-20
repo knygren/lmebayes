@@ -58,15 +58,14 @@ fit <- glmerb(
   data = dat,
   family = poisson(),
   pfamily_list = pfamily_list(ps),
-  n = 1000L,
-  seed = 42L
+  n = 10000L
 )
 
 cat("\n=== summary(fit) ===\n\n")
 print(summary(fit))
 
 re_names <- fit$model_setup$re_coef_names
-n_draws  <- nrow(fit$fixef[[re_names[1L]]])
+n_draws  <- nrow(fit$fixef_draws[[re_names[1L]]])
 
 ## --- Block 2 fixed effects: MCMC mean vs ICM posterior mode ------------------
 ##
@@ -86,7 +85,7 @@ n_draws  <- nrow(fit$fixef[[re_names[1L]]])
 block2_draw_matrix <- function(fit) {
   re <- fit$model_setup$re_coef_names
   parts <- lapply(re, function(k) {
-    m <- fit$fixef[[k]]
+    m <- fit$fixef_draws[[k]]
     colnames(m) <- paste0(k, "::", colnames(m))
     m
   })
@@ -96,7 +95,7 @@ block2_draw_matrix <- function(fit) {
 block2_mode_vector <- function(fit) {
   re <- fit$model_setup$re_coef_names
   unlist(lapply(re, function(k) {
-    v <- fit$fixef.mode[[k]]
+    v <- fit$coef.mode[[k]]
     names(v) <- paste0(k, "::", names(v))
     v
   }))
@@ -144,10 +143,10 @@ cat(sprintf("  %-18s  %-28s  %10s  %10s  %10s  %10s  %7s\n",
 n_flagged <- 0L
 total_fe  <- 0L
 for (k in re_names) {
-  dm_k  <- fit$fixef.means[[k]]
-  sd_k  <- apply(fit$fixef[[k]], 2L, sd)
+  dm_k  <- fit$coef.means[[k]]
+  sd_k  <- apply(fit$fixef_draws[[k]], 2L, sd)
   se_k  <- sd_k / sqrt(n_draws)
-  icm_k <- fit$fixef.mode[[k]]
+  icm_k <- fit$coef.mode[[k]]
   for (nm in names(dm_k)) {
     z_val <- (dm_k[[nm]] - icm_k[[nm]]) / se_k[[nm]]
     total_fe <- total_fe + 1L
@@ -189,8 +188,8 @@ if (is.na(glob$T2)) {
 
 cat("\n  Per RE component (separate Hotelling on each gamma_k block):\n")
 for (k in re_names) {
-  dm_k <- fit$fixef[[k]]
-  icm_k <- fit$fixef.mode[[k]]
+  dm_k <- fit$fixef_draws[[k]]
+  icm_k <- fit$coef.mode[[k]]
   ht <- hotelling_test(dm_k, icm_k)
   cat(sprintf(
     "    [%s]  q = %d:  F = %.3f, p = %.4g  ||diff|| = %.4f\n",
@@ -207,7 +206,7 @@ cat(paste0(
 
 grp_col <- fit$model_setup$group_name
 cat("\n=== mu_all varies by neighborhood (rating_c slope prior mean) ===\n\n")
-mu_rating <- fit$fixef.mu["rating_c", , drop = TRUE]
+mu_rating <- fit$mu_all["rating_c", , drop = TRUE]
 walk_by_nbhd <- tapply(dat$walk_c, dat$neighborhood, function(x) x[1L])
 walk_by_nbhd <- walk_by_nbhd[names(mu_rating)]
 cor_mu_walk <- cor(mu_rating, walk_by_nbhd, use = "complete.obs")

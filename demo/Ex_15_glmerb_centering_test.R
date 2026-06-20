@@ -163,6 +163,6 @@ if (!((p_pilot > 0.05) || (p_pilot >= p_mode))) {
   ), call. = FALSE)
 }
 
-print_coef_means(fit)
+lmebayes:::print_coef_means(fit)
 print(fit)
 cat(.print_glmerb_test_summary(fit), "\n")
