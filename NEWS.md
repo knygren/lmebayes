@@ -5,6 +5,11 @@
   staging (non-Gaussian default: pilot then main; Gaussian: main only).
   Removed duplicate **`n_pilot`** derivation from **`glmerb()`**.
 
+* **`rglmerb()` family routing:** **`family = gaussian()`** delegates to
+  **`glmbayesCore::rLMM()`** (exact Gaussian posterior, ICM mean, no pilot).
+  Non-Gaussian families delegate to **`rGLMM()`** (sweep-outer engine with
+  optional pilot).  Neither path calls **`lmerb()`** or **`rlmerb()`**.
+
 * **Move `rLMM` to glmbayesCore:** matrix-level LMM replicate-chain
   orchestration now lives in **`glmbayesCore::rLMM()`** (v2 two-block
   driver). Re-exported from lmebayes; **`rlmerb()`** calls Core directly.

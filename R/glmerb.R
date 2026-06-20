@@ -266,7 +266,7 @@ glmerb <- function(
     ))
   }
 
-  # ICM, pilot/main staging, and convergence calibration are handled in rglmerb/rGLMM.
+  # ICM and sampling: rglmerb routes Gaussian to rLMM, non-Gaussian to rGLMM.
   sampler <- rglmerb(
     n                   = n,
     design              = design,

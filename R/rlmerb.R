@@ -70,6 +70,14 @@
 
 #'   calibration line.  Default \code{TRUE}.
 
+#' @param print_icm_table Logical. When \code{FALSE}, skip the reference-vs-ICM
+
+#'   table (e.g. when \code{\link{rglmerb}} prints glmer-labelled output).
+
+#'   The convergence calibration line from \code{\link{rLMM}} still follows
+
+#'   \code{verbose}.  Default \code{TRUE}.
+
 #' @return An object of class \code{c("rlmerb", "list")} with Block~2 fields in
 
 #'   the \code{fixef.*} namespace (as \code{\link{rLMM}}):
@@ -108,9 +116,11 @@ rlmerb <- function(
 
     seed          = NULL,
 
-    progbar       = TRUE,
+    progbar         = TRUE,
 
-    verbose       = TRUE
+    verbose         = TRUE,
+
+    print_icm_table = TRUE
 
 ) {
 
@@ -212,7 +222,7 @@ rlmerb <- function(
 
 
 
-  if (is.null(fixef_start)) {
+  if (is.null(fixef_start) && isTRUE(print_icm_table)) {
 
     .lmebayes_print_icm_fixef_table(
 

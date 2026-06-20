@@ -17,6 +17,7 @@ rglmerb(
   tv_tol = 0.01,
   mode_gap_max = 1,
   collect_block1 = TRUE,
+  seed = NULL,
   verbose = TRUE,
   progbar = FALSE
 )
@@ -31,25 +32,30 @@ rglmerb(
 \item{family}{A \code{\link[stats]{family}} object. Default \code{poisson()}.}
 
 \item{fixef_start}{Optional named list of Block~2 starting vectors. When
-\code{NULL}, the ICM posterior mode is computed inside \code{\link{rGLMM}}.}
+\code{NULL}, the ICM start is computed inside the Core engine
+(\code{\link[glmbayesCore]{lmerb_posterior_mean}} for Gaussian,
+\code{\link[glmbayesCore]{glmerb_posterior_mode}} otherwise).}
 
 \item{m_convergence}{Optional integer inner Gibbs sweeps per main draw.}
 
-\item{n_pilot}{Optional integer pilot chains; \code{NULL} (default) derives
-from \code{gap_tol} for non-Gaussian families; \code{0L} skips pilot.}
+\item{n_pilot}{Optional integer pilot chains (non-Gaussian only);
+\code{NULL} (default) derives from \code{gap_tol}; \code{0L} skips pilot.}
 
 \item{gap_tol}{Mode--mean gap tolerance for deriving \code{n_pilot} when
 \code{n_pilot} is \code{NULL} (default \code{0.0196}). Set \code{NULL} to
-skip pilot unless \code{n_pilot} is explicit.}
+skip pilot unless \code{n_pilot} is explicit. Ignored for Gaussian.}
 
-\item{m_convergence_pilot}{Optional pilot inner sweeps.}
+\item{m_convergence_pilot}{Optional pilot inner sweeps (non-Gaussian only).}
 
 \item{tv_tol}{Total variation tolerance for convergence calibration.}
 
 \item{mode_gap_max}{Pilot sweep calibration when \code{m_convergence_pilot}
-is \code{NULL}.}
+is \code{NULL} (non-Gaussian only).}
 
-\item{collect_block1}{Collect Block~1 \code{coefficients} from main chains.}
+\item{collect_block1}{Collect Block~1 \code{coefficients} from main chains
+(non-Gaussian only).}
+
+\item{seed}{Optional RNG seed (Gaussian path only; passed to \code{\link{rLMM}}).}
 
 \item{verbose}{Print stage headers and diagnostics.}
 
@@ -57,19 +63,25 @@ is \code{NULL}.}
 }
 \value{
 Object of class \code{c("rglmerb", "list")} with Block~2 fields in
-the \code{fixef.*} namespace (as \code{\link{rGLMM}}), plus
-\code{ranef.mode}, \code{Prior}, and \code{design}.
+the \code{fixef.*} namespace, plus \code{ranef.mode}, \code{Prior},
+\code{design}, and \code{family}.  Non-Gaussian fits may include
+\code{n_pilot}, \code{pilot}, and \code{pilot_chisq}; Gaussian fits set
+\code{n_pilot = 0L} and omit pilot output.
 }
 \description{
-Bayesian generalized linear mixed-effects model sampler (sweep-outer engine)
+Bayesian generalized linear mixed-effects model sampler
 }
 \details{
-Thin wrapper around \code{\link{rGLMM}} for \pkg{lmebayes} \code{model_setup}
-objects and prior containers.  ICM, pilot/main staging, and convergence
-calibration are handled inside \code{\link{rGLMM}}; see \code{\link{glmerb}}
-for the formula-level API.
+Matrix-level sampler for \pkg{lmebayes} \code{model_setup} objects and prior
+containers.  Routes by response family:
+\itemize{
+\item \code{family = gaussian()} delegates to \code{\link{rLMM}}
+(exact Gaussian posterior, ICM mean, no pilot).
+\item Non-Gaussian families delegate to \code{\link{rGLMM}}
+(sweep-outer engine with optional pilot/main staging).
+}
+See \code{\link{glmerb}} for the formula-level API.
 }
 \seealso{
-\code{\link{glmerb}}, \code{\link{rGLMM}}, \code{\link{rLMM}},
-\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}
+\code{\link{glmerb}}, \code{\link{rLMM}}, \code{\link{rGLMM}}
 }

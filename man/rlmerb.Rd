@@ -13,7 +13,8 @@ rlmerb(
   tv_tol = 0.01,
   seed = NULL,
   progbar = TRUE,
-  verbose = TRUE
+  verbose = TRUE,
+  print_icm_table = TRUE
 )
 }
 \arguments{
@@ -48,6 +49,11 @@ Default \code{TRUE}.}
 
 \item{verbose}{Logical. Print the lmer-vs-ICM table and the convergence
 calibration line.  Default \code{TRUE}.}
+
+\item{print_icm_table}{Logical. When \code{FALSE}, skip the reference-vs-ICM
+table (e.g. when \code{\link{rglmerb}} prints glmer-labelled output).
+The convergence calibration line from \code{\link{rLMM}} still follows
+\code{verbose}.  Default \code{TRUE}.}
 }
 \value{
 An object of class \code{c("rlmerb", "list")} with Block~2 fields in
