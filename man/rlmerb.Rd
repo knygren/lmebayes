@@ -29,7 +29,7 @@ rlmerb(
 
 \item{fixef_start}{Optional named list of starting hyper-parameter vectors
 (one per RE component).  When \code{NULL} (default), the ICM posterior
-mean is computed internally via
+mean is computed inside \code{\link{rLMM}} via
 \code{\link[glmbayesCore]{lmerb_posterior_mean}}.}
 
 \item{m_convergence}{Optional integer. Number of inner Gibbs sweeps per

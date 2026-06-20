@@ -12,7 +12,9 @@ rGLMM(
   x_hyper,
   prior_list,
   pfamily_list,
-  start,
+  start = NULL,
+  icm_tol = 1e-10,
+  icm_maxit = 200L,
   offset = NULL,
   weights = 1,
   family = gaussian(),
@@ -20,9 +22,10 @@ rGLMM(
   re_coef_names = colnames(x),
   group_levels = levels(block),
   group_name = NULL,
-  n_pilot = 0L,
+  n_pilot = NULL,
+  gap_tol = 0.0196,
   m_convergence_pilot = NULL,
-  tv_tol = NULL,
+  tv_tol = 0.01,
   mode_gap_max = 1,
   Gridtype = 2,
   n_envopt = NULL,
@@ -57,7 +60,13 @@ length is taken to be the number required.}
 
 \item{start}{Named list of Block~2 hyper-parameter vectors at which each
 inner chain is initialised (pilot stage uses \code{start}; main stage uses
-the pilot mean when \code{n_pilot > 0}).}
+the pilot mean when \code{n_pilot > 0}). When \code{NULL} (default), the
+ICM posterior mode is computed internally via
+\code{\link[glmbayesCore]{glmerb_posterior_mode}} (or \code{\link[glmbayesCore]{lmerb_posterior_mean}}
+when \code{family = gaussian()}).}
+
+\item{icm_tol, icm_maxit}{Convergence controls passed to ICM when
+\code{start = NULL}.}
 
 \item{offset, weights, family}{Passed to Block~1 (length \code{l2} or recycled).}
 
@@ -71,7 +80,14 @@ when \code{NULL} and \code{tv_tol} is \code{NULL}, defaults to \code{10L}.}
 
 \item{group_name}{Name for the grouping column in \code{coefficients}.}
 
-\item{n_pilot}{Number of pilot replicate chains (\code{0L} skips the pilot).}
+\item{n_pilot}{Number of pilot replicate chains. When \code{NULL} (default),
+derived from \code{gap_tol} for non-Gaussian families; \code{0L} skips the
+pilot. Ignored for \code{gaussian()}.}
+
+\item{gap_tol}{Tolerated mode--mean gap in posterior SD units used to derive
+\code{n_pilot} when \code{n_pilot} is \code{NULL} and the family is
+non-Gaussian (default \code{0.0196}). Set \code{NULL} to skip the pilot
+unless \code{n_pilot} is supplied explicitly.}
 
 \item{m_convergence_pilot}{Inner Gibbs steps per pilot stored draw. Defaults
 to \code{m_convergence} when \code{n_pilot > 0} and \code{tv_tol} is
@@ -97,7 +113,8 @@ path (not yet forwarded to v6).}
 
 \item{b_start}{Optional \code{J x p_re} Block~1 mode matrix for
 \code{two_block_mode_weights} and v6 batch init.  Required for
-non-Gaussian families.}
+non-Gaussian families when \code{start} is supplied; computed by ICM when
+\code{start = NULL}.}
 
 \item{collect_block1}{Logical. Collect Block~1 \code{coefficients} from each
 chain (needed for post-pilot eigenvalue upper bounds).}
@@ -109,8 +126,9 @@ Object of class \code{c("rGLMM", "list")} with main-stage
 Block~2 fields in the \code{fixef.*} namespace (\code{fixef},
 \code{fixef.mode}, \code{fixef.init}, \code{fixef.dispersion},
 \code{fixef.iters}, \code{fixef.mu}), Block~1 draws in \code{coefficients},
-plus \code{draw_engine}, \code{convergence_info}, and optional \code{pilot},
-\code{pilot_chisq}, \code{pilot_ub}.
+plus \code{draw_engine}, \code{convergence_info}, optional \code{pilot},
+\code{pilot_chisq}, \code{pilot_ub}, and (when ICM is run)
+\code{ranef.mode} and \code{icm_info}.
 }
 \description{
 Low-level matrix-level GLMM replicate-chain sampler using
@@ -119,11 +137,13 @@ Block~2). For formula-level fitting with ICM mode and priors, see
 \pkg{lmebayes} \code{rglmerb}.
 }
 \seealso{
-\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}, \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}
+\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}, \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}},
+\code{\link[glmbayesCore]{rLMM}}
 
 glmbayes Simulation Functions
 \code{\link[glmbayesCore]{multi_rNormal_reg}()},
 \code{\link[glmbayesCore]{multi_rlmb}()},
+\code{\link[glmbayesCore]{rLMM}()},
 \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}()},
 \code{\link[glmbayesCore]{simfuncs}},
 \code{\link[glmbayesCore]{two_block_l_for_tv}()},

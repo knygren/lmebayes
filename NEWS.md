@@ -1,5 +1,14 @@
 ﻿# lmebayes (development version)
 
+* **GLMM pilot policy in Core:** **`rglmerb()`** and **`glmerb()`** now pass
+  **`gap_tol`** through to **`glmbayesCore::rGLMM()`**, which owns pilot/main
+  staging (non-Gaussian default: pilot then main; Gaussian: main only).
+  Removed duplicate **`n_pilot`** derivation from **`glmerb()`**.
+
+* **Move `rLMM` to glmbayesCore:** matrix-level LMM replicate-chain
+  orchestration now lives in **`glmbayesCore::rLMM()`** (v2 two-block
+  driver). Re-exported from lmebayes; **`rlmerb()`** calls Core directly.
+
 * **Move `rGLMM` to glmbayesCore:** matrix-level GLMM replicate-chain
   orchestration now lives in **`glmbayesCore::rGLMM()`** (v6 sweep-outer
   driver). Re-exported from lmebayes; **`rglmerb()`** calls Core directly.

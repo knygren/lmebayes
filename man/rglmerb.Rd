@@ -12,6 +12,7 @@ rglmerb(
   fixef_start = NULL,
   m_convergence = NULL,
   n_pilot = NULL,
+  gap_tol = 0.0196,
   m_convergence_pilot = NULL,
   tv_tol = 0.01,
   mode_gap_max = 1,
@@ -30,12 +31,16 @@ rglmerb(
 \item{family}{A \code{\link[stats]{family}} object. Default \code{poisson()}.}
 
 \item{fixef_start}{Optional named list of Block~2 starting vectors. When
-\code{NULL}, the ICM posterior mode is computed via
-\code{\link[glmbayesCore]{glmerb_posterior_mode}}.}
+\code{NULL}, the ICM posterior mode is computed inside \code{\link{rGLMM}}.}
 
 \item{m_convergence}{Optional integer inner Gibbs sweeps per main draw.}
 
-\item{n_pilot}{Integer pilot chains; \code{0} or \code{NULL} skips pilot.}
+\item{n_pilot}{Optional integer pilot chains; \code{NULL} (default) derives
+from \code{gap_tol} for non-Gaussian families; \code{0L} skips pilot.}
+
+\item{gap_tol}{Mode--mean gap tolerance for deriving \code{n_pilot} when
+\code{n_pilot} is \code{NULL} (default \code{0.0196}). Set \code{NULL} to
+skip pilot unless \code{n_pilot} is explicit.}
 
 \item{m_convergence_pilot}{Optional pilot inner sweeps.}
 
@@ -59,10 +64,10 @@ the \code{fixef.*} namespace (as \code{\link{rGLMM}}), plus
 Bayesian generalized linear mixed-effects model sampler (sweep-outer engine)
 }
 \details{
-Full sampling engine for non-Gaussian (and Gaussian) generalized linear
-mixed models, parallel to \code{\link{rlmerb}} for the LMM path.
-\code{rglmerb} wraps \code{\link{rGLMM}} after ICM mode computation
-and \pkg{lmebayes} prior setup; see \code{\link{glmerb}} for the user API.
+Thin wrapper around \code{\link{rGLMM}} for \pkg{lmebayes} \code{model_setup}
+objects and prior containers.  ICM, pilot/main staging, and convergence
+calibration are handled inside \code{\link{rGLMM}}; see \code{\link{glmerb}}
+for the formula-level API.
 }
 \seealso{
 \code{\link{glmerb}}, \code{\link{rGLMM}}, \code{\link{rLMM}},

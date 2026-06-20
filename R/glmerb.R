@@ -149,17 +149,6 @@ glmerb <- function(
   if (n < 1L) {
     stop("'n' must be at least 1.", call. = FALSE)
   }
-  if (!is.null(gap_tol)) {
-    if (!is.numeric(gap_tol) || length(gap_tol) != 1L ||
-        !is.finite(gap_tol) || gap_tol <= 0 || gap_tol >= 1) {
-      stop("'gap_tol' must be NULL or a single value in (0, 1).", call. = FALSE)
-    }
-  }
-  n_pilot <- if (!is.null(gap_tol)) {
-    as.integer(ceiling((stats::qnorm(0.975) / gap_tol)^2))
-  } else {
-    NULL
-  }
   if (!is.null(mode_gap_max)) {
     if (!is.numeric(mode_gap_max) || length(mode_gap_max) != 1L ||
         !is.finite(mode_gap_max) || mode_gap_max <= 0) {
@@ -277,17 +266,15 @@ glmerb <- function(
     ))
   }
 
-  run_pilot <- !identical(family$family, "gaussian") && !is.null(n_pilot)
-
-  # ICM mode, convergence calibration, pilot stage, and main stage are all
+  # ICM, pilot/main staging, and convergence calibration are handled in rglmerb/rGLMM.
   sampler <- rglmerb(
     n                   = n,
     design              = design,
     prior               = prior,
     family              = family,
-    fixef_start         = NULL,           # computed internally from design + prior
-    m_convergence       = m_convergence,  # NULL => derived from tv_tol
-    n_pilot             = if (run_pilot) n_pilot else 0L,
+    fixef_start         = NULL,
+    m_convergence       = m_convergence,
+    gap_tol             = gap_tol,
     m_convergence_pilot = m_convergence_pilot,
     tv_tol              = tv_tol,
     mode_gap_max        = mode_gap_max,
@@ -295,6 +282,8 @@ glmerb <- function(
     verbose             = TRUE,
     progbar             = progbar
   )
+
+  run_pilot <- !is.null(sampler$n_pilot) && sampler$n_pilot > 0L
 
   structure(
     list(

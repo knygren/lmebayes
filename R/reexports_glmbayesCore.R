@@ -50,6 +50,10 @@ rNormalRegBlock <- glmbayesCore::block_rNormalReg
 #' @export
 rGLMM <- glmbayesCore::rGLMM
 
+#' @inherit glmbayesCore::rLMM title description params return seealso
+#' @export
+rLMM <- glmbayesCore::rLMM
+
 #' @inherit glmbayesCore::summary.mrglmb
 #' @param ... Additional optional arguments passed to
 #'   \code{\link[glmbayesCore]{summary.rglmb}}.

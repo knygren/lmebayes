@@ -1,3 +1,44 @@
+#' Print Block~2 reference vs ICM fixed effects
+#' @noRd
+.lmebayes_print_icm_fixef_table <- function(
+    prior_list,
+    re_names,
+    fixef_icm,
+    icm_info,
+    ref_label,
+    icm_label,
+    header,
+    verbose
+) {
+  if (!isTRUE(verbose) || is.null(fixef_icm)) {
+    return(invisible(NULL))
+  }
+  fixef_ref <- lapply(prior_list, `[[`, "mu_fixef")
+  names(fixef_ref) <- re_names
+  hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
+                 "RE component", "parameter", ref_label, icm_label)
+  sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
+  cat(header, "\n")
+  cat(hdr, "\n")
+  cat(sep, "\n")
+  for (k in re_names) {
+    nms_k  <- names(fixef_ref[[k]])
+    ref_v  <- fixef_ref[[k]]
+    icm_v  <- fixef_icm[[k]]
+    for (nm in nms_k) {
+      cat(sprintf("  %-18s  %-30s  %12.4f  %12.4f\n",
+                  k, nm, ref_v[[nm]], icm_v[[nm]]))
+    }
+  }
+  if (!is.null(icm_info)) {
+    cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
+                icm_info$converged, icm_info$iterations, icm_info$delta))
+  } else {
+    cat("\n")
+  }
+  invisible(NULL)
+}
+
 #' Print ICM random-effects mode (all group x RE coefficients)
 #' @noRd
 .lmebayes_print_ranef_mode_reference <- function(
