@@ -130,8 +130,7 @@
 #'   \item Each RE variance \eqn{\tau^2_k} from \code{fit_ref} is strictly positive.
 #' }
 #' @seealso \code{\link{model_setup}}, \code{\link[glmbayesCore]{Prior_Setup}},
-#'   \code{\link[glmbayesCore]{build_mu_all}},
-#'   \code{\link{print.lmebayes_prior_setup}}
+#'   \code{\link[glmbayesCore]{build_mu_all}}
 #' @export
 Prior_Setup_lmebayes <- function(formula,
                                  data,
@@ -734,10 +733,10 @@ Prior_SetupBlock <- function(
   setups
 }
 
-#' Print method for \code{lmebayes_prior_setup} objects
-#'
+#' @rdname Prior_Setup_lmebayes
+#' @method print lmebayes_prior_setup
 #' @param x Object of class \code{"lmebayes_prior_setup"}.
-#' @param digits Number of decimal places for numeric output.  Default 4.
+#' @param digits Number of decimal places for numeric output. Default 4.
 #' @param ... Ignored.
 #' @return \code{x} invisibly.
 #' @export

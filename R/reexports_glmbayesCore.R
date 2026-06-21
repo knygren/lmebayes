@@ -58,20 +58,6 @@ rLMMNormal_reg <- glmbayesCore::rLMMNormal_reg
 #' @export
 rLMMindepNormalGamma_reg <- glmbayesCore::rLMMindepNormalGamma_reg
 
-#' @inherit glmbayesCore::summary.mrglmb
-#' @param ... Additional optional arguments passed to
-#'   \code{\link[glmbayesCore]{summary.rglmb}}.
-#' @export
-#' @method summary mrglmb
-summary.mrglmb <- getFromNamespace("summary.mrglmb", "glmbayesCore")
-
-#' @inherit glmbayesCore::print.summary.mrglmb
-#' @param ... Additional optional arguments passed to
-#'   \code{\link[glmbayesCore]{print.summary.rglmb}}.
-#' @export
-#' @method print summary.mrglmb
-print.summary.mrglmb <- getFromNamespace("print.summary.mrglmb", "glmbayesCore")
-
 ## C++ callback symbols re-exported for search-path lookup when lmebayes is
 ## attached. glmbayesCore C++ resolves these by unqualified name
 ## (Rcpp::Function("EnvelopeOpt"), etc.).

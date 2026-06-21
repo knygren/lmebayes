@@ -2,6 +2,7 @@
 % Please edit documentation in R/prior_setup_lmebayes.R
 \name{Prior_Setup_lmebayes}
 \alias{Prior_Setup_lmebayes}
+\alias{print.lmebayes_prior_setup}
 \title{Prior setup for the two-block Gibbs lmebayes sampler}
 \usage{
 Prior_Setup_lmebayes(
@@ -14,6 +15,8 @@ Prior_Setup_lmebayes(
   intercept_source = c("null_model", "full_model"),
   effects_source = c("null_effects", "full_model")
 )
+
+\method{print}{lmebayes_prior_setup}(x, digits = 4L, ...)
 }
 \arguments{
 \item{formula}{Mixed-model formula passed to \code{\link{model_setup}},
@@ -73,6 +76,12 @@ non-intercept fixed-effect terms.  One of \code{"null_effects"} (default)
 or \code{"full_model"}.  When \code{"null_effects"}, the prior mean for
 all non-intercept coefficients is set to zero (a neutral shrinkage prior).
 When \code{"full_model"}, the full-model MLE slopes are used.}
+
+\item{x}{Object of class \code{"lmebayes_prior_setup"}.}
+
+\item{digits}{Number of decimal places for numeric output. Default 4.}
+
+\item{...}{Ignored.}
 }
 \value{
 Object of class \code{"lmebayes_prior_setup"} with fields:
@@ -118,6 +127,8 @@ priors weaken; see \code{inst/ING_TRUNCATION_WINDOW.md}.  Used by
 \code{ptypes = "dIndependent_Normal_Gamma"}; ignored for
 \code{dNormal} priors.}
 }
+
+\code{x} invisibly.
 }
 \description{
 Calibrates priors for the level-2 fixed effects (\code{fixef}) of a
@@ -158,6 +169,5 @@ mixed-model estimate and scales covariances from \code{vcov(fit_ref)} by
 }
 \seealso{
 \code{\link{model_setup}}, \code{\link[glmbayesCore]{Prior_Setup}},
-\code{\link[glmbayesCore]{build_mu_all}},
-\code{\link{print.lmebayes_prior_setup}}
+\code{\link[glmbayesCore]{build_mu_all}}
 }
