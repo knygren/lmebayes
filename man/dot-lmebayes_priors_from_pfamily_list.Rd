@@ -31,7 +31,7 @@ model.  Required positive scalar for \code{gaussian()}; must be
 \value{
 List with \code{pfamily_list} (reordered), \code{dispersion_ranef},
 \code{Sigma_ranef}, \code{prior_list}, \code{ptypes} (per-component
-constructor names), and \code{any_ing}.
+constructor names), and \code{any_non_normal}.
 }
 \description{
 Validates the \code{pfamily_list} / \code{dispersion_ranef} arguments of

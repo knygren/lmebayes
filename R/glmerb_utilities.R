@@ -853,8 +853,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
     tv_tol        = 0.01,
     seed          = NULL,
     progbar       = TRUE,
-    verbose       = FALSE,
-    any_ing       = FALSE
+    verbose       = FALSE
 ) {
   re_names     <- design$re_coef_names
   group_levels <- levels(design$groups)
@@ -875,8 +874,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
     group_name    = design$group_name,
     seed          = seed,
     progbar       = progbar,
-    verbose       = verbose,
-    any_ing       = isTRUE(any_ing)
+    verbose       = verbose
   )
   if (identical(disp_info$mode, "gamma")) {
     do.call(
@@ -1003,7 +1001,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
 #' @param fn_name Calling function name used in error messages.
 #' @return List with \code{pfamily_list} (reordered), \code{dispersion_ranef},
 #'   \code{Sigma_ranef}, \code{prior_list}, \code{ptypes} (per-component
-#'   constructor names), and \code{any_ing}.
+#'   constructor names), and \code{any_non_normal}.
 #' @keywords internal
 .lmebayes_priors_from_pfamily_list <- function(pfamily_list,
                                                dispersion_ranef,
@@ -1160,8 +1158,8 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
     dispersion_prior_list = disp_res$dispersion_prior_list,
     Sigma_ranef           = Sigma_ranef,
     prior_list            = prior_list,
-    ptypes                = ptypes,
-    any_ing               = any(ptypes == "dIndependent_Normal_Gamma")
+    ptypes         = ptypes,
+    any_non_normal = any(ptypes != "dNormal")
   )
 }
 

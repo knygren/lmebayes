@@ -36,8 +36,7 @@ rGLMM(
   stage_verbose = FALSE,
   rate_calibration = NULL,
   b_start = NULL,
-  collect_block1 = TRUE,
-  any_ing = FALSE
+  collect_block1 = TRUE
 )
 }
 \arguments{
@@ -118,16 +117,15 @@ non-Gaussian families when \code{start} is supplied; computed by ICM when
 
 \item{collect_block1}{Logical. Collect Block~1 \code{coefficients} from each
 chain (needed for post-pilot eigenvalue upper bounds).}
-
-\item{any_ing}{Logical. Label convergence calibration as ING-conservative.}
 }
 \value{
 Object of class \code{c("rGLMM", "list")} with main-stage
 Block~2 fields in the \code{fixef.*} namespace (\code{fixef},
 \code{fixef.mode}, \code{fixef.init}, \code{fixef.dispersion},
 \code{fixef.iters}, \code{fixef.mu}), Block~1 draws in \code{coefficients},
-plus \code{draw_engine}, \code{convergence_info}, optional \code{pilot},
-\code{pilot_chisq}, \code{pilot_ub}, and (when ICM is run)
+plus \code{draw_engine}, \code{convergence_info}, \code{ptypes},
+\code{any_non_normal}, optional
+\code{pilot}, \code{pilot_chisq}, \code{pilot_ub}, and (when ICM is run)
 \code{ranef.mode} and \code{icm_info}.
 }
 \description{

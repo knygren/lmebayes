@@ -23,8 +23,7 @@ rLMMNormal_reg(
   group_name = NULL,
   seed = NULL,
   progbar = TRUE,
-  verbose = FALSE,
-  any_ing = FALSE
+  verbose = FALSE
 )
 }
 \arguments{
@@ -72,12 +71,12 @@ calibration.}
 \item{progbar}{Logical; show a text progress bar during sampling.}
 
 \item{verbose}{Print the convergence calibration line.}
-
-\item{any_ing}{Logical. Label convergence calibration as ING-conservative
-when Block~2 uses \code{dIndependent_Normal_Gamma} components.}
 }
 \value{
-Object of class \code{c("rLMMNormal_reg", "list")}.
+Object of class \code{c("rLMMNormal_reg", "list")}.  Includes
+\code{ptypes} (Block~2 pfamily name per RE column) and
+\code{any_non_normal} (\code{TRUE} when any component is not
+\code{dNormal}, so at least one RE-scale dispersion may be sampled).
 }
 \description{
 Matrix-level LMM sampler with fixed observation-level \eqn{\sigma^2} and

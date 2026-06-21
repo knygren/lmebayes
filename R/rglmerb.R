@@ -120,8 +120,7 @@ rglmerb <- function(
       tv_tol        = tv_tol,
       seed          = seed,
       progbar       = progbar,
-      verbose       = verbose,
-      any_ing       = isTRUE(prior$any_ing)
+      verbose       = verbose
     )
 
     if (is.null(fixef_start)) {
@@ -199,8 +198,7 @@ rglmerb <- function(
     progbar             = progbar,
     stage_verbose       = verbose,
     b_start             = NULL,
-    collect_block1      = collect_block1,
-    any_ing             = isTRUE(prior$any_ing)
+    collect_block1      = collect_block1
   )
 
   if (is.null(fixef_start)) {

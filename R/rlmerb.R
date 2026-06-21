@@ -202,8 +202,7 @@ rlmerb <- function(
     tv_tol          = tv_tol,
     seed            = seed,
     progbar         = progbar,
-    verbose         = verbose,
-    any_ing         = isTRUE(prior$any_ing)
+    verbose         = verbose
   )
 
 

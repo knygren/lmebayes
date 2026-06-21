@@ -31,7 +31,7 @@ returned.}
 \code{"summary.lmerb"}, a list with components \code{call},
 \code{formula}, \code{n}, \code{simulated}, \code{varcor},
 \code{fixef_overview}, \code{fixef} (per-RE-component tables),
-\code{ranef_overview}, \code{any_ing}, \code{tau2} (per-component
+\code{ranef_overview}, \code{any_non_normal}, \code{tau2} (per-component
 Block~2 dispersion table: prior type, plug-in value, posterior
 mean / SD / quantiles from \code{fixef.dispersion} for sampled ING
 components, and \code{Cand/draw}, the average number of Block~2

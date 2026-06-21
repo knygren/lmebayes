@@ -17,7 +17,7 @@
 #'   \code{"summary.lmerb"}, a list with components \code{call},
 #'   \code{formula}, \code{n}, \code{simulated}, \code{varcor},
 #'   \code{fixef_overview}, \code{fixef} (per-RE-component tables),
-#'   \code{ranef_overview}, \code{any_ing}, \code{tau2} (per-component
+#'   \code{ranef_overview}, \code{any_non_normal}, \code{tau2} (per-component
 #'   Block~2 dispersion table: prior type, plug-in value, posterior
 #'   mean / SD / quantiles from \code{fixef.dispersion} for sampled ING
 #'   components, and \code{Cand/draw}, the average number of Block~2
@@ -62,7 +62,8 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     fixef_overview = .lmerb_fixef_overview(object, simulated = simulated),
     fixef         = fixef_parts,
     ranef_overview = .lmerb_ranef_overview(object, simulated = simulated),
-    any_ing       = isTRUE(object$prior$any_ing),
+    any_non_normal = isTRUE(object$any_non_normal) ||
+      isTRUE(object$prior$any_non_normal),
     tau2          = .lmerb_tau2_summary(object, simulated = simulated)
   )
 
@@ -97,9 +98,9 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   cat("Formula:", deparse1(x$formula), "\n\n")
 
   mer_label <- if (!is.null(x$mer_label)) x$mer_label else "lmer"
-  if (isTRUE(x$any_ing)) {
+  if (isTRUE(x$any_non_normal)) {
     cat(sprintf(
-      "Random effects (%s reference; tau^2 sampled for ING components):\n",
+      "Random effects (%s reference; tau^2 sampled for non-dNormal components):\n",
       mer_label
     ))
   } else {

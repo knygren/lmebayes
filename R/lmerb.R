@@ -431,15 +431,15 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   cat("Formula:", deparse1(x$formula), "\n\n")
 
   # --- Variance components ---
-  any_ing <- isTRUE(x$prior$any_ing)
-  if (any_ing) {
-    cat("Random effects (lmer reference; tau^2 sampled for ING components):\n")
+  any_non_normal <- isTRUE(x$any_non_normal) || isTRUE(x$prior$any_non_normal)
+  if (any_non_normal) {
+    cat("Random effects (lmer reference; tau^2 sampled for non-dNormal components):\n")
   } else {
     cat("Random effects (variance components fixed at lmer estimates):\n")
   }
   print(lme4::VarCorr(x$lmer), comp = "Std.Dev.", digits = digits)
   cat(sprintf("Number of obs: %d,  groups: %s, %d\n\n", n_obs, grp, n_grp))
-  if (any_ing && !is.null(x$fixef.dispersion.mean)) {
+  if (any_non_normal && !is.null(x$fixef.dispersion.mean)) {
     cat("Posterior mean tau^2_k: ",
         paste(sprintf("%s = %.4g", names(x$fixef.dispersion.mean),
                       x$fixef.dispersion.mean),

@@ -14,8 +14,7 @@
   tv_tol = 0.01,
   seed = NULL,
   progbar = TRUE,
-  verbose = FALSE,
-  any_ing = FALSE
+  verbose = FALSE
 )
 }
 \description{
