@@ -142,6 +142,8 @@ glmbayes Simulation Functions
 \code{\link[glmbayesCore]{multi_rNormal_reg}()},
 \code{\link[glmbayesCore]{multi_rlmb}()},
 \code{\link[glmbayesCore]{rLMMNormal_reg}()},
+\code{\link[glmbayesCore]{rLMMNormal_reg_estimated_vcov}()},
+\code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov}()},
 \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}()},
 \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}()},
 \code{\link[glmbayesCore]{simfuncs}},

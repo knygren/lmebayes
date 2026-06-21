@@ -54,6 +54,14 @@ rGLMM <- glmbayesCore::rGLMM
 #' @export
 rLMMNormal_reg <- glmbayesCore::rLMMNormal_reg
 
+#' @inherit glmbayesCore::rLMMNormal_reg_known_vcov title description params return seealso
+#' @export
+rLMMNormal_reg_known_vcov <- glmbayesCore::rLMMNormal_reg_known_vcov
+
+#' @inherit glmbayesCore::rLMMNormal_reg_estimated_vcov title description params return seealso
+#' @export
+rLMMNormal_reg_estimated_vcov <- glmbayesCore::rLMMNormal_reg_estimated_vcov
+
 #' @inherit glmbayesCore::rLMMindepNormalGamma_reg title description params return seealso
 #' @export
 rLMMindepNormalGamma_reg <- glmbayesCore::rLMMindepNormalGamma_reg

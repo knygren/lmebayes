@@ -73,23 +73,27 @@ calibration.}
 \item{verbose}{Print the convergence calibration line.}
 }
 \value{
-Object of class \code{c("rLMMNormal_reg", "list")}.  Includes
-\code{ptypes} (Block~2 pfamily name per RE column) and
-\code{any_non_normal} (\code{TRUE} when any component is not
-\code{dNormal}, so at least one RE-scale dispersion may be sampled).
+Object of class \code{c("rLMMNormal_reg", "list")} (plus a route-specific
+prefix class).  Includes \code{ptypes} and \code{any_non_normal}.
 }
 \description{
 Matrix-level LMM sampler with fixed observation-level \eqn{\sigma^2} and
-random-effect prior precision \code{P}.  Uses
-\code{\link[glmbayesCore]{two_block_rNormal_reg_v2}}.
+random-effect prior precision \code{P}.  Validates inputs and dispatches to
+\code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov}} or
+\code{\link[glmbayesCore]{rLMMNormal_reg_estimated_vcov}} according to Block~2
+\code{pfamily_list}.
 }
 \seealso{
+\code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov}},
+\code{\link[glmbayesCore]{rLMMNormal_reg_estimated_vcov}},
 \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}}, \code{\link[glmbayesCore]{rGLMM}}
 
 glmbayes Simulation Functions
 \code{\link[glmbayesCore]{multi_rNormal_reg}()},
 \code{\link[glmbayesCore]{multi_rlmb}()},
 \code{\link[glmbayesCore]{rGLMM}()},
+\code{\link[glmbayesCore]{rLMMNormal_reg_estimated_vcov}()},
+\code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov}()},
 \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}()},
 \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}()},
 \code{\link[glmbayesCore]{simfuncs}},
