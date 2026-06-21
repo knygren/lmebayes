@@ -36,8 +36,9 @@ Typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef} for a fixed plug-in.
 
 \item{fixef_start}{Optional named list of starting hyper-parameter vectors
 (one per RE component).  When \code{NULL} (default), the ICM posterior
-mean is computed inside the Core engine (\code{\link{rLMMNormal_reg}} or
-\code{\link{rLMMindepNormalGamma_reg}}).}
+mean is computed inside the Core engine
+(\code{\link[glmbayesCore]{rLMMNormal_reg}} or
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}}).}
 
 \item{m_convergence}{Optional integer. Number of inner Gibbs sweeps per
 stored draw.  When \code{NULL} (default), derived from \code{tv_tol} via
@@ -78,8 +79,9 @@ Full sampling engine for Gaussian linear mixed models, parallel to
 \code{\link[glmbayes]{rlmb}} in \pkg{glmbayes} and \code{\link{rglmerb}}
 / \code{\link{glmerb}} in \pkg{lmebayes}.  Takes structured \code{design}
 and \code{prior} objects, computes the ICM posterior mean internally, and
-delegates replicate-chain sampling to \code{\link{rLMMNormal_reg}} or
-\code{\link{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is a
+delegates replicate-chain sampling to
+\code{\link[glmbayesCore]{rLMMNormal_reg}} or
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is a
 \code{dGamma()} pfamily.
 
 \code{rlmerb} is called internally by \code{\link{lmerb}} after
@@ -88,7 +90,8 @@ be called directly in simulation or Gibbs-sampling workflows where formula
 parsing and model-fit overhead are unnecessary.
 }
 \seealso{
-\code{\link{lmerb}}, \code{\link{rLMMNormal_reg}},
-\code{\link{rLMMindepNormalGamma_reg}}, \code{\link{glmerb}},
+\code{\link{lmerb}},
+\code{\link[glmbayesCore]{rLMMNormal_reg}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}}, \code{\link{glmerb}},
 \code{\link{rglmerb}}, \code{\link[glmbayes]{rlmb}}
 }

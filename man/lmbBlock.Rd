@@ -116,7 +116,7 @@ A named list of class \code{"blmb"} (list of \code{"lmb"} fits).
 Fits one \code{\link[glmbayes]{lmb}} per observation block (SAS \code{BY}-style split on
 rows), sharing the same formula on each subset. Contrast with
 \code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
-\code{\link{rNormalGLMBlock}} (Gibbs conditional draws, matrix API).
+\code{\link[glmbayesCore]{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
 }
 \section{Functions}{
 \itemize{

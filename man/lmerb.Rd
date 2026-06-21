@@ -309,6 +309,6 @@ probability distributions via Markov chain Monte Carlo.
 \code{\link[glmbayesCore]{build_mu_all}},
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}},
 \code{\link[glmbayesCore]{lmerb_posterior_mean}},
-\code{\link{rNormalRegBlock}},
+\code{\link[glmbayesCore]{block_rNormalReg}},
 \code{\link{lmb}}, \code{\link{glmb}}
 }

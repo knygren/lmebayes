@@ -10,8 +10,9 @@
 
 #' and \code{prior} objects, computes the ICM posterior mean internally, and
 
-#' delegates replicate-chain sampling to \code{\link{rLMMNormal_reg}} or
-#' \code{\link{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is a
+#' delegates replicate-chain sampling to
+#' \code{\link[glmbayesCore]{rLMMNormal_reg}} or
+#' \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is a
 #' \code{dGamma()} pfamily.
 
 #'
@@ -52,9 +53,9 @@
 
 #'   (one per RE component).  When \code{NULL} (default), the ICM posterior
 
-#'   mean is computed inside the Core engine (\code{\link{rLMMNormal_reg}} or
-
-#'   \code{\link{rLMMindepNormalGamma_reg}}).
+#'   mean is computed inside the Core engine
+#'   (\code{\link[glmbayesCore]{rLMMNormal_reg}} or
+#'   \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}}).
 
 #' @param m_convergence Optional integer. Number of inner Gibbs sweeps per
 
@@ -102,9 +103,9 @@
 
 #'   \code{convergence}; \code{Prior}; \code{design}.
 
-#' @seealso \code{\link{lmerb}}, \code{\link{rLMMNormal_reg}},
-
-#'   \code{\link{rLMMindepNormalGamma_reg}}, \code{\link{glmerb}},
+#' @seealso \code{\link{lmerb}},
+#'   \code{\link[glmbayesCore]{rLMMNormal_reg}},
+#'   \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}}, \code{\link{glmerb}},
 
 #'   \code{\link{rglmerb}}, \code{\link[glmbayes]{rlmb}}
 

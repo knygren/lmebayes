@@ -13,7 +13,7 @@ y <- ps$y
 x <- ps$x
 block <- outcome
 
-out <- rNormalGLMBlock(
+out <- glmbayesCore::block_rNormalGLM(
   n = 1L,
   y = y,
   x = x,

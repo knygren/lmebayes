@@ -36,35 +36,9 @@ dGamma <- glmbayesCore::dGamma
 #' @export
 glmbayesCore::pfamily_list
 
-#' @inherit glmbayesCore::block_rNormalGLM title description params return seealso
-#' @example inst/examples/Ex_rNormalGLMBlock.R
-#' @export
-rNormalGLMBlock <- glmbayesCore::block_rNormalGLM
-
-#' @inherit glmbayesCore::block_rNormalReg title description params return seealso
-#' @example inst/examples/Ex_rNormalRegBlock.R
-#' @export
-rNormalRegBlock <- glmbayesCore::block_rNormalReg
-
-#' @inherit glmbayesCore::rGLMM title description params return seealso
-#' @export
-rGLMM <- glmbayesCore::rGLMM
-
-#' @inherit glmbayesCore::rLMMNormal_reg title description params return seealso
-#' @export
-rLMMNormal_reg <- glmbayesCore::rLMMNormal_reg
-
-#' @inherit glmbayesCore::rLMMNormal_reg_known_vcov title description params return seealso
-#' @export
-rLMMNormal_reg_known_vcov <- glmbayesCore::rLMMNormal_reg_known_vcov
-
-#' @inherit glmbayesCore::rLMMNormal_reg_estimated_vcov title description params return seealso
-#' @export
-rLMMNormal_reg_estimated_vcov <- glmbayesCore::rLMMNormal_reg_estimated_vcov
-
-#' @inherit glmbayesCore::rLMMindepNormalGamma_reg title description params return seealso
-#' @export
-rLMMindepNormalGamma_reg <- glmbayesCore::rLMMindepNormalGamma_reg
+## Replicate-chain and block Gibbs engines below rlmerb()/rglmerb() (e.g.
+## rGLMM, rLMMNormal_reg, block_rNormalGLM, run_sweep_outer_chains_v6) are
+## glmbayesCore-only; lmebayes calls them with glmbayesCore:: internally.
 
 ## C++ callback symbols re-exported for search-path lookup when lmebayes is
 ## attached. glmbayesCore C++ resolves these by unqualified name

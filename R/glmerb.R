@@ -8,7 +8,7 @@
 #' argument. When \code{family = gaussian()}, behaviour matches
 #' \code{\link{lmerb}} except that the embedded reference fit is from
 #' \code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}. Non-Gaussian
-#' families use \code{rNormalGLMBlock} for Block~1 Gibbs updates.
+#' families use \code{\link[glmbayesCore]{block_rNormalGLM}} for Block~1 Gibbs updates.
 #'
 #' @inheritParams lmerb
 #' @param family A \code{\link[stats]{family}} object describing the response

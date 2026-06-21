@@ -2,7 +2,8 @@
 % Please edit documentation in R/glmerb_utilities.R
 \name{.lmebayes_run_lmm_engine}
 \alias{.lmebayes_run_lmm_engine}
-\title{Call \code{rLMMNormal_reg} or \code{rLMMindepNormalGamma_reg} from matrix-level inputs}
+\title{Call \code{\link[glmbayesCore]{rLMMNormal_reg}} or
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} from matrix-level inputs}
 \usage{
 .lmebayes_run_lmm_engine(
   n,
@@ -18,6 +19,7 @@
 )
 }
 \description{
-Call \code{rLMMNormal_reg} or \code{rLMMindepNormalGamma_reg} from matrix-level inputs
+Call \code{\link[glmbayesCore]{rLMMNormal_reg}} or
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} from matrix-level inputs
 }
 \keyword{internal}

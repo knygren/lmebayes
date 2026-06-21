@@ -203,7 +203,7 @@ Currently a copy of \code{\link{lmerb}} with an additional \code{family}
 argument. When \code{family = gaussian()}, behaviour matches
 \code{\link{lmerb}} except that the embedded reference fit is from
 \code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}. Non-Gaussian
-families use \code{rNormalGLMBlock} for Block~1 Gibbs updates.
+families use \code{\link[glmbayesCore]{block_rNormalGLM}} for Block~1 Gibbs updates.
 }
 \examples{
 ## glmerb: neighborhood random effects on bayesrules::airbnb_small (Poisson)

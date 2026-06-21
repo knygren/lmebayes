@@ -841,7 +841,8 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   )
 }
 
-#' Call \code{rLMMNormal_reg} or \code{rLMMindepNormalGamma_reg} from matrix-level inputs
+#' Call \code{\link[glmbayesCore]{rLMMNormal_reg}} or
+#' \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} from matrix-level inputs
 #' @keywords internal
 .lmebayes_run_lmm_engine <- function(
     n,

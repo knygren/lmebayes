@@ -112,7 +112,7 @@ A named list of class \code{"bglmb"} (list of \code{"glmb"} fits from \strong{gl
 Fits one \code{\link[glmbayes]{glmb}} per observation block. Same row partition as
 \code{\link{lmbBlock}}, but supports GLM \code{\link{family}} objects.
 Counterpart to \code{\link{lmbBlock}}; see \code{\link{summary.bglmb}} for
-the summary method and \code{\link{rNormalGLMBlock}} for Gibbs sampling.
+the summary method and \code{\link[glmbayesCore]{block_rNormalGLM}} for Gibbs sampling.
 }
 \section{Functions}{
 \itemize{

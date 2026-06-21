@@ -81,15 +81,18 @@ Bayesian generalized linear mixed-effects model sampler
 Matrix-level sampler for \pkg{lmebayes} \code{model_setup} objects and prior
 containers.  Routes by response family:
 \itemize{
-\item \code{family = gaussian()} delegates to \code{\link{rLMMNormal_reg}}
-or \code{\link{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is
+\item \code{family = gaussian()} delegates to
+\code{\link[glmbayesCore]{rLMMNormal_reg}} or
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is
 a \code{dGamma()} pfamily.
-\item Non-Gaussian families delegate to \code{\link{rGLMM}}
+\item Non-Gaussian families delegate to \code{\link[glmbayesCore]{rGLMM}}
 (sweep-outer engine with optional pilot/main staging).
 }
 See \code{\link{glmerb}} for the formula-level API.
 }
 \seealso{
-\code{\link{glmerb}}, \code{\link{rLMMNormal_reg}},
-\code{\link{rLMMindepNormalGamma_reg}}, \code{\link{rGLMM}}
+\code{\link{glmerb}},
+\code{\link[glmbayesCore]{rLMMNormal_reg}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}},
+\code{\link[glmbayesCore]{rGLMM}}
 }

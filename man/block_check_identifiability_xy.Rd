@@ -43,6 +43,6 @@ See \code{block_check_identifiability()} and
 }
 \seealso{
 \code{block_check_identifiability()},
-\code{\link{rNormalGLMBlock}}
+\code{\link[glmbayesCore]{block_rNormalGLM}}
 }
 \keyword{internal}

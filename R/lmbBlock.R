@@ -4,7 +4,7 @@
 #' Fits one \code{\link[glmbayes]{lmb}} per observation block (SAS \code{BY}-style split on
 #' rows), sharing the same formula on each subset. Contrast with
 #' \code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
-#' \code{\link{rNormalGLMBlock}} (Gibbs conditional draws, matrix API).
+#' \code{\link[glmbayesCore]{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
 #'
 #' @param block Block partition: \code{factor} or vector of length \code{nrow(data)}
 #'   (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
@@ -344,7 +344,7 @@ lmbBlock <- function(
 #' pre-formed design matrix \code{x} and a block specification (factor, integer
 #' vector, or list of row-index vectors) rather than a formula and data frame.
 #' Used internally by \code{block_check_identifiability_xy} and by
-#' \code{\link{rNormalGLMBlock}}.
+#' \code{\link[glmbayesCore]{block_rNormalGLM}}.
 #'
 #' @param x Numeric matrix \code{(l2 x l1)}: the full design matrix.
 #' @param block_info Block partition as returned by \code{\link[glmbayesCore]{normalize_block}()}.
@@ -405,7 +405,7 @@ lmbBlock <- function(
 #' @return Invisibly, the same list structure as
 #'   \code{block_check_identifiability()}.
 #' @seealso \code{block_check_identifiability()},
-#'   \code{\link{rNormalGLMBlock}}
+#'   \code{\link[glmbayesCore]{block_rNormalGLM}}
 #' @keywords internal
 block_check_identifiability_xy <- function(
     x,

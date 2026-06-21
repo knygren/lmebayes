@@ -40,7 +40,7 @@ stopifnot(nrow(cm) == 3L, ncol(cm) == 3L)
 
 print(out)
 
-# Aliases: rNormalGLMBlock
-stopifnot(identical(rNormalGLMBlock, glmbayesCore::block_rNormalGLM))
+# block_rNormalGLM is glmbayesCore-only (not re-exported from lmebayes)
+stopifnot(exists("block_rNormalGLM", where = asNamespace("glmbayesCore")))
 
 cat("lmbBlock (iris): OK\n")
