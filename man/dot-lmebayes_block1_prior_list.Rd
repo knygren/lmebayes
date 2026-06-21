@@ -4,7 +4,14 @@
 \alias{.lmebayes_block1_prior_list}
 \title{Build Block~1 prior list from a normalized prior container}
 \usage{
-.lmebayes_block1_prior_list(measurement_prior_list)
+.lmebayes_block1_prior_list(measurement_prior_list, dispersion_ranef = NULL)
+}
+\arguments{
+\item{measurement_prior_list}{Prior container with \code{Sigma_ranef}.}
+
+\item{dispersion_ranef}{Optional observation-level dispersion override
+(\eqn{\sigma^2}); when supplied, used instead of
+\code{measurement_prior_list$dispersion_ranef}.}
 }
 \description{
 Build Block~1 prior list from a normalized prior container

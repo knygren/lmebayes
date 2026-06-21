@@ -1,18 +1,24 @@
 ﻿# lmebayes (development version)
 
+* **LMM engine routing:** **`rlmerb()`** and the Gaussian path of **`rglmerb()`**
+  call **`rLMMNormal_reg()`** (fixed **`dispersion_ranef`**) or
+  **`rLMMindepNormalGamma_reg()`** ( **`dispersion_ranef = dGamma(...)`** ).
+
 * **GLMM pilot policy in Core:** **`rglmerb()`** and **`glmerb()`** now pass
   **`gap_tol`** through to **`glmbayesCore::rGLMM()`**, which owns pilot/main
   staging (non-Gaussian default: pilot then main; Gaussian: main only).
   Removed duplicate **`n_pilot`** derivation from **`glmerb()`**.
 
 * **`rglmerb()` family routing:** **`family = gaussian()`** delegates to
-  **`glmbayesCore::rLMM()`** (exact Gaussian posterior, ICM mean, no pilot).
-  Non-Gaussian families delegate to **`rGLMM()`** (sweep-outer engine with
-  optional pilot).  Neither path calls **`lmerb()`** or **`rlmerb()`**.
+  **`rLMMNormal_reg()`** or **`rLMMindepNormalGamma_reg()`** (when
+  **`dispersion_ranef`** is a **`dGamma()`** pfamily). Non-Gaussian families
+  delegate to **`rGLMM()`** (sweep-outer engine with optional pilot). Neither
+  path calls **`lmerb()`** or **`rlmerb()`**.
 
 * **Move `rLMM` to glmbayesCore:** matrix-level LMM replicate-chain
-  orchestration now lives in **`glmbayesCore::rLMM()`** (v2 two-block
-  driver). Re-exported from lmebayes; **`rlmerb()`** calls Core directly.
+  orchestration now lives in **`glmbayesCore::rLMMNormal_reg()`** (v2 two-block
+  driver) with optional **`rLMMindepNormalGamma_reg()`** for dGamma dispersion.
+  Re-exported from lmebayes; **`rlmerb()`** / **`rglmerb()`** call Core directly.
 
 * **Move `rGLMM` to glmbayesCore:** matrix-level GLMM replicate-chain
   orchestration now lives in **`glmbayesCore::rGLMM()`** (v6 sweep-outer

@@ -266,12 +266,13 @@ glmerb <- function(
     ))
   }
 
-  # ICM and sampling: rglmerb routes Gaussian to rLMM, non-Gaussian to rGLMM.
+  # ICM and sampling: rglmerb routes Gaussian to rLMMNormal_reg, non-Gaussian to rGLMM.
   sampler <- rglmerb(
     n                   = n,
     design              = design,
     prior               = prior,
     family              = family,
+    dispersion_ranef    = dispersion_ranef,
     fixef_start         = NULL,
     m_convergence       = m_convergence,
     gap_tol             = gap_tol,

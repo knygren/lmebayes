@@ -50,9 +50,13 @@ rNormalRegBlock <- glmbayesCore::block_rNormalReg
 #' @export
 rGLMM <- glmbayesCore::rGLMM
 
-#' @inherit glmbayesCore::rLMM title description params return seealso
+#' @inherit glmbayesCore::rLMMNormal_reg title description params return seealso
 #' @export
-rLMM <- glmbayesCore::rLMM
+rLMMNormal_reg <- glmbayesCore::rLMMNormal_reg
+
+#' @inherit glmbayesCore::rLMMindepNormalGamma_reg title description params return seealso
+#' @export
+rLMMindepNormalGamma_reg <- glmbayesCore::rLMMindepNormalGamma_reg
 
 #' @inherit glmbayesCore::summary.mrglmb
 #' @param ... Additional optional arguments passed to

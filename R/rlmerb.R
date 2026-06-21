@@ -10,7 +10,9 @@
 
 #' and \code{prior} objects, computes the ICM posterior mean internally, and
 
-#' delegates replicate-chain sampling to \code{\link{rLMM}}.
+#' delegates replicate-chain sampling to \code{\link{rLMMNormal_reg}} or
+#' \code{\link{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is a
+#' \code{dGamma()} pfamily.
 
 #'
 
@@ -36,15 +38,23 @@
 
 #' @param prior A \code{lmebayes_prior_setup} object as returned by
 
-#'   \code{\link{.lmebayes_priors_from_pfamily_list}}.
+#'   \code{\link{.lmebayes_priors_from_pfamily_list}} (RE / Block~2 structure).
+
+#' @param dispersion_ranef Required observation-level dispersion: a positive
+
+#'   scalar \eqn{\sigma^2} (fixed) or a \code{\link{dGamma}()} pfamily with
+
+#'   \code{Inv_Dispersion = TRUE} for a Gamma prior on \eqn{\sigma^2}.
+
+#'   Typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef} for a fixed plug-in.
 
 #' @param fixef_start Optional named list of starting hyper-parameter vectors
 
 #'   (one per RE component).  When \code{NULL} (default), the ICM posterior
 
-#'   mean is computed inside \code{\link{rLMM}} via
+#'   mean is computed inside the Core engine (\code{\link{rLMMNormal_reg}} or
 
-#'   \code{\link[glmbayesCore]{lmerb_posterior_mean}}.
+#'   \code{\link{rLMMindepNormalGamma_reg}}).
 
 #' @param m_convergence Optional integer. Number of inner Gibbs sweeps per
 
@@ -74,13 +84,13 @@
 
 #'   table (e.g. when \code{\link{rglmerb}} prints glmer-labelled output).
 
-#'   The convergence calibration line from \code{\link{rLMM}} still follows
+#'   The convergence calibration line from the Core engine still follows
 
 #'   \code{verbose}.  Default \code{TRUE}.
 
 #' @return An object of class \code{c("rlmerb", "list")} with Block~2 fields in
 
-#'   the \code{fixef.*} namespace (as \code{\link{rLMM}}):
+#'   the \code{fixef.*} namespace (Core LMM engines):
 
 #'   \code{fixef}, \code{fixef.mode}, \code{fixef.init}, \code{fixef.means},
 
@@ -92,7 +102,9 @@
 
 #'   \code{convergence}; \code{Prior}; \code{design}.
 
-#' @seealso \code{\link{lmerb}}, \code{\link{rLMM}}, \code{\link{glmerb}},
+#' @seealso \code{\link{lmerb}}, \code{\link{rLMMNormal_reg}},
+
+#'   \code{\link{rLMMindepNormalGamma_reg}}, \code{\link{glmerb}},
 
 #'   \code{\link{rglmerb}}, \code{\link[glmbayes]{rlmb}}
 
@@ -107,6 +119,8 @@ rlmerb <- function(
     design,
 
     prior,
+
+    dispersion_ranef,
 
     fixef_start   = NULL,
 
@@ -142,82 +156,54 @@ rlmerb <- function(
 
   }
 
+  if (missing(dispersion_ranef)) {
+    stop(
+      "'dispersion_ranef' is required for rlmerb(). Typically ",
+      "Prior_Setup_lmebayes(...)$dispersion_ranef.",
+      call. = FALSE
+    )
+  }
 
+  disp_info <- .lmebayes_resolve_dispersion_ranef(
+    dispersion_ranef = dispersion_ranef,
+    family           = gaussian(),
+    design           = design,
+    fn_name          = "rlmerb"
+  )
 
   if (!is.numeric(tv_tol) || length(tv_tol) != 1L ||
-
       !is.finite(tv_tol) || tv_tol <= 0 || tv_tol >= 1) {
-
     stop("'tv_tol' must be a single value in (0, 1).", call. = FALSE)
-
   }
-
-
 
   if (!is.null(m_convergence)) {
-
     if (!is.numeric(m_convergence) || length(m_convergence) != 1L ||
-
         !is.finite(m_convergence) || m_convergence < 1) {
-
       stop("'m_convergence' must be NULL or a single integer >= 1.",
-
            call. = FALSE)
-
     }
-
     m_convergence <- as.integer(m_convergence)
-
   }
 
-
-
   re_names     <- design$re_coef_names
-
   group_levels <- levels(design$groups)
+  block1_prior <- .lmebayes_block1_prior_list(
+    prior,
+    dispersion_ranef = disp_info$dispersion_fix
+  )
 
-
-
-  block1_prior <- .lmebayes_block1_prior_list(prior)
-
-
-
-  out <- glmbayesCore::rLMM(
-
-    n             = n,
-
-    y             = design$y,
-
-    x             = design$Z,
-
-    block         = design$groups,
-
-    x_hyper       = design$X_hyper,
-
-    prior_list    = block1_prior,
-
-    pfamily_list  = prior$pfamily_list,
-
-    start         = fixef_start,
-
-    m_convergence = m_convergence,
-
-    tv_tol        = tv_tol,
-
-    re_coef_names = re_names,
-
-    group_levels  = group_levels,
-
-    group_name    = design$group_name,
-
-    seed          = seed,
-
-    progbar       = progbar,
-
-    verbose       = verbose,
-
-    any_ing       = isTRUE(prior$any_ing)
-
+  out <- .lmebayes_run_lmm_engine(
+    n               = n,
+    design          = design,
+    prior           = prior,
+    disp_info       = disp_info,
+    fixef_start     = fixef_start,
+    m_convergence   = m_convergence,
+    tv_tol          = tv_tol,
+    seed            = seed,
+    progbar         = progbar,
+    verbose         = verbose,
+    any_ing         = isTRUE(prior$any_ing)
   )
 
 
@@ -256,9 +242,17 @@ rlmerb <- function(
 
   out$Prior      <- list(
 
-    block1_prior = block1_prior,
+    block1_prior         = block1_prior,
 
-    pfamily_list = prior$pfamily_list
+    pfamily_list         = prior$pfamily_list,
+
+    dispersion_ranef     = disp_info$dispersion_fix,
+
+    dispersion_mode      = disp_info$mode,
+
+    dispersion_pfamily   = disp_info$dispersion_pfamily,
+
+    dispersion_prior_list = disp_info$dispersion_prior_list
 
   )
 

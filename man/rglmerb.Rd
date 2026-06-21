@@ -9,6 +9,7 @@ rglmerb(
   design,
   prior,
   family = poisson(),
+  dispersion_ranef = NULL,
   fixef_start = NULL,
   m_convergence = NULL,
   n_pilot = NULL,
@@ -30,6 +31,11 @@ rglmerb(
 \item{prior}{A \code{lmebayes_prior_setup} object.}
 
 \item{family}{A \code{\link[stats]{family}} object. Default \code{poisson()}.}
+
+\item{dispersion_ranef}{Observation-level measurement dispersion \eqn{\sigma^2}:
+required positive scalar for \code{family = gaussian()}, or a
+\code{\link{dGamma}()} pfamily with \code{Inv_Dispersion = TRUE}; must be
+\code{NULL} (default) for \code{poisson()} and \code{binomial()}.}
 
 \item{fixef_start}{Optional named list of Block~2 starting vectors. When
 \code{NULL}, the ICM start is computed inside the Core engine
@@ -55,7 +61,7 @@ is \code{NULL} (non-Gaussian only).}
 \item{collect_block1}{Collect Block~1 \code{coefficients} from main chains
 (non-Gaussian only).}
 
-\item{seed}{Optional RNG seed (Gaussian path only; passed to \code{\link{rLMM}}).}
+\item{seed}{Optional RNG seed (Gaussian path only).}
 
 \item{verbose}{Print stage headers and diagnostics.}
 
@@ -75,13 +81,15 @@ Bayesian generalized linear mixed-effects model sampler
 Matrix-level sampler for \pkg{lmebayes} \code{model_setup} objects and prior
 containers.  Routes by response family:
 \itemize{
-\item \code{family = gaussian()} delegates to \code{\link{rLMM}}
-(exact Gaussian posterior, ICM mean, no pilot).
+\item \code{family = gaussian()} delegates to \code{\link{rLMMNormal_reg}}
+or \code{\link{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is
+a \code{dGamma()} pfamily.
 \item Non-Gaussian families delegate to \code{\link{rGLMM}}
 (sweep-outer engine with optional pilot/main staging).
 }
 See \code{\link{glmerb}} for the formula-level API.
 }
 \seealso{
-\code{\link{glmerb}}, \code{\link{rLMM}}, \code{\link{rGLMM}}
+\code{\link{glmerb}}, \code{\link{rLMMNormal_reg}},
+\code{\link{rLMMindepNormalGamma_reg}}, \code{\link{rGLMM}}
 }

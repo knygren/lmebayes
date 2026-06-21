@@ -3,8 +3,9 @@
 #' Matrix-level sampler for \pkg{lmebayes} \code{model_setup} objects and prior
 #' containers.  Routes by response family:
 #' \itemize{
-#'   \item \code{family = gaussian()} delegates to \code{\link{rLMM}}
-#'     (exact Gaussian posterior, ICM mean, no pilot).
+#'   \item \code{family = gaussian()} delegates to \code{\link{rLMMNormal_reg}}
+#'     or \code{\link{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is
+#'     a \code{dGamma()} pfamily.
 #'   \item Non-Gaussian families delegate to \code{\link{rGLMM}}
 #'     (sweep-outer engine with optional pilot/main staging).
 #' }
@@ -14,6 +15,10 @@
 #' @param design A \code{\link{model_setup}} object.
 #' @param prior A \code{lmebayes_prior_setup} object.
 #' @param family A \code{\link[stats]{family}} object. Default \code{poisson()}.
+#' @param dispersion_ranef Observation-level measurement dispersion \eqn{\sigma^2}:
+#'   required positive scalar for \code{family = gaussian()}, or a
+#'   \code{\link{dGamma}()} pfamily with \code{Inv_Dispersion = TRUE}; must be
+#'   \code{NULL} (default) for \code{poisson()} and \code{binomial()}.
 #' @param fixef_start Optional named list of Block~2 starting vectors. When
 #'   \code{NULL}, the ICM start is computed inside the Core engine
 #'   (\code{\link[glmbayesCore]{lmerb_posterior_mean}} for Gaussian,
@@ -30,7 +35,7 @@
 #'   is \code{NULL} (non-Gaussian only).
 #' @param collect_block1 Collect Block~1 \code{coefficients} from main chains
 #'   (non-Gaussian only).
-#' @param seed Optional RNG seed (Gaussian path only; passed to \code{\link{rLMM}}).
+#' @param seed Optional RNG seed (Gaussian path only).
 #' @param verbose Print stage headers and diagnostics.
 #' @param progbar Progress bars when \code{verbose} is \code{FALSE}.
 #' @return Object of class \code{c("rglmerb", "list")} with Block~2 fields in
@@ -38,7 +43,8 @@
 #'   \code{design}, and \code{family}.  Non-Gaussian fits may include
 #'   \code{n_pilot}, \code{pilot}, and \code{pilot_chisq}; Gaussian fits set
 #'   \code{n_pilot = 0L} and omit pilot output.
-#' @seealso \code{\link{glmerb}}, \code{\link{rLMM}}, \code{\link{rGLMM}}
+#' @seealso \code{\link{glmerb}}, \code{\link{rLMMNormal_reg}},
+#'   \code{\link{rLMMindepNormalGamma_reg}}, \code{\link{rGLMM}}
 #' @title The Bayesian Generalized Linear Mixed-Effects Model Distribution
 #' @export
 rglmerb <- function(
@@ -46,6 +52,7 @@ rglmerb <- function(
     design,
     prior,
     family              = poisson(),
+    dispersion_ranef    = NULL,
     fixef_start         = NULL,
     m_convergence       = NULL,
     n_pilot             = NULL,
@@ -87,25 +94,30 @@ rglmerb <- function(
 
   is_gaussian <- identical(family$family, "gaussian")
 
+  disp_info <- .lmebayes_resolve_dispersion_ranef(
+    dispersion_ranef = dispersion_ranef,
+    family           = family,
+    design           = design,
+    fn_name          = "rglmerb"
+  )
+
   re_names     <- design$re_coef_names
   group_levels <- levels(design$groups)
-  block1_prior <- .lmebayes_block1_prior_list(prior)
 
   if (is_gaussian) {
-    out <- glmbayesCore::rLMM(
+    block1_prior <- .lmebayes_block1_prior_list(
+      prior,
+      dispersion_ranef = disp_info$dispersion_fix
+    )
+
+    out <- .lmebayes_run_lmm_engine(
       n             = n,
-      y             = design$y,
-      x             = design$Z,
-      block         = design$groups,
-      x_hyper       = design$X_hyper,
-      prior_list    = block1_prior,
-      pfamily_list  = prior$pfamily_list,
-      start         = fixef_start,
+      design        = design,
+      prior         = prior,
+      disp_info     = disp_info,
+      fixef_start   = fixef_start,
       m_convergence = m_convergence,
       tv_tol        = tv_tol,
-      re_coef_names = re_names,
-      group_levels  = group_levels,
-      group_name    = design$group_name,
       seed          = seed,
       progbar       = progbar,
       verbose       = verbose,
@@ -129,8 +141,12 @@ rglmerb <- function(
     out$call        <- cl
     out$convergence <- out$convergence_info
     out$Prior       <- list(
-      block1_prior = block1_prior,
-      pfamily_list = prior$pfamily_list
+      block1_prior          = block1_prior,
+      pfamily_list          = prior$pfamily_list,
+      dispersion_ranef      = disp_info$dispersion_fix,
+      dispersion_mode       = disp_info$mode,
+      dispersion_pfamily    = disp_info$dispersion_pfamily,
+      dispersion_prior_list = disp_info$dispersion_prior_list
     )
     out$design      <- design
     out$family      <- family
@@ -157,6 +173,8 @@ rglmerb <- function(
            call. = FALSE)
     }
   }
+
+  block1_prior <- .lmebayes_block1_prior_list(prior, dispersion_ranef = NULL)
 
   out <- glmbayesCore::rGLMM(
     n                   = n,
@@ -210,8 +228,12 @@ rglmerb <- function(
   out$call        <- cl
   out$convergence <- out$convergence_info
   out$Prior       <- list(
-    block1_prior = block1_prior,
-    pfamily_list = prior$pfamily_list
+    block1_prior          = block1_prior,
+    pfamily_list          = prior$pfamily_list,
+    dispersion_ranef      = disp_info$dispersion_fix,
+    dispersion_mode       = disp_info$mode,
+    dispersion_pfamily    = disp_info$dispersion_pfamily,
+    dispersion_prior_list = disp_info$dispersion_prior_list
   )
   out$design      <- design
   out$family      <- family

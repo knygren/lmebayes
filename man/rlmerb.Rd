@@ -8,6 +8,7 @@ rlmerb(
   n,
   design,
   prior,
+  dispersion_ranef,
   fixef_start = NULL,
   m_convergence = NULL,
   tv_tol = 0.01,
@@ -26,12 +27,17 @@ rlmerb(
 \code{X_hyper}, \code{group_name}, and \code{re_coef_names}.}
 
 \item{prior}{A \code{lmebayes_prior_setup} object as returned by
-\code{\link{.lmebayes_priors_from_pfamily_list}}.}
+\code{\link{.lmebayes_priors_from_pfamily_list}} (RE / Block~2 structure).}
+
+\item{dispersion_ranef}{Required observation-level dispersion: a positive
+scalar \eqn{\sigma^2} (fixed) or a \code{\link{dGamma}()} pfamily with
+\code{Inv_Dispersion = TRUE} for a Gamma prior on \eqn{\sigma^2}.
+Typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef} for a fixed plug-in.}
 
 \item{fixef_start}{Optional named list of starting hyper-parameter vectors
 (one per RE component).  When \code{NULL} (default), the ICM posterior
-mean is computed inside \code{\link{rLMM}} via
-\code{\link[glmbayesCore]{lmerb_posterior_mean}}.}
+mean is computed inside the Core engine (\code{\link{rLMMNormal_reg}} or
+\code{\link{rLMMindepNormalGamma_reg}}).}
 
 \item{m_convergence}{Optional integer. Number of inner Gibbs sweeps per
 stored draw.  When \code{NULL} (default), derived from \code{tv_tol} via
@@ -52,12 +58,12 @@ calibration line.  Default \code{TRUE}.}
 
 \item{print_icm_table}{Logical. When \code{FALSE}, skip the reference-vs-ICM
 table (e.g. when \code{\link{rglmerb}} prints glmer-labelled output).
-The convergence calibration line from \code{\link{rLMM}} still follows
+The convergence calibration line from the Core engine still follows
 \code{verbose}.  Default \code{TRUE}.}
 }
 \value{
 An object of class \code{c("rlmerb", "list")} with Block~2 fields in
-the \code{fixef.*} namespace (as \code{\link{rLMM}}):
+the \code{fixef.*} namespace (Core LMM engines):
 \code{fixef}, \code{fixef.mode}, \code{fixef.init}, \code{fixef.means},
 \code{fixef.dispersion}, \code{fixef.dispersion.mean}, \code{fixef.iters},
 \code{fixef.iters.mean}, \code{fixef.mu}; Block~1 draws in
@@ -72,7 +78,9 @@ Full sampling engine for Gaussian linear mixed models, parallel to
 \code{\link[glmbayes]{rlmb}} in \pkg{glmbayes} and \code{\link{rglmerb}}
 / \code{\link{glmerb}} in \pkg{lmebayes}.  Takes structured \code{design}
 and \code{prior} objects, computes the ICM posterior mean internally, and
-delegates replicate-chain sampling to \code{\link{rLMM}}.
+delegates replicate-chain sampling to \code{\link{rLMMNormal_reg}} or
+\code{\link{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is a
+\code{dGamma()} pfamily.
 
 \code{rlmerb} is called internally by \code{\link{lmerb}} after
 \code{\link{model_setup}} and prior construction are complete.  It can also
@@ -80,6 +88,7 @@ be called directly in simulation or Gibbs-sampling workflows where formula
 parsing and model-fit overhead are unnecessary.
 }
 \seealso{
-\code{\link{lmerb}}, \code{\link{rLMM}}, \code{\link{glmerb}},
+\code{\link{lmerb}}, \code{\link{rLMMNormal_reg}},
+\code{\link{rLMMindepNormalGamma_reg}}, \code{\link{glmerb}},
 \code{\link{rglmerb}}, \code{\link[glmbayes]{rlmb}}
 }

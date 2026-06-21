@@ -743,14 +743,182 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   object$lmer
 }
 
-#' Build Block~1 prior list from a normalized prior container
+#' Validate observation-level \code{dispersion_ranef} for an \code{lmerb}/\code{glmerb} family
+#'
+#' Returns a scalar plug-in \eqn{\sigma^2} or \code{NULL}.  For routing that
+#' distinguishes fixed vs \code{dGamma()} priors, use
+#' \code{\link{.lmebayes_resolve_dispersion_ranef}}.
 #' @keywords internal
-.lmebayes_block1_prior_list <- function(measurement_prior_list) {
+.lmebayes_validate_dispersion_ranef <- function(
+    dispersion_ranef,
+    family,
+    fn_name = "lmerb"
+) {
+  resolved <- .lmebayes_resolve_dispersion_ranef(
+    dispersion_ranef = dispersion_ranef,
+    family           = family,
+    design           = NULL,
+    fn_name          = fn_name
+  )
+  resolved$dispersion_fix
+}
+
+#' Resolve observation-level \code{dispersion_ranef} (fixed scalar or \code{dGamma()})
+#' @return List with \code{mode} (\code{"none"}, \code{"fixed"}, or \code{"gamma"}),
+#'   \code{dispersion_fix} (plug-in \eqn{\sigma^2}), \code{dispersion_prior_list}
+#'   (\code{dGamma()} \code{prior_list} or \code{NULL}), and \code{dispersion_pfamily}.
+#' @keywords internal
+.lmebayes_resolve_dispersion_ranef <- function(
+    dispersion_ranef,
+    family,
+    design = NULL,
+    fn_name = "lmerb"
+) {
+  has_dispersion <- family$family %in%
+    c("gaussian", "Gamma", "quasipoisson", "quasibinomial")
+
+  if (!has_dispersion) {
+    if (!is.null(dispersion_ranef)) {
+      stop(
+        "'dispersion_ranef' must be NULL for family = ", family$family,
+        "() (no observation-level dispersion).",
+        call. = FALSE
+      )
+    }
+    return(list(
+      mode                   = "none",
+      dispersion_fix         = NULL,
+      dispersion_prior_list  = NULL,
+      dispersion_pfamily     = NULL
+    ))
+  }
+
+  if (inherits(dispersion_ranef, "pfamily")) {
+    if (!identical(dispersion_ranef$pfamily, "dGamma")) {
+      stop(
+        fn_name, "(): 'dispersion_ranef' pfamily must be dGamma(); got ",
+        dispersion_ranef$pfamily, ". RE priors belong in 'pfamily_list'.",
+        call. = FALSE
+      )
+    }
+    pl <- dispersion_ranef$prior_list
+    if (!isTRUE(pl$Inv_Dispersion)) {
+      stop(
+        fn_name, "(): dGamma() observation-dispersion prior requires ",
+        "Inv_Dispersion = TRUE.",
+        call. = FALSE
+      )
+    }
+    if (is.null(design) || is.null(design$residual_var)) {
+      stop(
+        fn_name, "(): a model_setup with residual_var is required for ",
+        "dGamma() dispersion_ranef (plug-in sigma^2).",
+        call. = FALSE
+      )
+    }
+    return(list(
+      mode                  = "gamma",
+      dispersion_fix        = as.numeric(design$residual_var),
+      dispersion_prior_list = pl,
+      dispersion_pfamily    = dispersion_ranef
+    ))
+  }
+
+  if (is.null(dispersion_ranef) || !is.numeric(dispersion_ranef) ||
+      length(dispersion_ranef) != 1L || !is.finite(dispersion_ranef) ||
+      dispersion_ranef <= 0) {
+    stop(
+      "'dispersion_ranef' must be a single positive number or a dGamma() ",
+      "pfamily for family = ", family$family, "().",
+      call. = FALSE
+    )
+  }
+  list(
+    mode                  = "fixed",
+    dispersion_fix        = as.numeric(dispersion_ranef),
+    dispersion_prior_list = NULL,
+    dispersion_pfamily    = NULL
+  )
+}
+
+#' Call \code{rLMMNormal_reg} or \code{rLMMindepNormalGamma_reg} from matrix-level inputs
+#' @keywords internal
+.lmebayes_run_lmm_engine <- function(
+    n,
+    design,
+    prior,
+    disp_info,
+    fixef_start   = NULL,
+    m_convergence = NULL,
+    tv_tol        = 0.01,
+    seed          = NULL,
+    progbar       = TRUE,
+    verbose       = FALSE,
+    any_ing       = FALSE
+) {
+  re_names     <- design$re_coef_names
+  group_levels <- levels(design$groups)
+  P            <- solve(prior$Sigma_ranef)
+  common_args  <- list(
+    n             = n,
+    y             = design$y,
+    x             = design$Z,
+    block         = design$groups,
+    x_hyper       = design$X_hyper,
+    P             = P,
+    pfamily_list  = prior$pfamily_list,
+    start         = fixef_start,
+    m_convergence = m_convergence,
+    tv_tol        = tv_tol,
+    re_coef_names = re_names,
+    group_levels  = group_levels,
+    group_name    = design$group_name,
+    seed          = seed,
+    progbar       = progbar,
+    verbose       = verbose,
+    any_ing       = isTRUE(any_ing)
+  )
+  if (identical(disp_info$mode, "gamma")) {
+    do.call(
+      glmbayesCore::rLMMindepNormalGamma_reg,
+      c(
+        common_args,
+        list(
+          prior_list     = disp_info$dispersion_prior_list,
+          dispersion_fix = disp_info$dispersion_fix
+        )
+      )
+    )
+  } else {
+    do.call(
+      glmbayesCore::rLMMNormal_reg,
+      c(
+        common_args,
+        list(prior_list = list(dispersion = disp_info$dispersion_fix))
+      )
+    )
+  }
+}
+
+#' Build Block~1 prior list from a normalized prior container
+#' @param measurement_prior_list Prior container with \code{Sigma_ranef}.
+#' @param dispersion_ranef Optional observation-level dispersion override
+#'   (\eqn{\sigma^2}); when supplied, used instead of
+#'   \code{measurement_prior_list$dispersion_ranef}.
+#' @keywords internal
+.lmebayes_block1_prior_list <- function(
+    measurement_prior_list,
+    dispersion_ranef = NULL
+) {
   if (is.null(measurement_prior_list$Sigma_ranef)) {
     stop("measurement_prior_list must contain 'Sigma_ranef'.", call. = FALSE)
   }
   P <- solve(measurement_prior_list$Sigma_ranef)
-  dispersion <- measurement_prior_list$dispersion_ranef
+  dispersion <- if (!is.null(dispersion_ranef)) {
+    dispersion_ranef
+  } else {
+    measurement_prior_list$dispersion_ranef
+  }
   if (is.null(dispersion)) {
     list(P = P, ddef = TRUE)
   } else {
@@ -847,28 +1015,13 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   p_re     <- length(re_names)
 
   ## --- dispersion_ranef (Block 1 measurement dispersion) -------------------
-  has_dispersion <- family$family %in%
-    c("gaussian", "Gamma", "quasipoisson", "quasibinomial")
-  if (has_dispersion) {
-    if (is.null(dispersion_ranef) || !is.numeric(dispersion_ranef) ||
-        length(dispersion_ranef) != 1L || !is.finite(dispersion_ranef) ||
-        dispersion_ranef <= 0) {
-      stop(
-        "'dispersion_ranef' must be a single positive number for family = ",
-        family$family, "(). Use Prior_Setup_lmebayes()$dispersion_ranef.",
-        call. = FALSE
-      )
-    }
-    dispersion_ranef <- as.numeric(dispersion_ranef)
-  } else {
-    if (!is.null(dispersion_ranef)) {
-      stop(
-        "'dispersion_ranef' must be NULL for family = ", family$family,
-        "() (no observation-level dispersion).",
-        call. = FALSE
-      )
-    }
-  }
+  disp_res <- .lmebayes_resolve_dispersion_ranef(
+    dispersion_ranef = dispersion_ranef,
+    family           = family,
+    design           = design,
+    fn_name          = fn_name
+  )
+  dispersion_ranef <- disp_res$dispersion_fix
 
   ## --- pfamily_list ---------------------------------------------------------
   if (!is.list(pfamily_list) || length(pfamily_list) != p_re) {
@@ -1000,12 +1153,15 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   dimnames(Sigma_ranef) <- list(re_names, re_names)
 
   list(
-    pfamily_list     = pfamily_list,
-    dispersion_ranef = dispersion_ranef,
-    Sigma_ranef      = Sigma_ranef,
-    prior_list       = prior_list,
-    ptypes           = ptypes,
-    any_ing          = any(ptypes == "dIndependent_Normal_Gamma")
+    pfamily_list          = pfamily_list,
+    dispersion_ranef      = dispersion_ranef,
+    dispersion_mode       = disp_res$mode,
+    dispersion_pfamily    = disp_res$dispersion_pfamily,
+    dispersion_prior_list = disp_res$dispersion_prior_list,
+    Sigma_ranef           = Sigma_ranef,
+    prior_list            = prior_list,
+    ptypes                = ptypes,
+    any_ing               = any(ptypes == "dIndependent_Normal_Gamma")
   )
 }
 

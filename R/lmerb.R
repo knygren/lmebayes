@@ -364,10 +364,11 @@ lmerb <- function(
   # ICM posterior mean, block1_prior, convergence calibration, and sampling
   # are all handled inside rlmerb.
   sampler <- rlmerb(
-    n             = n,
-    design        = design,
-    prior         = prior,
-    fixef_start   = NULL,          # computed internally from design + prior
+    n               = n,
+    design          = design,
+    prior           = prior,
+    dispersion_ranef = dispersion_ranef,
+    fixef_start     = NULL,          # computed internally from design + prior
     m_convergence = m_convergence, # NULL => derived from tv_tol
     tv_tol        = tv_tol,
     seed          = seed,
