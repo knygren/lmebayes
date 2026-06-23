@@ -26,10 +26,12 @@
 #'   \code{\link[glmbayesCore]{glmerb_posterior_mode}} otherwise).
 #' @param m_convergence Optional integer inner Gibbs sweeps per main draw.
 #' @param n_pilot Optional integer pilot chains (non-Gaussian only);
-#'   \code{NULL} (default) derives from \code{gap_tol}; \code{0L} skips pilot.
-#' @param gap_tol Mode--mean gap tolerance for deriving \code{n_pilot} when
-#'   \code{n_pilot} is \code{NULL} (default \code{0.0196}). Set \code{NULL} to
-#'   skip pilot unless \code{n_pilot} is explicit. Ignored for Gaussian.
+#'   \code{NULL} (default) uses cost-optimal count when \code{tv_tol} is set,
+#'   else legacy \code{gap_tol}; \code{0L} skips pilot.
+#' @param gap_tol Legacy mode--mean gap for deriving \code{n_pilot} when
+#'   \code{n_pilot} is \code{NULL} and \code{tv_tol} is \code{NULL}. Set
+#'   \code{NULL} to skip pilot unless \code{n_pilot} is explicit or
+#'   \code{tv_tol} is set. Ignored for Gaussian.
 #' @param m_convergence_pilot Optional pilot inner sweeps (non-Gaussian only).
 #' @param tv_tol Total variation tolerance for convergence calibration.
 #' @param mode_gap_max Pilot sweep calibration when \code{m_convergence_pilot}

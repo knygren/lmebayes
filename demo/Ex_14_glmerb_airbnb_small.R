@@ -41,7 +41,7 @@ fit <- glmerb(
   data         = dat,
   family       = poisson(),
   pfamily_list = pfamily_list(ps),
-  n            = 10000L,
+  n            = 100L,
 #  seed         = 42L,
   progbar=FALSE
 )

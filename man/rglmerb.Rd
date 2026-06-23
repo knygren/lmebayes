@@ -45,11 +45,13 @@ required positive scalar for \code{family = gaussian()}, or a
 \item{m_convergence}{Optional integer inner Gibbs sweeps per main draw.}
 
 \item{n_pilot}{Optional integer pilot chains (non-Gaussian only);
-\code{NULL} (default) derives from \code{gap_tol}; \code{0L} skips pilot.}
+\code{NULL} (default) uses cost-optimal count when \code{tv_tol} is set,
+else legacy \code{gap_tol}; \code{0L} skips pilot.}
 
-\item{gap_tol}{Mode--mean gap tolerance for deriving \code{n_pilot} when
-\code{n_pilot} is \code{NULL} (default \code{0.0196}). Set \code{NULL} to
-skip pilot unless \code{n_pilot} is explicit. Ignored for Gaussian.}
+\item{gap_tol}{Legacy mode--mean gap for deriving \code{n_pilot} when
+\code{n_pilot} is \code{NULL} and \code{tv_tol} is \code{NULL}. Set
+\code{NULL} to skip pilot unless \code{n_pilot} is explicit or
+\code{tv_tol} is set. Ignored for Gaussian.}
 
 \item{m_convergence_pilot}{Optional pilot inner sweeps (non-Gaussian only).}
 

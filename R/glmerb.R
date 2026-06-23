@@ -18,20 +18,14 @@
 #'   dispersion parameter (e.g. \code{gaussian()}); must be \code{NULL}
 #'   (default) for \code{poisson()} and \code{binomial()}.  Typically
 #'   \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.
-#' @param gap_tol Tolerated mode--mean gap in units of posterior standard
-#'   deviations (default \code{0.0196}).  Applies only to non-Gaussian
-#'   families.  The number of pilot chains is derived from this tolerance as
-#'   \code{n_pilot = ceiling((qnorm(0.975) / gap_tol)^2)}, which ensures
-#'   that a gap larger than \code{gap_tol} posterior SDs is detected with
-#'   95\% power (two-sided, \eqn{\alpha = 0.05}).  The default
-#'   \code{gap_tol = 0.0196 = 1.96 / 100} gives \code{n_pilot = 10000}.
-#'   The pilot stage runs \code{n_pilot} independent chains from the ICM
-#'   mode, each returning one stored draw after \code{m_convergence_pilot}
-#'   inner sweeps, and takes the column-means as \code{coef.pilot.mean} --
-#'   the starting point for the main run.  Set \code{gap_tol = NULL} to
-#'   skip the pilot entirely and start the main run from the ICM mode (as
-#'   in the Gaussian case).  Ignored for \code{family = gaussian()}, where
-#'   mode equals mean exactly.
+#' @param gap_tol Legacy mode--mean gap tolerance. When \code{n_pilot} is
+#'   \code{NULL} and \code{tv_tol} is \code{NULL}, the number of pilot chains
+#'   is derived as \code{ceiling((qnorm(0.975) / gap_tol)^2)} (default
+#'   \code{gap_tol = 0.0196} gives \code{n_pilot = 10000}). When \code{tv_tol}
+#'   is set (default), \code{n_pilot} is instead chosen by
+#'   \code{\link[glmbayesCore]{two_block_optimize_pilot_cost}} to minimize total
+#'   inner-sweep cost. Set \code{NULL} to skip the pilot unless \code{n_pilot}
+#'   is explicit or \code{tv_tol} is set. Ignored for \code{gaussian()}.
 #' @param tv_tol Total variation tolerance per stored draw, in (0, 1)
 #'   (default \code{0.01}).  For \code{family = gaussian()} the joint
 #'   posterior is exactly multivariate normal and the number of inner Gibbs

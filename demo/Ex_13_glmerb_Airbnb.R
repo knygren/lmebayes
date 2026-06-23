@@ -58,7 +58,7 @@ fit <- glmerb(
   data = dat,
   family = poisson(),
   pfamily_list = pfamily_list(ps),
-  n = 10000L
+  n = 1000L
 )
 
 cat("\n=== summary(fit) ===\n\n")
