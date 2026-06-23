@@ -254,6 +254,46 @@ model_setup <- function(
   design
 }
 
+## Return character issue messages when an lme4 merMod fit failed checkConv
+## or the inner optimizer (conv$opt != 0).  Empty character() = OK.
+#' @noRd
+.lmebayes_mer_convergence_issues <- function(fit, label = "reference fit") {
+  if (is.null(fit)) {
+    return(sprintf("%s: fit is NULL", label))
+  }
+  if (!inherits(fit, "merMod")) {
+    return(sprintf("%s: not a merMod object", label))
+  }
+  issues <- character(0)
+  conv   <- fit@optinfo$conv
+  if (!is.null(conv$opt) && conv$opt != 0L) {
+    issues <- c(
+      issues,
+      sprintf("%s: optimizer did not converge (conv$opt = %s)", label, conv$opt)
+    )
+  }
+  lme4c <- conv$lme4
+  if (!is.null(lme4c)) {
+    code <- lme4c$code
+    msgs <- lme4c$messages
+    failed_code <- !is.null(code) && length(code) >= 1L &&
+      !is.na(code[1L]) && code[1L] != 0L
+    failed_msgs <- !is.null(msgs) && length(msgs) >= 1L
+    if (failed_code || failed_msgs) {
+      msg_txt <- if (failed_msgs) {
+        paste(
+          vapply(msgs, function(m) gsub("\\s+", " ", m), character(1L)),
+          collapse = "; "
+        )
+      } else {
+        sprintf("lme4 convergence code %s", code[1L])
+      }
+      issues <- c(issues, sprintf("%s: %s", label, msg_txt))
+    }
+  }
+  issues
+}
+
 #' @noRd
 .lmebayes_normalize_family <- function(family) {
   if (is.character(family)) {

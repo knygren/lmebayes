@@ -1,5 +1,6 @@
-# lmerb on bayesrules::big_word_club -- same model as the ?lmerb example,
-# plus a statistical check of the sampler against the exact answer.
+# lmerb on bayesrules::big_word_club -- full cross-level moderation model
+# (same as demo/Ex_12_lmerb_BigWordClub.R), plus a statistical check of the
+# sampler against the exact Gaussian posterior.
 #
 # With dNormal pfamilies and fixed dispersions the joint posterior is
 # Gaussian, so the ICM fixed point coef.mode is the *exact* posterior mean
@@ -8,7 +9,7 @@
 # error: z = (draws mean - coef.mode) / (SD / sqrt(n)) is approximately
 # N(0, 1) per coefficient (stored draws are near-independent by the
 # m_convergence TV calibration).  |z| < 4 keeps the false-failure
-# probability negligible across the 4 coefficients while still catching a
+# probability negligible across all hyperparameters while still catching a
 # drifting or mis-centered sampler.
 
 test_that("lmerb: simulated Block 2 means match the exact posterior mean", {
@@ -18,13 +19,21 @@ test_that("lmerb: simulated Block 2 means match the exact posterior mean", {
   data(big_word_club, package = "bayesrules", envir = environment())
   dat <- big_word_club
   dat$school_id <- factor(dat$school_id)
-  dat <- subset(dat, !is.na(score_ppvt) & !is.na(invalid_ppvt) &
-                  invalid_ppvt == 0L)
-  dat <- dat[complete.cases(dat[, c("score_ppvt", "distracted_ppvt",
-                                    "free_reduced_lunch", "school_id")]), ]
+  dat <- subset(
+    dat,
+    !is.na(score_ppvt) &
+      !is.na(invalid_ppvt) & invalid_ppvt == 0L &
+      complete.cases(dat[, c(
+        "score_ppvt", "distracted_a1", "distracted_ppvt",
+        "private_school", "title1", "free_reduced_lunch", "school_id"
+      )])
+  )
 
-  form <- score_ppvt ~ free_reduced_lunch + distracted_ppvt +
-    (1 + distracted_ppvt || school_id)
+  form <- score_ppvt ~
+    private_school + title1 + free_reduced_lunch +
+    distracted_ppvt + distracted_a1 +
+    free_reduced_lunch:distracted_a1 +
+    (1 + distracted_ppvt + distracted_a1 || school_id)
 
   ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
 
@@ -39,7 +48,7 @@ test_that("lmerb: simulated Block 2 means match the exact posterior mean", {
 
   expect_s3_class(fit, "lmerb")
   re_names <- fit$model_setup$re_coef_names
-  expect_identical(re_names, c("(Intercept)", "distracted_ppvt"))
+  expect_identical(re_names, c("(Intercept)", "distracted_ppvt", "distracted_a1"))
   n_draws <- nrow(fit$fixef[[re_names[1L]]])
   expect_identical(n_draws, 1000L)
 

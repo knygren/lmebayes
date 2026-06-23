@@ -1,7 +1,7 @@
 ## Demo: glmerb Poisson centering test on airbnb_small subset
 ##
-## Replica of tests/testthat/test-glmerb-example.R (removed from testthat because
-## the full pilot + main run takes several minutes).  Exercises the two-stage
+## Replica of tests/testthat/test-glmerb-example.R (skipped on CRAN because
+## the pilot + main fit takes several minutes).  Exercises the two-stage
 ## sampler (pilot from ICM mode, main from pilot mean) and prints multivariate
 ## centering diagnostics: posterior mean vs pilot mean vs mode.
 ##

@@ -135,8 +135,11 @@ Calibrates priors for the level-2 fixed effects (\code{fixef}) of a
 hierarchical mixed model using the reference \code{lmer}/\code{glmer} fits
 on \strong{all} groups (from \code{\link{model_setup}}).  Per-group design
 rank (\code{re_rank}) is a diagnostic check only and does not subset the
-data.  Random-effect variances are treated as fixed at their mixed-model
-estimates.  The returned object provides all inputs needed for the
+data.  For \code{family = binomial()}, \code{Prior_Setup_lmebayes()} also
+fits a classical \code{glm} within each algebraically full-rank group and
+records \code{design$re_estimable} (whether a finite MLE exists); this does
+not subset the reference \code{glmer} fit.  Random-effect variances are
+treated as fixed at their mixed-model estimates.  The returned object
 two-block Gibbs sampler:
 }
 \details{
@@ -163,6 +166,11 @@ observation-level dispersion; Block~1 uses \code{dNormal} with
 mixed-model estimate and scales covariances from \code{vcov(fit_ref)} by
 \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.  This requires:
 \enumerate{
+\item Converged reference \code{lmer}/\code{glmer} fits from
+\code{\link{model_setup}} (full formula and \code{vcov_formula}, and
+the optional null model when \code{intercept_source = "null_model"}).
+Fits with \code{lme4} \code{checkConv} failures (e.g.\ large
+\code{max|grad|}) are rejected.
 \item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_ref)} term.
 \item Each RE variance \eqn{\tau^2_k} from \code{fit_ref} is strictly positive.
 }
