@@ -63,19 +63,22 @@ size(s) (in group units) for the Block~2 dispersion prior.  A positive
 scalar, or a list / numeric vector with one value per random-effect
 component (named or positional).  See \code{pwt_dispersion}.}
 
-\item{intercept_source}{Character string controlling the prior mean for
-intercept terms.  One of \code{"null_model"} (default) or
-\code{"full_model"}.  When \code{"null_model"}, the prior mean for each
-component intercept is taken from a null (intercept-only) fit that omits
-level-2 predictors, making the \code{Pr(Prior_tail)} tests more
-informative.  When \code{"full_model"}, the full-model MLE intercept is
-used.}
+\item{intercept_source}{Character string controlling the prior mean for the
+global intercept hyperparameter \code{(Intercept)::(Intercept)} only.
+One of \code{"null_model"} (default) or \code{"full_model"}.  When
+\code{"null_model"}, the prior mean is taken from a random-intercept-only
+reference fit \code{y ~ 1 + (1 | group)} that omits all fixed-effect
+predictors (analogous to \code{\link[glmbayesCore]{Prior_Setup}} with
+\code{intercept_source = "null_model"}).  When \code{"full_model"}, the
+full-model MLE intercept is used.}
 
-\item{effects_source}{Character string controlling the prior mean for
-non-intercept fixed-effect terms.  One of \code{"null_effects"} (default)
-or \code{"full_model"}.  When \code{"null_effects"}, the prior mean for
-all non-intercept coefficients is set to zero (a neutral shrinkage prior).
-When \code{"full_model"}, the full-model MLE slopes are used.}
+\item{effects_source}{Character string controlling the prior mean for all
+other Block~2 hyperparameters (including population-mean slopes stored as
+\code{(Intercept)} columns in non-intercept RE components, and any
+non-intercept columns in \code{X_hyper}).  One of \code{"null_effects"}
+(default) or \code{"full_model"}.  When \code{"null_effects"}, prior
+means are set to zero.  When \code{"full_model"}, full-model MLE values
+are used.}
 
 \item{x}{Object of class \code{"lmebayes_prior_setup"}.}
 
@@ -162,13 +165,16 @@ observation-level dispersion; Block~1 uses \code{dNormal} with
         + \boldsymbol{\Sigma}_{\mathrm{fixef},k}^{-1}}
 
 \strong{Why default calibration depends on classical estimates.}
-\code{Prior_Setup_lmebayes} anchors each Block~2 mean at the classical
-mixed-model estimate and scales covariances from \code{vcov(fit_ref)} by
-\eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.  This requires:
+\code{Prior_Setup_lmebayes} scales Block~2 covariances from
+\code{vcov(fit_ref)} by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}} and plugs in
+RE variances from the full reference fit.  By default the global intercept
+prior mean comes from a random-intercept-only null fit; all other prior
+means are zero (\code{effects_source = "null_effects"}).  This requires:
 \enumerate{
 \item Converged reference \code{lmer}/\code{glmer} fits from
 \code{\link{model_setup}} (full formula and \code{vcov_formula}, and
-the optional null model when \code{intercept_source = "null_model"}).
+a random-intercept-only null fit when \code{intercept_source =
+    "null_model"}).
 Fits with \code{lme4} \code{checkConv} failures (e.g.\ large
 \code{max|grad|}) are rejected.
 \item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_ref)} term.

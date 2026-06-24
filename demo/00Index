@@ -19,3 +19,4 @@ Ex_15_glmerb_centering_test  glmerb Poisson pilot/main centering test on airbnb_
 Ex_16_glmerb_book_banning        glmerb binomial on book_banning (Ch. 18 reasons; state RE on violent)
 Ex_17_glmerb_book_banning_slopes glmerb binomial on book_banning with income moderating violent RE slope
 Ex_18_glmerb_book_banning_all_reasons glmerb binomial on book_banning with all six challenge reasons (state RE on each)
+Ex_19_glmerb_book_banning_state_covariates glmerb binomial on book_banning with state covariates as intercept-only RE predictors

@@ -67,18 +67,21 @@
 #'   size(s) (in group units) for the Block~2 dispersion prior.  A positive
 #'   scalar, or a list / numeric vector with one value per random-effect
 #'   component (named or positional).  See \code{pwt_dispersion}.
-#' @param intercept_source Character string controlling the prior mean for
-#'   intercept terms.  One of \code{"null_model"} (default) or
-#'   \code{"full_model"}.  When \code{"null_model"}, the prior mean for each
-#'   component intercept is taken from a null (intercept-only) fit that omits
-#'   level-2 predictors, making the \code{Pr(Prior_tail)} tests more
-#'   informative.  When \code{"full_model"}, the full-model MLE intercept is
-#'   used.
-#' @param effects_source Character string controlling the prior mean for
-#'   non-intercept fixed-effect terms.  One of \code{"null_effects"} (default)
-#'   or \code{"full_model"}.  When \code{"null_effects"}, the prior mean for
-#'   all non-intercept coefficients is set to zero (a neutral shrinkage prior).
-#'   When \code{"full_model"}, the full-model MLE slopes are used.
+#' @param intercept_source Character string controlling the prior mean for the
+#'   global intercept hyperparameter \code{(Intercept)::(Intercept)} only.
+#'   One of \code{"null_model"} (default) or \code{"full_model"}.  When
+#'   \code{"null_model"}, the prior mean is taken from a random-intercept-only
+#'   reference fit \code{y ~ 1 + (1 | group)} that omits all fixed-effect
+#'   predictors (analogous to \code{\link[glmbayesCore]{Prior_Setup}} with
+#'   \code{intercept_source = "null_model"}).  When \code{"full_model"}, the
+#'   full-model MLE intercept is used.
+#' @param effects_source Character string controlling the prior mean for all
+#'   other Block~2 hyperparameters (including population-mean slopes stored as
+#'   \code{(Intercept)} columns in non-intercept RE components, and any
+#'   non-intercept columns in \code{X_hyper}).  One of \code{"null_effects"}
+#'   (default) or \code{"full_model"}.  When \code{"null_effects"}, prior
+#'   means are set to zero.  When \code{"full_model"}, full-model MLE values
+#'   are used.
 #'
 #' @return Object of class \code{"lmebayes_prior_setup"} with fields:
 #'   \describe{
@@ -125,13 +128,16 @@
 #'   }
 #' @details
 #' \strong{Why default calibration depends on classical estimates.}
-#' \code{Prior_Setup_lmebayes} anchors each Block~2 mean at the classical
-#' mixed-model estimate and scales covariances from \code{vcov(fit_ref)} by
-#' \eqn{(1-\mathrm{pwt})/\mathrm{pwt}}.  This requires:
+#' \code{Prior_Setup_lmebayes} scales Block~2 covariances from
+#' \code{vcov(fit_ref)} by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}} and plugs in
+#' RE variances from the full reference fit.  By default the global intercept
+#' prior mean comes from a random-intercept-only null fit; all other prior
+#' means are zero (\code{effects_source = "null_effects"}).  This requires:
 #' \enumerate{
 #'   \item Converged reference \code{lmer}/\code{glmer} fits from
 #'     \code{\link{model_setup}} (full formula and \code{vcov_formula}, and
-#'     the optional null model when \code{intercept_source = "null_model"}).
+#'     a random-intercept-only null fit when \code{intercept_source =
+#'     "null_model"}).
 #'     Fits with \code{lme4} \code{checkConv} failures (e.g.\ large
 #'     \code{max|grad|}) are rejected.
 #'   \item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_ref)} term.
@@ -355,40 +361,28 @@ Prior_Setup_lmebayes <- function(formula,
     pwt_list           = pwt_list
   )
 
-  # ---- null model for prior means ------------------------------------------
-  # Level-2 predictors: non-intercept columns of X_hyper[["(Intercept)"]] that
-  # are NOT individual-level random slopes (random slopes appear in re_names).
-  random_slopes <- setdiff(re_names, "(Intercept)")
-  lvl2_preds <- if ("(Intercept)" %in% re_names) {
-    setdiff(
-      colnames(design$X_hyper[["(Intercept)"]]),
-      c("(Intercept)", random_slopes)
+  # ---- null intercept model for global intercept prior mean ----------------
+  fe_null <- fe
+  if (intercept_source == "null_model") {
+    resp_nm  <- all.vars(formula)[1L]
+    grp_nm   <- design$group_name
+    null_formula <- stats::as.formula(
+      paste(resp_nm, "~ 1 + (1 |", grp_nm, ")", sep = "")
     )
-  } else {
-    character(0L)
-  }
-
-  fe_null <- fe   # default: fall back to full model
-  if (intercept_source == "null_model" && length(lvl2_preds) > 0L) {
-    null_formula <- formula
-    for (v in lvl2_preds) {
-      null_formula <- stats::update(
-        null_formula,
-        stats::as.formula(paste(". ~ . -", v))
-      )
-    }
     null_fit <- if (is_gaussian) {
       lme4::lmer(null_formula, data = data, REML = TRUE, control = ctrl)
-    } else {
+    } else if (is.null(ctrl)) {
       lme4::glmer(null_formula, family = family, data = data)
+    } else {
+      lme4::glmer(null_formula, family = family, data = data, control = ctrl)
     }
     null_issues <- .lmebayes_mer_convergence_issues(
-      null_fit, sprintf("%s (null model)", mer_label)
+      null_fit, sprintf("%s (null intercept model)", mer_label)
     )
     if (length(null_issues) > 0L) {
       stop(
         "Prior_Setup_lmebayes() requires a converged ", mer_label,
-        " null model for intercept_source = \"null_model\":\n  - ",
+        " random-intercept-only null fit for intercept_source = \"null_model\":\n  - ",
         paste(null_issues, collapse = "\n  - "),
         "\n\nUse intercept_source = \"full_model\" or revise the model.",
         call. = FALSE
@@ -409,17 +403,22 @@ Prior_Setup_lmebayes <- function(formula,
 
       mu_fixef <- vapply(seq_len(p_k), function(i) {
         col <- cols_k[i]
-        if (col == "(Intercept)") {
-          nm_i <- fe_name_for(k, col)
-          if (intercept_source == "null_model" && !is.na(nm_i) &&
-              nm_i %in% names(fe_null)) {
-            unname(fe_null[nm_i])
+        if (identical(k, "(Intercept)") && identical(col, "(Intercept)")) {
+          if (intercept_source == "null_model") {
+            if (!("(Intercept)" %in% names(fe_null))) {
+              stop(
+                "Null intercept model did not return an (Intercept) fixed effect.",
+                call. = FALSE
+              )
+            }
+            unname(fe_null["(Intercept)"])
           } else {
             unname(fe[fe_nms[i]])
           }
+        } else if (effects_source == "null_effects") {
+          0
         } else {
-          if (effects_source == "null_effects") 0
-          else unname(fe[fe_nms[i]])
+          unname(fe[fe_nms[i]])
         }
       }, numeric(1L))
       names(mu_fixef) <- cols_k

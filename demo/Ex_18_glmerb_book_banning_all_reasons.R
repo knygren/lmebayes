@@ -80,6 +80,89 @@ print_glmer_check <- function(fit, label) {
   print(lme4::VarCorr(fit))
 }
 
+## Side-by-side: classical glmer Wald tests vs glmerb Block 2 hyperparameters.
+## glmer fixed effects map to glmerb RE components:
+##   (Intercept) -> (Intercept)::(Intercept); slope_k -> k::(Intercept).
+print_glmer_glmerb_fixed_compare <- function(glmerb_fit,
+                                             glmer_fit = glmerb_fit$glmer,
+                                             digits = 4L) {
+  if (is.null(glmer_fit)) {
+    stop("Need a reference glmer fit (fit$glmer).", call. = FALSE)
+  }
+  re_names <- glmerb_fit$model_setup$re_coef_names
+  smb      <- summary(glmerb_fit)
+  gtab     <- summary(glmer_fit)$coefficients
+
+  rows <- do.call(rbind, lapply(re_names, function(k) {
+    fe_nm <- if (identical(k, "(Intercept)")) "(Intercept)" else k
+    if (!fe_nm %in% rownames(gtab)) {
+      stop("glmer fixed effect '", fe_nm, "' not found.", call. = FALSE)
+    }
+    g  <- gtab[fe_nm, , drop = TRUE]
+    pt <- smb$fixef[[k]]$coefficients["(Intercept)", , drop = TRUE]
+    pm <- smb$fixef[[k]]$coefficients1["(Intercept)", "Prior Mean"]
+    data.frame(
+      parameter    = fe_nm,
+      glmer_est    = unname(g["Estimate"]),
+      glmer_se     = unname(g["Std. Error"]),
+      glmer_z      = unname(g["z value"]),
+      glmer_p      = unname(g["Pr(>|z|)"]),
+      glmer_p_1s   = unname(g["Pr(>|z|)"]) / 2,
+      prior_mean   = unname(pm),
+      post_mean    = unname(pt["Post.Mean"]),
+      post_sd      = unname(pt["Post.Sd"]),
+      prior_tail   = unname(pt["Pr(Prior_tail)"]),
+      is_slope     = !identical(k, "(Intercept)"),
+      stringsAsFactors = FALSE
+    )
+  }))
+
+  cat("\n=== Fixed effects: glmer (Wald) vs glmerb (Block 2 hyperparameters) ===\n\n")
+  cat(
+    "  glmer: Wald Pr(>|z|) is two-sided; glmer_p/2 is the one-sided counterpart.\n",
+    "  glmerb: Pr(Prior_tail) is one-sided (posterior mass on one side of the\n",
+    "    prior mean).  For slopes (prior mean 0), compare glmer_p/2 to Pr(Prior_tail).\n",
+    "  (Intercept) uses a null random-intercept prior mean, not 0 -- not comparable.\n\n",
+    sep = ""
+  )
+
+  w_par <- max(nchar(rows$parameter), nchar("parameter"))
+  fmt_n <- function(x) formatC(x, digits = digits, format = "f")
+  fmt_p <- function(x) {
+    if (is.na(x)) "           —"
+    else if (x < 0.001) formatC(x, digits = 2, format = "e")
+    else formatC(x, digits = digits, format = "f")
+  }
+
+  hdr <- sprintf(
+    paste0(
+      "  %-*s  %12s  %12s  %10s  %10s  |  %12s  %12s  %12s  %10s"
+    ),
+    w_par, "parameter",
+    "glmer_est", "glmer_se", "glmer_p/2", "Pr(prior)",
+    "prior_mean", "post_mean", "post_sd", "glmer_p"
+  )
+  sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
+  cat(hdr, "\n", sep, "\n", sep = "")
+  for (i in seq_len(nrow(rows))) {
+    p1s <- if (rows$is_slope[i]) rows$glmer_p_1s[i] else NA_real_
+    pt  <- rows$prior_tail[i]
+    cat(sprintf(
+      paste0(
+        "  %-*s  %12s  %12s  %10s  %10s  |  %12s  %12s  %12s  %10s"
+      ),
+      w_par, rows$parameter[i],
+      fmt_n(rows$glmer_est[i]), fmt_n(rows$glmer_se[i]),
+      fmt_p(p1s), fmt_p(pt),
+      fmt_n(rows$prior_mean[i]),
+      fmt_n(rows$post_mean[i]), fmt_n(rows$post_sd[i]),
+      fmt_p(rows$glmer_p[i])
+    ), "\n", sep = "")
+  }
+  cat("\n  glmer_p column (right): two-sided Wald p-value for reference.\n\n")
+  invisible(rows)
+}
+
 ## --- Full glmerb formula (six reasons) ----------------------------------------
 form_glmerb_full <- removed_i ~
   explicit_i + antifamily_i + occult_i + language_i + lgbtq_i + violent_i +
@@ -97,7 +180,7 @@ form_glmerb <- removed_i ~
   (1 + explicit_i + language_i + violent_i || state)
 
 print_glmer_check(
-  lme4::glmer(form_glmerb, data = dat, family = binomial()),
+  fit_glmer_reduced <- lme4::glmer(form_glmerb, data = dat, family = binomial()),
   "REDUCED formula (used for model_setup / Prior_Setup / glmerb)"
 )
 
@@ -151,6 +234,8 @@ if (!is.null(ps)) {
   lmebayes:::print_coef_means(fit)
   print(fit)
   summary(fit)
+
+  print_glmer_glmerb_fixed_compare(fit, glmer_fit = fit_glmer_reduced)
 }
 
 cat("\n--- Reference glmer (random intercept; all six reasons) ---\n")
