@@ -129,7 +129,7 @@ print_glmer_glmerb_fixed_compare <- function(glmerb_fit,
   w_par <- max(nchar(rows$parameter), nchar("parameter"))
   fmt_n <- function(x) formatC(x, digits = digits, format = "f")
   fmt_p <- function(x) {
-    if (is.na(x)) "           —"
+    if (is.na(x)) "           -"
     else if (x < 0.001) formatC(x, digits = 2, format = "e")
     else formatC(x, digits = digits, format = "f")
   }

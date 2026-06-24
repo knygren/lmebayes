@@ -16,14 +16,23 @@
 #' @return \code{summary.lmerb} returns an object of class
 #'   \code{"summary.lmerb"}, a list with components \code{call},
 #'   \code{formula}, \code{n}, \code{simulated}, \code{varcor},
-#'   \code{fixef_overview}, \code{fixef} (per-RE-component tables),
-#'   \code{ranef_overview}, \code{any_non_normal}, \code{tau2} (per-component
-#'   Block~2 dispersion table: prior type, plug-in value, posterior
-#'   mean / SD / quantiles from \code{fixef.dispersion} for sampled ING
-#'   components, and \code{Cand/draw}, the average number of Block~2
-#'   candidates per accepted draw from \code{fixef.iters.mean} -- 1 for
-#'   \code{dNormal}, roughly the reciprocal acceptance rate of the
-#'   envelope sampler for ING), and optionally \code{ranef_groups}.
+#'   \code{fixef_prior_overview} (stacked prior and \code{glmer}/\code{lmer}
+#'   reference across RE components),
+#'   \code{fixef_overview} (Block~2 hyperparameters with posterior summaries and
+#'   \code{Pr(Prior_tail)}),
+#'   \code{fixef_percentiles_overview} (stacked distribution percentiles across
+#'   RE components, when simulated),
+#'   \code{fixef} (per-RE-component tables; not printed, available on the
+#'   returned object),
+#'   \code{ranef_overview}, \code{ranef.iters.mean} (Block~1 envelope candidates
+#'   per inner sweep, averaged over groups; printed separately from the overview
+#'   table), \code{any_non_normal}, \code{tau2} (per-component Block~2 dispersion
+#'   prior type, plug-in value, posterior mean / SD / quantiles from
+#'   \code{fixef.dispersion} for sampled ING components, and \code{Cand/draw},
+#'   the average number of Block~2 candidates per accepted draw from
+#'   \code{fixef.iters.mean} -- 1 for \code{dNormal}, roughly the reciprocal
+#'   acceptance rate of the envelope sampler for ING), and optionally
+#'   \code{ranef_groups}.
 #' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
 #'   \code{\link[glmbayes]{summary.glmb}}, \code{\link[glmbayes]{summary.mlmb}}
 #' @export
@@ -59,12 +68,15 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     n_obs         = length(object$model_setup$y),
     n_groups      = nlevels(object$model_setup$groups),
     group_name    = object$model_setup$group_name,
+    fixef_prior_overview = .lmerb_fixef_prior_overview(fixef_parts),
     fixef_overview = .lmerb_fixef_overview(object, simulated = simulated),
+    fixef_percentiles_overview = .lmerb_fixef_percentiles_overview(fixef_parts),
     fixef         = fixef_parts,
     ranef_overview = .lmerb_ranef_overview(object, simulated = simulated),
     any_non_normal = isTRUE(object$any_non_normal) ||
       isTRUE(object$prior$any_non_normal),
-    tau2          = .lmerb_tau2_summary(object, simulated = simulated)
+    tau2          = .lmerb_tau2_summary(object, simulated = simulated),
+    ranef.iters.mean = if (simulated) object$ranef.iters.mean else NULL
   )
 
   if (!is.null(groups) && length(groups) > 0L) {
@@ -126,47 +138,28 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 
   # --- Block 2 overview ---
   cat("=== Block 2: Level-2 fixed effects (hyperparameters) ===\n\n")
-  cat("Overview:\n")
+  cat(sprintf("Prior and %s reference:\n\n", mer_label))
+  if (!is.null(x$fixef_prior_overview) && nrow(x$fixef_prior_overview) > 0L) {
+    stats::printCoefmat(x$fixef_prior_overview, digits = digits, quote = FALSE)
+  } else {
+    cat("  (no fixed-effect hyperparameters)\n")
+  }
+  cat("\nOverview:\n")
   if (!is.null(x$fixef_overview) && nrow(x$fixef_overview) > 0L) {
     stats::printCoefmat(x$fixef_overview, digits = digits, quote = FALSE)
   } else {
     cat("  (no fixed-effect hyperparameters)\n")
   }
-  cat("\n")
-
-  # --- Per RE component ---
-  for (k in names(x$fixef)) {
-    part <- x$fixef[[k]]
-    cat("--- RE component:", k, "---\n\n")
-
-    cat(sprintf("Prior and %s reference:\n\n", mer_label))
-    if (!is.null(part$coefficients1)) {
-      stats::printCoefmat(part$coefficients1, digits = digits, quote = FALSE)
+  if (isTRUE(x$simulated)) {
+    cat("\nDistribution percentiles:\n\n")
+    if (!is.null(x$fixef_percentiles_overview) &&
+        nrow(x$fixef_percentiles_overview) > 0L) {
+      stats::printCoefmat(x$fixef_percentiles_overview, digits = digits, quote = FALSE)
     }
-    cat("\n")
-
-    if (isTRUE(x$simulated)) {
-      cat("Bayesian estimates based on", x$n, "draws:\n\n")
-      if (!is.null(part$coefficients)) {
-        stats::printCoefmat(part$coefficients, digits = digits, quote = FALSE)
-      }
-      cat("\nDistribution percentiles:\n\n")
-      if (!is.null(part$Percentiles)) {
-        stats::printCoefmat(part$Percentiles, digits = digits, quote = FALSE)
-      }
-    } else {
-      cat("Posterior mode (= mean, ICM exact):\n\n")
-      if (!is.null(part$coefficients)) {
-        stats::printCoefmat(
-          part$coefficients[, "Post.Mode", drop = FALSE],
-          digits = digits,
-          quote = FALSE
-        )
-      }
-      cat("\n  (Run with simulate = TRUE for MCMC means, SDs, and percentiles.)\n")
-    }
-    cat("\n")
+  } else {
+    cat("\n  (Run with simulate = TRUE for MCMC means, SDs, and percentiles.)\n")
   }
+  cat("\n")
 
   # --- Block 1 overview ---
   cat("=== Block 1: Random effects (group-level) ===\n\n")
@@ -174,7 +167,15 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   if (!is.null(x$ranef_overview) && nrow(x$ranef_overview) > 0L) {
     stats::printCoefmat(x$ranef_overview, digits = digits, quote = FALSE)
   }
-  cat("\n")
+  if (isTRUE(x$simulated) && !is.null(x$ranef.iters.mean)) {
+    cat(
+      "\nMean Block 1 likelihood subgradient candidates per stored draw:",
+      formatC(x$ranef.iters.mean, digits = digits, format = "f"),
+      "\n  (averaged over groups; same for all RE components in a sweep)\n\n"
+    )
+  } else {
+    cat("\n")
+  }
 
   if (!is.null(x$ranef_groups)) {
     cat("Per-group detail (requested levels):\n\n")
@@ -248,9 +249,10 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   Tab1 <- cbind(
     "Prior Mean" = prior_mean,
     "Prior.sd"   = prior_sd,
-    stats::setNames(mer_est, mer_label),
-    stats::setNames(mer_se, paste0(mer_label, ".se"))
+    mer_est,
+    mer_se
   )
+  colnames(Tab1) <- c("Prior Mean", "Prior.sd", mer_label, paste0(mer_label, ".se"))
   rownames(Tab1) <- par
 
   post_mode <- unname(object$fixef.mode[[k]])
@@ -307,36 +309,89 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 }
 
 #' @keywords internal
+.lmerb_fixef_prior_overview <- function(fixef_parts) {
+
+  if (length(fixef_parts) == 0L) {
+    return(NULL)
+  }
+
+  rows_list <- lapply(names(fixef_parts), function(k) {
+    tab <- fixef_parts[[k]]$coefficients1
+    if (is.null(tab) || nrow(tab) == 0L) {
+      return(NULL)
+    }
+    rownames(tab) <- paste0(k, "::", rownames(tab))
+    tab
+  })
+  rows_list <- rows_list[!vapply(rows_list, is.null, logical(1L))]
+  if (length(rows_list) == 0L) {
+    return(NULL)
+  }
+
+  do.call(rbind, rows_list)
+}
+
+#' @keywords internal
+.lmerb_fixef_percentiles_overview <- function(fixef_parts) {
+
+  if (length(fixef_parts) == 0L) {
+    return(NULL)
+  }
+
+  rows_list <- lapply(names(fixef_parts), function(k) {
+    tab <- fixef_parts[[k]]$Percentiles
+    if (is.null(tab) || nrow(tab) == 0L) {
+      return(NULL)
+    }
+    rownames(tab) <- paste0(k, "::", rownames(tab))
+    tab
+  })
+  rows_list <- rows_list[!vapply(rows_list, is.null, logical(1L))]
+  if (length(rows_list) == 0L) {
+    return(NULL)
+  }
+
+  do.call(rbind, rows_list)
+}
+
+#' @keywords internal
 .lmerb_fixef_overview <- function(object, simulated) {
 
   re_names <- object$model_setup$re_coef_names
-  rows <- do.call(rbind, lapply(re_names, function(k) {
-    nms <- names(object$fixef.mode[[k]])
-    data.frame(
-      parameter = paste0(k, "::", nms),
+
+  rows_list <- lapply(re_names, function(k) {
+    par <- names(object$fixef.mode[[k]])
+    n_p <- length(par)
+
+    out <- data.frame(
       fixef.mode = unname(object$fixef.mode[[k]]),
       stringsAsFactors = FALSE
     )
-  }))
-  rownames(rows) <- rows$parameter
-  out <- rows[, "fixef.mode", drop = FALSE]
-  colnames(out) <- "fixef.mode"
 
-  if (simulated) {
-    means <- unlist(lapply(re_names, function(k) unname(object$fixef.means[[k]])))
-    sds   <- unlist(lapply(re_names, function(k) {
-      apply(object$fixef[[k]], 2L, stats::sd)
-    }))
-    n     <- nrow(object$fixef[[re_names[1L]]])
-    out   <- cbind(
-      out,
-      fixef.means = means,
-      Post.Sd    = sds,
-      MC.Error   = sds / sqrt(n)
-    )
-  }
+    if (simulated) {
+      draws      <- object$fixef[[k]]
+      post_mean  <- unname(object$fixef.means[[k]])
+      post_sd    <- apply(draws, 2L, stats::sd)
+      n          <- nrow(draws)
+      prior_mean <- unname(object$prior$prior_list[[k]]$mu_fixef)
+      pval2 <- vapply(seq_len(n_p), function(j) {
+        p1 <- mean(draws[, j] < prior_mean[j])
+        min(p1, 1 - p1)
+      }, numeric(1))
+      out <- cbind(
+        out,
+        fixef.means      = post_mean,
+        Post.Sd          = post_sd,
+        MC.Error         = post_sd / sqrt(n),
+        `Pr(Prior_tail)` = pval2
+      )
+    }
 
-  out
+    rownames(out) <- paste0(k, "::", par)
+    out
+  })
+
+  do.call(rbind, rows_list)
 }
 
 ## Per-component tau^2 summary: prior type and plug-in value always; posterior

@@ -30,14 +30,23 @@ returned.}
 \code{summary.lmerb} returns an object of class
 \code{"summary.lmerb"}, a list with components \code{call},
 \code{formula}, \code{n}, \code{simulated}, \code{varcor},
-\code{fixef_overview}, \code{fixef} (per-RE-component tables),
-\code{ranef_overview}, \code{any_non_normal}, \code{tau2} (per-component
-Block~2 dispersion table: prior type, plug-in value, posterior
-mean / SD / quantiles from \code{fixef.dispersion} for sampled ING
-components, and \code{Cand/draw}, the average number of Block~2
-candidates per accepted draw from \code{fixef.iters.mean} -- 1 for
-\code{dNormal}, roughly the reciprocal acceptance rate of the
-envelope sampler for ING), and optionally \code{ranef_groups}.
+\code{fixef_prior_overview} (stacked prior and \code{glmer}/\code{lmer}
+reference across RE components),
+\code{fixef_overview} (Block~2 hyperparameters with posterior summaries and
+\code{Pr(Prior_tail)}),
+\code{fixef_percentiles_overview} (stacked distribution percentiles across
+RE components, when simulated),
+\code{fixef} (per-RE-component tables; not printed, available on the
+returned object),
+\code{ranef_overview}, \code{ranef.iters.mean} (Block~1 envelope candidates
+per inner sweep, averaged over groups; printed separately from the overview
+table), \code{any_non_normal}, \code{tau2} (per-component Block~2 dispersion
+prior type, plug-in value, posterior mean / SD / quantiles from
+\code{fixef.dispersion} for sampled ING components, and \code{Cand/draw},
+the average number of Block~2 candidates per accepted draw from
+\code{fixef.iters.mean} -- 1 for \code{dNormal}, roughly the reciprocal
+acceptance rate of the envelope sampler for ING), and optionally
+\code{ranef_groups}.
 }
 \description{
 Methods for \code{\link{lmerb}} fits.  \code{summary.lmerb} builds

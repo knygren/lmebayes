@@ -940,6 +940,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
     coefficients           = out$coefficients,
     dispersion_fixef_draws = out$dispersion_fixef_draws,
     iters_fixef_draws      = out$iters_fixef_draws,
+    iters_ranef_draws      = out$iters_ranef_draws,
     mu_all_last            = out$mu_all_last,
     re_coef_names          = re_names,
     group_levels           = group_levels,
@@ -963,6 +964,9 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   }
   if (!is.null(x$fixef.iters) && !is.null(x$m_convergence)) {
     x$fixef.iters.mean <- colMeans(x$fixef.iters) / x$m_convergence
+  }
+  if (!is.null(x$ranef.iters) && !is.null(x$m_convergence)) {
+    x$ranef.iters.mean <- mean(x$ranef.iters) / x$m_convergence
   }
   x
 }

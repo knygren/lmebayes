@@ -395,6 +395,8 @@ lmerb <- function(
       fixef.dispersion.mean = sampler$fixef.dispersion.mean,
       fixef.iters           = sampler$fixef.iters,
       fixef.iters.mean      = sampler$fixef.iters.mean,
+      ranef.iters           = sampler$ranef.iters,
+      ranef.iters.mean      = sampler$ranef.iters.mean,
       fixef.mu              = sampler$fixef.mu,
       m_convergence         = m_convergence,
       convergence           = convergence_info

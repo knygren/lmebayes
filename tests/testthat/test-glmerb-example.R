@@ -101,5 +101,13 @@ test_that("glmerb: Poisson pilot workflow and group ordering on full airbnb", {
     expect_gt(cor(mcmc_mat[, k], icm_mat[, k]), 0.9)
   }
 
+  expect_length(fit$ranef.iters, n_draws)
+  expect_true(is.finite(fit$ranef.iters.mean))
+  expect_gte(fit$ranef.iters.mean, 1)
+  sm <- summary(fit)
+  expect_false("Cand/draw" %in% colnames(sm$ranef_overview))
+  expect_true(is.finite(sm$ranef.iters.mean))
+  expect_gte(sm$ranef.iters.mean, 1)
+
   expect_no_error(capture.output(print(summary(fit))))
 })
