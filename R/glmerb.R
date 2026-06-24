@@ -303,7 +303,11 @@ glmerb <- function(
       pilot_chisq           = sampler$pilot_chisq,
       gap_tol               = gap_tol,
       mode_gap_max          = mode_gap_max,
-      convergence           = sampler$convergence
+      convergence           = sampler$convergence,
+      sweep_history         = list(
+        pilot = if (run_pilot) sampler$pilot$sweep_history else NULL,
+        main  = sampler$sweep_history
+      )
     ),
     class = c("glmerb", "list")
   )
@@ -413,8 +417,21 @@ print_coef_means <- function(x, digits = 4L, ...) {
 #' @rdname glmerb
 #' @method print glmerb
 #' @param x Object of class \code{"glmerb"}.
+#' @param sweep_history If \code{TRUE}, print stored Block~2 sweep history
+#'   (see \code{$sweep_history}) after the usual summary.
+#' @param sweep_history_stage Which stage to print when \code{sweep_history =
+#'   TRUE}: \code{"main"}, \code{"pilot"}, or \code{"both"}.
+#' @param max_sweeps Passed to \code{print()} on sweep-history objects; limits
+#'   how many inner sweeps are shown.
 #' @export
-print.glmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
+print.glmerb <- function(
+    x,
+    digits = max(3L, getOption("digits") - 3L),
+    sweep_history = FALSE,
+    sweep_history_stage = c("main", "pilot", "both"),
+    max_sweeps = Inf,
+    ...
+) {
 
   re_names <- x$model_setup$re_coef_names
   grp      <- x$model_setup$group_name
@@ -500,6 +517,22 @@ print.glmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
                   digits, rows$sd[i]))
     }
     cat("\n")
+  }
+
+  if (isTRUE(sweep_history) && !is.null(x$sweep_history)) {
+    stage <- match.arg(sweep_history_stage)
+    stages <- switch(
+      stage,
+      main = "main",
+      pilot = "pilot",
+      both = c("pilot", "main")
+    )
+    for (st in stages) {
+      hist <- x$sweep_history[[st]]
+      if (!is.null(hist)) {
+        print(hist, max_sweeps = max_sweeps, digits = digits, ...)
+      }
+    }
   }
 
   invisible(x)

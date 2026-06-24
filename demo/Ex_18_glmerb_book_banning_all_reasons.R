@@ -5,7 +5,13 @@
 ## Two formulas below (after the removal summary):
 ##   form_glmerb_full  -- all six challenge reasons (Ch. 18 target model)
 ##   form_glmerb       -- reduced model used for glmerb / Prior_Setup (edit here)
-## Predictors must exist in dat as <reason>_i (built from reasons).##
+## Predictors must exist in dat as <reason>_i (built from reasons).
+##
+## Per-sweep Block 2 diagnostics are stored on the fit object, not printed
+## during sampling. After fitting:
+##   print(fit, sweep_history = TRUE, max_sweeps = 5)
+##   print(fit$sweep_history$main, components = c("violent_i", "(Intercept)"))
+##
 ##   demo("Ex_18_glmerb_book_banning_all_reasons", package = "lmebayes")
 
 if (!requireNamespace("bayesrules", quietly = TRUE)) {
@@ -65,9 +71,11 @@ print_glmer_check <- function(fit, label) {
   if (!is.null(lme4c$messages) && length(lme4c$messages)) {
     cat("checkConv:\n")
     for (m in lme4c$messages) cat("  ", m, sep = "")
+    cat("\n")
   }
-  cat("\nFixed effects:\n")
-  print(lme4::fixef(fit))
+  sm <- summary(fit)
+  cat("\nFixed effects (Wald z-tests):\n")
+  print(sm$coefficients)
   cat("\nRandom effects (VarCorr):\n")
   print(lme4::VarCorr(fit))
 }

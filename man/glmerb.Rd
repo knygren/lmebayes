@@ -33,7 +33,14 @@ glmerb(
   ...
 )
 
-\method{print}{glmerb}(x, digits = max(3L, getOption("digits") - 3L), ...)
+\method{print}{glmerb}(
+  x,
+  digits = max(3L, getOption("digits") - 3L),
+  sweep_history = FALSE,
+  sweep_history_stage = c("main", "pilot", "both"),
+  max_sweeps = Inf,
+  ...
+)
 }
 \arguments{
 \item{formula}{Mixed-model formula (single grouping factor; same constraints
@@ -176,6 +183,15 @@ pilot and main replicate sampling inside \code{\link{rglmerb}}. Default
 \item{x}{Object of class \code{"glmerb"}.}
 
 \item{digits}{Number of significant digits to use when printing.}
+
+\item{sweep_history}{If \code{TRUE}, print stored Block~2 sweep history
+(see \code{$sweep_history}) after the usual summary.}
+
+\item{sweep_history_stage}{Which stage to print when \code{sweep_history =
+TRUE}: \code{"main"}, \code{"pilot"}, or \code{"both"}.}
+
+\item{max_sweeps}{Passed to \code{print()} on sweep-history objects; limits
+how many inner sweeps are shown.}
 }
 \value{
 Object of class \code{"glmerb"}: same \code{fixef.*} structure as
