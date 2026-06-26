@@ -12,10 +12,12 @@ rlmerb(
   fixef_start = NULL,
   m_convergence = NULL,
   tv_tol = 0.01,
-  seed = NULL,
   progbar = TRUE,
   verbose = TRUE,
-  print_icm_table = TRUE
+  print_icm_table = TRUE,
+  gap_tol = 0.0196,
+  mode_gap_max = 1,
+  diag_sweeps = FALSE
 )
 }
 \arguments{
@@ -26,8 +28,9 @@ rlmerb(
 \code{\link{model_setup}}, supplying \code{y}, \code{Z}, \code{groups},
 \code{X_hyper}, \code{group_name}, and \code{re_coef_names}.}
 
-\item{prior}{A \code{lmebayes_prior_setup} object as returned by
-\code{\link{.lmebayes_priors_from_pfamily_list}} (RE / Block~2 structure).}
+\item{prior}{Normalized prior container with \code{Sigma_ranef}, \code{prior_list},
+and related Block~2 fields (as built internally by \code{\link{lmerb}} from
+\code{pfamily_list} and \code{dispersion_ranef}).}
 
 \item{dispersion_ranef}{Required observation-level dispersion: a positive
 scalar \eqn{\sigma^2} (fixed) or a \code{\link{dGamma}()} pfamily with
@@ -49,8 +52,6 @@ to be raised.}
 \item{tv_tol}{Single numeric in \code{(0, 1)}. Total variation tolerance
 used for convergence calibration.  Default \code{0.01}.}
 
-\item{seed}{Optional integer RNG seed.  Default \code{NULL}.}
-
 \item{progbar}{Logical. Show a text progress bar during sampling.
 Default \code{TRUE}.}
 
@@ -61,6 +62,19 @@ calibration line.  Default \code{TRUE}.}
 table (e.g. when \code{\link{rglmerb}} prints glmer-labelled output).
 The convergence calibration line from the Core engine still follows
 \code{verbose}.  Default \code{TRUE}.}
+
+\item{gap_tol}{Legacy mode--mean gap tolerance for the pilot stage when
+any Block~2 component uses \code{dIndependent_Normal_Gamma} and
+\code{tv_tol} is \code{NULL}.  Ignored for all-\code{dNormal} models.}
+
+\item{mode_gap_max}{Pilot inner-sweep calibration for ING Block~2 models
+(default \code{1.0}).  Ignored for all-\code{dNormal} models.}
+
+\item{diag_sweeps}{Temporary diagnostic flag for ING Block~2 models with a
+pilot stage.  When \code{TRUE}, print one combined Block~2 chain-mean table
+per stage when each stage finishes (as \code{print()} on
+\code{$sweep_history}) and attach sweep history on the fit.
+the result.  Default \code{FALSE}.}
 }
 \value{
 An object of class \code{c("rlmerb", "list")} with Block~2 fields in

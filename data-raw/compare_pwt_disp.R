@@ -26,7 +26,7 @@ run_case <- function(label, ...) {
     fit <- lmerb(form_lmer, data = dat,
                  pfamily_list = pf,
                  dispersion_ranef = ps$dispersion_ranef,
-                 n = 10L, seed = 1L)
+                 n = 10L)
   )
   re_names <- names(ps$prior_list)
   cat(sprintf("\n=== %s ===\n", label))

@@ -21,7 +21,6 @@ test_that("glmerb stores sweep_history and print(sweep_history=TRUE) works", {
     pfamily_list = pfamily_list(ps),
     n = 50L,
     m_convergence = 5L,
-    m_convergence_pilot = 3L,
     progbar = FALSE
   )
 
@@ -34,4 +33,8 @@ test_that("glmerb stores sweep_history and print(sweep_history=TRUE) works", {
     print(fit, sweep_history = TRUE, sweep_history_stage = "main", max_sweeps = 2L)
   )
   expect_true(any(grepl("fixef by sweep", out, fixed = TRUE)))
+  expect_equal(
+    length(grep("fixef by sweep \\([0-9]+ sweeps\\)", out)),
+    1L
+  )
 })

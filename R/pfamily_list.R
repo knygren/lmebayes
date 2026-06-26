@@ -250,7 +250,7 @@ pfamily_list.lmebayes_prior_setup <- function(object,
                                            rate = b_inf)
           )
         }
-        glmbayesCore::dIndependent_Normal_Gamma(
+        pf_k <- glmbayesCore::dIndependent_Normal_Gamma(
           mu         = mu_k,
           Sigma      = Sig_k,
           shape      = ing_k$shape,
@@ -258,6 +258,7 @@ pfamily_list.lmebayes_prior_setup <- function(object,
           disp_lower = ing_k$disp_lower,
           disp_upper = ing_k$disp_upper
         )
+        pf_k
       }
     )
   }

@@ -63,7 +63,6 @@ fit <- glmerb(
   family = poisson(),
   pfamily_list = pfamily_list(ps),
   n = n_draw,
-  seed = 42L
 )
 
 stopifnot(inherits(fit, "glmerb"))

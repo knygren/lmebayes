@@ -37,13 +37,13 @@ test_that("lmerb: simulated Block 2 means match the exact posterior mean", {
 
   ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
 
+  set.seed(1L)
   fit <- lmerb(
     form,
     data             = dat,
     pfamily_list     = pfamily_list(ps),
     dispersion_ranef = ps$dispersion_ranef,
-    n                = 1000L,
-    seed             = 1L
+    n                = 1000L
   )
 
   expect_s3_class(fit, "lmerb")

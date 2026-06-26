@@ -1,0 +1,41 @@
+---
+description: Require user approval before changing any user-facing R API
+alwaysApply: true
+---
+
+# Public API — ask before changing
+
+Do **not** add, remove, or rename arguments on user-facing functions without **explicit user approval** in the current task.
+
+## What counts as user-facing
+
+- Any symbol in `NAMESPACE` (`export`, `S3method`, `exportPattern`)
+- Any roxygen `@export` function or S3 method in `R/`
+- Any function documented in `man/` with a `\usage` block callers rely on
+- Formula-level entry points: `lmerb`, `rlmerb`, `glmerb`, `rglmerb`, `lmb`, `glmb`, `Prior_Setup_lmebayes`, `pfamily_list`, etc.
+- Wrappers around **glmbayesCore** / **glmbayes** must not silently change argument lists that callers pass through (e.g. do not add `seed=` or `progbar=` on `lmerb` without approval)
+
+## Allowed without a separate API discussion
+
+- Internal helpers: names starting with `.`, or roxygen `@noRd`
+- Bug fixes that preserve the **exact** formal argument list and return structure
+- Whitespace / roxygen wording that does not change `\usage` argument names or defaults
+
+## Before editing user-facing code
+
+1. State which functions/signatures would change and why.
+2. If the user did not ask for an API change, implement the fix internally (helpers, call-site changes) or **ask first**.
+3. After approved API edits, run `devtools::document()` and note any `\usage` / NAMESPACE updates.
+
+## Examples (this repo)
+
+```r
+# BAD — new argument on a published formula API without user approval
+lmerb <- function(..., seed = NULL) { ... }
+
+# BAD — change diag_sweeps / sweep_history print contract without discussion
+print.lmerb <- function(x, ..., by_sweep = TRUE) { ... }
+
+# OK — internal helper; lmerb() signature unchanged
+.lmebayes_run_lmm_engine <- function(...) { ... }
+```

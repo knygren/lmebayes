@@ -47,7 +47,7 @@ out1 <- capture.output(
   fit <- lmerb(form, data = dat,
                pfamily_list = pf,
                dispersion_ranef = ps$dispersion_ranef,
-               n = 300L, seed = 42L)
+               n = 300L)
 )
 
 t2_draws <- fit$fixef.dispersion[, "(Intercept)"]
@@ -126,7 +126,7 @@ pf_p <- pfamily_list(ps_p, ptypes = "dIndependent_Normal_Gamma")
 out3 <- capture.output(
   fit_p <- glmerb(form_p, data = datp, family = poisson(),
                   pfamily_list = pf_p,
-                  n = 25L, seed = 7L)
+                  n = 25L)
 )
 pr_p <- pf_p[["(Intercept)"]]$prior_list
 stopifnot(

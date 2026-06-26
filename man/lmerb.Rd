@@ -13,6 +13,10 @@ lmerb(
   n = 1000L,
   tv_tol = 0.01,
   m_convergence = NULL,
+  gap_tol = 0.0196,
+  mode_gap_max = 1,
+  diag_sweeps = FALSE,
+  progbar = NULL,
   simulate = TRUE,
   REML = TRUE,
   control = lme4::lmerControl(),
@@ -25,11 +29,19 @@ lmerb(
   contrasts = NULL,
   devFunOnly = FALSE,
   fixef = NULL,
-  seed = NULL,
   ...
 )
 
-\method{print}{lmerb}(x, digits = max(3L, getOption("digits") - 3L), ...)
+\method{print}{lmerb}(
+  x,
+  digits = max(3L, getOption("digits") - 3L),
+  sweep_history = FALSE,
+  sweep_history_stage = c("main", "pilot", "both"),
+  max_sweeps = Inf,
+  components = NULL,
+  covariate = NULL,
+  ...
+)
 }
 \arguments{
 \item{formula}{Mixed-model formula (single grouping factor; same constraints
@@ -83,6 +95,29 @@ Gibbs sweeps per stored draw.  When \code{NULL} (default) the
 derived minimum: \code{max(m_convergence, m_min)} is used, with a
 warning if the value had to be raised.}
 
+\item{gap_tol}{Legacy mode--mean gap tolerance for the pilot stage when
+any Block~2 component uses \code{dIndependent_Normal_Gamma} and
+\code{tv_tol} is \code{NULL}.  When \code{tv_tol} is set (default),
+the pilot chain count is chosen by cost optimization instead.  Set
+\code{NULL} to skip the pilot unless \code{tv_tol} is set.  Ignored for
+all-\code{dNormal} models.}
+
+\item{mode_gap_max}{Maximum per-coordinate mode--mean gap (in posterior
+standard deviation units) used to calibrate pilot inner sweeps when ING
+Block~2 components run a pilot stage (default \code{1.0}).  Ignored for
+all-\code{dNormal} models.}
+
+\item{diag_sweeps}{Temporary diagnostic flag (ING models with pilot).
+When \code{TRUE}, pilot and main stages use the sweep-outer batch driver
+(as in \code{glmerb}), print one combined Block~2 chain-mean table per
+stage when that stage finishes, and attach \code{sweep_history} (a list
+with \code{pilot} and \code{main} components, as in \code{glmerb}) on
+the fit. Default \code{FALSE}.}
+
+\item{progbar}{Logical. Show text progress bars during sampling (passed to
+\code{\link{rlmerb}}). Default \code{NULL}: \code{FALSE} when
+\code{diag_sweeps = TRUE}, otherwise \code{TRUE}.}
+
 \item{simulate}{Logical (default \code{TRUE}).  When \code{TRUE} the
 two-block Gibbs sampler is run for \code{n} iterations and posterior draws
 are stored.  When \code{FALSE} only the ICM algorithm is run: the exact
@@ -115,13 +150,25 @@ returned immediately without any sampling.  Simulation-only fields
 When \code{NULL} (default), iter-0 means are taken from the
 \code{pfamily_list} prior means.}
 
-\item{seed}{Optional; sets the RNG seed before sampling.}
-
 \item{...}{Reserved for future use.}
 
 \item{x}{Object of class \code{"lmerb"}.}
 
 \item{digits}{Number of significant digits to use when printing.}
+
+\item{sweep_history}{If \code{TRUE}, print stored Block~2 sweep history
+(see \code{$sweep_history}) after the usual summary: one combined table
+per stage with mode plus all inner sweeps.}
+
+\item{sweep_history_stage}{Which stage to print when \code{sweep_history =
+TRUE}: \code{"main"}, \code{"pilot"}, or \code{"both"}.}
+
+\item{max_sweeps}{Passed to \code{print()} on sweep-history objects; limits
+how many inner sweeps are shown per stage.}
+
+\item{components}{Optional RE components passed to sweep-history \code{print()}.}
+
+\item{covariate}{Optional covariate names passed to sweep-history \code{print()}.}
 }
 \value{
 Object of class \code{"lmerb"}: a list with the following

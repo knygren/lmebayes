@@ -110,6 +110,16 @@
 #'   \code{tv_tol}-derived value is used.  A supplied value is floored at the
 #'   derived minimum: \code{max(m_convergence, m_min)} is used, with a
 #'   warning if the value had to be raised.
+#' @param gap_tol Legacy mode--mean gap tolerance for the pilot stage when
+#'   any Block~2 component uses \code{dIndependent_Normal_Gamma} and
+#'   \code{tv_tol} is \code{NULL}.  When \code{tv_tol} is set (default),
+#'   the pilot chain count is chosen by cost optimization instead.  Set
+#'   \code{NULL} to skip the pilot unless \code{tv_tol} is set.  Ignored for
+#'   all-\code{dNormal} models.
+#' @param mode_gap_max Maximum per-coordinate mode--mean gap (in posterior
+#'   standard deviation units) used to calibrate pilot inner sweeps when ING
+#'   Block~2 components run a pilot stage (default \code{1.0}).  Ignored for
+#'   all-\code{dNormal} models.
 #' @param REML Logical; passed to \code{\link{model_setup}}.
 #' @param control \code{\link[lme4]{lmerControl}} settings; passed to \code{model_setup}.
 #' @param start Optional starting values; passed to \code{model_setup}.
@@ -130,7 +140,15 @@
 #' @param fixef Optional named list of hyper-parameter vectors (Block 2 state).
 #'   When \code{NULL} (default), iter-0 means are taken from the
 #'   \code{pfamily_list} prior means.
-#' @param seed Optional; sets the RNG seed before sampling.
+#' @param diag_sweeps Temporary diagnostic flag (ING models with pilot).
+#'   When \code{TRUE}, pilot and main stages use the sweep-outer batch driver
+#'   (as in \code{glmerb}), print one combined Block~2 chain-mean table per
+#'   stage when that stage finishes, and attach \code{sweep_history} (a list
+#'   with \code{pilot} and \code{main} components, as in \code{glmerb}) on
+#'   the fit. Default \code{FALSE}.
+#' @param progbar Logical. Show text progress bars during sampling (passed to
+#'   \code{\link{rlmerb}}). Default \code{NULL}: \code{FALSE} when
+#'   \code{diag_sweeps = TRUE}, otherwise \code{TRUE}.
 #' @param ... Reserved for future use.
 #' @return Object of class \code{"lmerb"}: a list with the following
 #'   components (parallel to \code{\link{glmb}} and \code{\link{lmb}}):
@@ -218,6 +236,10 @@ lmerb <- function(
     n = 1000L,
     tv_tol = 0.01,
     m_convergence = NULL,
+    gap_tol = 0.0196,
+    mode_gap_max = 1.0,
+    diag_sweeps = FALSE,
+    progbar = NULL,
     simulate = TRUE,
     REML = TRUE,
     control = lme4::lmerControl(),
@@ -230,7 +252,6 @@ lmerb <- function(
     contrasts = NULL,
     devFunOnly = FALSE,
     fixef = NULL,
-    seed = NULL,
     ...
 ) {
   cl <- match.call()
@@ -271,6 +292,13 @@ lmerb <- function(
            call. = FALSE)
     }
     m_convergence <- as.integer(m_convergence)
+  }
+  if (!is.null(mode_gap_max)) {
+    if (!is.numeric(mode_gap_max) || length(mode_gap_max) != 1L ||
+        !is.finite(mode_gap_max) || mode_gap_max <= 0) {
+      stop("'mode_gap_max' must be NULL or a single positive finite number.",
+           call. = FALSE)
+    }
   }
 
   setup_args <- list(
@@ -321,25 +349,28 @@ lmerb <- function(
   }
 
   if (!isTRUE(simulate)) {
-    fixef_lmer  <- fixef
+    fixef_prior <- fixef
     pm          <- glmbayesCore::lmerb_posterior_mean(design, prior)
     fixef_start <- pm$fixef
-    hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
-                   "RE component", "parameter", "lmer (start)", "post mean (ICM)")
+    icm_lbl     <- .lmebayes_block2_icm_labels(prior, gaussian())
+    hdr <- sprintf("  %-18s  %-30s  %14s  %18s",
+                   "RE component", "parameter",
+                   icm_lbl$ref_label, icm_lbl$icm_label)
     sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
     cat("--- lmerb: Block 2 fixed effects ---\n")
     cat(hdr, "\n")
     cat(sep, "\n")
     for (k in design$re_coef_names) {
-      nms_k  <- names(fixef_lmer[[k]])
-      lmer_v <- fixef_lmer[[k]]
-      pm_v   <- fixef_start[[k]]
+      nms_k   <- names(fixef_prior[[k]])
+      prior_v <- fixef_prior[[k]]
+      pm_v    <- fixef_start[[k]]
       for (nm in nms_k) {
-        cat(sprintf("  %-18s  %-30s  %12.4f  %12.4f\n",
-                    k, nm, lmer_v[[nm]], pm_v[[nm]]))
+        cat(sprintf("  %-18s  %-30s  %14.4f  %18.4f\n",
+                    k, nm, prior_v[[nm]], pm_v[[nm]]))
       }
     }
-    cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
+    cat(sprintf("  (%s converged: %s, %d iter, delta = %.2e)\n\n",
+                icm_lbl$conv_label,
                 pm$converged, pm$iterations, pm$delta))
     return(structure(
       list(
@@ -371,13 +402,16 @@ lmerb <- function(
     fixef_start     = NULL,          # computed internally from design + prior
     m_convergence = m_convergence, # NULL => derived from tv_tol
     tv_tol        = tv_tol,
-    seed          = seed,
-    progbar       = TRUE,
-    verbose       = TRUE
+    progbar       = progbar,
+    verbose       = TRUE,
+    gap_tol             = gap_tol,
+    mode_gap_max        = mode_gap_max,
+    diag_sweeps         = diag_sweeps
   )
 
   convergence_info <- sampler$convergence
   m_convergence    <- sampler$m_convergence
+  run_pilot <- !is.null(sampler$n_pilot) && sampler$n_pilot > 0L
 
   structure(
     list(
@@ -387,6 +421,7 @@ lmerb <- function(
       prior                 = prior,
       model_setup           = design,
       fixef.mode            = sampler$fixef.mode,
+      fixef.init            = if (run_pilot) sampler$fixef.init else NULL,
       ranef.mode            = sampler$ranef.mode,
       fixef.means           = sampler$fixef.means,
       fixef                 = sampler$fixef,
@@ -399,7 +434,19 @@ lmerb <- function(
       ranef.iters.mean      = sampler$ranef.iters.mean,
       fixef.mu              = sampler$fixef.mu,
       m_convergence         = m_convergence,
-      convergence           = convergence_info
+      pilot_chisq           = sampler$pilot_chisq,
+      gap_tol               = if (isTRUE(prior$any_non_normal)) gap_tol else NULL,
+      mode_gap_max          = if (isTRUE(prior$any_non_normal)) mode_gap_max else NULL,
+      convergence           = convergence_info,
+      sweep_history         = list(
+        pilot = if (run_pilot && !is.null(sampler$pilot$sweep_history)) {
+          sampler$pilot$sweep_history
+        } else {
+          NULL
+        },
+        main = sampler$sweep_history
+      ),
+      pilot                 = sampler$pilot
     ),
     class = c("lmerb", "list")
   )
@@ -408,8 +455,26 @@ lmerb <- function(
 #' @rdname lmerb
 #' @method print lmerb
 #' @param x Object of class \code{"lmerb"}.
+#' @param sweep_history If \code{TRUE}, print stored Block~2 sweep history
+#'   (see \code{$sweep_history}) after the usual summary: one combined table
+#'   per stage with mode plus all inner sweeps.
+#' @param sweep_history_stage Which stage to print when \code{sweep_history =
+#'   TRUE}: \code{"main"}, \code{"pilot"}, or \code{"both"}.
+#' @param max_sweeps Passed to \code{print()} on sweep-history objects; limits
+#'   how many inner sweeps are shown per stage.
+#' @param components Optional RE components passed to sweep-history \code{print()}.
+#' @param covariate Optional covariate names passed to sweep-history \code{print()}.
 #' @export
-print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
+print.lmerb <- function(
+    x,
+    digits = max(3L, getOption("digits") - 3L),
+    sweep_history = FALSE,
+    sweep_history_stage = c("main", "pilot", "both"),
+    max_sweeps = Inf,
+    components = NULL,
+    covariate = NULL,
+    ...
+) {
 
   re_names <- x$model_setup$re_coef_names
   grp      <- x$model_setup$group_name
@@ -449,8 +514,14 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
         "\n\n", sep = "")
   }
 
-  # --- Posterior means table ---
-  cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")
+  # --- Block 2 hyperparameter reference (ICM) vs MCMC means when simulated ---
+  mode_col <- if (any_non_normal) {
+    cat("--- Block 2 hyperparameters (gamma at lmer tau^2 plug-in; MCMC means when simulated) ---\n\n")
+    "gamma @ lmer tau2"
+  } else {
+    cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")
+    "fixef.mode"
+  }
 
   rows <- do.call(rbind, lapply(re_names, function(k) {
     nms <- names(x$fixef.mode[[k]])
@@ -467,7 +538,7 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
 
   if (!simulated) {
     cat(sprintf("  %-*s  %-*s  %12s\n",
-                w_re, "RE component", w_par, "parameter", "fixef.mode"))
+                w_re, "RE component", w_par, "parameter", mode_col))
     cat(sprintf("  %s  %s  %s\n",
                 strrep("-", w_re), strrep("-", w_par), strrep("-", 12L)))
     for (i in seq_len(nrow(rows))) {
@@ -485,7 +556,7 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
 
     cat(sprintf("  %-*s  %-*s  %12s  %12s  %10s\n",
                 w_re, "RE component", w_par, "parameter",
-                "fixef.mode", "fixef.means", "draws SD"))
+                mode_col, "fixef.means", "draws SD"))
     cat(sprintf("  %s  %s  %s  %s  %s\n",
                 strrep("-", w_re), strrep("-", w_par),
                 strrep("-", 12L), strrep("-", 12L), strrep("-", 10L)))
@@ -497,6 +568,29 @@ print.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
                   digits, rows$sd[i]))
     }
     cat("\n")
+  }
+
+  if (isTRUE(sweep_history) && !is.null(x$sweep_history)) {
+    stage <- match.arg(sweep_history_stage)
+    stages <- switch(
+      stage,
+      main = "main",
+      pilot = "pilot",
+      both = c("pilot", "main")
+    )
+    for (st in stages) {
+      hist <- x$sweep_history[[st]]
+      if (!is.null(hist)) {
+        print(
+          hist,
+          max_sweeps = max_sweeps,
+          components = components,
+          covariate  = covariate,
+          digits     = digits,
+          ...
+        )
+      }
+    }
   }
 
   invisible(x)

@@ -16,7 +16,6 @@ glmerb(
   mode_gap_max = 1,
   tv_tol = 0.01,
   m_convergence = NULL,
-  m_convergence_pilot = NULL,
   simulate = TRUE,
   REML = TRUE,
   control = NULL,
@@ -83,20 +82,19 @@ dispersion parameter (e.g. \code{gaussian()}); must be \code{NULL}
 
 \item{n}{Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).}
 
-\item{gap_tol}{Legacy mode--mean gap tolerance. When \code{n_pilot} is
-\code{NULL} and \code{tv_tol} is \code{NULL}, the number of pilot chains
-is derived as \code{ceiling((qnorm(0.975) / gap_tol)^2)} (default
-\code{gap_tol = 0.0196} gives \code{n_pilot = 10000}). When \code{tv_tol}
-is set (default), \code{n_pilot} is instead chosen by
+\item{gap_tol}{Legacy mode--mean gap tolerance. When \code{tv_tol} is
+\code{NULL}, the number of pilot chains is derived as
+\code{ceiling((qnorm(0.975) / gap_tol)^2)} (default \code{gap_tol = 0.0196}
+gives \code{n_pilot = 10000}). When \code{tv_tol} is set (default),
+\code{n_pilot} is instead chosen by
 \code{\link[glmbayesCore]{two_block_optimize_pilot_cost}} to minimize total
-inner-sweep cost. Set \code{NULL} to skip the pilot unless \code{n_pilot}
-is explicit or \code{tv_tol} is set. Ignored for \code{gaussian()}.}
+inner-sweep cost. Set \code{NULL} to skip the pilot unless \code{tv_tol}
+is set. Ignored for \code{gaussian()} without ING Block~2 components.}
 
 \item{mode_gap_max}{Maximum per-coordinate mode--mean gap (in posterior
-standard deviation units) that \code{m_convergence_pilot} is calibrated
-to cover (default \code{1.0}).  Applies only to non-Gaussian families
-when \code{gap_tol} is not \code{NULL} and \code{m_convergence_pilot}
-is \code{NULL}.  The pilot chains start at the ICM mode, which is at
+standard deviation units) used to calibrate pilot inner sweeps
+(default \code{1.0}).  Applies only to non-Gaussian families
+when \code{gap_tol} is not \code{NULL}.  The pilot chains start at the ICM mode, which is at
 Mahalanobis distance \eqn{D_{\max} = \sqrt{p}\,\times\,\texttt{mode\_gap\_max}}
 from the posterior mean (assuming \code{mode_gap_max} SDs per coordinate
 across \eqn{p} fixed-effect dimensions).  The number of pilot sweeps is
@@ -105,7 +103,7 @@ the smallest \eqn{l} satisfying
   \texttt{tv\_tol}} (Nygren 2020, Theorem 3 mean-shift term), floored at
 \code{m_min}.  Set \code{mode_gap_max = NULL} to fall back to
 \code{m_convergence} (pre-v0.2 behaviour).  Ignored for
-\code{family = gaussian()}.}
+\code{family = gaussian()} without ING Block~2 components.}
 
 \item{tv_tol}{Total variation tolerance per stored draw, in (0, 1)
 (default \code{0.01}).  For \code{family = gaussian()} the joint
@@ -128,15 +126,6 @@ requested sweep count but is never allowed below the derived minimum:
 \code{max(m_convergence, m_min)} is used, with a warning if the value
 had to be raised.  Typical use is to pick a \emph{larger} number for
 non-Gaussian families (e.g. double the derived lower bound).}
-
-\item{m_convergence_pilot}{Optional integer override for the number of
-inner Gibbs sweeps used in each independent pilot chain.  Applies only
-when \code{gap_tol} is not \code{NULL} and \code{family} is
-non-Gaussian.  When \code{NULL} (default), the sweep count is derived
-automatically from \code{mode_gap_max}, \code{tv_tol}, and
-\code{rate$lambda_star} via Theorem 3 (see \code{mode_gap_max}).
-A supplied value is used as-is (no floor is applied beyond what the
-user intends) and overrides the \code{mode_gap_max} derivation.}
 
 \item{simulate}{Logical (default \code{TRUE}).  When \code{TRUE} the
 two-block Gibbs sampler is run for \code{n} iterations and posterior draws
@@ -197,8 +186,8 @@ how many inner sweeps are shown.}
 Object of class \code{"glmerb"}: same \code{fixef.*} structure as
 \code{"lmerb"}, with additional \code{family}, \code{glmer} (reference
 \code{\link[lme4]{glmer}} fit), \code{fixef.init} (main-chain start from
-pilot colMeans when a pilot runs; \code{NULL} for Gaussian or when
-\code{n_pilot = NULL}), \code{pilot_chisq} (Hotelling chi-squared test of
+pilot colMeans when a pilot runs; \code{NULL} when no pilot runs),
+\code{pilot_chisq} (Hotelling chi-squared test of
 pilot mean vs ICM mode), \code{gap_tol}, and \code{mode_gap_max}.
 }
 \description{

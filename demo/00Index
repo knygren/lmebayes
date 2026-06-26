@@ -20,3 +20,5 @@ Ex_16_glmerb_book_banning        glmerb binomial on book_banning (Ch. 18 reasons
 Ex_17_glmerb_book_banning_slopes glmerb binomial on book_banning with income moderating violent RE slope
 Ex_18_glmerb_book_banning_all_reasons glmerb binomial on book_banning with all six challenge reasons (state RE on each)
 Ex_19_glmerb_book_banning_state_covariates glmerb binomial on book_banning with state covariates as intercept-only RE predictors
+Ex_20_lmerb_ING_pilot         lmerb Gaussian ING priors with pilot/main two-stage sampling (big_word_club, simple model)
+Ex_21_lmerb_ING_BigWordClub   lmerb Gaussian ING + pilot on full big_word_club (random slopes; cross-level moderation)

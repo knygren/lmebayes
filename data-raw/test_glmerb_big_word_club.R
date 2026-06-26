@@ -71,7 +71,6 @@ fit <- glmerb(
   pfamily_list = pfamily_list(ps),
   dispersion_ranef = ps$dispersion_ranef,
   n = n_draw,
-  seed = 42L
 )
 
 cat("\n=== summary(fit) ===\n\n")

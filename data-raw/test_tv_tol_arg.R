@@ -65,7 +65,7 @@ cat(sprintf("expected m_convergence: tv_tol 0.01 -> %d, 1e-5 -> %d\n\n",
 out1 <- capture.output(
   fit1 <- lmerb(form_lmer, data = dat, pfamily_list = pfamily_list(ps),
                 dispersion_ranef = ps$dispersion_ranef,
-                n = 25L, seed = 1L)
+                n = 25L)
 )
 line1 <- grep("using m_convergence", out1, value = TRUE)
 stopifnot(length(line1) == 1L)
@@ -80,7 +80,7 @@ cat("1. lmerb default tv_tol:", line1, "\n")
 out2 <- capture.output(
   fit2 <- lmerb(form_lmer, data = dat, pfamily_list = pfamily_list(ps),
                 dispersion_ranef = ps$dispersion_ranef,
-                n = 25L, tv_tol = 1e-5, seed = 1L)
+                n = 25L, tv_tol = 1e-5)
 )
 line2 <- grep("using m_convergence", out2, value = TRUE)
 stopifnot(grepl(sprintf("m_convergence = %d", m_strict), line2))
@@ -90,7 +90,7 @@ cat("2. lmerb tv_tol = 1e-5:", line2, "\n")
 out2b <- capture.output(
   fit2b <- lmerb(form_lmer, data = dat, pfamily_list = pfamily_list(ps),
                 dispersion_ranef = ps$dispersion_ranef,
-                 n = 25L, m_convergence = 50L, seed = 1L)
+                 n = 25L, m_convergence = 50L)
 )
 stopifnot(identical(fit2b$convergence$m_convergence, 50L))
 stopifnot(identical(fit2b$convergence$m_min, m_default))
@@ -100,7 +100,7 @@ out2c <- withCallingHandlers(
   capture.output(
     fit2c <- lmerb(form_lmer, data = dat, pfamily_list = pfamily_list(ps),
                 dispersion_ranef = ps$dispersion_ranef,
-                   n = 25L, m_convergence = 2L, seed = 1L)
+                   n = 25L, m_convergence = 2L)
   ),
   warning = function(w) {
     warns <<- c(warns, conditionMessage(w))
@@ -127,7 +127,7 @@ cat("3. invalid tv_tol values rejected\n")
 out4 <- capture.output(
   fit4 <- glmerb(form_lmer, data = dat, family = gaussian(),
                  pfamily_list = pfamily_list(ps),
-                dispersion_ranef = ps$dispersion_ranef, n = 25L, seed = 1L)
+                dispersion_ranef = ps$dispersion_ranef, n = 25L)
 )
 line4 <- grep("using m_convergence", out4, value = TRUE)
 stopifnot(length(line4) == 1L)
@@ -148,7 +148,7 @@ ps_pois <- Prior_Setup_lmebayes(form_pois, data = ab, family = poisson(),
 out5 <- capture.output(
   fit5 <- glmerb(form_pois, data = ab, family = poisson(),
                  pfamily_list = pfamily_list(ps_pois), n = 10L,
-                 tv_tol = 0.001, seed = 1L)
+                 tv_tol = 0.001)
 )
 stopifnot(any(grepl("approximate \\(local-Gaussian at mode, poisson\\)", out5)))
 stopifnot(inherits(fit5, "glmerb"))
@@ -166,7 +166,7 @@ m_min5 <- fit5$convergence$m_min
 out6 <- capture.output(
   fit6 <- glmerb(form_pois, data = ab, family = poisson(),
                  pfamily_list = pfamily_list(ps_pois), n = 10L,
-                 tv_tol = 0.001, m_convergence = 2L * m_min5, seed = 1L)
+                 tv_tol = 0.001, m_convergence = 2L * m_min5)
 )
 stopifnot(identical(fit6$convergence$m_convergence, 2L * m_min5))
 stopifnot(identical(fit6$convergence$m_min, m_min5))

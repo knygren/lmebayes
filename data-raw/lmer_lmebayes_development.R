@@ -53,8 +53,7 @@ fit <- lmerb(
   pfamily_list = pfamily_list(ps),
   dispersion_ranef = ps$dispersion_ranef,
   n = 1L,
-  control = ctrl_bobyqa,
-  seed = 42L
+  control = ctrl_bobyqa
 )
 
 cat(sprintf("  class: %s\n", paste(class(fit), collapse = ", ")))

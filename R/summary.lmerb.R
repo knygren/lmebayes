@@ -411,7 +411,11 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
       if (identical(ptypes[[k]], "dIndependent_Normal_Gamma")) "ING" else "dNormal"
     }, character(1L))),
     tau2.plugin = unname(vapply(re_names, function(k) {
-      as.numeric(object$prior$prior_list[[k]]$dispersion_fixef)
+      if (identical(ptypes[[k]], "dIndependent_Normal_Gamma")) {
+        as.numeric(object$prior$pfamily_list[[k]]$prior_list$disp_lower)
+      } else {
+        as.numeric(object$prior$prior_list[[k]]$dispersion_fixef)
+      }
     }, numeric(1L))),
     row.names = re_names,
     stringsAsFactors = FALSE

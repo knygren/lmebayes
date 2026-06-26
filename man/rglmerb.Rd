@@ -12,13 +12,10 @@ rglmerb(
   dispersion_ranef = NULL,
   fixef_start = NULL,
   m_convergence = NULL,
-  n_pilot = NULL,
   gap_tol = 0.0196,
-  m_convergence_pilot = NULL,
   tv_tol = 0.01,
   mode_gap_max = 1,
   collect_block1 = TRUE,
-  seed = NULL,
   verbose = TRUE,
   progbar = FALSE
 )
@@ -44,26 +41,17 @@ required positive scalar for \code{family = gaussian()}, or a
 
 \item{m_convergence}{Optional integer inner Gibbs sweeps per main draw.}
 
-\item{n_pilot}{Optional integer pilot chains (non-Gaussian only);
-\code{NULL} (default) uses cost-optimal count when \code{tv_tol} is set,
-else legacy \code{gap_tol}; \code{0L} skips pilot.}
-
-\item{gap_tol}{Legacy mode--mean gap for deriving \code{n_pilot} when
-\code{n_pilot} is \code{NULL} and \code{tv_tol} is \code{NULL}. Set
-\code{NULL} to skip pilot unless \code{n_pilot} is explicit or
-\code{tv_tol} is set. Ignored for Gaussian.}
-
-\item{m_convergence_pilot}{Optional pilot inner sweeps (non-Gaussian only).}
+\item{gap_tol}{Legacy mode--mean gap for deriving the pilot chain count when
+\code{tv_tol} is \code{NULL}. Set \code{NULL} to skip pilot unless
+\code{tv_tol} is set. Ignored for Gaussian without ING Block~2 components.}
 
 \item{tv_tol}{Total variation tolerance for convergence calibration.}
 
-\item{mode_gap_max}{Pilot sweep calibration when \code{m_convergence_pilot}
-is \code{NULL} (non-Gaussian only).}
+\item{mode_gap_max}{Pilot inner-sweep calibration (non-Gaussian and
+Gaussian+ING only).}
 
 \item{collect_block1}{Collect Block~1 \code{coefficients} from main chains
 (non-Gaussian only).}
-
-\item{seed}{Optional RNG seed (Gaussian path only).}
 
 \item{verbose}{Print stage headers and diagnostics.}
 

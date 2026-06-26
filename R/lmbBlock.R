@@ -274,19 +274,7 @@ lmbBlock <- function(
   outlist
 }
 
-#' Per-block design-matrix rank (row-block formulas)
-#'
-#' @description
-#' For each block in \code{block}, builds the \code{\link{model.matrix}} on that
-#' block's \code{model.frame} rows and marks blocks with \code{qr(x)$rank == ncol(x)}.
-#' Saturated blocks (\code{n = p}) need \code{dispersion} in \code{\link[glmbayes]{Prior_Setup}}.
-#'
-#' @param formula Model formula shared across blocks.
-#' @inheritParams lmbBlock
-#' @return A list with \code{keep} and \code{drop} (block id character vectors),
-#'   \code{table} (data frame with \code{id}, \code{n}, \code{rank}, \code{p},
-#'   \code{full_rank}), and \code{block_info}.
-#' @keywords internal
+#' @noRd
 .blmb_blocks_full_rank <- function(
     formula,
     block,
@@ -337,19 +325,7 @@ lmbBlock <- function(
   list(keep = keep, drop = drop, table = tab, block_info = meta$block_info)
 }
 
-#' Per-block design-matrix rank from a pre-formed matrix (matrix interface)
-#'
-#' @description
-#' Matrix-interface analogue of \code{.blmb_blocks_full_rank}.  Accepts a
-#' pre-formed design matrix \code{x} and a block specification (factor, integer
-#' vector, or list of row-index vectors) rather than a formula and data frame.
-#' Used internally by \code{block_check_identifiability_xy} and by
-#' \code{\link[glmbayesCore]{block_rNormalGLM}}.
-#'
-#' @param x Numeric matrix \code{(l2 x l1)}: the full design matrix.
-#' @param block_info Block partition as returned by \code{\link[glmbayesCore]{normalize_block}()}.
-#' @return A list with \code{keep}, \code{drop}, \code{table}.
-#' @keywords internal
+#' @noRd
 .blmb_blocks_full_rank_xy <- function(x, block_info) {
   k  <- block_info$k
   l1 <- ncol(x)

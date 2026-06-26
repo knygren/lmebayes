@@ -8,13 +8,13 @@ test_that("summary.lmerb overview includes glmer reference and Pr(Prior_tail)", 
   form <- Reaction ~ Days + (Days || Subject)
 
   ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  set.seed(1L)
   fit <- lmerb(
     form,
     data             = dat,
     pfamily_list     = pfamily_list(ps),
     dispersion_ranef = ps$dispersion_ranef,
-    n                = 50L,
-    seed             = 1L
+    n                = 50L
   )
 
   sm <- summary(fit)

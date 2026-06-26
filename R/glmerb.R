@@ -18,14 +18,14 @@
 #'   dispersion parameter (e.g. \code{gaussian()}); must be \code{NULL}
 #'   (default) for \code{poisson()} and \code{binomial()}.  Typically
 #'   \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.
-#' @param gap_tol Legacy mode--mean gap tolerance. When \code{n_pilot} is
-#'   \code{NULL} and \code{tv_tol} is \code{NULL}, the number of pilot chains
-#'   is derived as \code{ceiling((qnorm(0.975) / gap_tol)^2)} (default
-#'   \code{gap_tol = 0.0196} gives \code{n_pilot = 10000}). When \code{tv_tol}
-#'   is set (default), \code{n_pilot} is instead chosen by
+#' @param gap_tol Legacy mode--mean gap tolerance. When \code{tv_tol} is
+#'   \code{NULL}, the number of pilot chains is derived as
+#'   \code{ceiling((qnorm(0.975) / gap_tol)^2)} (default \code{gap_tol = 0.0196}
+#'   gives \code{n_pilot = 10000}). When \code{tv_tol} is set (default),
+#'   \code{n_pilot} is instead chosen by
 #'   \code{\link[glmbayesCore]{two_block_optimize_pilot_cost}} to minimize total
-#'   inner-sweep cost. Set \code{NULL} to skip the pilot unless \code{n_pilot}
-#'   is explicit or \code{tv_tol} is set. Ignored for \code{gaussian()}.
+#'   inner-sweep cost. Set \code{NULL} to skip the pilot unless \code{tv_tol}
+#'   is set. Ignored for \code{gaussian()} without ING Block~2 components.
 #' @param tv_tol Total variation tolerance per stored draw, in (0, 1)
 #'   (default \code{0.01}).  For \code{family = gaussian()} the joint
 #'   posterior is exactly multivariate normal and the number of inner Gibbs
@@ -47,10 +47,9 @@
 #'   had to be raised.  Typical use is to pick a \emph{larger} number for
 #'   non-Gaussian families (e.g. double the derived lower bound).
 #' @param mode_gap_max Maximum per-coordinate mode--mean gap (in posterior
-#'   standard deviation units) that \code{m_convergence_pilot} is calibrated
-#'   to cover (default \code{1.0}).  Applies only to non-Gaussian families
-#'   when \code{gap_tol} is not \code{NULL} and \code{m_convergence_pilot}
-#'   is \code{NULL}.  The pilot chains start at the ICM mode, which is at
+#'   standard deviation units) used to calibrate pilot inner sweeps
+#'   (default \code{1.0}).  Applies only to non-Gaussian families
+#'   when \code{gap_tol} is not \code{NULL}.  The pilot chains start at the ICM mode, which is at
 #'   Mahalanobis distance \eqn{D_{\max} = \sqrt{p}\,\times\,\texttt{mode\_gap\_max}}
 #'   from the posterior mean (assuming \code{mode_gap_max} SDs per coordinate
 #'   across \eqn{p} fixed-effect dimensions).  The number of pilot sweeps is
@@ -59,15 +58,7 @@
 #'   \texttt{tv\_tol}} (Nygren 2020, Theorem 3 mean-shift term), floored at
 #'   \code{m_min}.  Set \code{mode_gap_max = NULL} to fall back to
 #'   \code{m_convergence} (pre-v0.2 behaviour).  Ignored for
-#'   \code{family = gaussian()}.
-#' @param m_convergence_pilot Optional integer override for the number of
-#'   inner Gibbs sweeps used in each independent pilot chain.  Applies only
-#'   when \code{gap_tol} is not \code{NULL} and \code{family} is
-#'   non-Gaussian.  When \code{NULL} (default), the sweep count is derived
-#'   automatically from \code{mode_gap_max}, \code{tv_tol}, and
-#'   \code{rate$lambda_star} via Theorem 3 (see \code{mode_gap_max}).
-#'   A supplied value is used as-is (no floor is applied beyond what the
-#'   user intends) and overrides the \code{mode_gap_max} derivation.
+#'   \code{family = gaussian()} without ING Block~2 components.
 #' @param control Optional \code{\link[lme4]{glmerControl}} settings passed to
 #'   the reference \code{\link[lme4]{glmer}} fit. Defaults to \code{NULL}
 #'   (lme4 defaults). When \code{family = gaussian()}, lme4's \code{glmer}
@@ -79,8 +70,8 @@
 #' @return Object of class \code{"glmerb"}: same \code{fixef.*} structure as
 #'   \code{"lmerb"}, with additional \code{family}, \code{glmer} (reference
 #'   \code{\link[lme4]{glmer}} fit), \code{fixef.init} (main-chain start from
-#'   pilot colMeans when a pilot runs; \code{NULL} for Gaussian or when
-#'   \code{n_pilot = NULL}), \code{pilot_chisq} (Hotelling chi-squared test of
+#'   pilot colMeans when a pilot runs; \code{NULL} when no pilot runs),
+#'   \code{pilot_chisq} (Hotelling chi-squared test of
 #'   pilot mean vs ICM mode), \code{gap_tol}, and \code{mode_gap_max}.
 #' @seealso \code{\link{lmerb}}, \code{\link[glmbayesCore]{glmerb_posterior_mode}},
 #'   \code{\link{glmb}}; \code{\link[utils]{demo}} for the full sampling workflow
@@ -101,7 +92,6 @@ glmerb <- function(
     mode_gap_max = 1.0,
     tv_tol = 0.01,
     m_convergence = NULL,
-    m_convergence_pilot = NULL,
     simulate = TRUE,
     REML = TRUE,
     control = NULL,
@@ -162,17 +152,6 @@ glmerb <- function(
     }
     m_convergence <- as.integer(m_convergence)
   }
-  if (!is.null(m_convergence_pilot)) {
-    if (!is.numeric(m_convergence_pilot) ||
-        length(m_convergence_pilot) != 1L ||
-        !is.finite(m_convergence_pilot) ||
-        m_convergence_pilot < 1) {
-      stop("'m_convergence_pilot' must be NULL or a single integer >= 1.",
-           call. = FALSE)
-    }
-    m_convergence_pilot <- as.integer(m_convergence_pilot)
-  }
-
   setup_args <- list(
     formula = formula,
     data = data,
@@ -219,25 +198,28 @@ glmerb <- function(
   }
 
   if (!isTRUE(simulate)) {
-    fixef_glmer <- fixef
+    fixef_prior <- fixef
     pm          <- glmbayesCore::glmerb_posterior_mode(design, family, prior)
     fixef_start <- pm$fixef
-    hdr <- sprintf("  %-18s  %-30s  %12s  %12s",
-                   "RE component", "parameter", "glmer (start)", "post mode (ICM)")
+    icm_lbl     <- .lmebayes_block2_icm_labels(prior, family)
+    hdr <- sprintf("  %-18s  %-30s  %14s  %18s",
+                   "RE component", "parameter",
+                   icm_lbl$ref_label, icm_lbl$icm_label)
     sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
     cat("--- glmerb: Block 2 fixed effects ---\n")
     cat(hdr, "\n")
     cat(sep, "\n")
     for (k in design$re_coef_names) {
-      nms_k   <- names(fixef_glmer[[k]])
-      glmer_v <- fixef_glmer[[k]]
+      nms_k   <- names(fixef_prior[[k]])
+      prior_v <- fixef_prior[[k]]
       pm_v    <- fixef_start[[k]]
       for (nm in nms_k) {
-        cat(sprintf("  %-18s  %-30s  %12.4f  %12.4f\n",
-                    k, nm, glmer_v[[nm]], pm_v[[nm]]))
+        cat(sprintf("  %-18s  %-30s  %14.4f  %18.4f\n",
+                    k, nm, prior_v[[nm]], pm_v[[nm]]))
       }
     }
-    cat(sprintf("  (ICM converged: %s, %d iter, delta = %.2e)\n\n",
+    cat(sprintf("  (%s converged: %s, %d iter, delta = %.2e)\n\n",
+                icm_lbl$conv_label,
                 pm$converged, pm$iterations, pm$delta))
     return(structure(
       list(
@@ -270,7 +252,6 @@ glmerb <- function(
     fixef_start         = NULL,
     m_convergence       = m_convergence,
     gap_tol             = gap_tol,
-    m_convergence_pilot = m_convergence_pilot,
     tv_tol              = tv_tol,
     mode_gap_max        = mode_gap_max,
     collect_block1      = TRUE,
@@ -473,7 +454,16 @@ print.glmerb <- function(
         "\n\n", sep = "")
   }
 
-  cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")
+  mode_col <- if (any_non_normal) {
+    cat("--- Block 2 hyperparameters (gamma at lmer tau^2 plug-in; MCMC means when simulated) ---\n\n")
+    "gamma @ lmer tau2"
+  } else if (identical(fam, "gaussian")) {
+    cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")
+    "fixef.mode"
+  } else {
+    cat("--- Block 2 hyperparameters (ICM posterior mode; MCMC means when simulated) ---\n\n")
+    "ICM mode"
+  }
 
   rows <- do.call(rbind, lapply(re_names, function(k) {
     nms <- names(x$fixef.mode[[k]])
@@ -490,7 +480,7 @@ print.glmerb <- function(
 
   if (!simulated) {
     cat(sprintf("  %-*s  %-*s  %12s\n",
-                w_re, "RE component", w_par, "parameter", "fixef.mode"))
+                w_re, "RE component", w_par, "parameter", mode_col))
     cat(sprintf("  %s  %s  %s\n",
                 strrep("-", w_re), strrep("-", w_par), strrep("-", 12L)))
     for (i in seq_len(nrow(rows))) {
@@ -507,7 +497,7 @@ print.glmerb <- function(
 
     cat(sprintf("  %-*s  %-*s  %12s  %12s  %10s\n",
                 w_re, "RE component", w_par, "parameter",
-                "fixef.mode", "fixef.means", "draws SD"))
+                mode_col, "fixef.means", "draws SD"))
     cat(sprintf("  %s  %s  %s  %s  %s\n",
                 strrep("-", w_re), strrep("-", w_par),
                 strrep("-", 12L), strrep("-", 12L), strrep("-", 10L)))

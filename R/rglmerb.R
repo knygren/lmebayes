@@ -25,20 +25,14 @@
 #'   (\code{\link[glmbayesCore]{lmerb_posterior_mean}} for Gaussian,
 #'   \code{\link[glmbayesCore]{glmerb_posterior_mode}} otherwise).
 #' @param m_convergence Optional integer inner Gibbs sweeps per main draw.
-#' @param n_pilot Optional integer pilot chains (non-Gaussian only);
-#'   \code{NULL} (default) uses cost-optimal count when \code{tv_tol} is set,
-#'   else legacy \code{gap_tol}; \code{0L} skips pilot.
-#' @param gap_tol Legacy mode--mean gap for deriving \code{n_pilot} when
-#'   \code{n_pilot} is \code{NULL} and \code{tv_tol} is \code{NULL}. Set
-#'   \code{NULL} to skip pilot unless \code{n_pilot} is explicit or
-#'   \code{tv_tol} is set. Ignored for Gaussian.
-#' @param m_convergence_pilot Optional pilot inner sweeps (non-Gaussian only).
+#' @param gap_tol Legacy mode--mean gap for deriving the pilot chain count when
+#'   \code{tv_tol} is \code{NULL}. Set \code{NULL} to skip pilot unless
+#'   \code{tv_tol} is set. Ignored for Gaussian without ING Block~2 components.
 #' @param tv_tol Total variation tolerance for convergence calibration.
-#' @param mode_gap_max Pilot sweep calibration when \code{m_convergence_pilot}
-#'   is \code{NULL} (non-Gaussian only).
+#' @param mode_gap_max Pilot inner-sweep calibration (non-Gaussian and
+#'   Gaussian+ING only).
 #' @param collect_block1 Collect Block~1 \code{coefficients} from main chains
 #'   (non-Gaussian only).
-#' @param seed Optional RNG seed (Gaussian path only).
 #' @param verbose Print stage headers and diagnostics.
 #' @param progbar Progress bars when \code{verbose} is \code{FALSE}.
 #' @return Object of class \code{c("rglmerb", "list")} with Block~2 fields in
@@ -60,13 +54,10 @@ rglmerb <- function(
     dispersion_ranef    = NULL,
     fixef_start         = NULL,
     m_convergence       = NULL,
-    n_pilot             = NULL,
     gap_tol             = 0.0196,
-    m_convergence_pilot = NULL,
     tv_tol              = 0.01,
     mode_gap_max        = 1.0,
     collect_block1      = TRUE,
-    seed                = NULL,
     verbose             = TRUE,
     progbar             = FALSE
 ) {
@@ -123,19 +114,22 @@ rglmerb <- function(
       fixef_start   = fixef_start,
       m_convergence = m_convergence,
       tv_tol        = tv_tol,
-      seed          = seed,
       progbar       = progbar,
-      verbose       = verbose
+      verbose       = verbose,
+      gap_tol       = gap_tol,
+      mode_gap_max  = mode_gap_max
     )
 
     if (is.null(fixef_start)) {
+      icm_lbl <- .lmebayes_block2_icm_labels(prior, family)
       .lmebayes_print_icm_fixef_table(
         prior_list = prior$prior_list,
         re_names   = re_names,
         fixef_icm  = out$fixef.mode,
         icm_info   = out$icm_info,
-        ref_label  = "glmer (start)",
-        icm_label  = "post mean (ICM)",
+        ref_label  = icm_lbl$ref_label,
+        icm_label  = icm_lbl$icm_label,
+        conv_label = icm_lbl$conv_label,
         header     = "--- glmerb: Block 2 fixed effects ---",
         verbose    = verbose
       )
@@ -158,16 +152,6 @@ rglmerb <- function(
     out$pilot_chisq <- NULL
     class(out)      <- c("rglmerb", "list")
     return(out)
-  }
-
-  if (!is.null(m_convergence_pilot)) {
-    if (!is.numeric(m_convergence_pilot) ||
-        length(m_convergence_pilot) != 1L ||
-        !is.finite(m_convergence_pilot) || m_convergence_pilot < 1) {
-      stop("'m_convergence_pilot' must be NULL or a single integer >= 1.",
-           call. = FALSE)
-    }
-    m_convergence_pilot <- as.integer(m_convergence_pilot)
   }
 
   if (!is.null(mode_gap_max)) {
@@ -194,9 +178,7 @@ rglmerb <- function(
     re_coef_names       = re_names,
     group_levels        = group_levels,
     group_name          = design$group_name,
-    n_pilot             = n_pilot,
     gap_tol             = gap_tol,
-    m_convergence_pilot = m_convergence_pilot,
     tv_tol              = tv_tol,
     mode_gap_max        = mode_gap_max,
     verbose             = verbose,
@@ -207,13 +189,15 @@ rglmerb <- function(
   )
 
   if (is.null(fixef_start)) {
+    icm_lbl <- .lmebayes_block2_icm_labels(prior, family)
     .lmebayes_print_icm_fixef_table(
       prior_list = prior$prior_list,
       re_names   = re_names,
       fixef_icm  = out$fixef.mode,
       icm_info   = out$icm_info,
-      ref_label  = "glmer (start)",
-      icm_label  = "post mode (ICM)",
+      ref_label  = icm_lbl$ref_label,
+      icm_label  = icm_lbl$icm_label,
+      conv_label = icm_lbl$conv_label,
       header     = "--- glmerb: Block 2 fixed effects ---",
       verbose    = verbose
     )
@@ -224,7 +208,12 @@ rglmerb <- function(
   )
 
   if (!is.null(out$n_pilot) && out$n_pilot > 0L) {
-    .lmebayes_print_fixef_init(out$fixef.init, re_names, verbose)
+    .lmebayes_print_fixef_init(
+      out$fixef.init,
+      re_names,
+      verbose,
+      header = "--- glmerb: main-stage fixef.init (pilot colMeans) ---"
+    )
   }
 
   out <- .lmebayes_add_fixef_summaries(out)

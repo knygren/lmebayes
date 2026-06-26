@@ -72,17 +72,7 @@ is_fixed_effects_only <- function(formula, data = NULL, ...) {
   return(FALSE)
 }
 
-#' Validate uncorrelated (diagonal) random effects
-#'
-#' \pkg{lmebayes} treats \code{Sigma_ranef} as diagonal. Multi-coefficient
-#' random terms must use \code{||}; a single random intercept may use
-#' \code{(1 | group)} (\code{(1 || group)} is not supported by \code{lme4}).
-#'
-#' @param formula Mixed-model formula.
-#' @param data Optional data frame for \code{\link[lme4]{lFormula}}.
-#' @param ... Passed to \code{\link[lme4]{lFormula}}.
-#' @return \code{formula} invisibly.
-#' @keywords internal
+#' @noRd
 .lmebayes_validate_uncorrelated_re_formula <- function(formula, data = NULL, ...) {
   if (is_fixed_effects_only(formula, data = data, ...)) {
     return(invisible(formula))
@@ -728,8 +718,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   )
 }
 
-#' Reference \code{lmer}/\code{glmer} fit embedded in an \code{lmerb}/\code{glmerb} object
-#' @keywords internal
+#' @noRd
 .lmerb_reference_fit <- function(object) {
   if (inherits(object, "glmerb")) {
     if (is.null(object$glmer)) {
@@ -743,12 +732,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   object$lmer
 }
 
-#' Validate observation-level \code{dispersion_ranef} for an \code{lmerb}/\code{glmerb} family
-#'
-#' Returns a scalar plug-in \eqn{\sigma^2} or \code{NULL}.  For routing that
-#' distinguishes fixed vs \code{dGamma()} priors, use
-#' \code{\link{.lmebayes_resolve_dispersion_ranef}}.
-#' @keywords internal
+#' @noRd
 .lmebayes_validate_dispersion_ranef <- function(
     dispersion_ranef,
     family,
@@ -763,11 +747,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   resolved$dispersion_fix
 }
 
-#' Resolve observation-level \code{dispersion_ranef} (fixed scalar or \code{dGamma()})
-#' @return List with \code{mode} (\code{"none"}, \code{"fixed"}, or \code{"gamma"}),
-#'   \code{dispersion_fix} (plug-in \eqn{\sigma^2}), \code{dispersion_prior_list}
-#'   (\code{dGamma()} \code{prior_list} or \code{NULL}), and \code{dispersion_pfamily}.
-#' @keywords internal
+#' @noRd
 .lmebayes_resolve_dispersion_ranef <- function(
     dispersion_ranef,
     family,
@@ -841,9 +821,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   )
 }
 
-#' Call \code{\link[glmbayesCore]{rLMMNormal_reg}} or
-#' \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} from matrix-level inputs
-#' @keywords internal
+#' @noRd
 .lmebayes_run_lmm_engine <- function(
     n,
     design,
@@ -852,9 +830,11 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
     fixef_start   = NULL,
     m_convergence = NULL,
     tv_tol        = 0.01,
-    seed          = NULL,
     progbar       = TRUE,
-    verbose       = FALSE
+    verbose       = FALSE,
+    gap_tol             = 0.0196,
+    mode_gap_max        = 1.0,
+    diag_sweeps         = FALSE
 ) {
   re_names     <- design$re_coef_names
   group_levels <- levels(design$groups)
@@ -873,7 +853,6 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
     re_coef_names = re_names,
     group_levels  = group_levels,
     group_name    = design$group_name,
-    seed          = seed,
     progbar       = progbar,
     verbose       = verbose
   )
@@ -888,6 +867,19 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
         )
       )
     )
+  } else if (isTRUE(prior$any_non_normal)) {
+    do.call(
+      glmbayesCore::rLMMNormal_reg_estimated_vcov,
+      c(
+        common_args,
+        list(
+          prior_list   = list(dispersion = disp_info$dispersion_fix),
+          gap_tol      = gap_tol,
+          mode_gap_max = mode_gap_max,
+          diag_sweeps  = diag_sweeps
+        )
+      )
+    )
   } else {
     do.call(
       glmbayesCore::rLMMNormal_reg,
@@ -899,12 +891,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   }
 }
 
-#' Build Block~1 prior list from a normalized prior container
-#' @param measurement_prior_list Prior container with \code{Sigma_ranef}.
-#' @param dispersion_ranef Optional observation-level dispersion override
-#'   (\eqn{\sigma^2}); when supplied, used instead of
-#'   \code{measurement_prior_list$dispersion_ranef}.
-#' @keywords internal
+#' @noRd
 .lmebayes_block1_prior_list <- function(
     measurement_prior_list,
     dispersion_ranef = NULL
@@ -925,8 +912,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   }
 }
 
-#' Stage v2 sampler output to the \code{fixef.*} namespace
-#' @keywords internal
+#' @noRd
 .lmebayes_stage_v2_fixef <- function(
     out,
     fixef_mode,
@@ -953,8 +939,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   )
 }
 
-#' Add \code{fixef.means} and related summary fields to a staged sampler object
-#' @keywords internal
+#' @noRd
 .lmebayes_add_fixef_summaries <- function(x) {
   if (!is.null(x$fixef)) {
     x$fixef.means <- lapply(x$fixef, colMeans)
@@ -971,43 +956,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   x
 }
 
-#' Normalize a pfamily list + dispersion into the internal prior container
-#'
-#' Validates the \code{pfamily_list} / \code{dispersion_ranef} arguments of
-#' \code{\link{lmerb}} and \code{\link{glmerb}} against the model design and
-#' converts them into the internal prior container consumed downstream
-#' (\code{Sigma_ranef}, \code{dispersion_ranef}, per-component
-#' \code{prior_list} with \code{mu_fixef} / \code{Sigma_fixef} /
-#' \code{dispersion_fixef}).
-#'
-#' The Block~1 random-effect covariance is reconstructed from the Block~2
-#' dispersions: \code{Sigma_ranef = diag(tau^2_k)} where \code{tau^2_k} is the
-#' \code{dispersion} of component \code{k}'s \code{dNormal} pfamily.
-#'
-#' \code{dIndependent_Normal_Gamma} components must carry \emph{both}
-#' truncation bounds: \code{disp_lower} doubles as the plug-in
-#' \eqn{\tau^2_k} for the eigenvalue / TV calibration (smaller \eqn{\tau^2}
-#' increases the coupling between blocks and hence the contraction rate
-#' \eqn{\lambda^*}, so the lower bound yields a conservative eigenvalue and
-#' sweep count), and supplying \code{disp_upper} as well fixes the
-#' \eqn{\tau^2_k} truncation window \code{[disp_lower, disp_upper]} across
-#' all inner Gibbs sweeps of \code{two_block_rNormal_reg_v2}, making the
-#' calibration valid over the chain's entire dispersion support.
-#'
-#' @param pfamily_list Named list of \code{"pfamily"} objects, one per
-#'   random-effect coefficient (e.g. from
-#'   \code{\link{pfamily_list.lmebayes_prior_setup}}).  Names must match
-#'   \code{design$re_coef_names} (any order).
-#' @param dispersion_ranef Observation-level dispersion for the measurement
-#'   model.  Required positive scalar for \code{gaussian()}; must be
-#'   \code{NULL} for families without a dispersion parameter.
-#' @param design A \code{\link{model_setup}} object.
-#' @param family A \code{\link[stats]{family}} object.
-#' @param fn_name Calling function name used in error messages.
-#' @return List with \code{pfamily_list} (reordered), \code{dispersion_ranef},
-#'   \code{Sigma_ranef}, \code{prior_list}, \code{ptypes} (per-component
-#'   constructor names), and \code{any_non_normal}.
-#' @keywords internal
+#' @noRd
 .lmebayes_priors_from_pfamily_list <- function(pfamily_list,
                                                dispersion_ranef,
                                                design,
@@ -1113,19 +1062,15 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
         )
       }
     } else {
-      ## ING: both truncation bounds are required.  disp_lower doubles as
-      ## the conservative tau^2 plug-in for the eigenvalue / TV calibration;
-      ## together the bounds fix the tau^2_k truncation window across all
-      ## inner Gibbs sweeps (one-sided specifications would fall back to a
-      ## per-sweep surrogate-posterior window inside the envelope code).
+      ## ING: disp_lower/disp_upper fix the truncation window and lambda*
+      ## calibration; plug-in tau^2 for Sigma_ranef comes from shape/rate.
       d_k <- pf$prior_list$disp_lower
       if (is.null(d_k) || !is.numeric(d_k) || length(d_k) != 1L ||
           !is.finite(d_k) || d_k <= 0) {
         stop(
           fn_name, "(): pfamily_list[[\"", k, "\"]] is ",
           "dIndependent_Normal_Gamma and must supply a positive scalar ",
-          "'disp_lower' (lower dispersion truncation). It is used as the ",
-          "conservative tau^2 plug-in for the convergence calibration.",
+          "'disp_lower' (lower dispersion truncation) for lambda* calibration.",
           call. = FALSE
         )
       }
@@ -1144,11 +1089,12 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
       }
     }
 
-    tau2[[k]] <- as.numeric(d_k)
+    tau2_k <- glmbayesCore:::.two_block_tau2_ref_from_pfamily(pf)
+    tau2[[k]] <- tau2_k
     prior_list[[k]] <- list(
       mu_fixef         = mu_k,
       Sigma_fixef      = Sigma_k,
-      dispersion_fixef = as.numeric(d_k)
+      dispersion_fixef = tau2_k
     )
   }
 

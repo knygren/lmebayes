@@ -28,6 +28,7 @@
 ^tarballs$
 ^cran-comments\.md$
 ^\.github$
+^\.cursor$
 ^\.positai$
 ^\.claude$
 ^CRAN-SUBMISSION$

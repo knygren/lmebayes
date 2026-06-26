@@ -37,9 +37,9 @@
 
 #'   \code{X_hyper}, \code{group_name}, and \code{re_coef_names}.
 
-#' @param prior A \code{lmebayes_prior_setup} object as returned by
-
-#'   \code{\link{.lmebayes_priors_from_pfamily_list}} (RE / Block~2 structure).
+#' @param prior Normalized prior container with \code{Sigma_ranef}, \code{prior_list},
+#'   and related Block~2 fields (as built internally by \code{\link{lmerb}} from
+#'   \code{pfamily_list} and \code{dispersion_ranef}).
 
 #' @param dispersion_ranef Required observation-level dispersion: a positive
 
@@ -71,7 +71,12 @@
 
 #'   used for convergence calibration.  Default \code{0.01}.
 
-#' @param seed Optional integer RNG seed.  Default \code{NULL}.
+#' @param gap_tol Legacy mode--mean gap tolerance for the pilot stage when
+#'   any Block~2 component uses \code{dIndependent_Normal_Gamma} and
+#'   \code{tv_tol} is \code{NULL}.  Ignored for all-\code{dNormal} models.
+
+#' @param mode_gap_max Pilot inner-sweep calibration for ING Block~2 models
+#'   (default \code{1.0}).  Ignored for all-\code{dNormal} models.
 
 #' @param progbar Logical. Show a text progress bar during sampling.
 
@@ -88,6 +93,12 @@
 #'   The convergence calibration line from the Core engine still follows
 
 #'   \code{verbose}.  Default \code{TRUE}.
+
+#' @param diag_sweeps Temporary diagnostic flag for ING Block~2 models with a
+#'   pilot stage.  When \code{TRUE}, print one combined Block~2 chain-mean table
+#'   per stage when each stage finishes (as \code{print()} on
+#'   \code{$sweep_history}) and attach sweep history on the fit.
+#'   the result.  Default \code{FALSE}.
 
 #' @return An object of class \code{c("rlmerb", "list")} with Block~2 fields in
 
@@ -129,13 +140,17 @@ rlmerb <- function(
 
     tv_tol        = 0.01,
 
-    seed          = NULL,
-
     progbar         = TRUE,
 
     verbose         = TRUE,
 
-    print_icm_table = TRUE
+    print_icm_table = TRUE,
+
+    gap_tol             = 0.0196,
+
+    mode_gap_max        = 1.0,
+
+    diag_sweeps         = FALSE
 
 ) {
 
@@ -186,6 +201,14 @@ rlmerb <- function(
     m_convergence <- as.integer(m_convergence)
   }
 
+  if (!is.null(mode_gap_max)) {
+    if (!is.numeric(mode_gap_max) || length(mode_gap_max) != 1L ||
+        !is.finite(mode_gap_max) || mode_gap_max <= 0) {
+      stop("'mode_gap_max' must be NULL or a single positive finite number.",
+           call. = FALSE)
+    }
+  }
+
   re_names     <- design$re_coef_names
   group_levels <- levels(design$groups)
   block1_prior <- .lmebayes_block1_prior_list(
@@ -201,35 +224,28 @@ rlmerb <- function(
     fixef_start     = fixef_start,
     m_convergence   = m_convergence,
     tv_tol          = tv_tol,
-    seed            = seed,
     progbar         = progbar,
-    verbose         = verbose
+    verbose         = verbose,
+    gap_tol             = gap_tol,
+    mode_gap_max        = mode_gap_max,
+    diag_sweeps         = diag_sweeps
   )
 
 
 
   if (is.null(fixef_start) && isTRUE(print_icm_table)) {
-
+    icm_lbl <- .lmebayes_block2_icm_labels(prior, gaussian())
     .lmebayes_print_icm_fixef_table(
-
       prior_list = prior$prior_list,
-
       re_names   = re_names,
-
       fixef_icm  = out$fixef.mode,
-
       icm_info   = out$icm_info,
-
-      ref_label  = "lmer (start)",
-
-      icm_label  = "post mean (ICM)",
-
+      ref_label  = icm_lbl$ref_label,
+      icm_label  = icm_lbl$icm_label,
+      conv_label = icm_lbl$conv_label,
       header     = "--- lmerb: Block 2 fixed effects ---",
-
       verbose    = verbose
-
     )
-
   }
 
 
@@ -258,7 +274,14 @@ rlmerb <- function(
 
   out$design     <- design
 
-
+  if (!is.null(out$n_pilot) && out$n_pilot > 0L) {
+    .lmebayes_print_fixef_init(
+      out$fixef.init,
+      re_names,
+      verbose,
+      header = "--- lmerb: main-stage fixef.init (pilot colMeans) ---"
+    )
+  }
 
   class(out) <- c("rlmerb", "list")
 

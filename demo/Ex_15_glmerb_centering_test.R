@@ -71,7 +71,6 @@ fit <- glmerb(
   n            = 10000L,
   gap_tol      = 0.0196,
   mode_gap_max = 1.0,
-  seed         = 42L
 )
 
 re_names <- fit$model_setup$re_coef_names

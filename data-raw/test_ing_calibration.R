@@ -49,7 +49,7 @@ out_dn <- capture.output(
   fit_dn <- lmerb(form_lmer, data = dat,
                   pfamily_list = pfamily_list(ps),
                   dispersion_ranef = ps$dispersion_ranef,
-                  n = 10L, seed = 1L)
+                  n = 10L)
 )
 stopifnot(
   !is.null(fit_dn$coefficients),
@@ -79,7 +79,7 @@ out_ing <- capture.output(
   fit_ing <- lmerb(form_lmer, data = dat,
                    pfamily_list = pf_ing,
                    dispersion_ranef = ps$dispersion_ranef,
-                   n = 10L, seed = 1L)
+                   n = 10L)
 )
 
 ## 1. Full ING fit: draws generated, tau^2 sampled per component, and the
@@ -129,7 +129,7 @@ out_half <- capture.output(
   fit_half <- lmerb(form_lmer, data = dat,
                     pfamily_list = pf_half,
                     dispersion_ranef = ps$dispersion_ranef,
-                    n = 10L, seed = 1L)
+                    n = 10L)
 )
 stopifnot(isTRUE(all.equal(
   fit_ing$convergence$lambda_star, fit_half$convergence$lambda_star
@@ -194,7 +194,7 @@ out_def <- capture.output(
   fit_def <- lmerb(form_lmer, data = dat,
                    pfamily_list = pf_ing0,
                    dispersion_ranef = ps$dispersion_ranef,
-                   n = 5L, seed = 1L)
+                   n = 5L)
 )
 stopifnot(
   !is.null(fit_def$coefficients),
@@ -220,7 +220,7 @@ out_mix <- capture.output(
   fit_mix <- lmerb(form_lmer, data = dat,
                    pfamily_list = pf_mixed,
                    dispersion_ranef = ps$dispersion_ranef,
-                   n = 10L, seed = 1L)
+                   n = 10L)
 )
 stopifnot(
   !is.null(fit_mix$coefficients),
@@ -239,7 +239,7 @@ out_g <- capture.output(
   fit_g <- glmerb(form_lmer, data = dat, family = gaussian(),
                   pfamily_list = pf_ing,
                   dispersion_ranef = ps$dispersion_ranef,
-                  n = 10L, seed = 1L)
+                  n = 10L)
 )
 stopifnot(
   inherits(fit_g, "glmerb"),

@@ -59,7 +59,6 @@ fit <- glmerb(
   pfamily_list = pfamily_list(ps),
   n            = 1000L,
   mode_gap_max = 1.0,
-  seed         = 42L
 )
 
 re_names <- fit$model_setup$re_coef_names
