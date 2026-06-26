@@ -873,10 +873,11 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
       c(
         common_args,
         list(
-          prior_list   = list(dispersion = disp_info$dispersion_fix),
-          gap_tol      = gap_tol,
-          mode_gap_max = mode_gap_max,
-          diag_sweeps  = diag_sweeps
+          prior_list    = list(dispersion = disp_info$dispersion_fix),
+          gap_tol       = gap_tol,
+          mode_gap_max  = mode_gap_max,
+          diag_sweeps   = diag_sweeps,
+          stage_verbose = verbose
         )
       )
     )
@@ -1063,7 +1064,7 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
       }
     } else {
       ## ING: disp_lower/disp_upper fix the truncation window and lambda*
-      ## calibration; plug-in tau^2 for Sigma_ranef comes from shape/rate.
+      ## calibration; plug-in tau^2 for Sigma_ranef is rate/shape = 1/E[1/tau^2].
       d_k <- pf$prior_list$disp_lower
       if (is.null(d_k) || !is.numeric(d_k) || length(d_k) != 1L ||
           !is.finite(d_k) || d_k <= 0) {

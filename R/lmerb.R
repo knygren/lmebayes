@@ -141,11 +141,12 @@
 #'   When \code{NULL} (default), iter-0 means are taken from the
 #'   \code{pfamily_list} prior means.
 #' @param diag_sweeps Temporary diagnostic flag (ING models with pilot).
-#'   When \code{TRUE}, pilot and main stages use the sweep-outer batch driver
-#'   (as in \code{glmerb}), print one combined Block~2 chain-mean table per
-#'   stage when that stage finishes, and attach \code{sweep_history} (a list
-#'   with \code{pilot} and \code{main} components, as in \code{glmerb}) on
-#'   the fit. Default \code{FALSE}.
+#'   Non-\code{dNormal} sampling already runs via
+#'   \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}} (R sweep-outer;
+#'   pilot then main).  When \code{TRUE}, each stage auto-prints one combined
+#'   Block~2 chain-mean table when that stage finishes (same layout as
+#'   \code{print()} on \code{$sweep_history}).  \code{sweep_history} is
+#'   collected regardless.  Default \code{FALSE}.
 #' @param progbar Logical. Show text progress bars during sampling (passed to
 #'   \code{\link{rlmerb}}). Default \code{NULL}: \code{FALSE} when
 #'   \code{diag_sweeps = TRUE}, otherwise \code{TRUE}.

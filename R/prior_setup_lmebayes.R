@@ -134,14 +134,13 @@
 #' prior mean comes from a random-intercept-only null fit; all other prior
 #' means are zero (\code{effects_source = "null_effects"}).  This requires:
 #' \enumerate{
-#'   \item Converged reference \code{lmer}/\code{glmer} fits from
-#'     \code{\link{model_setup}} (full formula and \code{vcov_formula}, and
-#'     a random-intercept-only null fit when \code{intercept_source =
-#'     "null_model"}).
+#'   \item Converged reference \code{lmer}/\code{glmer} fit from
+#'     \code{\link{model_setup}} on the full formula (and a random-intercept-only
+#'     null fit when \code{intercept_source = "null_model"}).
 #'     Fits with \code{lme4} \code{checkConv} failures (e.g.\ large
 #'     \code{max|grad|}) are rejected.
 #'   \item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_ref)} term.
-#'   \item Each RE variance \eqn{\tau^2_k} from \code{fit_ref} is strictly positive.
+#'   \item Each RE variance \eqn{\tau^2_k} from the reference fit is strictly positive.
 #' }
 #' @seealso \code{\link{model_setup}}, \code{\link[glmbayesCore]{Prior_Setup}},
 #'   \code{\link[glmbayesCore]{build_mu_all}}
@@ -224,12 +223,9 @@ Prior_Setup_lmebayes <- function(formula,
 
   ## Full-rank status is a per-group DESIGN CHECK only (reported by print();
   ## groups with rank-deficient Z_j are still fully used below).  All
-  ## calibration quantities come from the reference fits on ALL groups,
-  ## already computed by model_setup(): lmer_fit/glmer_fit (full formula) for
-  ## fixed effects and their covariance; the matching vcov fit for the
-  ## per-component RE variances and the residual variance.
+  ## calibration quantities come from the single reference fit on the full
+  ## formula (fixed effects, RE variances, residual variance).
   fit_ref <- if (is_gaussian) design$lmer_fit else design$glmer_fit
-  fit_vcov <- if (is_gaussian) design$lmer_vcov_fit else design$glmer_vcov_fit
   if (is.null(fit_ref)) {
     stop(
       "model_setup() did not return a reference ", mer_label, " fit.",
@@ -237,13 +233,8 @@ Prior_Setup_lmebayes <- function(formula,
     )
   }
 
-  mer_issues <- c(
-    .lmebayes_mer_convergence_issues(
-      fit_ref, sprintf("%s (full formula)", mer_label)
-    ),
-    .lmebayes_mer_convergence_issues(
-      fit_vcov, sprintf("%s (vcov formula)", mer_label)
-    )
+  mer_issues <- .lmebayes_mer_convergence_issues(
+    fit_ref, sprintf("%s (full formula)", mer_label)
   )
   if (length(mer_issues) > 0L) {
     stop(

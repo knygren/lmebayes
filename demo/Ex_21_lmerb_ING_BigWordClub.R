@@ -4,14 +4,18 @@
 ## cross-level moderation) with demo/Ex_20_lmerb_ING_pilot.R (dIndependent_Normal_
 ## Gamma dispersion, two-stage pilot/main sampling).
 ##
-## With diag_sweeps = TRUE the fit uses the sweep-outer driver and prints one
-## combined Block~2 chain-mean table per stage (pilot, then main), like
-## print(fit$sweep_history$pilot) / $main.
+## ING sampling (non-dNormal Block~2) uses glmbayesCore's R sweep-outer driver
+## run_sweep_outer_chains_v6 (pilot, then main). diag_sweeps = TRUE auto-prints
+## one combined Block~2 chain-mean table per stage; sweep_history is always
+## stored (print(fit$sweep_history$pilot) / fit$sweep_history$main).
 ##
 ##   demo("Ex_21_lmerb_ING_BigWordClub", package = "lmebayes")
 
 if (!requireNamespace("bayesrules", quietly = TRUE)) {
   stop("This demo requires the 'bayesrules' package.", call. = FALSE)
+}
+if (!requireNamespace("lme4", quietly = TRUE)) {
+  stop("This demo requires the 'lme4' package.", call. = FALSE)
 }
 
 data(big_word_club, package = "bayesrules")
@@ -49,19 +53,21 @@ print(ps)
 
 pf <- pfamily_list(ps, ptypes = "dIndependent_Normal_Gamma")
 
-## ING fit with sweep diagnostics (diag_sweeps uses the R sweep-outer driver;
-## slower than the default C++ engine but prints/plots per-inner-sweep tables).
+cat("\n=== lmer reference fit ===\n\n")
+fit_lmer <- lme4::lmer(form_lmer, data = dat, REML = TRUE)
+print(summary(fit_lmer))
+
+## diag_sweeps = TRUE: auto-print per-stage sweep tables (progbar defaults FALSE).
 ## gap_tol = 0.05 => n_pilot from the Hotelling bound (~16 for this model).
-## progbar defaults to FALSE when diag_sweeps = TRUE (tables use print()).
 fit <- lmerb(
   form_lmer,
   data             = dat,
   pfamily_list     = pf,
   dispersion_ranef = ps$dispersion_ranef,
-  n                = 10000L,
+  n                = 3000L,
   gap_tol          = 0.05,
   mode_gap_max     = 1.0,
-  diag_sweeps      = TRUE
+  diag_sweeps      = FALSE
 )
 
 stopifnot(isTRUE(fit$prior$any_non_normal))
@@ -73,12 +79,16 @@ stopifnot(fit$pilot_chisq$n_pilot > 0L)
 stopifnot(identical(fit$pilot_chisq$n_pilot, fit$convergence$n_pilot))
 stopifnot(is.finite(fit$pilot_chisq$p_value))
 
-cat("\n=== Stored sweep history (last 3 sweeps per stage) ===\n\n")
-print(fit$sweep_history$pilot, max_sweeps = 3000)
-print(fit$sweep_history$main, max_sweeps = 3000)
-
-cat("\n=== summary(fit) ===\n\n")
+cat("\n=== summary(lmerb fit) ===\n\n")
 print(summary(fit))
+
+stopifnot(!is.null(fit$sweep_history))
+stopifnot(!is.null(fit$sweep_history$pilot))
+stopifnot(!is.null(fit$sweep_history$main))
+
+cat("\n=== Block~2 sweep summaries (pilot, then main) ===\n\n")
+print(fit$sweep_history$pilot)
+print(fit$sweep_history$main)
 
 re_names <- fit$model_setup$re_coef_names
 

@@ -2,11 +2,10 @@
 #'
 #' Wrapper around \code{\link[lme4]{lmer}} or \code{\link[lme4]{glmer}} for
 #' models with exactly one grouping factor. Design matrices come from
-#' \code{formula} (including cross-level RE moderation terms). Variance
-#' components use \code{vcov_formula} (defaults to
-#' \code{\link{lmerb_default_vcov_formula}}): level-2 fixed only, same
-#' \code{||} random structure as \code{formula}, without cross-level fixed
-#' interactions (so RE moderation is not double-coded).
+#' \code{formula} (including cross-level RE moderation terms). Random-effect
+#' and residual variance components (\code{vcov_re}, \code{residual_var}) come
+#' from the same reference \code{lmer}/\code{glmer} fit on \code{formula}, so
+#' printed summaries match \code{summary(lmer(...))} on that formula.
 #'
 #' \strong{Uncorrelated random effects (\code{||}).}
 #' The sampler treats \code{Sigma_ranef} as diagonal (no off-diagonal
@@ -69,9 +68,10 @@
 #' (\code{demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")}).
 #'
 #' @param formula Mixed-model formula for design extraction and the reference
-#'   \code{lmer}/\code{glmer} fit (fixed effects / hyper calibration).
-#' @param vcov_formula Optional formula for the reference fit used to extract
-#'   \code{vcov_re}. Defaults to \code{\link{lmerb_default_vcov_formula}(formula)}.
+#'   \code{lmer}/\code{glmer} fit (fixed effects, hyper calibration, and
+#'   variance components).
+#' @param vcov_formula Ignored (deprecated). Variance components are taken from
+#'   the full \code{formula} fit so \code{lmer} reference output is consistent.
 #' @param data Optional data frame.
 #' @param family A \code{\link[stats]{family}} object. Defaults to
 #'   \code{gaussian()}, in which case \code{\link[lme4]{lmer}} is used.
@@ -94,9 +94,10 @@
 #'   reference \code{lmer}/\code{glmer} fit.
 #' @return Object of class \code{"model_setup"}: \code{y}, \code{Z},
 #'   \code{groups}, \code{X_hyper}, \code{formula}, \code{family},
-#'   \code{vcov_formula}, \code{lmer_fit} / \code{glmer_fit} (full formula),
-#'   matching \code{lmer_vcov_fit} / \code{glmer_vcov_fit}, \code{varcorr},
-#'   \code{vcov_re}, \code{residual_var}, and \code{re_rank} (named logical
+#'   \code{vcov_formula} (deprecated alias of \code{formula}),
+#'   \code{lmer_fit} / \code{glmer_fit}, \code{lmer_vcov_fit} /
+#'   \code{glmer_vcov_fit} (same object as the full-formula fit),
+#'   \code{varcorr}, \code{vcov_re}, \code{residual_var}, and \code{re_rank} (named logical
 #'   vector: \code{TRUE} if \code{Z_j} is full column rank for that group).
 #' @seealso \code{\link{extract_re_hyper_matrices}},
 #'   \code{\link{lmerb_default_vcov_formula}},
@@ -134,16 +135,14 @@ model_setup <- function(
   design$formula <- formula
   design$family  <- family
 
-  if (is.null(vcov_formula)) {
-    vcov_formula <- lmerb_default_vcov_formula(
-      formula = formula,
-      data = data,
-      ...
+  if (!is.null(vcov_formula)) {
+    warning(
+      "'vcov_formula' is deprecated and ignored; variance components use ",
+      "the full 'formula' reference fit.",
+      call. = FALSE
     )
-  } else {
-    .lmebayes_validate_uncorrelated_re_formula(vcov_formula, data = data, ...)
   }
-  design$vcov_formula <- vcov_formula
+  design$vcov_formula <- formula
 
   if (isTRUE(fit_mer)) {
     mer_args <- c(
@@ -168,39 +167,31 @@ model_setup <- function(
         lme4::lmer,
         c(list(formula = formula, REML = REML, devFunOnly = devFunOnly), mer_args)
       )
-      fit_vcov <- do.call(
-        lme4::lmer,
-        c(list(formula = vcov_formula, REML = REML, devFunOnly = devFunOnly), mer_args)
-      )
     } else {
       fit_full <- do.call(
         lme4::glmer,
         c(list(formula = formula, family = family), mer_args)
       )
-      fit_vcov <- do.call(
-        lme4::glmer,
-        c(list(formula = vcov_formula, family = family), mer_args)
-      )
     }
 
-    if (lme4::isSingular(fit_vcov)) {
+    if (lme4::isSingular(fit_full)) {
       message(
         if (is_gaussian) "lmer" else "glmer",
-        " vcov fit is singular -- check VarCorr; ",
+        " reference fit is singular -- check VarCorr; ",
         "RE variances may be on boundary."
       )
     }
 
     vc <- extract_mer_variance_components(
-      fit_vcov,
+      fit_full,
       design$re_coef_names
     )
     if (is_gaussian) {
       design$lmer_fit <- fit_full
-      design$lmer_vcov_fit <- fit_vcov
+      design$lmer_vcov_fit <- fit_full
     } else {
       design$glmer_fit <- fit_full
-      design$glmer_vcov_fit <- fit_vcov
+      design$glmer_vcov_fit <- fit_full
     }
     design$varcorr <- vc$varcorr
     design$vcov_re <- vc$vcov_re

@@ -71,10 +71,12 @@ any Block~2 component uses \code{dIndependent_Normal_Gamma} and
 (default \code{1.0}).  Ignored for all-\code{dNormal} models.}
 
 \item{diag_sweeps}{Temporary diagnostic flag for ING Block~2 models with a
-pilot stage.  When \code{TRUE}, print one combined Block~2 chain-mean table
+pilot stage.  Sampling uses
+\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}} regardless of this
+flag.  When \code{TRUE}, auto-print one combined Block~2 chain-mean table
 per stage when each stage finishes (as \code{print()} on
-\code{$sweep_history}) and attach sweep history on the fit.
-the result.  Default \code{FALSE}.}
+\code{$sweep_history}); \code{sweep_history} is always stored on the fit.
+Default \code{FALSE}.}
 }
 \value{
 An object of class \code{c("rlmerb", "list")} with Block~2 fields in

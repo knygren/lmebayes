@@ -25,12 +25,13 @@ model_setup(
 }
 \arguments{
 \item{formula}{Mixed-model formula for design extraction and the reference
-\code{lmer}/\code{glmer} fit (fixed effects / hyper calibration).}
+\code{lmer}/\code{glmer} fit (fixed effects, hyper calibration, and
+variance components).}
 
 \item{data}{Optional data frame.}
 
-\item{vcov_formula}{Optional formula for the reference fit used to extract
-\code{vcov_re}. Defaults to \code{\link{lmerb_default_vcov_formula}(formula)}.}
+\item{vcov_formula}{Ignored (deprecated). Variance components are taken from
+the full \code{formula} fit so \code{lmer} reference output is consistent.}
 
 \item{family}{A \code{\link[stats]{family}} object. Defaults to
 \code{gaussian()}, in which case \code{\link[lme4]{lmer}} is used.
@@ -63,19 +64,19 @@ reference \code{lmer}/\code{glmer} fit.}
 \value{
 Object of class \code{"model_setup"}: \code{y}, \code{Z},
 \code{groups}, \code{X_hyper}, \code{formula}, \code{family},
-\code{vcov_formula}, \code{lmer_fit} / \code{glmer_fit} (full formula),
-matching \code{lmer_vcov_fit} / \code{glmer_vcov_fit}, \code{varcorr},
-\code{vcov_re}, \code{residual_var}, and \code{re_rank} (named logical
+\code{vcov_formula} (deprecated alias of \code{formula}),
+\code{lmer_fit} / \code{glmer_fit}, \code{lmer_vcov_fit} /
+\code{glmer_vcov_fit} (same object as the full-formula fit),
+\code{varcorr}, \code{vcov_re}, \code{residual_var}, and \code{re_rank} (named logical
 vector: \code{TRUE} if \code{Z_j} is full column rank for that group).
 }
 \description{
 Wrapper around \code{\link[lme4]{lmer}} or \code{\link[lme4]{glmer}} for
 models with exactly one grouping factor. Design matrices come from
-\code{formula} (including cross-level RE moderation terms). Variance
-components use \code{vcov_formula} (defaults to
-\code{\link{lmerb_default_vcov_formula}}): level-2 fixed only, same
-\code{||} random structure as \code{formula}, without cross-level fixed
-interactions (so RE moderation is not double-coded).
+\code{formula} (including cross-level RE moderation terms). Random-effect
+and residual variance components (\code{vcov_re}, \code{residual_var}) come
+from the same reference \code{lmer}/\code{glmer} fit on \code{formula}, so
+printed summaries match \code{summary(lmer(...))} on that formula.
 }
 \details{
 \strong{Uncorrelated random effects (\code{||}).}

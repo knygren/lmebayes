@@ -255,10 +255,12 @@ cat("6. glmerb gaussian ING path: OK\n")
 ## 7. summary() prints the tau^2 table without error.
 s_ing <- summary(fit_ing)
 stopifnot(
-  !is.null(s_ing$tau2),
-  identical(rownames(s_ing$tau2), re_names),
-  all(s_ing$tau2$prior == "ING"),
-  all(is.finite(s_ing$tau2$Post.Mean))
+  !is.null(s_ing$tau2_prior_overview),
+  identical(rownames(s_ing$tau2_prior_overview), re_names),
+  all(is.finite(s_ing$tau2_prior_overview[, "E[tau2]"])),
+  "lmer SD" %in% colnames(s_ing$tau2_prior_overview),
+  all(is.finite(s_ing$tau2_overview$`Mean SD`)),
+  all(is.finite(s_ing$tau2_overview$`Post.Mean`))
 )
 invisible(capture.output(print(s_ing)))
 cat("7. summary tau^2 table: OK\n")

@@ -171,14 +171,13 @@ RE variances from the full reference fit.  By default the global intercept
 prior mean comes from a random-intercept-only null fit; all other prior
 means are zero (\code{effects_source = "null_effects"}).  This requires:
 \enumerate{
-\item Converged reference \code{lmer}/\code{glmer} fits from
-\code{\link{model_setup}} (full formula and \code{vcov_formula}, and
-a random-intercept-only null fit when \code{intercept_source =
-    "null_model"}).
+\item Converged reference \code{lmer}/\code{glmer} fit from
+\code{\link{model_setup}} on the full formula (and a random-intercept-only
+null fit when \code{intercept_source = "null_model"}).
 Fits with \code{lme4} \code{checkConv} failures (e.g.\ large
 \code{max|grad|}) are rejected.
 \item Every \code{X_hyper[[k]]} column maps to a \code{fixef(fit_ref)} term.
-\item Each RE variance \eqn{\tau^2_k} from \code{fit_ref} is strictly positive.
+\item Each RE variance \eqn{\tau^2_k} from the reference fit is strictly positive.
 }
 }
 \seealso{

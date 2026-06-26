@@ -9,6 +9,9 @@
 if (!requireNamespace("bayesrules", quietly = TRUE)) {
   stop("This demo requires the 'bayesrules' package.", call. = FALSE)
 }
+if (!requireNamespace("lme4", quietly = TRUE)) {
+  stop("This demo requires the 'lme4' package.", call. = FALSE)
+}
 
 data(big_word_club, package = "bayesrules")
 dat <- big_word_club
@@ -29,13 +32,17 @@ print(ps)
 
 pf <- pfamily_list(ps, ptypes = "dIndependent_Normal_Gamma")
 
+cat("\n=== lmer reference fit ===\n\n")
+fit_lmer <- lme4::lmer(form, data = dat, REML = TRUE)
+print(summary(fit_lmer))
+
 ## gap_tol = 0.05 => n_pilot ~ 16 (legacy Hotelling bound); main n = 500.
 fit <- lmerb(
   form,
   data             = dat,
   pfamily_list     = pf,
   dispersion_ranef = ps$dispersion_ranef,
-  n                = 1000L,
+  n                = 10000L,
   gap_tol          = 0.05,
   mode_gap_max     = 1.0
 )
@@ -46,8 +53,16 @@ stopifnot(fit$pilot_chisq$n_pilot > 0L)
 stopifnot(identical(fit$pilot_chisq$n_pilot, fit$convergence$n_pilot))
 stopifnot(is.finite(fit$pilot_chisq$p_value))
 
-cat("\n=== summary(fit) ===\n\n")
+cat("\n=== summary(lmerb fit) ===\n\n")
 print(summary(fit))
+
+stopifnot(!is.null(fit$sweep_history))
+stopifnot(!is.null(fit$sweep_history$pilot))
+stopifnot(!is.null(fit$sweep_history$main))
+
+cat("\n=== Block~2 sweep summaries (pilot, then main) ===\n\n")
+print(fit$sweep_history$pilot)
+print(fit$sweep_history$main)
 
 re_names <- fit$model_setup$re_coef_names
 pr_int   <- pf[["(Intercept)"]]$prior_list

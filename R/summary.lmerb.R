@@ -26,12 +26,14 @@
 #'   returned object),
 #'   \code{ranef_overview}, \code{ranef.iters.mean} (Block~1 envelope candidates
 #'   per inner sweep, averaged over groups; printed separately from the overview
-#'   table), \code{any_non_normal}, \code{tau2} (per-component Block~2 dispersion
-#'   prior type, plug-in value, posterior mean / SD / quantiles from
-#'   \code{fixef.dispersion} for sampled ING components, and \code{Cand/draw},
-#'   the average number of Block~2 candidates per accepted draw from
-#'   \code{fixef.iters.mean} -- 1 for \code{dNormal}, roughly the reciprocal
-#'   acceptance rate of the envelope sampler for ING), and optionally
+#'   table), \code{any_non_normal}, \code{tau2_prior_overview} (per-component
+#'   \eqn{\tau^2_k} prior reference: Block~2 \code{pfamily} name (\code{Prior}),
+#'   \eqn{1/E[1/\tau^2]}, \eqn{E[\tau^2]}, truncation window,
+#'   \code{sqrt(E[tau2])}, and \code{lmer}/\code{glmer} MLE),
+#'   \code{tau2_overview} and \code{tau2_percentiles_overview} (posterior mode,
+#'   mean, SD on the variance scale, \code{Mean SD}, and tau^2 quantiles when
+#'   simulated), \code{tau2_sd_percentiles_overview} (2.5\%/median/97.5\% of
+#'   sqrt(tau^2) draws vs \code{lmer}/\code{glmer SD}), and optionally
 #'   \code{ranef_groups}.
 #' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
 #'   \code{\link[glmbayes]{summary.glmb}}, \code{\link[glmbayes]{summary.mlmb}}
@@ -75,7 +77,16 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     ranef_overview = .lmerb_ranef_overview(object, simulated = simulated),
     any_non_normal = isTRUE(object$any_non_normal) ||
       isTRUE(object$prior$any_non_normal),
-    tau2          = .lmerb_tau2_summary(object, simulated = simulated),
+    tau2_prior_overview       = .lmerb_tau2_prior_overview(object),
+    tau2_overview             = .lmerb_tau2_posterior_overview(
+      object, simulated = simulated, n_draws = n_draws
+    ),
+    tau2_percentiles_overview = .lmerb_tau2_percentiles_overview(
+      object, simulated = simulated
+    ),
+    tau2_sd_percentiles_overview = .lmerb_tau2_sd_percentiles_overview(
+      object, simulated = simulated
+    ),
     ranef.iters.mean = if (simulated) object$ranef.iters.mean else NULL
   )
 
@@ -127,12 +138,43 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     x$n_obs, x$group_name, x$n_groups
   ))
 
-  if (!is.null(x$tau2)) {
-    cat("Block 2 dispersion (RE variance tau^2_k):\n\n")
-    t2 <- x$tau2
-    num_cols <- vapply(t2, is.numeric, logical(1L))
-    t2[num_cols] <- lapply(t2[num_cols], round, digits = digits)
-    print(t2)
+  if (!is.null(x$tau2_prior_overview) && nrow(x$tau2_prior_overview) > 0L) {
+    cat("=== Block 2 dispersion (RE variance tau^2_k) ===\n\n")
+    cat(sprintf("Prior and %s reference:\n\n", mer_label))
+    .lmerb_print_summary_table(x$tau2_prior_overview, digits = digits)
+    if (!is.null(x$tau2_overview) && nrow(x$tau2_overview) > 0L) {
+      cat("\nOverview:\n")
+      stats::printCoefmat(
+        round(x$tau2_overview, digits = digits),
+        digits = digits,
+        quote = FALSE
+      )
+    }
+    if (isTRUE(x$simulated)) {
+      if (!is.null(x$tau2_percentiles_overview) &&
+          nrow(x$tau2_percentiles_overview) > 0L) {
+        cat("\nDistribution percentiles (tau^2):\n\n")
+        stats::printCoefmat(
+          round(x$tau2_percentiles_overview, digits = digits),
+          digits = digits,
+          quote = FALSE
+        )
+      }
+      if (!is.null(x$tau2_sd_percentiles_overview) &&
+          nrow(x$tau2_sd_percentiles_overview) > 0L) {
+        cat(sprintf(
+          "\nSD credible interval (sqrt(tau^2) draws; %s SD for reference):\n\n",
+          mer_label
+        ))
+        stats::printCoefmat(
+          round(x$tau2_sd_percentiles_overview, digits = digits),
+          digits = digits,
+          quote = FALSE
+        )
+      }
+    } else {
+      cat("\n  (Run with simulate = TRUE for MCMC means, SDs, and percentiles.)\n")
+    }
     cat("\n")
   }
 
@@ -195,6 +237,18 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+#' @keywords internal
+.lmerb_print_summary_table <- function(tab, digits) {
+  if (is.null(tab) || nrow(tab) == 0L) {
+    return(invisible(tab))
+  }
+  out <- tab
+  num_cols <- vapply(out, is.numeric, logical(1L))
+  out[num_cols] <- lapply(out[num_cols], round, digits = digits)
+  print(out, right = TRUE)
+  invisible(out)
+}
 
 #' @keywords internal
 .lmerb_lmer_fixef_lookup <- function(lmer_fit, re_name, par_name) {
@@ -394,49 +448,238 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   do.call(rbind, rows_list)
 }
 
-## Per-component tau^2 summary: prior type and plug-in value always; posterior
-## mean/SD/quantiles from fixef.dispersion and average candidates per accepted
-## Block 2 draw (fixef.iters.mean) for sampled fits.
+## Per-component tau^2 prior reference table.
 #' @keywords internal
-.lmerb_tau2_summary <- function(object, simulated) {
+.lmerb_tau2_prior_overview <- function(object) {
 
   ptypes <- object$prior$ptypes
   if (is.null(ptypes)) {
     return(NULL)
   }
-  re_names <- object$model_setup$re_coef_names
 
-  tab <- data.frame(
-    prior = unname(vapply(re_names, function(k) {
-      if (identical(ptypes[[k]], "dIndependent_Normal_Gamma")) "ING" else "dNormal"
-    }, character(1L))),
-    tau2.plugin = unname(vapply(re_names, function(k) {
-      if (identical(ptypes[[k]], "dIndependent_Normal_Gamma")) {
-        as.numeric(object$prior$pfamily_list[[k]]$prior_list$disp_lower)
-      } else {
-        as.numeric(object$prior$prior_list[[k]]$dispersion_fixef)
-      }
-    }, numeric(1L))),
-    row.names = re_names,
-    stringsAsFactors = FALSE
+  re_names  <- object$model_setup$re_coef_names
+  mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
+  mer_vc    <- tryCatch(
+    extract_mer_variance_components(
+      .lmerb_reference_fit(object),
+      re_coef_names = re_names
+    ),
+    error = function(e) NULL
   )
+  vcov_re <- if (!is.null(mer_vc)) mer_vc$vcov_re else object$model_setup$vcov_re
+
+  tab <- do.call(rbind, lapply(re_names, function(k) {
+    ptype <- ptypes[[k]]
+    pf    <- object$prior$pfamily_list[[k]]
+    pl    <- if (!is.null(pf)) pf$prior_list else object$prior$prior_list[[k]]
+    prior_label <- as.character(ptype)
+    mer_tau2 <- if (!is.null(vcov_re) && k %in% names(vcov_re)) {
+      unname(vcov_re[[k]])
+    } else {
+      NA_real_
+    }
+    mer_sd <- if (is.finite(mer_tau2) && mer_tau2 >= 0) {
+      sqrt(mer_tau2)
+    } else {
+      NA_real_
+    }
+
+    if (identical(ptype, "dIndependent_Normal_Gamma")) {
+      shape <- as.numeric(pl$shape[1L])
+      rate  <- as.numeric(pl$rate[1L])
+      inv_E <- if (is.finite(shape) && shape > 0 &&
+                    is.finite(rate) && rate > 0) {
+        rate / shape
+      } else {
+        NA_real_
+      }
+      E_tau2 <- if (is.finite(shape) && shape > 1 &&
+                     is.finite(rate) && rate > 0) {
+        rate / (shape - 1)
+      } else {
+        NA_real_
+      }
+      d_lo <- suppressWarnings(as.numeric(pl$disp_lower))
+      d_hi <- suppressWarnings(as.numeric(pl$disp_upper))
+      if (!is.finite(d_lo)) d_lo <- NA_real_
+      if (!is.finite(d_hi)) d_hi <- NA_real_
+    } else {
+      d <- as.numeric(object$prior$prior_list[[k]]$dispersion_fixef)
+      inv_E <- E_tau2 <- d
+      d_lo <- d_hi <- NA_real_
+    }
+
+    sqrt_E_tau2 <- if (is.finite(E_tau2) && E_tau2 >= 0) {
+      sqrt(E_tau2)
+    } else {
+      NA_real_
+    }
+
+    df <- data.frame(
+      Prior           = prior_label,
+      `1/E[1/tau2]`   = inv_E,
+      `E[tau2]`       = E_tau2,
+      `sqrt(E[tau2])` = sqrt_E_tau2,
+      disp_lower      = d_lo,
+      disp_upper      = d_hi,
+      check.names     = FALSE,
+      stringsAsFactors = FALSE
+    )
+    df[[mer_label]] <- mer_tau2
+    df[[paste0(mer_label, " SD")]] <- mer_sd
+    df
+  }))
+
+  rownames(tab) <- re_names
+  tab
+}
+
+## Per-component tau^2 posterior overview (mode at plug-in / fixed value;
+## MCMC mean, SD, tail probability vs E[tau2], envelope candidates).
+#' @keywords internal
+.lmerb_tau2_posterior_overview <- function(object, simulated, n_draws) {
+
+  ptypes <- object$prior$ptypes
+  if (is.null(ptypes)) {
+    return(NULL)
+  }
+
+  re_names <- object$model_setup$re_coef_names
+  prior_tab <- .lmerb_tau2_prior_overview(object)
+  if (is.null(prior_tab)) {
+    return(NULL)
+  }
+
+  post_mode <- vapply(re_names, function(k) {
+    as.numeric(object$prior$prior_list[[k]]$dispersion_fixef)
+  }, numeric(1))
+
+  if (!simulated) {
+    out <- cbind(`Post.Mode` = post_mode)
+    rownames(out) <- re_names
+    return(out)
+  }
 
   td <- object$fixef.dispersion
-  if (simulated && !is.null(td)) {
-    tab$Post.Mean <- colMeans(td)[re_names]
-    tab$Post.Sd   <- apply(td[, re_names, drop = FALSE], 2L, stats::sd)
-    qs <- t(apply(td[, re_names, drop = FALSE], 2L, stats::quantile,
-                  probs = c(0.025, 0.5, 0.975)))
-    tab$`2.5%`  <- qs[, 1L]
-    tab$Median  <- qs[, 2L]
-    tab$`97.5%` <- qs[, 3L]
-  }
-  ## Average envelope candidates per accepted Block 2 draw (1 for dNormal;
-  ## ~1/acceptance-rate for ING): sampler-efficiency diagnostic.
-  if (simulated && !is.null(object$fixef.iters.mean)) {
-    tab$`Cand/draw` <- unname(object$fixef.iters.mean[re_names])
+  if (is.null(td)) {
+    out <- cbind(`Post.Mode` = post_mode)
+    rownames(out) <- re_names
+    return(out)
   }
 
+  post_mean <- colMeans(td)[re_names]
+  post_sd   <- apply(td[, re_names, drop = FALSE], 2L, stats::sd)
+  mean_sd   <- vapply(re_names, function(k) {
+    mean(sqrt(td[, k]))
+  }, numeric(1))
+  mc_err    <- if (!is.null(n_draws) && n_draws > 0L) {
+    post_sd / sqrt(n_draws)
+  } else {
+    rep(NA_real_, length(re_names))
+  }
+
+  E_prior <- prior_tab[re_names, "E[tau2]", drop = TRUE]
+  pval2 <- vapply(seq_along(re_names), function(j) {
+    k <- re_names[j]
+    if (identical(ptypes[[k]], "dNormal")) {
+      return(NA_real_)
+    }
+    p1 <- mean(td[, k] < E_prior[j])
+    min(p1, 1 - p1)
+  }, numeric(1))
+
+  out <- cbind(
+    `Post.Mode`      = post_mode,
+    `Post.Mean`      = post_mean,
+    `Post.Sd`        = post_sd,
+    `MC Error`       = mc_err,
+    `Mean SD`        = mean_sd,
+    `Pr(Prior_tail)` = pval2
+  )
+
+  if (!is.null(object$fixef.iters.mean)) {
+    out <- cbind(out, `Cand/draw` = unname(object$fixef.iters.mean[re_names]))
+  }
+
+  rownames(out) <- re_names
+  out
+}
+
+## Per-component tau^2 posterior percentiles from fixef.dispersion draws.
+#' @keywords internal
+.lmerb_tau2_percentiles_overview <- function(object, simulated) {
+
+  if (!simulated) {
+    return(NULL)
+  }
+
+  ptypes <- object$prior$ptypes
+  if (is.null(ptypes)) {
+    return(NULL)
+  }
+
+  re_names <- object$model_setup$re_coef_names
+  td <- object$fixef.dispersion
+  if (is.null(td)) {
+    return(NULL)
+  }
+
+  percentiles <- t(apply(td[, re_names, drop = FALSE], 2L, stats::quantile,
+    probs = c(0.01, 0.025, 0.05, 0.5, 0.95, 0.975, 0.99)
+  ))
+  tab <- cbind(
+    `1.0%`   = percentiles[, 1L],
+    `2.5%`   = percentiles[, 2L],
+    `5.0%`   = percentiles[, 3L],
+    Median   = percentiles[, 4L],
+    `95.0%`  = percentiles[, 5L],
+    `97.5%`  = percentiles[, 6L],
+    `99.0%`  = percentiles[, 7L]
+  )
+  rownames(tab) <- re_names
+  tab
+}
+
+## Per-component SD (sqrt(tau^2)) posterior percentiles from fixef.dispersion draws.
+#' @keywords internal
+.lmerb_tau2_sd_percentiles_overview <- function(object, simulated) {
+
+  if (!simulated) {
+    return(NULL)
+  }
+
+  ptypes <- object$prior$ptypes
+  if (is.null(ptypes)) {
+    return(NULL)
+  }
+
+  re_names <- object$model_setup$re_coef_names
+  td <- object$fixef.dispersion
+  if (is.null(td)) {
+    return(NULL)
+  }
+
+  prior_tab <- .lmerb_tau2_prior_overview(object)
+  mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
+  mer_sd_col <- paste0(mer_label, " SD")
+  mer_sd <- if (!is.null(prior_tab) && mer_sd_col %in% colnames(prior_tab)) {
+    prior_tab[re_names, mer_sd_col, drop = TRUE]
+  } else {
+    rep(NA_real_, length(re_names))
+  }
+
+  sd_draws <- sqrt(td[, re_names, drop = FALSE])
+  percentiles <- t(apply(sd_draws, 2L, stats::quantile,
+    probs = c(0.025, 0.5, 0.975)
+  ))
+  tab <- cbind(
+    `2.5%`  = percentiles[, 1L],
+    Median  = percentiles[, 2L],
+    `97.5%` = percentiles[, 3L]
+  )
+  tab <- cbind(tab, mer_sd)
+  colnames(tab)[ncol(tab)] <- mer_sd_col
+  rownames(tab) <- re_names
   tab
 }
 
