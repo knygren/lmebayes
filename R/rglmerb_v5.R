@@ -65,23 +65,25 @@ rglmerb_v5 <- function(
     m_convergence_pilot <- as.integer(m_convergence_pilot)
   }
 
-  n_pilot_int <- if (is.null(n_pilot) || identical(n_pilot, 0L) ||
-                     identical(n_pilot, 0)) {
-    0L
-  } else {
-    as.integer(n_pilot[1L])
-  }
-  n_pilot_source <- if (n_pilot_int > 0L) "explicit" else "none"
+  m_convergence_user <- m_convergence
+  n_pilot_arg        <- n_pilot
+  any_non_normal     <- isTRUE(prior$any_non_normal)
+  is_gaussian        <- identical(family$family, "gaussian")
 
-  if (!is.null(gap_tol) && identical(n_pilot_int, 0L) && is.null(n_pilot)) {
-    if (!is.numeric(gap_tol) || length(gap_tol) != 1L ||
-        !is.finite(gap_tol) || gap_tol <= 0) {
-      stop("'gap_tol' must be NULL or a single positive finite number.",
-           call. = FALSE)
-    }
-  }
+  will_pilot <- glmbayesCore:::.two_block_pilot_will_run(
+    is_gaussian    = is_gaussian,
+    n_pilot_arg    = n_pilot_arg,
+    gap_tol        = gap_tol,
+    tv_tol         = tv_tol,
+    any_non_normal = any_non_normal
+  )
+  run_pilot <- will_pilot
 
-  run_pilot <- n_pilot_int > 0L
+  if (run_pilot && is.null(m_convergence_pilot) && is.null(tv_tol)) {
+    m_convergence_pilot <- 10L
+  } else if (run_pilot && !is.null(m_convergence_pilot)) {
+    m_convergence_pilot <- as.integer(m_convergence_pilot[1L])
+  }
 
   if (!is.null(mode_gap_max)) {
     if (!is.numeric(mode_gap_max) || length(mode_gap_max) != 1L ||
@@ -93,7 +95,6 @@ rglmerb_v5 <- function(
 
   re_names     <- design$re_coef_names
   group_levels <- levels(design$groups)
-  is_gaussian  <- identical(family$family, "gaussian")
 
   ranef_mode <- NULL
   if (is.null(fixef_start)) {
@@ -164,69 +165,44 @@ rglmerb_v5 <- function(
     )
   }
 
-  m_min <- glmbayesCore::two_block_l_for_tv(rate, tv_tol, method = "theorem3") + 1L
+  m_min <- glmbayesCore::two_block_l_for_tv(
+    rate, tv_tol, method = "theorem3"
+  ) + 1L
 
   p_dim            <- sum(vapply(fixef_start, length, integer(1L)))
   D_max            <- if (!is.null(mode_gap_max)) sqrt(p_dim) * mode_gap_max else 0
   m_pilot_from_gap <- NULL
-  m_convergence_pilot_plan <- m_convergence_pilot
 
-  if (is.null(m_convergence_pilot_plan) && !is.null(mode_gap_max) && !is.null(tv_tol)) {
-    erf1_inv_tv      <- stats::qnorm((tv_tol + 1) / 2) / sqrt(2)
-    c_tol            <- erf1_inv_tv * 2 * sqrt(2)
+  if (run_pilot && is.null(m_convergence_pilot) && !is.null(tv_tol)) {
+    erf1_inv_tv <- stats::qnorm((tv_tol + 1) / 2) / sqrt(2)
+    c_tol       <- erf1_inv_tv * 2 * sqrt(2)
     m_pilot_from_gap <- if (D_max <= c_tol || rate$lambda_star <= 0) {
       m_min
     } else {
       as.integer(ceiling(log(D_max / c_tol) / log(1 / rate$lambda_star)))
     }
-    m_convergence_pilot_plan <- max(m_min, m_pilot_from_gap)
+    m_convergence_pilot <- max(m_min, m_pilot_from_gap)
   }
 
-  if (identical(n_pilot_int, 0L) && is.null(n_pilot)) {
-    if (!is.null(tv_tol) && !is.null(m_convergence_pilot_plan)) {
-      pilot_cost_opt <- glmbayesCore::two_block_optimize_pilot_cost(
-        n                   = n,
-        rate                = rate,
-        tv_tol              = tv_tol,
-        m_convergence_pilot = m_convergence_pilot_plan,
-        p                   = p_dim
-      )
-      n_pilot_int <- pilot_cost_opt$n_pilot_opt
-      n_pilot_source <- "cost"
-      if (is.null(m_convergence)) {
-        m_convergence <- pilot_cost_opt$m_convergence_opt
-      }
-    } else if (!is.null(gap_tol)) {
-      n_pilot_int <- as.integer(ceiling((stats::qnorm(0.975) / gap_tol)^2))
-      n_pilot_source <- "gap_tol"
-    }
-  }
-
-  run_pilot <- n_pilot_int > 0L
-
-  if (run_pilot && is.null(m_convergence_pilot)) {
-    m_convergence_pilot <- if (!is.null(m_convergence)) {
-      m_convergence
-    } else if (!is.null(m_convergence_pilot_plan)) {
-      m_convergence_pilot_plan
-    } else if (!is.null(tv_tol)) {
-      m_min
-    } else {
-      10L
-    }
-  }
-
-  if (is.null(m_convergence)) {
-    m_convergence <- m_min
-  } else if (m_convergence < m_min) {
-    warning(
-      "rglmerb_v5: m_convergence = ", m_convergence, " is below the derived ",
-      "minimum m_min = ", m_min, " for tv_tol = ", tv_tol,
-      "; using m_min instead.",
-      call. = FALSE
-    )
-    m_convergence <- m_min
-  }
+  pilot_plan <- glmbayesCore:::.two_block_resolve_pilot_plan(
+    is_gaussian         = is_gaussian,
+    n                   = n,
+    n_pilot_arg         = n_pilot_arg,
+    gap_tol             = gap_tol,
+    tv_tol              = tv_tol,
+    m_convergence_user  = m_convergence_user,
+    m_convergence_pilot = m_convergence_pilot,
+    rate                = rate,
+    p_dim               = p_dim,
+    m_min               = m_min,
+    any_non_normal      = any_non_normal
+  )
+  n_pilot_int    <- pilot_plan$n_pilot
+  n_pilot_source <- pilot_plan$n_pilot_source
+  m_convergence  <- pilot_plan$m_convergence
+  pilot_cost_opt <- pilot_plan$pilot_cost_opt
+  m_certificate  <- pilot_plan$m_certificate
+  run_pilot      <- n_pilot_int > 0L
 
   calib_label <- if (is_gaussian) {
     "exact (Gaussian posterior)"
@@ -239,14 +215,33 @@ rglmerb_v5 <- function(
 
   if (verbose) {
     cat(sprintf(
-      "--- glmerb: convergence calibration [%s]:\n    lambda* = %.4f, tv_tol = %g => m_min = %d, using m_convergence = %d ---\n\n",
+      paste0(
+        "--- glmerb: convergence calibration [%s]:\n",
+        "    lambda* = %.4f, tv_tol = %g => m_min = %d (mode start), ",
+        "main m_convergence = %d ---\n\n"
+      ),
       calib_label, rate$lambda_star, tv_tol, m_min, m_convergence
     ))
     if (run_pilot && !is.null(mode_gap_max) && !is.null(m_pilot_from_gap)) {
       cat(sprintf(
-        "--- glmerb: pilot sweep calibration [mode_gap_max = %g SD/dim, p = %d, D_max = %.4f]:\n    m_min = %d, lambda* = %.4f => m_convergence_pilot = %d ---\n\n",
+        paste0(
+          "--- glmerb: pilot sweep calibration ",
+          "[mode_gap_max = %g SD/dim, p = %d, D_max = %.4f]:\n",
+          "    m_min = %d, lambda* = %.4f => m_convergence_pilot = %d ---\n\n"
+        ),
         mode_gap_max, p_dim, D_max, m_min, rate$lambda_star, m_convergence_pilot
       ))
+    }
+    if (run_pilot) {
+      glmbayesCore:::.two_block_print_pilot_plan(
+        pilot_plan          = pilot_plan,
+        n                   = n,
+        m_convergence_pilot = m_convergence_pilot,
+        rate                = rate,
+        tv_tol              = tv_tol,
+        p                   = p_dim,
+        verbose             = verbose
+      )
     }
   }
 
@@ -266,6 +261,8 @@ rglmerb_v5 <- function(
     m_min               = m_min,
     m_convergence       = m_convergence,
     m_convergence_pilot = if (run_pilot) m_convergence_pilot else NULL,
+    m_certificate       = if (run_pilot) m_certificate else NULL,
+    pilot_cost_opt      = pilot_cost_opt,
     mode_gap_max        = if (run_pilot) mode_gap_max else NULL,
     m_pilot_from_gap    = if (run_pilot) m_pilot_from_gap else NULL,
     draw_engine         = "two_block_rNormal_reg_v5"
@@ -293,7 +290,6 @@ rglmerb_v5 <- function(
       family         = family,
       re_names       = re_names,
       group_levels   = group_levels,
-      seed_offset    = 0L,
       collect_block1 = TRUE,
       progbar        = progbar,
       stage_label    = "pilot",
@@ -443,7 +439,6 @@ rglmerb_v5 <- function(
     family         = family,
     re_names       = re_names,
     group_levels   = group_levels,
-    seed_offset    = if (run_pilot) n_pilot_int else 0L,
     collect_block1 = collect_block1,
     progbar        = progbar,
     stage_label    = "main",

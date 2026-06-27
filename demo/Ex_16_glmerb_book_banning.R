@@ -11,6 +11,10 @@
 ## (violent_i) and a random slope on violent_i, and compares the classical
 ## glmer fit for the Ch. 18 random-intercept formula.
 ##
+## After fitting:
+##   print(fit, sweep_history = TRUE, max_sweeps = 5)
+##   plot_sweep_history_diag(fit$sweep_history$main, coef_focus, what = "mean")
+##
 ##   demo("Ex_16_glmerb_book_banning", package = "lmebayes")
 
 if (!requireNamespace("bayesrules", quietly = TRUE)) {
@@ -41,7 +45,7 @@ fit <- glmerb(
   data         = dat,
   family       = binomial(),
   pfamily_list = pfamily_list(ps),
-  n            = 1000L,
+  n            = 3000L,
   mode_gap_max = 1.0,
   progbar = TRUE
 )
@@ -60,3 +64,13 @@ print(lme4::fixef(fit_book))
 lmebayes:::print_coef_means(fit)
 print(fit)
 summary(fit)
+
+coef_focus <- list(
+  c("(Intercept)", "(Intercept)"),
+  c("violent_i", "(Intercept)")
+)
+
+for (st in list(fit$sweep_history$pilot, fit$sweep_history$main)) {
+  if (is.null(st)) next
+  plot_sweep_history_diag(st, coef_focus)
+}

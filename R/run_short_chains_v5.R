@@ -13,7 +13,9 @@
 #' @param family Response \code{\link[stats]{family}}.
 #' @param re_names Random-effect coefficient names.
 #' @param group_levels Factor levels for the grouping variable.
-#' @param seed_offset Passed to the v5 C++ driver (internal; not for reproducibility).
+#' @param seed Base RNG seed for the v5 C++ driver (see
+#'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v5}}).
+#' @param seed_offset Passed to the v5 C++ driver (offsets per-chain reseeds).
 #' @param collect_block1 If \code{TRUE}, row-bind Block~1 coefficient draws.
 #' @param progbar Show per-sweep progress bars.
 #' @param stage_label Stage label stored on \code{$sweep_history} (e.g. \code{"pilot"}).
@@ -34,6 +36,7 @@ run_short_chains_v5 <- function(
     family,
     re_names,
     group_levels,
+    seed = NULL,
     seed_offset = 0L,
     collect_block1 = TRUE,
     progbar = FALSE,
@@ -57,6 +60,8 @@ run_short_chains_v5 <- function(
     family            = family,
     m_convergence     = inner_sweeps,
     collect_block1    = collect_block1,
+    use_parallel      = FALSE,
+    seed              = seed,
     seed_offset       = seed_offset,
     progbar           = progbar,
     stage_label       = stage_label,

@@ -14,6 +14,7 @@ run_short_chains_v5(
   family,
   re_names,
   group_levels,
+  seed = NULL,
   seed_offset = 0L,
   collect_block1 = TRUE,
   progbar = FALSE,
@@ -42,7 +43,10 @@ run_short_chains_v5(
 
 \item{group_levels}{Factor levels for the grouping variable.}
 
-\item{seed_offset}{Passed to the v5 C++ driver (internal; not for reproducibility).}
+\item{seed}{Base RNG seed for the v5 C++ driver (see
+\code{\link[glmbayesCore]{two_block_rNormal_reg_v5}}).}
+
+\item{seed_offset}{Passed to the v5 C++ driver (offsets per-chain reseeds).}
 
 \item{collect_block1}{If \code{TRUE}, row-bind Block~1 coefficient draws.}
 
