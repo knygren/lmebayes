@@ -22,3 +22,4 @@ Ex_18_glmerb_book_banning_all_reasons glmerb binomial on book_banning with all s
 Ex_19_glmerb_book_banning_state_covariates glmerb binomial on book_banning with state covariates as intercept-only RE predictors
 Ex_20_lmerb_ING_pilot         lmerb Gaussian ING priors with pilot/main two-stage sampling (big_word_club, simple model)
 Ex_21_lmerb_ING_BigWordClub   lmerb Gaussian ING + pilot on full big_word_club (random slopes; cross-level moderation)
+Ex_22_glmerb_book_banning_ING glmerb binomial on book_banning with ING Block~2 priors (Ex_16 + dIndependent_Normal_Gamma)
