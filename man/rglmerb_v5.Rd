@@ -21,24 +21,57 @@ rglmerb_v5(
   progbar = FALSE
 )
 }
+\arguments{
+\item{n}{Integer. Number of independent chains in the main stage.}
+
+\item{design}{A \code{\link{model_setup}} object.}
+
+\item{prior}{A \code{lmebayes_prior_setup} object.}
+
+\item{family}{A \code{\link[stats]{family}} object. Default \code{poisson()}.}
+
+\item{fixef_start}{Optional named list of Block~2 starting vectors. When
+\code{NULL}, the ICM start is computed inside the Core engine
+(\code{\link[glmbayesCore]{lmerb_posterior_mean}} for Gaussian,
+\code{\link[glmbayesCore]{glmerb_posterior_mode}} otherwise).}
+
+\item{m_convergence}{Optional integer inner Gibbs sweeps per main draw.}
+
+\item{n_pilot}{Optional integer pilot chain count. When \code{NULL}, derived
+from \code{tv_tol} / \code{mode_gap_max} (cost optimizer) or \code{gap_tol}.}
+
+\item{m_convergence_pilot}{Optional integer inner sweeps for the pilot stage.}
+
+\item{tv_tol}{Total variation tolerance for convergence calibration.}
+
+\item{mode_gap_max}{Pilot inner-sweep calibration (non-Gaussian and
+Gaussian+ING only).}
+
+\item{gap_tol}{Legacy mode--mean gap for deriving the pilot chain count when
+\code{tv_tol} is \code{NULL}. Set \code{NULL} to skip pilot unless
+\code{tv_tol} is set. Ignored for Gaussian without ING Block~2 components.}
+
+\item{collect_block1}{Collect Block~1 \code{coefficients} from main chains
+(non-Gaussian only).}
+
+\item{verbose}{Print stage headers and diagnostics.}
+
+\item{progbar}{Progress bars when \code{verbose} is \code{FALSE}.}
+}
 \value{
-An object of class \code{c("rglmerb_v5", "list")} with the same
-components as \code{\link{rglmerb_v4}}.
+An object of class \code{c("rglmerb_v5", "list")} with staging fields
+compatible with \code{\link{rglmerb}}.
 }
 \description{
-Same workflow as \code{\link{rglmerb_v4}}, but pilot and main sampling call
-\code{\link{run_short_chains_v5}} (a single
+Pilot and main sampling call \code{\link{run_short_chains_v5}} (a single
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v5}} call per stage with
 sweep-outer C++ loop order and per-sweep chain progress bars).
 }
 \details{
-Development driver with \code{fixef_temp} in C++.
-\code{\link{glmerb}} calls \code{rglmerb_v5} for Poisson/non-Gaussian sampling.
-For the v4 chain-outer C++ driver, see \code{\link{rglmerb_v4}}.
-For the v3 chain-outer C++ driver, see \code{\link{rglmerb_v3}}.
-For the v2 R-loop reference, see \code{\link{rglmerb_v2}}.
+Development driver with \code{fixef_temp} in C++.  \code{\link{glmerb}} calls
+\code{rglmerb_v5} for Poisson/non-Gaussian sampling via \code{\link{rglmerb}}.
 }
 \seealso{
-\code{\link{rglmerb_v4}}, \code{\link{rglmerb_v3}}, \code{\link{rglmerb_v2}}, \code{\link{rglmerb}},
+\code{\link{rglmerb}}, \code{\link{glmerb}},
 \code{\link[glmbayesCore]{two_block_rNormal_reg_v5}}
 }

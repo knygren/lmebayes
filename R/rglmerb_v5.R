@@ -1,20 +1,19 @@
 #' Raw two-stage Gibbs sampler (v5 short-chain driver, sweep-outer loop)
 #'
-#' Same workflow as \code{\link{rglmerb_v4}}, but pilot and main sampling call
-#' \code{\link{run_short_chains_v5}} (a single
+#' Pilot and main sampling call \code{\link{run_short_chains_v5}} (a single
 #' \code{\link[glmbayesCore]{two_block_rNormal_reg_v5}} call per stage with
 #' sweep-outer C++ loop order and per-sweep chain progress bars).
 #'
-#' Development driver with \code{fixef_temp} in C++.
-#' \code{\link{glmerb}} calls \code{rglmerb_v5} for Poisson/non-Gaussian sampling.
-#' For the v4 chain-outer C++ driver, see \code{\link{rglmerb_v4}}.
-#' For the v3 chain-outer C++ driver, see \code{\link{rglmerb_v3}}.
-#' For the v2 R-loop reference, see \code{\link{rglmerb_v2}}.
+#' Development driver with \code{fixef_temp} in C++.  \code{\link{glmerb}} calls
+#' \code{rglmerb_v5} for Poisson/non-Gaussian sampling via \code{\link{rglmerb}}.
 #'
-#' @inheritParams rglmerb_v2
-#' @return An object of class \code{c("rglmerb_v5", "list")} with the same
-#'   components as \code{\link{rglmerb_v4}}.
-#' @seealso \code{\link{rglmerb_v4}}, \code{\link{rglmerb_v3}}, \code{\link{rglmerb_v2}}, \code{\link{rglmerb}},
+#' @inheritParams rglmerb
+#' @param n_pilot Optional integer pilot chain count. When \code{NULL}, derived
+#'   from \code{tv_tol} / \code{mode_gap_max} (cost optimizer) or \code{gap_tol}.
+#' @param m_convergence_pilot Optional integer inner sweeps for the pilot stage.
+#' @return An object of class \code{c("rglmerb_v5", "list")} with staging fields
+#'   compatible with \code{\link{rglmerb}}.
+#' @seealso \code{\link{rglmerb}}, \code{\link{glmerb}},
 #'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v5}}
 #' @export
 rglmerb_v5 <- function(
@@ -72,6 +71,7 @@ rglmerb_v5 <- function(
   } else {
     as.integer(n_pilot[1L])
   }
+  n_pilot_source <- if (n_pilot_int > 0L) "explicit" else "none"
 
   if (!is.null(gap_tol) && identical(n_pilot_int, 0L) && is.null(n_pilot)) {
     if (!is.numeric(gap_tol) || length(gap_tol) != 1L ||
@@ -192,11 +192,13 @@ rglmerb_v5 <- function(
         p                   = p_dim
       )
       n_pilot_int <- pilot_cost_opt$n_pilot_opt
+      n_pilot_source <- "cost"
       if (is.null(m_convergence)) {
         m_convergence <- pilot_cost_opt$m_convergence_opt
       }
     } else if (!is.null(gap_tol)) {
       n_pilot_int <- as.integer(ceiling((stats::qnorm(0.975) / gap_tol)^2))
+      n_pilot_source <- "gap_tol"
     }
   }
 
@@ -258,6 +260,7 @@ rglmerb_v5 <- function(
     tv_tol              = tv_tol,
     gap_tol             = gap_tol,
     n_pilot             = if (run_pilot) n_pilot_int else 0L,
+    n_pilot_source      = n_pilot_source,
     lambda_star         = rate$lambda_star,
     eigenvalues         = rate$eigenvalues,
     m_min               = m_min,
@@ -456,7 +459,9 @@ rglmerb_v5 <- function(
       coefficients           = sampler$coefficients,
       dispersion_fixef_draws = sampler$dispersion_fixef_draws,
       iters_fixef_draws      = sampler$iters_fixef_draws,
+      iters_ranef_draws      = sampler$iters_ranef_draws,
       mu_all_last            = sampler$mu_all_last,
+      sweep_history          = sampler$sweep_history,
       coef.mode              = fixef_start,
       ranef.mode             = ranef_mode,
       fixef_main_start       = fixef_main_start,

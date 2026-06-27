@@ -23,12 +23,46 @@ run_short_chains_v5(
   b_mode = NULL
 )
 }
+\arguments{
+\item{n_chains}{Number of independent short chains.}
+
+\item{start_fixef}{Named list of Block~2 starting vectors (one per chain).}
+
+\item{inner_sweeps}{Inner Gibbs sweeps per chain (\code{m_convergence}).}
+
+\item{design}{A \code{\link{model_setup}} object.}
+
+\item{block1_prior}{Block~1 prior list for \code{block_rNormalGLM}.}
+
+\item{pfamily_list}{Named list of Block~2 \code{pfamily} objects.}
+
+\item{family}{Response \code{\link[stats]{family}}.}
+
+\item{re_names}{Random-effect coefficient names.}
+
+\item{group_levels}{Factor levels for the grouping variable.}
+
+\item{seed_offset}{Passed to the v5 C++ driver (internal; not for reproducibility).}
+
+\item{collect_block1}{If \code{TRUE}, row-bind Block~1 coefficient draws.}
+
+\item{progbar}{Show per-sweep progress bars.}
+
+\item{stage_label}{Stage label stored on \code{$sweep_history} (e.g. \code{"pilot"}).}
+
+\item{diag_sweeps}{Unused; live sweep diagnostics are disabled on the v5 path.}
+
+\item{fixef_mode}{ICM mode reference for \code{$sweep_history}.}
+
+\item{b_mode}{Random-effects mode matrix for optional diagnostics.}
+}
 \value{
-As \code{\link{run_short_chains}}.
+A list with \code{fixef_draws}, \code{coefficients},
+\code{dispersion_fixef_draws}, \code{iters_fixef_draws},
+\code{iters_ranef_draws}, \code{mu_all_last}, and \code{sweep_history}.
 }
 \description{
-Same contract as \code{\link{run_short_chains_v4}}, but calls
-\code{\link[glmbayesCore]{two_block_rNormal_reg_v5}} (v5 C++ driver with
+Calls \code{\link[glmbayesCore]{two_block_rNormal_reg_v5}} (v5 C++ driver with
 sweep-outer loop order and per-sweep chain progress bars).
 Used by \code{\link{rglmerb_v5}} and \code{\link{glmerb}}.
 }
