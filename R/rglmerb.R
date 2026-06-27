@@ -7,8 +7,9 @@
 #'     \code{\link[glmbayesCore]{rLMMNormal_reg}} or
 #'     \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is
 #'     a \code{dGamma()} pfamily.
-#'   \item Non-Gaussian families delegate to \code{\link[glmbayesCore]{rGLMM}}
-#'     (sweep-outer engine with optional pilot/main staging).
+#'   \item Non-Gaussian families delegate to \code{\link{rglmerb_v5}}
+#'     (C++ sweep-outer \code{two_block_rNormal_reg_v5}).  The inactive R
+#'     sweep-outer path is \code{\link{.rglmerb_v6_rGLMM}}.
 #' }
 #' See \code{\link{glmerb}} for the formula-level API.
 #'
@@ -164,29 +165,23 @@ rglmerb <- function(
 
   block1_prior <- .lmebayes_block1_prior_list(prior, dispersion_ranef = NULL)
 
-  out <- glmbayesCore::rGLMM(
+  v5 <- rglmerb_v5(
     n                   = n,
-    y                   = design$y,
-    x                   = design$Z,
-    block               = design$groups,
-    x_hyper             = design$X_hyper,
-    prior_list          = block1_prior,
-    pfamily_list        = prior$pfamily_list,
-    start               = fixef_start,
+    design              = design,
+    prior               = prior,
     family              = family,
+    fixef_start         = fixef_start,
     m_convergence       = m_convergence,
-    re_coef_names       = re_names,
-    group_levels        = group_levels,
-    group_name          = design$group_name,
     gap_tol             = gap_tol,
     tv_tol              = tv_tol,
     mode_gap_max        = mode_gap_max,
+    collect_block1      = collect_block1,
     verbose             = verbose,
-    progbar             = progbar,
-    stage_verbose       = verbose,
-    b_start             = NULL,
-    collect_block1      = collect_block1
+    progbar             = progbar
   )
+
+  out <- .lmebayes_pack_rglmerb_v5(v5, re_names, group_levels)
+  out$icm_info <- NULL
 
   if (is.null(fixef_start)) {
     icm_lbl <- .lmebayes_block2_icm_labels(prior, family)

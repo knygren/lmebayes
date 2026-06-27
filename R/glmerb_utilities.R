@@ -940,6 +940,45 @@ extract_mer_variance_components <- function(fit, re_coef_names) {
   )
 }
 
+#' Pack \code{rglmerb_v5} batch output into \code{rglmerb} staging fields
+#' @noRd
+.lmebayes_pack_rglmerb_v5 <- function(v5, re_names, group_levels) {
+  mu_mat <- v5$mu_all_last
+  if (!is.null(mu_mat) && is.list(mu_mat)) {
+    mu_mat <- do.call(rbind, mu_mat)
+  }
+  if (!is.null(mu_mat)) {
+    rownames(mu_mat) <- re_names
+    if (is.null(colnames(mu_mat))) {
+      colnames(mu_mat) <- group_levels
+    }
+  }
+
+  n_pilot <- if (!is.null(v5$pilot_mode_test)) {
+    v5$pilot_mode_test$n_pilot
+  } else {
+    0L
+  }
+
+  list(
+    fixef                 = v5$fixef_draws,
+    coefficients          = v5$coefficients,
+    fixef.dispersion      = v5$dispersion_fixef_draws,
+    fixef.iters           = v5$iters_fixef_draws,
+    fixef.mu              = mu_mat,
+    fixef.mode            = v5$coef.mode,
+    fixef.init            = v5$fixef_main_start,
+    ranef.mode            = v5$ranef.mode,
+    m_convergence         = v5$m_convergence_used,
+    n_pilot               = n_pilot,
+    pilot_chisq           = v5$pilot_mode_test,
+    pilot                 = v5$pilot,
+    sweep_history         = NULL,
+    convergence_info      = v5$convergence_info,
+    draw_engine           = v5$convergence_info$draw_engine
+  )
+}
+
 #' @noRd
 .lmebayes_add_fixef_summaries <- function(x) {
   if (!is.null(x$fixef)) {

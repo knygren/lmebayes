@@ -42,7 +42,8 @@ fit <- glmerb(
   family       = binomial(),
   pfamily_list = pfamily_list(ps),
   n            = 1000L,
-  mode_gap_max = 1.0
+  mode_gap_max = 1.0,
+  progbar = TRUE
 )
 
 cat("m_convergence used:", fit$convergence$m_convergence, "\n")

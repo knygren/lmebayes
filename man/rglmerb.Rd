@@ -75,8 +75,9 @@ containers.  Routes by response family:
 \code{\link[glmbayesCore]{rLMMNormal_reg}} or
 \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is
 a \code{dGamma()} pfamily.
-\item Non-Gaussian families delegate to \code{\link[glmbayesCore]{rGLMM}}
-(sweep-outer engine with optional pilot/main staging).
+\item Non-Gaussian families delegate to \code{\link{rglmerb_v5}}
+(C++ sweep-outer \code{two_block_rNormal_reg_v5}).  The inactive R
+sweep-outer path is \code{\link{.rglmerb_v6_rGLMM}}.
 }
 See \code{\link{glmerb}} for the formula-level API.
 }
