@@ -58,3 +58,7 @@
 #' @importFrom glmbayesCore Prior_Setup dNormal dNormal_Gamma multi_prior_setup rlmb rglmb build_mu_all lmerb_posterior_mean glmerb_posterior_mode
 #' @useDynLib lmebayes, .registration = TRUE
 "_PACKAGE"
+
+if (getRversion() >= "2.15.1") {
+  utils::globalVariables("yint", package = "lmebayes", add = FALSE)
+}

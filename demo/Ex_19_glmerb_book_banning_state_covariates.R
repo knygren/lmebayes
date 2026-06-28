@@ -16,6 +16,12 @@
 ##   political_value_index, median_income, hs_grad_rate
 ## (college_grad_rate omitted so Prior_Setup_lmebayes() can calibrate from glmer).
 ##
+## After fitting:
+##   print(fit, sweep_history = TRUE, max_sweeps = 5)
+##   unique(fit$sweep_history$main$table[, c("re_component", "covariate")])
+##   plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[1L]])
+##   (run one batch at a time; see coef_focus_batches below)
+##
 ##   demo("Ex_19_glmerb_book_banning_state_covariates", package = "lmebayes")
 
 if (!requireNamespace("bayesrules", quietly = TRUE)) {
@@ -237,3 +243,25 @@ print(fit)
 summary(fit)
 
 print_glmer_glmerb_fixed_compare(fit, glmer_fit = fit_glmer)
+
+coef_focus_all <- list(
+  c("(Intercept)", "(Intercept)"),
+  c("explicit_i", "(Intercept)"),
+  c("language_i", "(Intercept)"),
+  c("violent_i", "(Intercept)"),
+  c("(Intercept)", "political_value_index_c"),
+  c("(Intercept)", "median_income_c"),
+  c("(Intercept)", "hs_grad_rate_c")
+)
+
+## Plot a few coefficients at a time (same pattern as demo/Ex_16_glmerb_book_banning.R).
+coef_focus_batches <- list(
+  coef_focus_all[1:2],
+  coef_focus_all[3:4],
+  coef_focus_all[5:7]
+)
+
+## Main-stage convergence: run one batch at a time (SD figure, then mean figure).
+plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[1L]])
+plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[2L]])
+plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[3L]])

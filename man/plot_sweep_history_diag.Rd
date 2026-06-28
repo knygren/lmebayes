@@ -21,7 +21,7 @@ plot_sweep_history_diag(
 Example: \code{list(c("(Intercept)", "(Intercept)"), c("violent_i", "(Intercept)"))}.}
 
 \item{what}{One or both of \code{"sd"} and \code{"mean"} (cross-chain
-summary after each inner sweep). Default both.}
+summary after each inner sweep). Default both (\code{sd} first).}
 
 \item{engine}{\code{"base"} for one panel per coefficient (default), or
 \code{"ggplot"} for a single faceted figure (requires \pkg{ggplot2}).}
@@ -32,10 +32,11 @@ summary after each inner sweep). Default both.}
 \code{hist} invisibly.
 }
 \description{
-Plots cross-chain Block~2 hyperparameter summaries stored on a
-\code{\link[glmbayesCore]{two_block_sweep_history}} object (typically
+Plots cross-chain Block~2 hyperparameter summaries stored on an object of
+class \code{"two_block_sweep_history"} (typically
 \code{fit$sweep_history$pilot} or \code{fit$sweep_history$main} from
-\code{\link{lmerb}} / \code{\link{glmerb}}).
+\code{\link{lmerb}} / \code{\link{glmerb}}; see
+\code{\link[glmbayesCore]{print.two_block_sweep_history}}).
 }
 \seealso{
 \code{\link{lmerb}}, \code{\link{glmerb}},
