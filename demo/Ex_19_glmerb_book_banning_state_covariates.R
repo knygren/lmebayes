@@ -185,11 +185,11 @@ print_glmer_glmerb_fixed_compare <- function(glmerb_fit,
 }
 
 ## --- Reference glmer: all four covariates (fails checkConv) -------------------
-form_all_covars <- build_form(state_covars)
-print_glmer_check(
-  lme4::glmer(form_all_covars, data = dat, family = binomial()),
-  "all four state covariates (checkConv failure expected)"
-)
+# form_all_covars <- build_form(state_covars)
+# print_glmer_check(
+#   lme4::glmer(form_all_covars, data = dat, family = binomial()),
+#   "all four state covariates (checkConv failure expected)"
+# )
 
 ## --- glmerb formula (three covariates; used below) ----------------------------
 form_glmerb <- build_form(state_covars_fit)

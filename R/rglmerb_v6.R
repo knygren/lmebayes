@@ -1,10 +1,9 @@
-#' Inactive R sweep-outer GLMM sampler (v6 driver via \code{rGLMM})
+#' Non-Gaussian GLMM sampler via \code{\link[glmbayesCore]{rGLMM}}
 #'
-#' Legacy development path: pilot and main stages call
-#' \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}} through
-#' \code{\link[glmbayesCore]{rGLMM}}.  Retained for comparison and debugging;
-#' \code{\link{rglmerb}} routes non-Gaussian sampling to
-#' \code{\link{rglmerb_v5}} (C++ sweep-outer) instead.
+#' Pilot and main stages call
+#' \code{glmbayesCore::run_sweep_outer_chains_v6()} through
+#' \code{\link[glmbayesCore]{rGLMM}}. Called from \code{\link{rglmerb}} for
+#' non-Gaussian families.
 #'
 #' @inheritParams rglmerb
 #' @return Object compatible with \code{\link{rglmerb}} staging fields.

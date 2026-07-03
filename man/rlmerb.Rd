@@ -72,7 +72,7 @@ any Block~2 component uses \code{dIndependent_Normal_Gamma} and
 
 \item{diag_sweeps}{Temporary diagnostic flag for ING Block~2 models with a
 pilot stage.  Sampling uses
-\code{\link[glmbayesCore]{run_sweep_outer_chains_v6}} regardless of this
+\code{glmbayesCore::run_sweep_outer_chains_v6()} regardless of this
 flag.  When \code{TRUE}, auto-print one combined Block~2 chain-mean table
 per stage when each stage finishes (as \code{print()} on
 \code{$sweep_history}); \code{sweep_history} is always stored on the fit.

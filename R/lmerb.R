@@ -142,7 +142,7 @@
 #'   \code{pfamily_list} prior means.
 #' @param diag_sweeps Temporary diagnostic flag (ING models with pilot).
 #'   Non-\code{dNormal} sampling already runs via
-#'   \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}} (R sweep-outer;
+#'   \code{glmbayesCore::run_sweep_outer_chains_v6()} (R sweep-outer;
 #'   pilot then main).  When \code{TRUE}, each stage auto-prints one combined
 #'   Block~2 chain-mean table when that stage finishes (same layout as
 #'   \code{print()} on \code{$sweep_history}).  \code{sweep_history} is

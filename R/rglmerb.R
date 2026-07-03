@@ -7,11 +7,8 @@
 #'     \code{\link[glmbayesCore]{rLMMNormal_reg}} or
 #'     \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is
 #'     a \code{dGamma()} pfamily.
-#'   \item Non-Gaussian families use the engine selected by the internal
-#'     constant \code{.rglmerb_engine} in \code{rglmerb.R}: \code{"R_engine"}
-#'     (default; \code{.rglmerb_v6_rGLMM} /
-#'     \code{\link[glmbayesCore]{run_sweep_outer_chains_v6}}) or
-#'     \code{"cpp_engine"} (\code{\link{rglmerb_v5}} / C++ \code{two_block_rNormal_reg_v5}).
+#'   \item Non-Gaussian families delegate to \code{\link[glmbayesCore]{rGLMM}}
+#'     (\code{glmbayesCore::run_sweep_outer_chains_v6()} sweep-outer driver).
 #' }
 #' See \code{\link{glmerb}} for the formula-level API.
 #'
@@ -50,11 +47,6 @@
 #' @name rglmerb
 #' @title The Bayesian Generalized Linear Mixed-Effects Model Distribution
 NULL
-
-## Temporary engine switch for non-Gaussian GLMM sampling (edit by hand).
-## "R_engine"   -> .rglmerb_v6_rGLMM / run_sweep_outer_chains_v6 (default)
-## "cpp_engine" -> rglmerb_v5 / two_block_rNormal_reg_v5
-.rglmerb_engine <- "R_engine"
 
 #' @rdname rglmerb
 #' @export
@@ -176,50 +168,22 @@ rglmerb <- function(
 
   block1_prior <- .lmebayes_block1_prior_list(prior, dispersion_ranef = NULL)
 
-  if (identical(.rglmerb_engine, "cpp_engine")) {
-    sampler <- rglmerb_v5(
-      n              = n,
-      design         = design,
-      prior          = prior,
-      family         = family,
-      fixef_start    = fixef_start,
-      m_convergence  = m_convergence,
-      gap_tol        = gap_tol,
-      tv_tol         = tv_tol,
-      mode_gap_max   = mode_gap_max,
-      collect_block1 = collect_block1,
-      verbose        = verbose,
-      progbar        = progbar
-    )
-    out <- .lmebayes_pack_rglmerb_v5(sampler, re_names, group_levels)
-    out$icm_info <- NULL
-  } else if (identical(.rglmerb_engine, "R_engine")) {
-    if (isTRUE(verbose)) {
-      cat("--- rglmerb: non-Gaussian engine = R_engine (run_sweep_outer_chains_v6) ---\n\n")
-    }
-    out <- .rglmerb_v6_rGLMM(
-      n                = n,
-      design           = design,
-      prior            = prior,
-      family           = family,
-      dispersion_ranef = dispersion_ranef,
-      fixef_start      = fixef_start,
-      m_convergence    = m_convergence,
-      gap_tol          = gap_tol,
-      tv_tol           = tv_tol,
-      mode_gap_max     = mode_gap_max,
-      collect_block1   = collect_block1,
-      verbose          = verbose,
-      progbar          = progbar,
-      cl               = cl
-    )
-  } else {
-    stop(
-      "Invalid .rglmerb_engine = ", deparse(.rglmerb_engine),
-      "; use \"cpp_engine\" or \"R_engine\".",
-      call. = FALSE
-    )
-  }
+  out <- .rglmerb_v6_rGLMM(
+    n                  = n,
+    design             = design,
+    prior              = prior,
+    family             = family,
+    dispersion_ranef   = dispersion_ranef,
+    fixef_start        = fixef_start,
+    m_convergence      = m_convergence,
+    gap_tol            = gap_tol,
+    tv_tol             = tv_tol,
+    mode_gap_max       = mode_gap_max,
+    collect_block1     = collect_block1,
+    verbose            = verbose,
+    progbar            = progbar,
+    cl                 = cl
+  )
 
   if (is.null(fixef_start)) {
     icm_lbl <- .lmebayes_block2_icm_labels(prior, family)
