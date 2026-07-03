@@ -11,7 +11,7 @@
 
 
 
-<title>R_EXPORTED_AND_DOCUMENTED</title>
+<title>R_INTERNAL_HELPERS</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -352,349 +352,488 @@ display: none;
 </div>
 
 
-<div id="r-exported-and-documented-functions" class="section level1">
-<h1><code>R/</code> — exported and documented functions</h1>
-<p>Symbols defined in <strong><code>R/</code></strong> that are
-<strong>exported</strong> (<code>NAMESPACE</code>) or have a
-<strong>help page</strong> (<code>man/*.Rd</code>). Use this list when
-reviewing the public API, <code>\usage</code> blocks, and README
-coverage.</p>
-<p>Companion: <a href="R_INTERNAL_HELPERS.md">R_INTERNAL_HELPERS.md</a>
-(<code>@noRd</code> and other undocumented helpers).</p>
-<p>User-facing export tables also appear in the <a href="../README.md#function-overview">README Function overview</a>.</p>
+<div id="r-internal-helpers-undocumented-in-man" class="section level1">
+<h1><code>R/</code> — internal helpers (undocumented in
+<code>man/</code>)</h1>
+<p>Functions and symbols in <strong><code>R/</code></strong> with
+<strong><code>@noRd</code></strong>, no roxygen, or
+<code>@keywords internal</code> <strong>without</strong> a dedicated
+help page. Intended for <code>lmebayes:::</code> only — not part of the
+exported API.</p>
+<p><strong>Columns:</strong> <em>File</em> is the defining source;
+<em>Called from</em> lists direct callers in <code>R/</code>
+(comma-separated). Helpers with no callers are marked
+<em>(unused)</em>.</p>
+<p>Companion: <a href="R_EXPORTED_AND_DOCUMENTED.md">R_EXPORTED_AND_DOCUMENTED.md</a>.</p>
 <hr />
-<div id="native-exports-r-namespace" class="section level2">
-<h2>Native exports (<code>R/</code> → <code>NAMESPACE</code>)</h2>
+<div id="sampling-engines-glmerb_utilities.r" class="section level2">
+<h2>Sampling engines (<code>glmerb_utilities.R</code>)</h2>
 <table>
 <colgroup>
-<col width="45%" />
-<col width="27%" />
-<col width="27%" />
+<col width="34%" />
+<col width="20%" />
+<col width="44%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th>Function</th>
 <th>File</th>
-<th>Role</th>
+<th>Called from</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>lmerb()</code></td>
-<td><code>lmerb.R</code></td>
-<td>Formula LMM; calls <code>rlmerb()</code>.</td>
+<td><code>.lmebayes_run_lmm_engine()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><code>rglmerb()</code> (Gaussian path), <code>rlmerb()</code></td>
 </tr>
 <tr class="even">
-<td><code>glmerb()</code></td>
-<td><code>glmerb.R</code></td>
-<td>Formula GLMM; calls <code>rglmerb()</code>.</td>
+<td><code>.lmebayes_add_fixef_summaries()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><code>rglmerb()</code>, <code>rlmerb()</code></td>
 </tr>
 <tr class="odd">
-<td><code>print.lmerb()</code></td>
-<td><code>lmerb.R</code></td>
-<td>Fit print; optional sweep-history tables.</td>
+<td><code>.lmebayes_stage_v2_fixef()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><em>(unused; legacy two-block staging)</em></td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div>
+<div id="priors-dispersion" class="section level2">
+<h2>Priors / dispersion</h2>
+<table>
+<colgroup>
+<col width="34%" />
+<col width="20%" />
+<col width="44%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>File</th>
+<th>Called from</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>.lmebayes_priors_from_pfamily_list()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><code>lmerb()</code>, <code>glmerb()</code></td>
 </tr>
 <tr class="even">
-<td><code>print.glmerb()</code></td>
-<td><code>glmerb.R</code></td>
-<td>Same for GLMM.</td>
+<td><code>.lmebayes_resolve_dispersion_ranef()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><code>rglmerb()</code>, <code>rlmerb()</code>,
+<code>.lmebayes_priors_from_pfamily_list()</code></td>
 </tr>
 <tr class="odd">
-<td><code>summary.lmerb()</code></td>
-<td><code>summary.lmerb.R</code></td>
-<td>Detailed posterior / prior / ranef summary.</td>
+<td><code>.lmebayes_validate_dispersion_ranef()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><em>(unused; thin wrapper around
+<code>.lmebayes_resolve_dispersion_ranef()</code>)</em></td>
 </tr>
 <tr class="even">
-<td><code>summary.glmerb()</code></td>
-<td><code>summary.lmerb.R</code></td>
-<td>Alias of <code>summary.lmerb</code>.</td>
+<td><code>.lmebayes_block1_prior_list()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><code>rglmerb()</code>, <code>rlmerb()</code></td>
 </tr>
 <tr class="odd">
-<td><code>print.summary.lmerb()</code></td>
-<td><code>summary.lmerb.R</code></td>
-<td>Print method for summary object.</td>
+<td><code>.lmerb_reference_fit()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><code>summary.lmerb()</code>,
+<code>.lmerb_fixef_component_summary()</code>,
+<code>.lmerb_tau2_prior_overview()</code></td>
 </tr>
 <tr class="even">
-<td><code>rlmerb()</code></td>
-<td><code>rlmerb.R</code></td>
-<td>Matrix-level Gaussian LMM sampler.</td>
-</tr>
-<tr class="odd">
-<td><code>rglmerb()</code></td>
-<td><code>rglmerb.R</code></td>
-<td>Matrix-level GLMM sampler.</td>
-</tr>
-<tr class="even">
-<td><code>model_setup()</code></td>
-<td><code>model_setup.R</code></td>
-<td>Parse lme4-style formula → design object.</td>
-</tr>
-<tr class="odd">
-<td><code>print.model_setup()</code></td>
-<td><code>model_setup.R</code></td>
-<td>Print design object.</td>
-</tr>
-<tr class="even">
+<td><code>.lmebayes_resolve_pwt()</code></td>
+<td><code>prior_setup_lmebayes.R</code></td>
 <td><code>Prior_Setup_lmebayes()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.lmebayes_resolve_disp_prior()</code></td>
 <td><code>prior_setup_lmebayes.R</code></td>
-<td>Calibrate Block 2 priors from lmer/glmer.</td>
+<td><code>Prior_Setup_lmebayes()</code></td>
 </tr>
-<tr class="odd">
-<td><code>Prior_SetupBlock()</code></td>
+<tr class="even">
+<td><code>.lmebayes_block_glm_estimable()</code></td>
 <td><code>prior_setup_lmebayes.R</code></td>
-<td>Per-row-block prior setup.</td>
-</tr>
-<tr class="even">
-<td><code>print.lmebayes_prior_setup()</code></td>
-<td><code>prior_setup_lmebayes.R</code></td>
-<td>Print prior-setup object.</td>
-</tr>
-<tr class="odd">
-<td><code>pfamily_list()</code> method</td>
-<td><code>pfamily_list.R</code></td>
-<td>S3 for <code>lmebayes_prior_setup</code>.</td>
-</tr>
-<tr class="even">
-<td><code>lmbBlock()</code></td>
-<td><code>lmbBlock.R</code></td>
-<td>Row-block Bayesian LM fits.</td>
-</tr>
-<tr class="odd">
-<td><code>glmbBlock()</code></td>
-<td><code>glmbBlock.R</code></td>
-<td>Row-block Bayesian GLM fits.</td>
-</tr>
-<tr class="even">
-<td><code>print.blmb()</code></td>
-<td><code>lmbBlock.R</code></td>
-<td>Print block LM list.</td>
-</tr>
-<tr class="odd">
-<td><code>print.bglmb()</code></td>
-<td><code>glmbBlock.R</code></td>
-<td>Print block GLM list.</td>
-</tr>
-<tr class="even">
-<td><code>summary.blmb()</code> / <code>print.summary.blmb()</code></td>
-<td><code>summary.blmb.R</code></td>
-<td>Block LM summaries.</td>
-</tr>
-<tr class="odd">
-<td><code>summary.bglmb()</code> /
-<code>print.summary.bglmb()</code></td>
-<td><code>summary.bglmb.R</code></td>
-<td>Block GLM summaries.</td>
-</tr>
-<tr class="even">
-<td><code>plot_sweep_history_diag()</code></td>
-<td><code>plot_sweep_history_diag.R</code></td>
-<td>Cross-chain mean/SD vs inner sweep.</td>
-</tr>
-<tr class="odd">
-<td><code>has_opencl()</code></td>
-<td><code>has_opencl.R</code></td>
-<td>Compile-time OpenCL flag for this build.</td>
+<td><code>Prior_Setup_lmebayes()</code></td>
 </tr>
 </tbody>
 </table>
 <hr />
 </div>
-<div id="re-exports-rreexports_.r" class="section level2">
-<h2>Re-exports (<code>R/reexports_*.R</code>)</h2>
-<p>Implemented in <strong>glmbayes</strong> /
-<strong>glmbayesCore</strong>; documented under <code>?reexports</code>
-and dependency help pages.</p>
+<div id="formula-design-parsing" class="section level2">
+<h2>Formula / design parsing</h2>
 <table>
 <colgroup>
-<col width="38%" />
-<col width="61%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Function</th>
-<th>Source package</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>lmb()</code>, <code>glmb()</code>,
-<code>directional_tail()</code></td>
-<td>glmbayes</td>
-</tr>
-<tr class="even">
-<td><code>Prior_Setup()</code>, <code>dNormal()</code>,
-<code>dNormal_Gamma()</code>, <code>dIndependent_Normal_Gamma()</code>,
-<code>dGamma()</code></td>
-<td>glmbayesCore</td>
-</tr>
-</tbody>
-</table>
-<hr />
-</div>
-<div id="documented-but-not-exported-keywords-internal-man" class="section level2">
-<h2>Documented but not exported (<code>@keywords internal</code> +
-<code>man/</code>)</h2>
-<p>Callable with <code>lmebayes:::</code>; have help pages but are not
-in <code>NAMESPACE</code>.</p>
-<table>
-<colgroup>
-<col width="33%" />
+<col width="34%" />
 <col width="20%" />
-<col width="20%" />
-<col width="26%" />
+<col width="44%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th>Function</th>
 <th>File</th>
-<th>Role</th>
-<th>Review</th>
+<th>Called from</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>print_coef_means()</code></td>
-<td><code>glmerb.R</code></td>
-<td>MLE vs mode vs posterior mean table.</td>
-<td><strong>Export?</strong> Heavily used in demos.</td>
-</tr>
-<tr class="even">
-<td><code>is_single_factor_model()</code></td>
+<td><code>.lmebayes_validate_uncorrelated_re_formula()</code></td>
 <td><code>glmerb_utilities.R</code></td>
-<td>Exactly one grouping factor.</td>
-<td>Keep internal.</td>
-</tr>
-<tr class="odd">
-<td><code>is_fixed_effects_only()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>No random effects in formula.</td>
-<td>Keep internal.</td>
-</tr>
-<tr class="even">
-<td><code>get_lme4_components()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>lme4 parse → matrices.</td>
-<td>Dev / extension utility.</td>
-</tr>
-<tr class="odd">
-<td><code>show_lme4_Z_random()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Debug random-effects design.</td>
-<td>Dev only.</td>
-</tr>
-<tr class="even">
-<td><code>classify_lme4_fixed_columns()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Population vs group-level fixed cols.</td>
-<td>Prior pipeline.</td>
-</tr>
-<tr class="odd">
-<td><code>classify_crosslevel_re_moderation()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Cross-level RE structure.</td>
-<td>Prior pipeline.</td>
-</tr>
-<tr class="even">
 <td><code>extract_re_hyper_matrices()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Block 2 group designs.</td>
-<td>Prior / setup.</td>
-</tr>
-<tr class="odd">
-<td><code>extract_re_Z_obs()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Obs-level Z for one group.</td>
-<td>Prior / setup.</td>
 </tr>
 <tr class="even">
-<td><code>extract_lme4_submatrices()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Subset parsed lme4 parts.</td>
-<td>Prior / setup.</td>
+<td><code>.lmebayes_mer_convergence_issues()</code></td>
+<td><code>model_setup.R</code></td>
+<td><code>Prior_Setup_lmebayes()</code></td>
 </tr>
 <tr class="odd">
-<td><code>extract_lme4_fixed_group_matrix()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Group-level fixed matrix.</td>
-<td>Prior / setup.</td>
+<td><code>.lmebayes_normalize_family()</code></td>
+<td><code>model_setup.R</code></td>
+<td><code>model_setup()</code></td>
 </tr>
 <tr class="even">
-<td><code>extract_lmer_variance_components()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>From <strong>lmer</strong> fit.</td>
-<td>Prior calibration.</td>
+<td><code>.lmebayes_mer_optional_args()</code></td>
+<td><code>model_setup.R</code></td>
+<td><code>model_setup()</code>, <code>glmerb()</code></td>
 </tr>
 <tr class="odd">
-<td><code>extract_mer_variance_components()</code></td>
+<td><code>.lme4_Z_random_column_map()</code></td>
 <td><code>glmerb_utilities.R</code></td>
-<td>From <strong>glmer</strong> fit.</td>
-<td>Prior calibration.</td>
+<td><code>.lme4_Z_random_colnames()</code>,
+<code>get_lme4_components()</code></td>
 </tr>
 <tr class="even">
-<td><code>lmerb_default_vcov_formula()</code></td>
+<td><code>.lme4_Z_random_colnames()</code></td>
 <td><code>glmerb_utilities.R</code></td>
-<td>Default vcov for prior scaling.</td>
-<td>Prior calibration.</td>
+<td><code>.lme4_label_Z_random_sparse()</code></td>
 </tr>
 <tr class="odd">
-<td><code>block_check_identifiability()</code></td>
-<td><code>lmbBlock.R</code></td>
-<td>Block GLM rank (formula).</td>
-<td>Block models.</td>
+<td><code>.lme4_Z_random_rownames()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><code>.lme4_Z_random_row_map()</code>,
+<code>.lme4_label_Z_random_sparse()</code></td>
 </tr>
 <tr class="even">
-<td><code>block_check_identifiability_xy()</code></td>
-<td><code>lmbBlock.R</code></td>
-<td>Block GLM rank (matrix).</td>
-<td>Block models.</td>
+<td><code>.lme4_Z_random_row_map()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><code>get_lme4_components()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.lme4_label_Z_random_sparse()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><code>get_lme4_components()</code></td>
 </tr>
 </tbody>
 </table>
+<p>Exported entry points that reach the Z-label chain:
+<code>model_setup()</code> → <code>extract_re_hyper_matrices()</code> →
+<code>get_lme4_components()</code>.</p>
 <hr />
 </div>
-<div id="documentation-topics-no-function-body-in-r" class="section level2">
-<h2>Documentation topics (no function body in <code>R/</code>)</h2>
+<div id="sampling-console-output-rglmerb_diag.r" class="section level2">
+<h2>Sampling console output (<code>rglmerb_diag.R</code>)</h2>
 <table>
 <colgroup>
-<col width="58%" />
-<col width="41%" />
+<col width="34%" />
+<col width="20%" />
+<col width="44%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th>Topic / file</th>
-<th>Contents</th>
+<th>Function</th>
+<th>File</th>
+<th>Called from</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>lmebayes-package.R</code></td>
-<td>Package meta, imports (<code>&quot;_PACKAGE&quot;</code>).</td>
+<td><code>.lmebayes_block2_icm_labels()</code></td>
+<td><code>rglmerb_diag.R</code></td>
+<td><code>rglmerb()</code>, <code>rlmerb()</code>, <code>lmerb()</code>
+(ICM-only path), <code>glmerb()</code> (ICM-only path)</td>
 </tr>
 <tr class="even">
-<td><code>gpu_diagnostics.R</code></td>
-<td><code>@name gpu_diagnostics</code> — links to OpenCL
-diagnostics.</td>
+<td><code>.lmebayes_print_icm_fixef_table()</code></td>
+<td><code>rglmerb_diag.R</code></td>
+<td><code>rglmerb()</code>, <code>rlmerb()</code></td>
 </tr>
 <tr class="odd">
-<td><code>data-*.R</code></td>
-<td>Lazy data docs (<code>Boston_centered</code>,
-<code>BikeSharing</code>, <code>carinsca</code>, etc.).</td>
+<td><code>.lmebayes_print_ranef_mode_reference()</code></td>
+<td><code>rglmerb_diag.R</code></td>
+<td><code>rglmerb()</code></td>
+</tr>
+<tr class="even">
+<td><code>.lmebayes_print_fixef_init()</code></td>
+<td><code>rglmerb_diag.R</code></td>
+<td><code>rglmerb()</code>, <code>rlmerb()</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>lmerb()</code> and <code>glmerb()</code> inline the ICM
+fixed-effect table using <code>.lmebayes_block2_icm_labels()</code> only
+(no <code>print_icm_fixef_table()</code>).</p>
+<hr />
+</div>
+<div id="summary.lmerb-helpers-summary.lmerb.r" class="section level2">
+<h2><code>summary.lmerb()</code> helpers
+(<code>summary.lmerb.R</code>)</h2>
+<table>
+<colgroup>
+<col width="34%" />
+<col width="20%" />
+<col width="44%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>File</th>
+<th>Called from</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>.lmerb_print_summary_table()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>print.summary.lmerb()</code></td>
+</tr>
+<tr class="even">
+<td><code>.lmerb_lmer_fixef_lookup()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>.lmerb_fixef_component_summary()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.lmerb_fixef_component_summary()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>summary.lmerb()</code></td>
+</tr>
+<tr class="even">
+<td><code>.lmerb_fixef_prior_overview()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>summary.lmerb()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.lmerb_fixef_percentiles_overview()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>summary.lmerb()</code></td>
+</tr>
+<tr class="even">
+<td><code>.lmerb_fixef_overview()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>summary.lmerb()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.lmerb_tau2_prior_overview()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>summary.lmerb()</code>,
+<code>.lmerb_tau2_posterior_overview()</code>,
+<code>.lmerb_tau2_sd_percentiles_overview()</code></td>
+</tr>
+<tr class="even">
+<td><code>.lmerb_tau2_posterior_overview()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>summary.lmerb()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.lmerb_tau2_percentiles_overview()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>summary.lmerb()</code></td>
+</tr>
+<tr class="even">
+<td><code>.lmerb_tau2_sd_percentiles_overview()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>summary.lmerb()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.lmerb_ranef_overview()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>summary.lmerb()</code></td>
+</tr>
+<tr class="even">
+<td><code>.lmerb_ranef_groups_detail()</code></td>
+<td><code>summary.lmerb.R</code></td>
+<td><code>summary.lmerb()</code></td>
 </tr>
 </tbody>
 </table>
 <hr />
 </div>
-<div id="gaps-not-in-r-yet" class="section level2">
-<h2>Gaps (not in <code>R/</code> yet)</h2>
-<p>Ex. 16 demo logic (proxy <span class="math inline">\(\hat
-D_\ell\)</span>, variance ratios) is <strong>not</strong> exported or
-documented here. Candidate home: extend
-<code>plot_sweep_history_diag()</code> or add
-<code>sweep_history_diag_*()</code> in <code>R/</code>.</p>
+<div id="row-block-helpers-lmbblock.r-glmbblock.r" class="section level2">
+<h2>Row-block helpers (<code>lmbBlock.R</code>,
+<code>glmbBlock.R</code>)</h2>
+<table>
+<colgroup>
+<col width="34%" />
+<col width="20%" />
+<col width="44%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>File</th>
+<th>Called from</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>.blmb_formula_block_meta()</code></td>
+<td><code>lmbBlock.R</code></td>
+<td><code>lmbBlock()</code>, <code>glmbBlock()</code>,
+<code>Prior_SetupBlock()</code>,
+<code>.blmb_blocks_full_rank()</code></td>
+</tr>
+<tr class="even">
+<td><code>.blmb_rows_to_data_subset()</code></td>
+<td><code>lmbBlock.R</code></td>
+<td><code>lmbBlock()</code>, <code>glmbBlock()</code>,
+<code>Prior_SetupBlock()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.blmb_resolve_block()</code></td>
+<td><code>lmbBlock.R</code></td>
+<td><code>.blmb_formula_block_meta()</code></td>
+</tr>
+<tr class="even">
+<td><code>.blmb_lmb_display_call()</code></td>
+<td><code>lmbBlock.R</code></td>
+<td><code>lmbBlock()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.blmb_assemble()</code></td>
+<td><code>lmbBlock.R</code></td>
+<td><code>lmbBlock()</code></td>
+</tr>
+<tr class="even">
+<td><code>.blmb_blocks_full_rank()</code></td>
+<td><code>lmbBlock.R</code></td>
+<td><code>block_check_identifiability()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.blmb_blocks_full_rank_xy()</code></td>
+<td><code>lmbBlock.R</code></td>
+<td><code>block_check_identifiability_xy()</code></td>
+</tr>
+<tr class="even">
+<td><code>.blmb_coef_means_matrix()</code></td>
+<td><code>lmbBlock.R</code></td>
+<td><code>summary.blmb()</code>, <code>summary.bglmb()</code>,
+<code>print.blmb()</code>, <code>print.bglmb()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.blmb_dic_table()</code></td>
+<td><code>lmbBlock.R</code></td>
+<td><code>summary.blmb()</code>, <code>summary.bglmb()</code>,
+<code>print.blmb()</code>, <code>print.bglmb()</code></td>
+</tr>
+<tr class="even">
+<td><code>.blmb_glmb_display_call()</code></td>
+<td><code>glmbBlock.R</code></td>
+<td><code>glmbBlock()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.bglmb_assemble()</code></td>
+<td><code>glmbBlock.R</code></td>
+<td><code>glmbBlock()</code></td>
+</tr>
+</tbody>
+</table>
 <hr />
 </div>
-<div id="review-checklist-exports-docs" class="section level2">
-<h2>Review checklist (exports / docs)</h2>
+<div id="build-attach-c" class="section level2">
+<h2>Build, attach, C++</h2>
+<table>
+<colgroup>
+<col width="34%" />
+<col width="20%" />
+<col width="44%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>File</th>
+<th>Called from</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>.has_opencl_cpp()</code></td>
+<td><code>rcpp_wrappers.R</code></td>
+<td><code>has_opencl()</code></td>
+</tr>
+<tr class="even">
+<td><code>has_opencl_cpp_export()</code></td>
+<td><code>RcppExports.R</code></td>
+<td><code>.has_opencl_cpp()</code> (<code>.Call</code> entry)</td>
+</tr>
+<tr class="odd">
+<td><code>use_RcppParallel()</code></td>
+<td><code>internal_rcppparallel.R</code></td>
+<td><em>(unused at runtime; satisfies R CMD check
+<code>Imports: RcppParallel</code>)</em></td>
+</tr>
+<tr class="even">
+<td><code>.opencl_startup_quiet()</code></td>
+<td><code>zzz.R</code></td>
+<td><code>.opencl_startup_message()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.opencl_runtime_sniff()</code></td>
+<td><code>zzz.R</code></td>
+<td><code>.opencl_startup_message()</code></td>
+</tr>
+<tr class="even">
+<td><code>.opencl_startup_message()</code></td>
+<td><code>zzz.R</code></td>
+<td><code>.onAttach()</code></td>
+</tr>
+<tr class="odd">
+<td><code>.onAttach()</code></td>
+<td><code>zzz.R</code></td>
+<td>R load hook (calls <code>.opencl_startup_message()</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div>
+<div id="load-time-aliases-block_core_pfamily.r" class="section level2">
+<h2>Load-time aliases (<code>block_core_pfamily.R</code>)</h2>
+<table>
+<colgroup>
+<col width="29%" />
+<col width="22%" />
+<col width="48%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>File</th>
+<th>Called from</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>.mrglmb_normalize_pfamily_lists</code></td>
+<td><code>block_core_pfamily.R</code></td>
+<td><code>lmbBlock()</code>, <code>glmbBlock()</code></td>
+</tr>
+<tr class="even">
+<td><code>.validate_pfamily_for_rlmb</code></td>
+<td><code>block_core_pfamily.R</code></td>
+<td><code>lmbBlock()</code>, <code>glmbBlock()</code> (passed to
+<code>.mrglmb_normalize_pfamily_lists()</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Both symbols are namespace aliases to <strong>glmbayesCore</strong>
+helpers.</p>
+<hr />
+</div>
+<div id="review-checklist-internals" class="section level2">
+<h2>Review checklist (internals)</h2>
 <table>
 <colgroup>
 <col width="62%" />
@@ -709,18 +848,20 @@ documented here. Candidate home: extend
 <tbody>
 <tr class="odd">
 <td>1</td>
-<td>Export <code>print_coef_means()</code> or document <code>:::</code>
-as intentional in README.</td>
+<td>Avoid adding new <code>@noRd</code> helpers unless tied to exported
+behavior.</td>
 </tr>
 <tr class="even">
 <td>2</td>
-<td>Extend sweep-history diagnostics in <code>R/</code> when Ex. 16
-probes stabilize.</td>
+<td>Promote repeated demo patterns to documented <code>R/</code> API
+instead of new <code>:::</code> helpers.</td>
 </tr>
 <tr class="odd">
 <td>3</td>
-<td>Run <code>devtools::document()</code> after any <code>@export</code>
-or <code>\usage</code> change.</td>
+<td>Remove or wire up <em>(unused)</em> helpers
+(<code>.lmebayes_stage_v2_fixef</code>,
+<code>.lmebayes_validate_dispersion_ranef</code>) when touching related
+code.</td>
 </tr>
 </tbody>
 </table>
