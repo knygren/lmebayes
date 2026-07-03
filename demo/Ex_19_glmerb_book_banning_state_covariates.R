@@ -226,7 +226,7 @@ fit <- glmerb(
   data         = dat,
   family       = binomial(),
   pfamily_list = pfamily_list(ps),
-  n            = 1000L,
+  n            = 3000L,
   mode_gap_max = 1.0,
   progbar      = FALSE
 )

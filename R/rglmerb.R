@@ -8,7 +8,7 @@
 #'     \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is
 #'     a \code{dGamma()} pfamily.
 #'   \item Non-Gaussian families delegate to \code{\link[glmbayesCore]{rGLMM}}
-#'     (\code{glmbayesCore::run_sweep_outer_chains_v6()} sweep-outer driver).
+#'     (\code{\link[glmbayesCore]{rGLMM_sweep}} sweep-outer driver).
 #' }
 #' See \code{\link{glmerb}} for the formula-level API.
 #'
@@ -168,22 +168,30 @@ rglmerb <- function(
 
   block1_prior <- .lmebayes_block1_prior_list(prior, dispersion_ranef = NULL)
 
-  out <- .rglmerb_v6_rGLMM(
-    n                  = n,
-    design             = design,
-    prior              = prior,
-    family             = family,
-    dispersion_ranef   = dispersion_ranef,
-    fixef_start        = fixef_start,
-    m_convergence      = m_convergence,
-    gap_tol            = gap_tol,
-    tv_tol             = tv_tol,
-    mode_gap_max       = mode_gap_max,
-    collect_block1     = collect_block1,
-    verbose            = verbose,
-    progbar            = progbar,
-    cl                 = cl
+  out <- glmbayesCore::rGLMM(
+    n                   = n,
+    y                   = design$y,
+    x                   = design$Z,
+    block               = design$groups,
+    x_hyper             = design$X_hyper,
+    prior_list          = block1_prior,
+    pfamily_list        = prior$pfamily_list,
+    start               = fixef_start,
+    family              = family,
+    m_convergence       = m_convergence,
+    re_coef_names       = re_names,
+    group_levels        = group_levels,
+    group_name          = design$group_name,
+    gap_tol             = gap_tol,
+    tv_tol              = tv_tol,
+    mode_gap_max        = mode_gap_max,
+    verbose             = verbose,
+    progbar             = progbar,
+    stage_verbose       = verbose,
+    b_start             = NULL,
+    collect_block1      = collect_block1
   )
+  out$call <- cl
 
   if (is.null(fixef_start)) {
     icm_lbl <- .lmebayes_block2_icm_labels(prior, family)

@@ -76,7 +76,7 @@ containers.  Routes by response family:
 \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is
 a \code{dGamma()} pfamily.
 \item Non-Gaussian families delegate to \code{\link[glmbayesCore]{rGLMM}}
-(\code{glmbayesCore::run_sweep_outer_chains_v6()} sweep-outer driver).
+(\code{\link[glmbayesCore]{rGLMM_sweep}} sweep-outer driver).
 }
 See \code{\link{glmerb}} for the formula-level API.
 }

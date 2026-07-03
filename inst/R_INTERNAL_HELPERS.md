@@ -12,13 +12,9 @@ Companion: [R_EXPORTED_AND_DOCUMENTED.md](R_EXPORTED_AND_DOCUMENTED.md).
 
 | Function | File | Called from |
 |----------|------|-------------|
-| `.rglmerb_v6_rGLMM()` | `rglmerb_v6.R` | `rglmerb()` non-Gaussian path |
 | `.lmebayes_run_lmm_engine()` | `glmerb_utilities.R` | `rglmerb()` Gaussian path |
 | `.lmebayes_stage_v2_fixef()` | `glmerb_utilities.R` | Engine staging |
 | `.lmebayes_add_fixef_summaries()` | `glmerb_utilities.R` | Post-process sampler output |
-
-**Rename note:** `rglmerb_v6.R` / `.rglmerb_v6_rGLMM()` — optional future rename
-to drop the `v6` suffix (legacy `rglmerb_v5` source removed).
 
 ---
 
@@ -128,6 +124,5 @@ to drop the `v6` suffix (legacy `rglmerb_v5` source removed).
 
 | Priority | Item |
 |----------|------|
-| 1 | Rename `rglmerb_v6.R` when version suffix is dropped. |
-| 2 | Avoid adding new `@noRd` helpers unless tied to exported behavior. |
-| 3 | Promote repeated demo patterns to documented `R/` API instead of new `:::` helpers. |
+| 1 | Avoid adding new `@noRd` helpers unless tied to exported behavior. |
+| 2 | Promote repeated demo patterns to documented `R/` API instead of new `:::` helpers. |
