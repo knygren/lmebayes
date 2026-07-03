@@ -1,5 +1,10 @@
 ﻿# lmebayes (development version)
 
+* **Removed `rglmerb_v5` C++ GLMM path:** dropped exported `rglmerb_v5()`,
+  internal `run_short_chains_v5()`, the `.rglmerb_engine` switch, and related
+  data-raw validation scripts. Non-Gaussian **`rglmerb()`** / **`glmerb()`**
+  always use **`glmbayesCore::rGLMM()`** (sweep-outer v6 driver).
+
 * **LMM engine routing:** **`rlmerb()`** and the Gaussian path of **`rglmerb()`**
   call **`rLMMNormal_reg()`** (fixed **`dispersion_ranef`**) or
   **`rLMMindepNormalGamma_reg()`** ( **`dispersion_ranef = dGamma(...)`** ).

@@ -16,11 +16,109 @@ Mixed-model methodology and background vignettes are in **glmbayes** (Chapters 1
 GLMMs). **lmebayes** does not ship vignettes yet; use function help, this README, and the package
 demos. For Gaussian models, inner Gibbs sweep counts can be calibrated from a total-variation
 tolerance (`tv_tol`); non-Gaussian GLMMs may run a pilot stage when `gap_tol` is set (see `?glmerb`).
+Non-Gaussian **`glmerb()`** / **`rglmerb()`** use **`glmbayesCore::rGLMM()`** (sweep-outer
+driver) only; legacy **`rglmerb_v5()`** / C++ short-chain code has been removed (see [NEWS.md](NEWS.md)).
 
 This repository is **0.1.0** in development.
 The [GitHub](https://github.com/knygren/lmebayes) repository holds the source;
 [R-Universe](https://knygren.r-universe.dev/lmebayes) builds binaries from it.
 See [NEWS.md](https://github.com/knygren/lmebayes/blob/main/NEWS.md) for changes.
+
+## Function overview
+
+The tables below list symbols exported from **lmebayes** (see `help(package = "lmebayes")`).
+They follow the same broad grouping used in **glmbayes** vignette
+[Chapter A01](https://knygren.r-universe.dev/articles/glmbayes/Chapter-A01.html):
+core formula interfaces, prior helpers, low-level samplers, diagnostics, and
+advanced simulation callbacks.
+
+### Functions defined in **lmebayes**
+
+#### Mixed-effects model fitting (`lme4`-style)
+
+| Function | Role |
+|----------|------|
+| `lmerb()` | Bayesian linear mixed-effects model (LMM); two-block Gibbs sampler. Bayesian analogue of `lme4::lmer()`. |
+| `glmerb()` | Bayesian generalized linear mixed-effects model (GLMM). Bayesian analogue of `lme4::glmer()`. |
+| `print()` / `summary()` | S3 methods for `"lmerb"` and `"glmerb"` objects (posterior summaries, sweep history). |
+
+Set `simulate = FALSE` on `lmerb()` / `glmerb()` for ICM posterior mean/mode only (no stored draws).
+
+#### Row-block models (SAS `BY`-style splits)
+
+| Function | Role |
+|----------|------|
+| `lmbBlock()` | One `lmb()` fit per row block (shared formula, block-specific priors). |
+| `glmbBlock()` | One `glmb()` fit per row block. |
+| `print()` / `summary()` | S3 methods for `"blmb"` and `"bglmb"` (lists of block fits). |
+
+#### Model setup and mixed-model priors
+
+| Function | Role |
+|----------|------|
+| `model_setup()` | Parse an `lme4`-style formula into design matrices, variance components, and identifiability checks (single grouping factor). |
+| `Prior_Setup_lmebayes()` | Calibrate Block~2 hyperpriors and observation-level dispersion from a reference `lmer` / `glmer` fit. |
+| `Prior_SetupBlock()` | Run `Prior_Setup()` independently on each row block (for `lmbBlock()` / `glmbBlock()`). |
+| `pfamily_list()` | S3 method for `"lmebayes_prior_setup"`: build per–random-effect `pfamily` objects from `Prior_Setup_lmebayes()`. |
+| `print()` | S3 methods for `"model_setup"` and `"lmebayes_prior_setup"`. |
+
+Typical workflow: `model_setup()` → `Prior_Setup_lmebayes()` → `pfamily_list(ps)` → `lmerb()` / `glmerb()`.
+
+#### Low-level mixed-effects samplers (matrix / design API)
+
+These mirror `rlmb()` / `rglmb()` in **glmbayes**: minimal overhead for repeated Gibbs calls.
+`lmerb()` and `glmerb()` invoke them after formula parsing and prior construction.
+
+| Function | Role |
+|----------|------|
+| `rlmerb()` | Gaussian LMM sampler (two-block Gibbs; replicate chains). |
+| `rglmerb()` | GLMM sampler: Gaussian → `rLMMNormal_reg()` / `rLMMindepNormalGamma_reg()`; other families → `glmbayesCore::rGLMM()` (sweep-outer; optional pilot when `gap_tol` is set). |
+
+#### Diagnostics and build utilities
+
+| Function | Role |
+|----------|------|
+| `plot_sweep_history_diag()` | Histogram diagnostics on inner Gibbs sweep history from `lmerb()` / `glmerb()`. |
+| `has_opencl()` | Whether **this** **lmebayes** build was compiled with OpenCL (distinct from runtime GPU probes in **opencltools**). |
+
+### Re-exported functions
+
+Symbols below are implemented in **glmbayes** or **glmbayesCore** and re-exported so a single
+`library(lmebayes)` load covers mixed models and the iid GLM tools they build on.
+
+#### From **glmbayes** — iid Bayesian `lm` / `glm`
+
+| Function | Role |
+|----------|------|
+| `lmb()` | Bayesian linear model (iid draws). Analogue of `lm()`. |
+| `glmb()` | Bayesian GLM (iid draws). Analogue of `glm()`. |
+| `directional_tail()` | Directional tail diagnostic for prior–posterior disagreement (see **glmbayes** Chapter A04). |
+
+Row-block wrappers `lmbBlock()` and `glmbBlock()` call these per block.
+
+#### From **glmbayesCore** — prior families and default calibration
+
+| Function | Role |
+|----------|------|
+| `Prior_Setup()` | Default prior calibration for a GLM/LM formula (Zellner-style `mu`, `Sigma`, dispersion, conjugate components). |
+| `dNormal()`, `dNormal_Gamma()`, `dIndependent_Normal_Gamma()`, `dGamma()` | `pfamily` constructors passed to `lmb()`, `glmb()`, and block samplers. |
+| `pfamily_list()` | Generic (from **glmbayesCore**); **lmebayes** adds the `lmebayes_prior_setup` method above. |
+
+See **glmbayes** README sections *Supported families, links, and pfamilies* and *Prior_Setup* for wiring details.
+
+#### From **glmbayesCore** — C++ callback symbols (advanced)
+
+Re-exported so compiled code can resolve them on the search path when **lmebayes** is attached.
+Not part of the usual modelling workflow; documented under `?glmbayesCore-callbacks`.
+
+| Function | Role |
+|----------|------|
+| `EnvelopeOpt()`, `EnvelopeSort()` | Envelope grid sizing and sorting during accept–reject sampling. |
+| `rNormal_reg.wfit()`, `glmbfamfunc()`, `rgamma_ct()` | Family-specific simulation callbacks used by **glmbayesCore** engines. |
+
+For the full simulation and envelope map, see **glmbayes** vignettes
+[Chapter A05](https://knygren.r-universe.dev/articles/glmbayes/Chapter-A05.html) and
+[Chapter A08](https://knygren.r-universe.dev/articles/glmbayes/Chapter-A08.html).
 
 ## Installation
 
@@ -141,9 +239,17 @@ and `vignette("Chapter-A10", package = "glmbayes")` in **glmbayes**.
 
 ## Documentation
 
-**lmebayes** does not ship vignettes yet; use `?lmebayes` and function help pages here.
+**lmebayes** does not ship vignettes yet; use the [Function overview](#function-overview) above,
+`?lmebayes`, and function help pages here.
 For GLM/Gibbs sampler background and tutorials, see **glmbayes**: `browseVignettes("glmbayes")`
 or https://knygren.r-universe.dev/articles/glmbayes/index.html .
+Mixed-model methodology is covered in **glmbayes** Chapters 17 (LMMs) and 18 (GLMMs).
+
+**Maintainers:** `R/` symbols are split into
+[inst/R_EXPORTED_AND_DOCUMENTED.md](inst/R_EXPORTED_AND_DOCUMENTED.md) (exports and
+`man/` pages) and
+[inst/R_INTERNAL_HELPERS.md](inst/R_INTERNAL_HELPERS.md) (`@noRd` / undocumented
+helpers). Index: [inst/R_FUNCTION_INVENTORY.md](inst/R_FUNCTION_INVENTORY.md).
 
 ## Feature Highlights
 
