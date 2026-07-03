@@ -106,16 +106,6 @@ Row-block wrappers `lmbBlock()` and `glmbBlock()` call these per block.
 
 See **glmbayes** README sections *Supported families, links, and pfamilies* and *Prior_Setup* for wiring details.
 
-#### From **glmbayesCore** — C++ callback symbols (advanced)
-
-Re-exported so compiled code can resolve them on the search path when **lmebayes** is attached.
-Not part of the usual modelling workflow; documented under `?glmbayesCore-callbacks`.
-
-| Function | Role |
-|----------|------|
-| `EnvelopeOpt()`, `EnvelopeSort()` | Envelope grid sizing and sorting during accept–reject sampling. |
-| `rNormal_reg.wfit()`, `glmbfamfunc()`, `rgamma_ct()` | Family-specific simulation callbacks used by **glmbayesCore** engines. |
-
 For the full simulation and envelope map, see **glmbayes** vignettes
 [Chapter A05](https://knygren.r-universe.dev/articles/glmbayes/Chapter-A05.html) and
 [Chapter A08](https://knygren.r-universe.dev/articles/glmbayes/Chapter-A08.html).
@@ -218,6 +208,25 @@ Use `demo()` for full Gibbs workflows with stored draws (may take minutes).
     ## Larger glmerb model
 
     demo("Ex_13_glmerb_Airbnb", package = "lmebayes")
+
+    ## Bayes Rules book_banning (binomial GLMM; requires bayesrules)
+
+    demo("Ex_16_glmerb_book_banning", package = "lmebayes")
+    ## Minimal Ch. 18-style: violent_i + state RE / random slope
+
+    demo("Ex_19_glmerb_book_banning_state_covariates", package = "lmebayes")
+    ## State covariates in X_hyper for the intercept RE
+
+    ## Independent Normal–Gamma Block~2 priors (ING; pilot + main sampling)
+
+    demo("Ex_20_lmerb_ING_pilot", package = "lmebayes")
+    ## Gaussian LMM, ING + pilot (small Big Word Club model)
+
+    demo("Ex_21_lmerb_ING_BigWordClub", package = "lmebayes")
+    ## Gaussian LMM, ING + pilot (full Big Word Club; compare Ex_12)
+
+    demo("Ex_22_glmerb_book_banning_ING", package = "lmebayes")
+    ## Binomial GLMM, ING on RE components (compare Ex_16)
 
 
 ## Methodology

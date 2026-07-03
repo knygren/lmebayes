@@ -39,7 +39,6 @@ ps <- Prior_Setup_lmebayes(form_glmerb, data = dat, family = binomial(), pwt = 0
 
 print(ps)
 
-set.seed(42L)
 fit <- glmerb(
   form_glmerb,
   data         = dat,

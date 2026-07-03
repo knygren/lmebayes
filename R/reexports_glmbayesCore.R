@@ -37,40 +37,7 @@ dGamma <- glmbayesCore::dGamma
 glmbayesCore::pfamily_list
 
 ## Replicate-chain and block Gibbs engines below rlmerb()/rglmerb() (e.g.
-## rGLMM, rLMMNormal_reg, block_rNormalGLM, run_sweep_outer_chains_v6) are
-## glmbayesCore-only; lmebayes calls them with glmbayesCore:: internally.
-
-## C++ callback symbols re-exported for search-path lookup when lmebayes is
-## attached. glmbayesCore C++ resolves these by unqualified name
-## (Rcpp::Function("EnvelopeOpt"), etc.).
-
-#' C++ callback symbols re-exported for search-path lookup
-#'
-#' Re-exported from \pkg{glmbayesCore} so compiled code can resolve them by
-#' unqualified name when \pkg{lmebayes} is attached. Not part of the
-#' user-facing \pkg{lmebayes} API.
-#'
-#' @name glmbayesCore-callbacks
-#' @aliases EnvelopeOpt EnvelopeSort rNormal_reg.wfit glmbfamfunc rgamma_ct
-#' @keywords internal
-NULL
-
-#' @rdname glmbayesCore-callbacks
-#' @export
-EnvelopeOpt <- glmbayesCore::EnvelopeOpt
-
-#' @rdname glmbayesCore-callbacks
-#' @export
-EnvelopeSort <- glmbayesCore::EnvelopeSort
-
-#' @rdname glmbayesCore-callbacks
-#' @export
-rNormal_reg.wfit <- glmbayesCore::rNormal_reg.wfit
-
-#' @rdname glmbayesCore-callbacks
-#' @export
-glmbfamfunc <- glmbayesCore::glmbfamfunc
-
-#' @rdname glmbayesCore-callbacks
-#' @export
-rgamma_ct <- glmbayesCore::rgamma_ct
+## rGLMM, rLMMNormal_reg, block_rNormalGLM) are glmbayesCore-only; lmebayes
+## calls them with glmbayesCore:: internally.  C++ callbacks (EnvelopeOpt,
+## EnvelopeSort, glmbfamfunc, rNormal_reg.wfit, rgamma_ct) resolve from the
+## glmbayesCore namespace in Core; they are not re-exported from lmebayes.

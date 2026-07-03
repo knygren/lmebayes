@@ -50,7 +50,6 @@ dependency help pages.
 |----------|----------------|
 | `lmb()`, `glmb()`, `directional_tail()` | glmbayes |
 | `Prior_Setup()`, `dNormal()`, `dNormal_Gamma()`, `dIndependent_Normal_Gamma()`, `dGamma()` | glmbayesCore |
-| `EnvelopeOpt()`, `EnvelopeSort()`, `rNormal_reg.wfit()`, `glmbfamfunc()`, `rgamma_ct()` | glmbayesCore |
 
 ---
 

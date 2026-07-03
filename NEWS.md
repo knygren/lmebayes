@@ -1,5 +1,10 @@
 ﻿# lmebayes (development version)
 
+* **Dropped C++ callback re-exports:** no longer re-exports **`EnvelopeOpt()`**,
+  **`EnvelopeSort()`**, **`glmbfamfunc()`**, **`rNormal_reg.wfit()`**, or
+  **`rgamma_ct()`** from **glmbayesCore**; Core C++ resolves them from the
+  **`glmbayesCore`** namespace directly.
+
 * **Removed `rglmerb_v5` C++ GLMM path:** dropped exported `rglmerb_v5()`,
   internal `run_short_chains_v5()`, the `.rglmerb_engine` switch, and related
   data-raw validation scripts. Non-Gaussian **`rglmerb()`** / **`glmerb()`**
