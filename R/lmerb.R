@@ -334,7 +334,7 @@ lmerb <- function(
     stop("model_setup() must return a model_setup object.", call. = FALSE)
   }
 
-  prior <- .lmebayes_priors_from_pfamily_list(
+  prior <- glmbayesCore:::.lmebayes_priors_from_pfamily_list(
     pfamily_list     = pfamily_list,
     dispersion_ranef = dispersion_ranef,
     design           = design,
@@ -353,7 +353,7 @@ lmerb <- function(
     fixef_prior <- fixef
     pm          <- glmbayesCore::lmerb_posterior_mean(design, prior)
     fixef_start <- pm$fixef
-    icm_lbl     <- .lmebayes_block2_icm_labels(prior, gaussian())
+    icm_lbl     <- glmbayesCore:::.lmebayes_block2_icm_labels(prior, gaussian())
     hdr <- sprintf("  %-18s  %-30s  %14s  %18s",
                    "RE component", "parameter",
                    icm_lbl$ref_label, icm_lbl$icm_label)
@@ -395,7 +395,7 @@ lmerb <- function(
 
   # ICM posterior mean, block1_prior, convergence calibration, and sampling
   # are all handled inside rlmerb.
-  sampler <- rlmerb(
+  sampler <- glmbayesCore::rlmerb(
     n               = n,
     design          = design,
     prior           = prior,

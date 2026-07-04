@@ -45,7 +45,7 @@ ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
 ## --- two-block sampler inputs, exactly as lmerb() builds them --------------
 re_names     <- design$re_coef_names
 group_levels <- levels(design$groups)
-block1_prior <- lmebayes:::.lmebayes_block1_prior_list(ps)
+block1_prior <- glmbayesCore:::.lmebayes_block1_prior_list(ps)
 block2_prior_list <- stats::setNames(
   lapply(re_names, function(k) {
     pl_k <- ps$prior_list[[k]]

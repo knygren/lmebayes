@@ -41,3 +41,11 @@ glmbayesCore::pfamily_list
 ## calls them with glmbayesCore:: internally.  C++ callbacks (EnvelopeOpt,
 ## EnvelopeSort, glmbfamfunc, rNormal_reg.wfit, rgamma_ct) resolve from the
 ## glmbayesCore namespace in Core; they are not re-exported from lmebayes.
+
+#' @inherit glmbayesCore::rlmerb title description details params return seealso
+#' @export
+rlmerb <- glmbayesCore::rlmerb
+
+#' @inherit glmbayesCore::rglmerb title description details params return seealso
+#' @export
+rglmerb <- glmbayesCore::rglmerb

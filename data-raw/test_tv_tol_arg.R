@@ -41,7 +41,7 @@ ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
 ## --- expected m_convergence from the rate/bound machinery directly ---------
 design <- model_setup(form_lmer, data = dat)
 re_names <- design$re_coef_names
-block1_prior <- lmebayes:::.lmebayes_block1_prior_list(ps)
+block1_prior <- glmbayesCore:::.lmebayes_block1_prior_list(ps)
 block2_prior_list <- stats::setNames(
   lapply(re_names, function(k) {
     pl_k <- ps$prior_list[[k]]
