@@ -91,7 +91,7 @@ dispersion prior weights (always present; consistent with
 \item{\code{n_prior_dispersion}}{Named per-component vector of
 effective prior sample sizes for the Block~2 dispersion prior
 (always present; used by
-\code{pfamily_list.lmebayes_prior_setup()} in lmebayes to
+\code{\link[glmbayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}()} to
 calibrate \code{dIndependent_Normal_Gamma} components).}
 \item{\code{design}}{Full \code{\link[glmbayesCore]{model_setup}} object (all groups).}
 \item{\code{fit_ref}}{Reference \code{lmer}/\code{glmer} fit on all
@@ -117,7 +117,7 @@ precision (glmbayesCore Chapter A12, Theorem 2; inverted to a
 \eqn{n_0}, covers \eqn{\ge} ~98\\% of the exact posterior for every
 prior strength, and keeps the envelope sampler's cost stable as
 priors weaken; see \code{inst/ING_TRUNCATION_WINDOW.md}.  Used by
-\code{pfamily_list()} in lmebayes when
+\code{\link[glmbayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}()} when
 \code{ptypes = "dIndependent_Normal_Gamma"}; ignored for
 \code{dNormal} priors.}
 }

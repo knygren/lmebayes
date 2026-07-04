@@ -56,29 +56,15 @@ Set `simulate = FALSE` on `lmerb()` / `glmerb()` for ICM posterior mean/mode onl
 
 | Function | Role |
 |----------|------|
-| `model_setup()` | Parse an `lme4`-style formula into design matrices, variance components, and identifiability checks (single grouping factor). |
-| `Prior_Setup_lmebayes()` | Calibrate Block~2 hyperpriors and observation-level dispersion from a reference `lmer` / `glmer` fit. |
 | `Prior_SetupBlock()` | Run `Prior_Setup()` independently on each row block (for `lmbBlock()` / `glmbBlock()`). |
-| `pfamily_list()` | S3 method for `"lmebayes_prior_setup"`: build per–random-effect `pfamily` objects from `Prior_Setup_lmebayes()`. |
-| `print()` | S3 methods for `"model_setup"` and `"lmebayes_prior_setup"`. |
 
 Typical workflow: `model_setup()` → `Prior_Setup_lmebayes()` → `pfamily_list(ps)` → `lmerb()` / `glmerb()`.
-
-#### Low-level mixed-effects samplers (matrix / design API)
-
-These mirror `rlmb()` / `rglmb()` in **glmbayes**: minimal overhead for repeated Gibbs calls.
-`lmerb()` and `glmerb()` invoke them after formula parsing and prior construction.
-
-| Function | Role |
-|----------|------|
-| `rlmerb()` | Gaussian LMM sampler (two-block Gibbs; replicate chains). |
-| `rglmerb()` | GLMM sampler: Gaussian → `rLMMNormal_reg()` / `rLMMindepNormalGamma_reg()`; other families → `glmbayesCore::rGLMM()` (sweep-outer; optional pilot when `gap_tol` is set). |
+(`model_setup`, `Prior_Setup_lmebayes`, `pfamily_list`, and their `print` methods are implemented in **glmbayesCore** and re-exported here.)
 
 #### Diagnostics and build utilities
 
 | Function | Role |
 |----------|------|
-| `plot_sweep_history_diag()` | Histogram diagnostics on inner Gibbs sweep history from `lmerb()` / `glmerb()`. |
 | `has_opencl()` | Whether **this** **lmebayes** build was compiled with OpenCL (distinct from runtime GPU probes in **opencltools**). |
 
 ### Re-exported functions
@@ -96,15 +82,21 @@ Symbols below are implemented in **glmbayes** or **glmbayesCore** and re-exporte
 
 Row-block wrappers `lmbBlock()` and `glmbBlock()` call these per block.
 
-#### From **glmbayesCore** — prior families and default calibration
+#### From **glmbayesCore** — prior families, default calibration, and mixed-model setup
 
 | Function | Role |
 |----------|------|
 | `Prior_Setup()` | Default prior calibration for a GLM/LM formula (Zellner-style `mu`, `Sigma`, dispersion, conjugate components). |
 | `dNormal()`, `dNormal_Gamma()`, `dIndependent_Normal_Gamma()`, `dGamma()` | `pfamily` constructors passed to `lmb()`, `glmb()`, and block samplers. |
-| `pfamily_list()` | Generic (from **glmbayesCore**); **lmebayes** adds the `lmebayes_prior_setup` method above. |
+| `pfamily_list()` | Generic plus `lmebayes_prior_setup` method: build Block~2 `pfamily` objects from `Prior_Setup_lmebayes()`. |
+| `plot_sweep_history_diag()` | Cross-chain mean/SD vs inner sweep for `two_block_sweep_history` (e.g. `fit$sweep_history$main`). |
+| `model_setup()` | Parse an `lme4`-style formula into design matrices and variance components (single grouping factor). |
+| `Prior_Setup_lmebayes()` | Calibrate Block~2 hyperpriors from a reference `lmer` / `glmer` fit. |
+| `rlmerb()` | Matrix-level Gaussian LMM sampler (two-block Gibbs; replicate chains). |
+| `rglmerb()` | Matrix-level GLMM sampler: Gaussian → `rLMMNormal_reg()` / ING; other families → `rGLMM()` sweep-outer. |
 
 See **glmbayes** README sections *Supported families, links, and pfamilies* and *Prior_Setup* for wiring details.
+Internal lme4 design utilities (`get_lme4_components`, `extract_re_hyper_matrices`, …) live in **glmbayesCore** only.
 
 For the full simulation and envelope map, see **glmbayes** vignettes
 [Chapter A05](https://knygren.r-universe.dev/articles/glmbayes/Chapter-A05.html) and

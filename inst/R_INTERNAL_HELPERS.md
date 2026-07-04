@@ -9,63 +9,35 @@ in `R/` (comma-separated). Helpers with no callers are marked *(unused)*.
 
 Companion: [R_EXPORTED_AND_DOCUMENTED.md](R_EXPORTED_AND_DOCUMENTED.md).
 
+Mixed-model sampling, prior-setup, and lme4 design helpers were moved to
+**glmbayesCore**; see
+[glmbayesCore/inst/R_INTERNAL_HELPERS.md](../../glmbayesCore/inst/R_INTERNAL_HELPERS.md).
+
 ---
 
-## Sampling engines (`glmerb_utilities.R`)
+## Mixed-model glue (`glmerb_utilities.R`)
 
 | Function | File | Called from |
 |----------|------|-------------|
-| `.lmebayes_run_lmm_engine()` | `glmerb_utilities.R` | `rglmerb()` (Gaussian path), `rlmerb()` |
-| `.lmebayes_add_fixef_summaries()` | `glmerb_utilities.R` | `rglmerb()`, `rlmerb()` |
+| `.lmerb_reference_fit()` | `glmerb_utilities.R` | `summary.lmerb()`, `.lmerb_fixef_component_summary()`, `.lmerb_tau2_prior_overview()` |
 | `.lmebayes_stage_v2_fixef()` | `glmerb_utilities.R` | *(unused; legacy two-block staging)* |
 
 ---
 
-## Priors / dispersion
+## Resolved from **glmbayesCore** (`glmbayesCore:::` / `importFrom`)
 
-| Function | File | Called from |
-|----------|------|-------------|
-| `.lmebayes_priors_from_pfamily_list()` | `glmerb_utilities.R` | `lmerb()`, `glmerb()` |
-| `.lmebayes_resolve_dispersion_ranef()` | `glmerb_utilities.R` | `rglmerb()`, `rlmerb()`, `.lmebayes_priors_from_pfamily_list()` |
-| `.lmebayes_validate_dispersion_ranef()` | `glmerb_utilities.R` | *(unused; thin wrapper around `.lmebayes_resolve_dispersion_ranef()`)* |
-| `.lmebayes_block1_prior_list()` | `glmerb_utilities.R` | `rglmerb()`, `rlmerb()` |
-| `.lmerb_reference_fit()` | `glmerb_utilities.R` | `summary.lmerb()`, `.lmerb_fixef_component_summary()`, `.lmerb_tau2_prior_overview()` |
-| `.lmebayes_resolve_pwt()` | `prior_setup_lmebayes.R` | `Prior_Setup_lmebayes()` |
-| `.lmebayes_resolve_disp_prior()` | `prior_setup_lmebayes.R` | `Prior_Setup_lmebayes()` |
-| `.lmebayes_block_glm_estimable()` | `prior_setup_lmebayes.R` | `Prior_Setup_lmebayes()` |
+| Symbol | Core file | Called from (lmebayes) |
+|--------|-----------|------------------------|
+| `.lmebayes_priors_from_pfamily_list()` | `mixed_rmerb_helpers.R` | `lmerb()`, `glmerb()` |
+| `.lmebayes_block2_icm_labels()` | `mixed_rmerb_helpers.R` | `lmerb()`, `glmerb()` |
+| `.lmebayes_mer_optional_args()` | `model_setup.R` | `glmerb()` |
+| `extract_mer_variance_components()` | `lme4_design_utilities.R` | `summary.lmerb()` |
+| `.two_block_as_staged_names()` | `two_block_glmm_pilot_helpers.R` | `.lmebayes_stage_v2_fixef()` |
+| `.mrglmb_normalize_pfamily_lists` | *(Core)* | `lmbBlock()`, `glmbBlock()` (alias in `block_core_pfamily.R`) |
+| `.validate_pfamily_for_rlmb` | *(Core)* | `lmbBlock()`, `glmbBlock()` (alias in `block_core_pfamily.R`) |
 
----
-
-## Formula / design parsing
-
-| Function | File | Called from |
-|----------|------|-------------|
-| `.lmebayes_validate_uncorrelated_re_formula()` | `glmerb_utilities.R` | `extract_re_hyper_matrices()` |
-| `.lmebayes_mer_convergence_issues()` | `model_setup.R` | `Prior_Setup_lmebayes()` |
-| `.lmebayes_normalize_family()` | `model_setup.R` | `model_setup()` |
-| `.lmebayes_mer_optional_args()` | `model_setup.R` | `model_setup()`, `glmerb()` |
-| `.lme4_Z_random_column_map()` | `glmerb_utilities.R` | `.lme4_Z_random_colnames()`, `get_lme4_components()` |
-| `.lme4_Z_random_colnames()` | `glmerb_utilities.R` | `.lme4_label_Z_random_sparse()` |
-| `.lme4_Z_random_rownames()` | `glmerb_utilities.R` | `.lme4_Z_random_row_map()`, `.lme4_label_Z_random_sparse()` |
-| `.lme4_Z_random_row_map()` | `glmerb_utilities.R` | `get_lme4_components()` |
-| `.lme4_label_Z_random_sparse()` | `glmerb_utilities.R` | `get_lme4_components()` |
-
-Exported entry points that reach the Z-label chain: `model_setup()` →
-`extract_re_hyper_matrices()` → `get_lme4_components()`.
-
----
-
-## Sampling console output (`rglmerb_diag.R`)
-
-| Function | File | Called from |
-|----------|------|-------------|
-| `.lmebayes_block2_icm_labels()` | `rglmerb_diag.R` | `rglmerb()`, `rlmerb()`, `lmerb()` (ICM-only path), `glmerb()` (ICM-only path) |
-| `.lmebayes_print_icm_fixef_table()` | `rglmerb_diag.R` | `rglmerb()`, `rlmerb()` |
-| `.lmebayes_print_ranef_mode_reference()` | `rglmerb_diag.R` | `rglmerb()` |
-| `.lmebayes_print_fixef_init()` | `rglmerb_diag.R` | `rglmerb()`, `rlmerb()` |
-
-`lmerb()` and `glmerb()` inline the ICM fixed-effect table using
-`.lmebayes_block2_icm_labels()` only (no `print_icm_fixef_table()`).
+Formula drivers call re-exported `model_setup()`, `Prior_Setup_lmebayes()`, `rlmerb()`,
+and `rglmerb()` without namespace qualification.
 
 ---
 
@@ -137,4 +109,4 @@ Both symbols are namespace aliases to **glmbayesCore** helpers.
 |----------|------|
 | 1 | Avoid adding new `@noRd` helpers unless tied to exported behavior. |
 | 2 | Promote repeated demo patterns to documented `R/` API instead of new `:::` helpers. |
-| 3 | Remove or wire up *(unused)* helpers (`.lmebayes_stage_v2_fixef`, `.lmebayes_validate_dispersion_ranef`) when touching related code. |
+| 3 | Remove or wire up *(unused)* helpers (`.lmebayes_stage_v2_fixef`) when touching related code. |

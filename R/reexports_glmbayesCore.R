@@ -31,10 +31,17 @@ dIndependent_Normal_Gamma <- glmbayesCore::dIndependent_Normal_Gamma
 dGamma <- glmbayesCore::dGamma
 
 ## Proper re-export (not a copy) so S3 methods register against the
-## glmbayesCore generic.
+## glmbayesCore generic.  The lmebayes_prior_setup method lives in Core;
+## see ?glmbayesCore::pfamily_list.lmebayes_prior_setup.
+#' @inherit glmbayesCore::pfamily_list title description details params return seealso
+#' @name pfamily_list
 #' @importFrom glmbayesCore pfamily_list
 #' @export
 glmbayesCore::pfamily_list
+
+#' @inherit glmbayesCore::plot_sweep_history_diag title description details params return seealso examples
+#' @export
+plot_sweep_history_diag <- glmbayesCore::plot_sweep_history_diag
 
 ## Replicate-chain and block Gibbs engines below rlmerb()/rglmerb() (e.g.
 ## rGLMM, rLMMNormal_reg, block_rNormalGLM) are glmbayesCore-only; lmebayes

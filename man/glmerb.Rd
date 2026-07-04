@@ -71,7 +71,7 @@ increases the contraction rate \eqn{\lambda^*}, so the bound holds
 for every dispersion in the truncated support).  They must also
 satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
 (\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
-\code{\link[=pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
+\code{\link[glmbayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
 \code{\link{Prior_Setup_lmebayes}} object.}
 
 \item{dispersion_ranef}{Observation-level measurement dispersion, treated

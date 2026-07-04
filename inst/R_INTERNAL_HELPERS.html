@@ -365,9 +365,11 @@ exported API.</p>
 (comma-separated). Helpers with no callers are marked
 <em>(unused)</em>.</p>
 <p>Companion: <a href="R_EXPORTED_AND_DOCUMENTED.md">R_EXPORTED_AND_DOCUMENTED.md</a>.</p>
+<p>Mixed-model sampling, prior-setup, and lme4 design helpers were moved
+to <strong>glmbayesCore</strong>; see <a href="../../glmbayesCore/inst/R_INTERNAL_HELPERS.md">glmbayesCore/inst/R_INTERNAL_HELPERS.md</a>.</p>
 <hr />
-<div id="sampling-engines-glmerb_utilities.r" class="section level2">
-<h2>Sampling engines (<code>glmerb_utilities.R</code>)</h2>
+<div id="mixed-model-glue-glmerb_utilities.r" class="section level2">
+<h2>Mixed-model glue (<code>glmerb_utilities.R</code>)</h2>
 <table>
 <colgroup>
 <col width="34%" />
@@ -382,63 +384,6 @@ exported API.</p>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
-<td><code>.lmebayes_run_lmm_engine()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>rglmerb()</code> (Gaussian path), <code>rlmerb()</code></td>
-</tr>
-<tr class="even">
-<td><code>.lmebayes_add_fixef_summaries()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>rglmerb()</code>, <code>rlmerb()</code></td>
-</tr>
-<tr class="odd">
-<td><code>.lmebayes_stage_v2_fixef()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><em>(unused; legacy two-block staging)</em></td>
-</tr>
-</tbody>
-</table>
-<hr />
-</div>
-<div id="priors-dispersion" class="section level2">
-<h2>Priors / dispersion</h2>
-<table>
-<colgroup>
-<col width="34%" />
-<col width="20%" />
-<col width="44%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Function</th>
-<th>File</th>
-<th>Called from</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>.lmebayes_priors_from_pfamily_list()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>lmerb()</code>, <code>glmerb()</code></td>
-</tr>
-<tr class="even">
-<td><code>.lmebayes_resolve_dispersion_ranef()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>rglmerb()</code>, <code>rlmerb()</code>,
-<code>.lmebayes_priors_from_pfamily_list()</code></td>
-</tr>
-<tr class="odd">
-<td><code>.lmebayes_validate_dispersion_ranef()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><em>(unused; thin wrapper around
-<code>.lmebayes_resolve_dispersion_ranef()</code>)</em></td>
-</tr>
-<tr class="even">
-<td><code>.lmebayes_block1_prior_list()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>rglmerb()</code>, <code>rlmerb()</code></td>
-</tr>
 <tr class="odd">
 <td><code>.lmerb_reference_fit()</code></td>
 <td><code>glmerb_utilities.R</code></td>
@@ -447,136 +392,73 @@ exported API.</p>
 <code>.lmerb_tau2_prior_overview()</code></td>
 </tr>
 <tr class="even">
-<td><code>.lmebayes_resolve_pwt()</code></td>
-<td><code>prior_setup_lmebayes.R</code></td>
-<td><code>Prior_Setup_lmebayes()</code></td>
-</tr>
-<tr class="odd">
-<td><code>.lmebayes_resolve_disp_prior()</code></td>
-<td><code>prior_setup_lmebayes.R</code></td>
-<td><code>Prior_Setup_lmebayes()</code></td>
-</tr>
-<tr class="even">
-<td><code>.lmebayes_block_glm_estimable()</code></td>
-<td><code>prior_setup_lmebayes.R</code></td>
-<td><code>Prior_Setup_lmebayes()</code></td>
+<td><code>.lmebayes_stage_v2_fixef()</code></td>
+<td><code>glmerb_utilities.R</code></td>
+<td><em>(unused; legacy two-block staging)</em></td>
 </tr>
 </tbody>
 </table>
 <hr />
 </div>
-<div id="formula-design-parsing" class="section level2">
-<h2>Formula / design parsing</h2>
+<div id="resolved-from-glmbayescore-glmbayescore-importfrom" class="section level2">
+<h2>Resolved from <strong>glmbayesCore</strong>
+(<code>glmbayesCore:::</code> / <code>importFrom</code>)</h2>
 <table>
 <colgroup>
-<col width="34%" />
-<col width="20%" />
-<col width="44%" />
+<col width="18%" />
+<col width="25%" />
+<col width="55%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th>Function</th>
-<th>File</th>
-<th>Called from</th>
+<th>Symbol</th>
+<th>Core file</th>
+<th>Called from (lmebayes)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>.lmebayes_validate_uncorrelated_re_formula()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>extract_re_hyper_matrices()</code></td>
+<td><code>.lmebayes_priors_from_pfamily_list()</code></td>
+<td><code>mixed_rmerb_helpers.R</code></td>
+<td><code>lmerb()</code>, <code>glmerb()</code></td>
 </tr>
 <tr class="even">
-<td><code>.lmebayes_mer_convergence_issues()</code></td>
-<td><code>model_setup.R</code></td>
-<td><code>Prior_Setup_lmebayes()</code></td>
+<td><code>.lmebayes_block2_icm_labels()</code></td>
+<td><code>mixed_rmerb_helpers.R</code></td>
+<td><code>lmerb()</code>, <code>glmerb()</code></td>
 </tr>
 <tr class="odd">
-<td><code>.lmebayes_normalize_family()</code></td>
-<td><code>model_setup.R</code></td>
-<td><code>model_setup()</code></td>
-</tr>
-<tr class="even">
 <td><code>.lmebayes_mer_optional_args()</code></td>
 <td><code>model_setup.R</code></td>
-<td><code>model_setup()</code>, <code>glmerb()</code></td>
-</tr>
-<tr class="odd">
-<td><code>.lme4_Z_random_column_map()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>.lme4_Z_random_colnames()</code>,
-<code>get_lme4_components()</code></td>
+<td><code>glmerb()</code></td>
 </tr>
 <tr class="even">
-<td><code>.lme4_Z_random_colnames()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>.lme4_label_Z_random_sparse()</code></td>
+<td><code>extract_mer_variance_components()</code></td>
+<td><code>lme4_design_utilities.R</code></td>
+<td><code>summary.lmerb()</code></td>
 </tr>
 <tr class="odd">
-<td><code>.lme4_Z_random_rownames()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>.lme4_Z_random_row_map()</code>,
-<code>.lme4_label_Z_random_sparse()</code></td>
+<td><code>.two_block_as_staged_names()</code></td>
+<td><code>two_block_glmm_pilot_helpers.R</code></td>
+<td><code>.lmebayes_stage_v2_fixef()</code></td>
 </tr>
 <tr class="even">
-<td><code>.lme4_Z_random_row_map()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>get_lme4_components()</code></td>
+<td><code>.mrglmb_normalize_pfamily_lists</code></td>
+<td><em>(Core)</em></td>
+<td><code>lmbBlock()</code>, <code>glmbBlock()</code> (alias in
+<code>block_core_pfamily.R</code>)</td>
 </tr>
 <tr class="odd">
-<td><code>.lme4_label_Z_random_sparse()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td><code>get_lme4_components()</code></td>
+<td><code>.validate_pfamily_for_rlmb</code></td>
+<td><em>(Core)</em></td>
+<td><code>lmbBlock()</code>, <code>glmbBlock()</code> (alias in
+<code>block_core_pfamily.R</code>)</td>
 </tr>
 </tbody>
 </table>
-<p>Exported entry points that reach the Z-label chain:
-<code>model_setup()</code> → <code>extract_re_hyper_matrices()</code> →
-<code>get_lme4_components()</code>.</p>
-<hr />
-</div>
-<div id="sampling-console-output-rglmerb_diag.r" class="section level2">
-<h2>Sampling console output (<code>rglmerb_diag.R</code>)</h2>
-<table>
-<colgroup>
-<col width="34%" />
-<col width="20%" />
-<col width="44%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Function</th>
-<th>File</th>
-<th>Called from</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>.lmebayes_block2_icm_labels()</code></td>
-<td><code>rglmerb_diag.R</code></td>
-<td><code>rglmerb()</code>, <code>rlmerb()</code>, <code>lmerb()</code>
-(ICM-only path), <code>glmerb()</code> (ICM-only path)</td>
-</tr>
-<tr class="even">
-<td><code>.lmebayes_print_icm_fixef_table()</code></td>
-<td><code>rglmerb_diag.R</code></td>
-<td><code>rglmerb()</code>, <code>rlmerb()</code></td>
-</tr>
-<tr class="odd">
-<td><code>.lmebayes_print_ranef_mode_reference()</code></td>
-<td><code>rglmerb_diag.R</code></td>
-<td><code>rglmerb()</code></td>
-</tr>
-<tr class="even">
-<td><code>.lmebayes_print_fixef_init()</code></td>
-<td><code>rglmerb_diag.R</code></td>
-<td><code>rglmerb()</code>, <code>rlmerb()</code></td>
-</tr>
-</tbody>
-</table>
-<p><code>lmerb()</code> and <code>glmerb()</code> inline the ICM
-fixed-effect table using <code>.lmebayes_block2_icm_labels()</code> only
-(no <code>print_icm_fixef_table()</code>).</p>
+<p>Formula drivers call re-exported <code>model_setup()</code>,
+<code>Prior_Setup_lmebayes()</code>, <code>rlmerb()</code>, and
+<code>rglmerb()</code> without namespace qualification.</p>
 <hr />
 </div>
 <div id="summary.lmerb-helpers-summary.lmerb.r" class="section level2">
@@ -859,9 +741,7 @@ instead of new <code>:::</code> helpers.</td>
 <tr class="odd">
 <td>3</td>
 <td>Remove or wire up <em>(unused)</em> helpers
-(<code>.lmebayes_stage_v2_fixef</code>,
-<code>.lmebayes_validate_dispersion_ranef</code>) when touching related
-code.</td>
+(<code>.lmebayes_stage_v2_fixef</code>) when touching related code.</td>
 </tr>
 </tbody>
 </table>

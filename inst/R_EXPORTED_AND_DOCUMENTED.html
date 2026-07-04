@@ -362,6 +362,10 @@ coverage.</p>
 <p>Companion: <a href="R_INTERNAL_HELPERS.md">R_INTERNAL_HELPERS.md</a>
 (<code>@noRd</code> and other undocumented helpers).</p>
 <p>User-facing export tables also appear in the <a href="../README.md#function-overview">README Function overview</a>.</p>
+<p>Mixed-model setup (<code>model_setup</code>,
+<code>Prior_Setup_lmebayes</code>, lme4 design utilities,
+<code>rlmerb</code> / <code>rglmerb</code> engines) live in
+<strong>glmbayesCore</strong>; see <a href="../../glmbayesCore/inst/R_EXPORTED_AND_DOCUMENTED.md">glmbayesCore/inst/R_EXPORTED_AND_DOCUMENTED.md</a>.</p>
 <hr />
 <div id="native-exports-r-namespace" class="section level2">
 <h2>Native exports (<code>R/</code> → <code>NAMESPACE</code>)</h2>
@@ -415,39 +419,9 @@ coverage.</p>
 <td>Print method for summary object.</td>
 </tr>
 <tr class="even">
-<td><code>rlmerb()</code></td>
-<td><code>rlmerb.R</code></td>
-<td>Matrix-level Gaussian LMM sampler.</td>
-</tr>
-<tr class="odd">
-<td><code>rglmerb()</code></td>
-<td><code>rglmerb.R</code></td>
-<td>Matrix-level GLMM sampler.</td>
-</tr>
-<tr class="even">
-<td><code>model_setup()</code></td>
-<td><code>model_setup.R</code></td>
-<td>Parse lme4-style formula → design object.</td>
-</tr>
-<tr class="odd">
-<td><code>print.model_setup()</code></td>
-<td><code>model_setup.R</code></td>
-<td>Print design object.</td>
-</tr>
-<tr class="even">
-<td><code>Prior_Setup_lmebayes()</code></td>
-<td><code>prior_setup_lmebayes.R</code></td>
-<td>Calibrate Block 2 priors from lmer/glmer.</td>
-</tr>
-<tr class="odd">
 <td><code>Prior_SetupBlock()</code></td>
 <td><code>prior_setup_lmebayes.R</code></td>
 <td>Per-row-block prior setup.</td>
-</tr>
-<tr class="even">
-<td><code>print.lmebayes_prior_setup()</code></td>
-<td><code>prior_setup_lmebayes.R</code></td>
-<td>Print prior-setup object.</td>
 </tr>
 <tr class="odd">
 <td><code>pfamily_list()</code> method</td>
@@ -502,8 +476,8 @@ coverage.</p>
 <div id="re-exports-rreexports_.r" class="section level2">
 <h2>Re-exports (<code>R/reexports_*.R</code>)</h2>
 <p>Implemented in <strong>glmbayes</strong> /
-<strong>glmbayesCore</strong>; documented under <code>?reexports</code>
-and dependency help pages.</p>
+<strong>glmbayesCore</strong>; documented under dependency help
+pages.</p>
 <table>
 <colgroup>
 <col width="38%" />
@@ -527,8 +501,17 @@ and dependency help pages.</p>
 <code>dGamma()</code></td>
 <td>glmbayesCore</td>
 </tr>
+<tr class="odd">
+<td><code>model_setup()</code>, <code>Prior_Setup_lmebayes()</code>,
+<code>rlmerb()</code>, <code>rglmerb()</code></td>
+<td>glmbayesCore</td>
+</tr>
 </tbody>
 </table>
+<p>S3 <code>print.model_setup</code> and
+<code>print.lmebayes_prior_setup</code> register in
+<strong>glmbayesCore</strong>; <strong>lmebayes</strong> dispatches them
+via <code>import(glmbayesCore)</code>.</p>
 <hr />
 </div>
 <div id="documented-but-not-exported-keywords-internal-man" class="section level2">
@@ -559,90 +542,12 @@ in <code>NAMESPACE</code>.</p>
 <td><strong>Export?</strong> Heavily used in demos.</td>
 </tr>
 <tr class="even">
-<td><code>is_single_factor_model()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Exactly one grouping factor.</td>
-<td>Keep internal.</td>
-</tr>
-<tr class="odd">
-<td><code>is_fixed_effects_only()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>No random effects in formula.</td>
-<td>Keep internal.</td>
-</tr>
-<tr class="even">
-<td><code>get_lme4_components()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>lme4 parse → matrices.</td>
-<td>Dev / extension utility.</td>
-</tr>
-<tr class="odd">
-<td><code>show_lme4_Z_random()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Debug random-effects design.</td>
-<td>Dev only.</td>
-</tr>
-<tr class="even">
-<td><code>classify_lme4_fixed_columns()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Population vs group-level fixed cols.</td>
-<td>Prior pipeline.</td>
-</tr>
-<tr class="odd">
-<td><code>classify_crosslevel_re_moderation()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Cross-level RE structure.</td>
-<td>Prior pipeline.</td>
-</tr>
-<tr class="even">
-<td><code>extract_re_hyper_matrices()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Block 2 group designs.</td>
-<td>Prior / setup.</td>
-</tr>
-<tr class="odd">
-<td><code>extract_re_Z_obs()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Obs-level Z for one group.</td>
-<td>Prior / setup.</td>
-</tr>
-<tr class="even">
-<td><code>extract_lme4_submatrices()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Subset parsed lme4 parts.</td>
-<td>Prior / setup.</td>
-</tr>
-<tr class="odd">
-<td><code>extract_lme4_fixed_group_matrix()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Group-level fixed matrix.</td>
-<td>Prior / setup.</td>
-</tr>
-<tr class="even">
-<td><code>extract_lmer_variance_components()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>From <strong>lmer</strong> fit.</td>
-<td>Prior calibration.</td>
-</tr>
-<tr class="odd">
-<td><code>extract_mer_variance_components()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>From <strong>glmer</strong> fit.</td>
-<td>Prior calibration.</td>
-</tr>
-<tr class="even">
-<td><code>lmerb_default_vcov_formula()</code></td>
-<td><code>glmerb_utilities.R</code></td>
-<td>Default vcov for prior scaling.</td>
-<td>Prior calibration.</td>
-</tr>
-<tr class="odd">
 <td><code>block_check_identifiability()</code></td>
 <td><code>lmbBlock.R</code></td>
 <td>Block GLM rank (formula).</td>
 <td>Block models.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>block_check_identifiability_xy()</code></td>
 <td><code>lmbBlock.R</code></td>
 <td>Block GLM rank (matrix).</td>
@@ -650,6 +555,10 @@ in <code>NAMESPACE</code>.</p>
 </tr>
 </tbody>
 </table>
+<p>lme4 design utilities (<code>get_lme4_components</code>,
+<code>extract_re_hyper_matrices</code>, …) moved to
+<strong>glmbayesCore</strong> (<code>R/lme4_design_utilities.R</code>);
+see Core <code>inst/R_EXPORTED_AND_DOCUMENTED.md</code>.</p>
 <hr />
 </div>
 <div id="documentation-topics-no-function-body-in-r" class="section level2">
