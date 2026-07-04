@@ -49,3 +49,11 @@ rlmerb <- glmbayesCore::rlmerb
 #' @inherit glmbayesCore::rglmerb title description details params return seealso
 #' @export
 rglmerb <- glmbayesCore::rglmerb
+
+#' @inherit glmbayesCore::model_setup title description details params return seealso
+#' @export
+model_setup <- glmbayesCore::model_setup
+
+#' @inherit glmbayesCore::Prior_Setup_lmebayes title description details params return seealso
+#' @export
+Prior_Setup_lmebayes <- glmbayesCore::Prior_Setup_lmebayes

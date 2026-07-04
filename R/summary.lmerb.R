@@ -460,7 +460,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   re_names  <- object$model_setup$re_coef_names
   mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
   mer_vc    <- tryCatch(
-    extract_mer_variance_components(
+    glmbayesCore:::extract_mer_variance_components(
       .lmerb_reference_fit(object),
       re_coef_names = re_names
     ),

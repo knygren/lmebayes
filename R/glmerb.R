@@ -180,7 +180,7 @@ glmerb <- function(
       verbose = verbose
     ),
     if (!is.null(control)) list(control = control),
-    .lmebayes_mer_optional_args(
+    glmbayesCore:::.lmebayes_mer_optional_args(
       start = start,
       subset = subset,
       weights = weights,

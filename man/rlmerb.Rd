@@ -24,13 +24,14 @@ rlmerb(
 \item{n}{Integer. Number of stored draws (each draw is one full pass through
 \code{m_convergence} inner Gibbs sweeps).}
 
-\item{design}{A \code{model_setup} object (typically from
-\code{\link[lmebayes]{model_setup}}) supplying \code{y}, \code{Z},
-\code{groups}, \code{X_hyper}, \code{group_name}, and \code{re_coef_names}.}
+\item{design}{A \code{model_setup} object (from \code{\link[glmbayesCore]{model_setup}})
+supplying \code{y}, \code{Z}, \code{groups}, \code{X_hyper},
+\code{group_name}, and \code{re_coef_names}.}
 
 \item{prior}{Normalized prior container with \code{Sigma_ranef}, \code{prior_list},
 and related Block~2 fields (typically from \code{pfamily_list} and
-\code{dispersion_ranef} via \code{\link[lmebayes]{lmerb}}).}
+\code{dispersion_ranef} via \code{\link[glmbayesCore]{Prior_Setup_lmebayes}} or an
+\code{lmerb()} workflow in lmebayes).}
 
 \item{dispersion_ranef}{Required observation-level dispersion: a positive
 scalar \eqn{\sigma^2} (fixed) or a \code{\link[glmbayesCore]{dGamma}()} pfamily with
@@ -87,10 +88,10 @@ delegates replicate-chain sampling to \code{\link[glmbayesCore]{rLMMNormal_reg}}
 \code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is a
 \code{\link[glmbayesCore]{dGamma}()} pfamily.
 
-For formula-level fitting with \pkg{lmebayes}, see \code{\link[lmebayes]{lmerb}}.
+For formula-level fitting, \code{lmerb()} in the lmebayes package wraps this sampler.
 }
 \seealso{
 \code{\link[glmbayesCore]{rglmerb}}, \code{\link[glmbayesCore]{rLMMNormal_reg}},
-\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}}, \code{\link[lmebayes]{lmerb}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}}, \code{\link[glmbayesCore]{Prior_Setup_lmebayes}},
 \code{\link[glmbayesCore]{rlmb}}
 }
