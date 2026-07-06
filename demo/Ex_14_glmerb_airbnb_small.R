@@ -85,3 +85,6 @@ lme4::fixef(fit$glmer)
 ## Full print and summary.
 print(fit)
 summary(fit)
+
+cat("\n=== Random effects: glmer reference vs glmerb chain mean ===\n\n")
+lmebayes:::print_mer_bayes_re_compare(fit)

@@ -265,3 +265,6 @@ coef_focus_batches <- list(
 plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[1L]])
 plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[2L]])
 plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[3L]])
+
+cat("\n=== Random effects: glmer reference vs glmerb chain mean ===\n\n")
+lmebayes:::print_mer_bayes_re_compare(fit)

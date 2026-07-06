@@ -5,9 +5,10 @@
 ## Same model as demo/Ex_12_lmerb_BigWordClub.R; compare Ex_23 case 3
 ## (simulate = FALSE joint mode only).
 ##
-## TEMP: subsets to algebraically full-rank schools (Block~1 ING per-group
-## requires full-rank Z_j). Also excludes school_id 2 and 18 (envelope sign
-## violation in per-group ING). Remove when shared sigma^2 Block~1 is in place.
+## TEMP: subsets to algebraically full-rank schools. Also excludes school_id
+## 2 and 18 (legacy per-group ING envelope issue). Block~1 uses the centering
+## bridge (BlockEnvelopeCentering) until BlockEnvelopeSim ships; remove school
+## filters once shared sigma^2 envelope is stable.
 ##
 ##   demo("Ex_24_lmerb_dGamma_BigWordClub", package = "lmebayes")
 
@@ -17,9 +18,6 @@ if (!requireNamespace("bayesrules", quietly = TRUE)) {
 if (!requireNamespace("lme4", quietly = TRUE)) {
   stop("This demo requires the 'lme4' package.", call. = FALSE)
 }
-
-## TEMP: trace Block~1 per-group ING progress (remove when debugging done)
-options(glmbayesCore.debug_block1_ing_levels = TRUE)
 
 data(big_word_club, package = "bayesrules")
 
@@ -236,3 +234,8 @@ for (k in re_names) {
     cat(sprintf("  %-28s  draws = %8.4f  ICM = %8.4f\n", nm, dm_k[[nm]], icm_k[[nm]]))
   }
 }
+
+cat("\n=== Random effects: lmer reference vs lmerb chain mean ===\n\n")
+cat("  Pre-fit lmer_full (build_mu_all from lmer fixef) printed above;\n")
+cat("  post-fit comparison uses fit$fixef.mu (same mu_all as the sampler).\n\n")
+lmebayes:::print_mer_bayes_re_compare(fit)

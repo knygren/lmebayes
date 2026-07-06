@@ -202,6 +202,12 @@ See `?Prior_Setup`, `?Prior_Setup_lmebayes`, `?pfamily_list`, and **glmbayes** `
 
 Use `example()` for quick help-page examples (ICM / setup only; safe for `R CMD check`).
 Use `demo()` for full Gibbs workflows with stored draws (may take minutes).
+After sampling, Gibbs demos print **`mer_full` vs chain-mean random-effects tables**
+(`lmer_full` / `lmerb` or `glmer_full` / `glmerb`) comparing the lme4 reference to
+Bayesian level-wise posterior means.
+
+For occasional sampler validation after major algorithm changes, see
+[`tests/manual/README.md`](tests/manual/README.md) (`Rscript tests/manual/run_all.R small`).
 
     ## Bayesian Linear Mixed-effects model (no Simulation) 
 

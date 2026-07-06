@@ -83,3 +83,6 @@ for (st in list(fit$sweep_history$pilot, fit$sweep_history$main)) {
   if (is.null(st)) next
   plot_sweep_history_diag(st, coef_focus)
 }
+
+cat("\n=== Random effects: glmer reference vs glmerb chain mean ===\n\n")
+lmebayes:::print_mer_bayes_re_compare(fit)

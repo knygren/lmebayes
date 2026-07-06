@@ -55,5 +55,15 @@ After sampling runs, inspect convergence with `print(fit$sweep_history$main)` an
 
 ## Official **testthat** suite
 
-Automated checks live under **`tests/testthat/`** only (`test-lmerb-example.R`,
-`test-glmerb-example.R`, etc.). Do not duplicate them here.
+Automated checks live under **`tests/testthat/`** only (fast unit tests:
+`test-sweep-history.R`, `test-summary-lmerb.R`, `test-prior-setup-*.R`, etc.).
+Long Gibbs / MER validation is under **`tests/manual/`** (not run by `devtools::check()`).
+See [tests/manual/README.md](../manual/README.md). Quick start:
+
+```r
+## From package root (PowerShell)
+Rscript tests/manual/test_lmerb_mer_re_validation.R
+Rscript tests/manual/test_lmerb_dgamma_mer_re_validation.R
+Rscript tests/manual/test_glmerb_mer_re_validation.R small
+Rscript tests/manual/run_all.R small
+```

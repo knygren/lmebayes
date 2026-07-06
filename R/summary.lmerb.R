@@ -250,22 +250,46 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   invisible(out)
 }
 
+#' Map Block~2 hyper parameter to \code{lmer}/\code{glmer} fixed-effect name
+#'
+#' Cross-level moderation columns in \code{X_hyper[[slope]]} (e.g. \code{transit_c}
+#' moderating \code{log_price_c}) map to the interaction term
+#' (\code{transit_c:log_price_c}), not the level-2 main effect \code{transit_c}.
+#'
+#' @param re_slope_moderation Optional \code{model_setup$re_slope_moderation} data
+#'   frame (\code{interaction_col}, \code{moderator}, \code{random_slope}).
 #' @keywords internal
-.lmerb_lmer_fixef_lookup <- function(lmer_fit, re_name, par_name) {
+.lmerb_lmer_fixef_lookup <- function(
+    lmer_fit,
+    re_name,
+    par_name,
+    re_slope_moderation = NULL
+) {
   fe <- lme4::fixef(lmer_fit)
   fe_names <- names(fe)
 
   candidates <- character(0)
   if (par_name == "(Intercept)" && re_name == "(Intercept)") {
-    candidates <- c("(Intercept)")
+    candidates <- "(Intercept)"
   } else if (par_name == "(Intercept)" && re_name != "(Intercept)") {
-    candidates <- c(re_name)
+    candidates <- re_name
+  } else if (re_name == "(Intercept)") {
+    candidates <- par_name
   } else {
-    candidates <- c(
-      par_name,
-      paste0(par_name, ":", re_name),
-      paste0(re_name, ":", par_name)
-    )
+    if (!is.null(re_slope_moderation) && nrow(re_slope_moderation) > 0L) {
+      hits <- re_slope_moderation$random_slope == re_name &
+        re_slope_moderation$moderator == par_name
+      if (any(hits)) {
+        candidates <- unique(re_slope_moderation$interaction_col[hits])
+      }
+    }
+    if (!length(candidates)) {
+      candidates <- c(
+        paste0(par_name, ":", re_name),
+        paste0(re_name, ":", par_name),
+        par_name
+      )
+    }
   }
 
   hit <- candidates[candidates %in% fe_names]
@@ -294,7 +318,12 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   prior_sd   <- sqrt(diag(pl_k$Sigma_fixef))
 
   mer_ref <- lapply(par, function(nm) {
-    .lmerb_lmer_fixef_lookup(.lmerb_reference_fit(object), k, nm)
+    .lmerb_lmer_fixef_lookup(
+      .lmerb_reference_fit(object),
+      k,
+      nm,
+      re_slope_moderation = object$model_setup$re_slope_moderation
+    )
   })
   mer_est <- vapply(mer_ref, `[[`, numeric(1), "estimate")
   mer_se  <- vapply(mer_ref, `[[`, numeric(1), "se")

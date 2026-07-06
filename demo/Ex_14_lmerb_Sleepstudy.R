@@ -124,3 +124,6 @@ cat(sprintf(
   n_flagged, total_tests, total_tests * 0.003
 ))
 cat("  (* |z| > 3: MCMC mean inconsistent with exact ICM posterior mean)\n")
+
+cat("\n=== Random effects: lmer reference vs lmerb chain mean ===\n\n")
+lmebayes:::print_mer_bayes_re_compare(fit)

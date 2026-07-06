@@ -554,3 +554,6 @@ if (!is.null(fit$sweep_history$main) && !is.null(fit$fixef)) {
     graphics::par(mar = c(5, 4, 4, 2) + 0.1)
   }
 }
+
+cat("\n=== Random effects: glmer reference vs glmerb chain mean ===\n\n")
+lmebayes:::print_mer_bayes_re_compare(fit)

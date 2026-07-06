@@ -160,3 +160,6 @@ if (!((p_pilot > 0.05) || (p_pilot >= p_mode))) {
 lmebayes:::print_coef_means(fit)
 print(fit)
 cat(.print_glmerb_test_summary(fit), "\n")
+
+cat("\n=== Random effects: glmer reference vs glmerb chain mean ===\n\n")
+lmebayes:::print_mer_bayes_re_compare(fit)

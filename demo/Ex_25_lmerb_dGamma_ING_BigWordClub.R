@@ -174,3 +174,6 @@ block2_cmp <- data.frame(
 )
 cat("\n=== Block 2 hyperparameters (plug-in / pilot / MCMC) ===\n\n")
 print(round(block2_cmp, 4))
+
+cat("\n=== Random effects: lmer reference vs lmerb chain mean ===\n\n")
+lmebayes:::print_mer_bayes_re_compare(fit)

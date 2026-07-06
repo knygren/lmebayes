@@ -115,3 +115,6 @@ cat(sprintf(
   "Overall centering (chi-squared): p(mean=pilot)=%.4g, p(mean=mode)=%.4g\n",
   p_pilot, p_mode
 ))
+
+cat("\n=== Random effects: lmer reference vs lmerb chain mean ===\n\n")
+lmebayes:::print_mer_bayes_re_compare(fit)

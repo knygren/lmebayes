@@ -17,7 +17,7 @@ Do **not** use `tests/testthat/` or `R/` for throwaway experiments, one-off debu
 
 **Prefer instead:**
 
-- Extend an **existing** test file when the behavior belongs with current coverage (e.g. sweep history → `test-sweep-history.R`, `lmerb` examples → `test-lmerb-example.R`, prior setup → `test-prior-setup-*.R`)
+- Extend an **existing** test file when the behavior belongs with current coverage (e.g. sweep history → `test-sweep-history.R`, prior setup → `test-prior-setup-*.R`). Long Gibbs / MER validation → `tests/manual/` or demos, **not** testthat.
 - One focused test per production invariant; avoid duplicate paths that only differ by fixture boilerplate
 
 **Do not:**
@@ -29,7 +29,7 @@ Do **not** use `tests/testthat/` or `R/` for throwaway experiments, one-off debu
 ## R/ policy
 
 - Production code only in `R/` (exported or `@noRd` helpers tied to the package).
-- Scratch scripts, checks, and benchmarks → `data-raw/` or `demo/` drafts (or local untracked files), **not** `R/` or `tests/`.
+- Scratch scripts, checks, and benchmarks → `data-raw/` or `tests/manual/` (occasional validation) or `demo/` drafts (or local untracked files), **not** `R/` or `tests/testthat/`.
 
 ## Before adding or heavily editing tests
 

@@ -112,12 +112,3 @@ invisible(list(
   case3       = fit3,
   case4       = fit4
 ))
-
-
-
-library(lme4)
-
-lmer_fixef <- fixef(lmer_fit)           # lme4 export -- OK with lme4::
-lmer_ranef <- ranef(lmer_fit)[[grp]]    # lme4 export -- OK with lme4::
-
-lmer_coef  <- coef(lmer_fit)[[grp]]     # stats::coef() + coef.merMod -- no lme4::
