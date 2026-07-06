@@ -10,8 +10,6 @@ rglmerb(
   prior,
   family = poisson(),
   dispersion_ranef = NULL,
-  fixef_start = NULL,
-  m_convergence = NULL,
   gap_tol = 0.0196,
   tv_tol = 0.01,
   mode_gap_max = 1,
@@ -35,18 +33,12 @@ required positive scalar for \code{family = gaussian()}, or a
 \code{\link[glmbayesCore]{dGamma}()} pfamily with \code{Inv_Dispersion = TRUE}; must be
 \code{NULL} (default) for \code{poisson()} and \code{binomial()}.}
 
-\item{fixef_start}{Optional named list of Block~2 starting vectors. When
-\code{NULL}, the ICM start is computed inside the Core engine
-(\code{\link[glmbayesCore]{lmerb_posterior_mean}} for Gaussian,
-\code{\link[glmbayesCore]{glmerb_posterior_mode}} otherwise).}
-
-\item{m_convergence}{Optional integer inner Gibbs sweeps per main draw.}
-
 \item{gap_tol}{Legacy mode--mean gap for deriving the pilot chain count when
 \code{tv_tol} is \code{NULL}. Ignored for Gaussian without ING Block~2
 components.}
 
-\item{tv_tol}{Total variation tolerance for convergence calibration.}
+\item{tv_tol}{Total variation tolerance for convergence calibration.
+Inner Gibbs sweeps and pilot chain counts are derived internally.}
 
 \item{mode_gap_max}{Pilot inner-sweep calibration (non-Gaussian and
 Gaussian+ING only).}
@@ -61,9 +53,9 @@ Gaussian+ING only).}
 \value{
 Object of class \code{c("rglmerb", "list")} with Block~2 fields in
 the \code{fixef.*} namespace, plus \code{ranef.mode}, \code{Prior},
-\code{design}, and \code{family}. Non-Gaussian fits may include
-\code{n_pilot}, \code{pilot}, and \code{pilot_chisq}; Gaussian fits set
-\code{n_pilot = 0L} and omit pilot output.
+\code{design}, and \code{family}. When a pilot stage runs (ING Block~2
+and/or dGamma measurement dispersion), \code{n_pilot}, \code{pilot}, and
+\code{pilot_chisq} are included; otherwise \code{n_pilot} is \code{0L}.
 }
 \description{
 Bayesian generalized linear mixed-effects model sampler
@@ -72,11 +64,17 @@ Bayesian generalized linear mixed-effects model sampler
 Matrix-level sampler for \code{model_setup} design objects and normalized
 prior containers. Routes by response family:
 \itemize{
-\item \code{family = gaussian()} delegates to \code{\link[glmbayesCore]{rLMMNormal_reg}} or
-\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is a
-\code{\link[glmbayesCore]{dGamma}()} pfamily.
-\item Non-Gaussian families delegate to \code{\link[glmbayesCore]{rGLMM}}
-(\code{\link[glmbayesCore]{rGLMM_sweep}} sweep-outer driver).
+\item \code{family = gaussian()} delegates to
+\code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov}},
+\code{\link[glmbayesCore]{rLMMNormal_reg_estimated_vcov}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg_known_vcov}}, or
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}} according to
+\code{dispersion_ranef} and Block~2 \code{pfamily_list}.
+\item Non-Gaussian families delegate via \code{\link[glmbayesCore]{rGLMM_reg}} routes
+(through internal \code{.lmebayes_run_glmm_engine()} and
+\code{REG_ROUTE_TABLE}; pilot stage always unless \code{n_pilot = 0L};
+routes differ in eigenvalue-bound complexity). Inner sweeps use
+\code{\link[glmbayesCore]{rGLMM_sweep}}.
 }
 
 For formula-level fitting, \code{glmerb()} in the lmebayes package wraps this sampler.
@@ -84,7 +82,9 @@ Design matrices are built with \code{\link[glmbayesCore]{model_setup}} and prior
 \code{\link[glmbayesCore]{Prior_Setup_lmebayes}}.
 }
 \seealso{
-\code{\link[glmbayesCore]{rlmerb}}, \code{\link[glmbayesCore]{rLMMNormal_reg}},
-\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}}, \code{\link[glmbayesCore]{rGLMM}},
+\code{\link[glmbayesCore]{rlmerb}}, \code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov}},
+\code{\link[glmbayesCore]{rLMMNormal_reg_estimated_vcov}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg_known_vcov}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}}, \code{\link[glmbayesCore]{rGLMM_reg}},
 \code{\link[glmbayesCore]{Prior_Setup_lmebayes}}
 }

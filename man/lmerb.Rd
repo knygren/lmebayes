@@ -12,7 +12,6 @@ lmerb(
   dispersion_ranef,
   n = 1000L,
   tv_tol = 0.01,
-  m_convergence = NULL,
   gap_tol = 0.0196,
   mode_gap_max = 1,
   diag_sweeps = FALSE,
@@ -88,12 +87,6 @@ the exact joint posterior in total variation (Nygren 2020, Theorem 3;
 see Details).  To certify the whole \code{n}-draw sample at level
 \eqn{\alpha} pass \code{tv_tol = alpha / n}; the cost grows only
 logarithmically in \code{1/tv_tol}.}
-
-\item{m_convergence}{Optional integer override for the number of inner
-Gibbs sweeps per stored draw.  When \code{NULL} (default) the
-\code{tv_tol}-derived value is used.  A supplied value is floored at the
-derived minimum: \code{max(m_convergence, m_min)} is used, with a
-warning if the value had to be raised.}
 
 \item{gap_tol}{Legacy mode--mean gap tolerance for the pilot stage when
 any Block~2 component uses \code{dIndependent_Normal_Gamma} and
@@ -288,7 +281,7 @@ is known.
 \strong{TV-calibrated \code{m_convergence}.}
 The number of inner Gibbs sweeps per stored draw (\code{m_convergence}) is
 derived from \code{tv_tol}: \code{lmerb} computes the Remark 8 eigenvalue
-spectrum with \code{\link[glmbayesCore]{two_block_rate_v2}} and inverts the
+spectrum with \code{\link[glmbayesCore]{two_block_rate_from_pfamily_list}} and inverts the
 exact Theorem 3 bound with
 \code{\link[glmbayesCore]{two_block_l_for_tv}}.  Because every replicate
 chain is started at the exact joint posterior mean (computed by ICM via
@@ -355,7 +348,7 @@ probability distributions via Markov chain Monte Carlo.
 \seealso{
 \code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
 \code{\link[glmbayesCore]{build_mu_all}},
-\code{\link[glmbayesCore]{two_block_rNormal_reg_v2}},
+\code{\link[glmbayesCore]{two_block_rNormal_reg}},
 \code{\link[glmbayesCore]{lmerb_posterior_mean}},
 \code{\link[glmbayesCore]{block_rNormalReg}},
 \code{\link{lmb}}, \code{\link{glmb}}

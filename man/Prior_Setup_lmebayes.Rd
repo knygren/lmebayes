@@ -120,6 +120,16 @@ priors weaken; see \code{inst/ING_TRUNCATION_WINDOW.md}.  Used by
 \code{\link[glmbayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}()} when
 \code{ptypes = "dIndependent_Normal_Gamma"}; ignored for
 \code{dNormal} priors.}
+\item{\code{ing_prior_measurement}}{Gaussian models only: prospective
+\code{dGamma()} \code{dispersion_ranef} calibration for Block~1 ING
+(observation \eqn{\sigma^2} shared across all group levels):
+mean-matched \code{shape} / \code{rate} with
+\eqn{n_{\mathrm{prior}} = \mathrm{pwt}/(1-\mathrm{pwt})\times n},
+\eqn{p = p_{\mathrm{re}}}, and \eqn{\hat\sigma^2} =
+\code{dispersion_ranef} (same ING algebra as \code{ing_prior} for
+\eqn{\tau^2_k}; requires scalar \code{pwt} \eqn{\le 0.5}), plus
+limiting-posterior \code{disp_lower} / \code{disp_upper} with \eqn{J}
+groups.  Pass these fields to \code{\link[glmbayesCore]{dGamma}()}.}
 }
 
 \code{x} invisibly.

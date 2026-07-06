@@ -39,6 +39,15 @@ Mixed-model sampling, prior-setup, and lme4 design helpers were moved to
 Formula drivers call re-exported `model_setup()`, `Prior_Setup_lmebayes()`, `rlmerb()`,
 and `rglmerb()` without namespace qualification.
 
+**Direct Core calls (must stay exported):** `build_mu_all()`, `lmerb_posterior_mean()`,
+`glmerb_posterior_mode()` (`importFrom`); `normalize_block()` (`glmbayesCore::` in
+`.blmb_formula_block_meta()`). See
+[R_EXPORTED_AND_DOCUMENTED.md](R_EXPORTED_AND_DOCUMENTED.md).
+
+**Indirect only (export optional for lmebayes):** `rGLMM()`, `rLMMNormal_reg()`,
+`rLMMNormal_reg_estimated_vcov()`, `rLMMindepNormalGamma_reg()` — listed under
+**glmbayesCore-only exports** in Core inventory.
+
 ---
 
 ## `summary.lmerb()` helpers (`summary.lmerb.R`)

@@ -9,8 +9,6 @@ rlmerb(
   design,
   prior,
   dispersion_ranef,
-  fixef_start = NULL,
-  m_convergence = NULL,
   tv_tol = 0.01,
   progbar = TRUE,
   verbose = TRUE,
@@ -37,17 +35,9 @@ and related Block~2 fields (typically from \code{pfamily_list} and
 scalar \eqn{\sigma^2} (fixed) or a \code{\link[glmbayesCore]{dGamma}()} pfamily with
 \code{Inv_Dispersion = TRUE} for a Gamma prior on \eqn{\sigma^2}.}
 
-\item{fixef_start}{Optional named list of starting hyper-parameter vectors
-(one per RE component). When \code{NULL} (default), the ICM posterior
-mean is computed inside \code{\link[glmbayesCore]{rLMMNormal_reg}} or
-\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}}.}
-
-\item{m_convergence}{Optional integer. Number of inner Gibbs sweeps per
-stored draw. When \code{NULL} (default), derived from \code{tv_tol} via
-Theorem 3 (Nygren 2020) and floored at the derived \code{m_min}.}
-
 \item{tv_tol}{Single numeric in \code{(0, 1)}. Total variation tolerance
-used for convergence calibration. Default \code{0.01}.}
+used for convergence calibration. Default \code{0.01}.
+Inner Gibbs sweeps per stored draw are derived from Theorem~3.}
 
 \item{progbar}{Logical. Show a text progress bar during sampling.
 Default \code{TRUE}.}
@@ -84,14 +74,20 @@ Bayesian linear mixed-effects model sampler (two-block Gibbs engine)
 Matrix-level sampling engine for Gaussian linear mixed models, parallel to
 \code{\link[glmbayesCore]{rlmb}} and \code{\link[glmbayesCore]{rglmerb}}. Takes structured \code{design}
 and \code{prior} objects, computes the ICM posterior mean internally, and
-delegates replicate-chain sampling to \code{\link[glmbayesCore]{rLMMNormal_reg}} or
-\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}} when \code{dispersion_ranef} is a
-\code{\link[glmbayesCore]{dGamma}()} pfamily.
+delegates replicate-chain sampling to
+\code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov}},
+\code{\link[glmbayesCore]{rLMMNormal_reg_estimated_vcov}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg_known_vcov}}, or
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}} according to
+\code{dispersion_ranef} and Block~2 \code{pfamily_list}.
 
 For formula-level fitting, \code{lmerb()} in the lmebayes package wraps this sampler.
 }
 \seealso{
-\code{\link[glmbayesCore]{rglmerb}}, \code{\link[glmbayesCore]{rLMMNormal_reg}},
-\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg}}, \code{\link[glmbayesCore]{Prior_Setup_lmebayes}},
+\code{\link[glmbayesCore]{rglmerb}}, \code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov}},
+\code{\link[glmbayesCore]{rLMMNormal_reg_estimated_vcov}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg_known_vcov}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}},
+\code{\link[glmbayesCore]{Prior_Setup_lmebayes}},
 \code{\link[glmbayesCore]{rlmb}}
 }

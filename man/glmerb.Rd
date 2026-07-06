@@ -15,7 +15,6 @@ glmerb(
   gap_tol = 0.0196,
   mode_gap_max = 1,
   tv_tol = 0.01,
-  m_convergence = NULL,
   simulate = TRUE,
   REML = TRUE,
   control = NULL,
@@ -101,8 +100,8 @@ across \eqn{p} fixed-effect dimensions).  The number of pilot sweeps is
 the smallest \eqn{l} satisfying
 \eqn{\mathrm{erf}_1(0.5\,\lambda^{*l}\,D_{\max}/\sqrt{2}) \le
   \texttt{tv\_tol}} (Nygren 2020, Theorem 3 mean-shift term), floored at
-\code{m_min}.  Set \code{mode_gap_max = NULL} to fall back to
-\code{m_convergence} (pre-v0.2 behaviour).  Ignored for
+\code{m_min}.  Set \code{mode_gap_max = NULL} to fall back to the
+Theorem~3 minimum sweep count.  Ignored for
 \code{family = gaussian()} without ING Block~2 components.}
 
 \item{tv_tol}{Total variation tolerance per stored draw, in (0, 1)
@@ -113,19 +112,11 @@ sweeps per stored draw is calibrated exactly as in \code{\link{lmerb}}
 calibration is applied to the \emph{local-Gaussian approximation of the
 posterior at its mode}: per-observation likelihood precisions are
 evaluated at the ICM posterior mode
-(\code{\link[glmbayesCore]{two_block_mode_weights}}) and fed to
-\code{\link[glmbayesCore]{two_block_rate_v2}}.  The derived sweep count is
+(\code{two_block_mode_weights()} in \pkg{glmbayesCore}) and fed to
+\code{\link[glmbayesCore]{two_block_rate_from_pfamily_list}}.  The derived sweep count is
 then the \emph{minimum} number of iterations required to converge to
 that hypothetical multivariate normal approximation -- a lower bound
 for the true (non-normal) posterior, not a guarantee.}
-
-\item{m_convergence}{Optional integer override for the number of inner
-Gibbs sweeps per stored draw.  When \code{NULL} (default) the
-\code{tv_tol}-derived value is used.  A supplied value acts as a
-requested sweep count but is never allowed below the derived minimum:
-\code{max(m_convergence, m_min)} is used, with a warning if the value
-had to be raised.  Typical use is to pick a \emph{larger} number for
-non-Gaussian families (e.g. double the derived lower bound).}
 
 \item{simulate}{Logical (default \code{TRUE}).  When \code{TRUE} the
 two-block Gibbs sampler is run for \code{n} iterations and posterior draws

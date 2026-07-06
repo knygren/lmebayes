@@ -23,3 +23,6 @@ Ex_19_glmerb_book_banning_state_covariates glmerb binomial on book_banning with 
 Ex_20_lmerb_ING_pilot         lmerb Gaussian ING priors with pilot/main two-stage sampling (big_word_club, simple model)
 Ex_21_lmerb_ING_BigWordClub   lmerb Gaussian ING + pilot on full big_word_club (random slopes; cross-level moderation)
 Ex_22_glmerb_book_banning_ING glmerb binomial on book_banning with ING Block~2 priors (Ex_16 + dIndependent_Normal_Gamma)
+Ex_23_lmerb_joint_posterior_mode_four_cases   Joint posterior mode on big_word_club: four Gaussian LMM variance routes (no Gibbs)
+Ex_24_lmerb_dGamma_BigWordClub                lmerb Gaussian dGamma sigma^2 + fixed tau^2 on full big_word_club (Ex_23 case 3 with Gibbs)
+Ex_25_lmerb_dGamma_ING_BigWordClub            lmerb Gaussian dGamma sigma^2 + ING Block~2 on full big_word_club (Ex_23 case 4 with Gibbs)

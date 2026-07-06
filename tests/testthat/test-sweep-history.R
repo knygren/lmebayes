@@ -20,7 +20,6 @@ test_that("glmerb stores sweep_history and print(sweep_history=TRUE) works", {
     family = poisson(),
     pfamily_list = pfamily_list(ps),
     n = 50L,
-    m_convergence = 5L,
     progbar = FALSE
   )
 

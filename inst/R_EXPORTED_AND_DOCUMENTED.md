@@ -41,16 +41,56 @@ Mixed-model setup (`model_setup`, `Prior_Setup_lmebayes`, lme4 design utilities,
 
 Implemented in **glmbayes** / **glmbayesCore**; documented under dependency help pages.
 
-| Function | Source package |
-|----------|----------------|
-| `lmb()`, `glmb()`, `directional_tail()` | glmbayes |
-| `Prior_Setup()`, `dNormal()`, `dNormal_Gamma()`, `dIndependent_Normal_Gamma()`, `dGamma()` | glmbayesCore |
-| `pfamily_list()` | glmbayesCore |
-| `plot_sweep_history_diag()` | glmbayesCore |
-| `model_setup()`, `Prior_Setup_lmebayes()`, `rlmerb()`, `rglmerb()` | glmbayesCore |
+| Function | Source package | **lmebayes** callers |
+|----------|----------------|----------------------|
+| `lmb()`, `glmb()`, `directional_tail()` | glmbayes | User workflows; `lmbBlock()` / `glmbBlock()` per block |
+| `Prior_Setup()`, `dNormal()`, `dNormal_Gamma()`, `dIndependent_Normal_Gamma()`, `dGamma()` | glmbayesCore | User workflows; block samplers; `Prior_SetupBlock()` |
+| `pfamily_list()` | glmbayesCore (generic; `lmebayes_prior_setup` method in Core) | `lmerb()`, `glmerb()` (via `.lmebayes_priors_from_pfamily_list()`) |
+| `plot_sweep_history_diag()` | glmbayesCore | User diagnostics on `fit$sweep_history$main` |
+| `model_setup()`, `Prior_Setup_lmebayes()` | glmbayesCore | User workflows; `Prior_SetupBlock()`; `lmerb()` / `glmerb()` |
+| `rlmerb()`, `rglmerb()` | glmbayesCore | `lmerb()` / `glmerb()` when `simulate = TRUE` |
 
-S3 `print.model_setup` and `print.lmebayes_prior_setup` register in **glmbayesCore**;
-**lmebayes** dispatches them via `import(glmbayesCore)`.
+S3 `print.model_setup`, `print.lmebayes_prior_setup`, and `pfamily_list.lmebayes_prior_setup` register in **glmbayesCore**;
+**lmebayes** dispatches them via `import(glmbayesCore)`. Method help: `?glmbayesCore::pfamily_list.lmebayes_prior_setup`.
+
+---
+
+## Imported from **glmbayesCore** (`importFrom` only)
+
+Direct calls — must stay exported in **glmbayesCore** (`?glmbayesCore::…`).
+
+| Function | **lmebayes** callers | Role |
+|----------|----------------------|------|
+| `build_mu_all()` | `lmerb()`, `glmerb()` | Observation-level prior means when `simulate = FALSE` (`fixef.mu` on fit). |
+| `lmerb_posterior_mean()` | `lmerb()` | Gaussian ICM fixef start when `simulate = FALSE`. |
+| `glmerb_posterior_mode()` | `glmerb()` | GLMM mode fixef start when `simulate = FALSE`. |
+
+When `simulate = TRUE`, re-exported `rlmerb()` / `rglmerb()` handle these internally.
+
+---
+
+## Direct **glmbayesCore** calls (not re-exported)
+
+Qualified `glmbayesCore::normalize_block()` from block helpers — must stay exported in Core.
+
+| Function | **lmebayes** callers | Role |
+|----------|----------------------|------|
+| `normalize_block()` | `lmbBlock()`, `glmbBlock()`, `Prior_SetupBlock()` (via `.blmb_formula_block_meta()`); `block_check_identifiability_xy()` | Row-block partition normalization. |
+
+---
+
+## Indirect **glmbayesCore** engines (not **lmebayes** dependencies)
+
+Listed under **glmbayesCore-only exports** in Core `inst/R_EXPORTED_AND_DOCUMENTED.md`
+(indirect from **lmebayes** subsection). **lmebayes** never names these in `R/`;
+Core routes via re-exported `rlmerb()` / `rglmerb()`. Export optional for **lmebayes**.
+
+| Function | Route from **lmebayes** |
+|----------|-------------------------|
+| `rGLMM()` | `glmerb()` → `rglmerb()` (`simulate = TRUE`, non-Gaussian) |
+| `rLMMNormal_reg()` | `lmerb()` / `glmerb()` → `rlmerb()` / `rglmerb()` → `.lmebayes_run_lmm_engine()` (all-`dNormal` Block~2) |
+| `rLMMNormal_reg_estimated_vcov()` | Same chain when Block~2 has ING components |
+| `rLMMindepNormalGamma_reg()` | Same chain when `dispersion_ranef` is `dGamma()` |
 
 ---
 
@@ -79,11 +119,11 @@ lme4 design utilities (`get_lme4_components`, `extract_re_hyper_matrices`, …) 
 
 ---
 
-## Gaps (not in `R/` yet)
+## Gaps (not in **lmebayes** `R/` yet)
 
-Ex. 16 demo logic (proxy \(\hat D_\ell\), variance ratios) is **not** exported or
-documented here. Candidate home: extend `plot_sweep_history_diag()` or add
-`sweep_history_diag_*()` in `R/`.
+Ex. 16 demo logic (proxy \(\hat D_\ell\), variance ratios) is **not** exported from **lmebayes**.
+`plot_sweep_history_diag()` lives in **glmbayesCore** (re-exported here); extend that function or add
+`sweep_history_diag_*()` helpers in Core when Ex. 16 probes stabilize.
 
 ---
 

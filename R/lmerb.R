@@ -45,7 +45,7 @@
 #' \strong{TV-calibrated \code{m_convergence}.}
 #' The number of inner Gibbs sweeps per stored draw (\code{m_convergence}) is
 #' derived from \code{tv_tol}: \code{lmerb} computes the Remark 8 eigenvalue
-#' spectrum with \code{\link[glmbayesCore]{two_block_rate_v2}} and inverts the
+#' spectrum with \code{\link[glmbayesCore]{two_block_rate_from_pfamily_list}} and inverts the
 #' exact Theorem 3 bound with
 #' \code{\link[glmbayesCore]{two_block_l_for_tv}}.  Because every replicate
 #' chain is started at the exact joint posterior mean (computed by ICM via
@@ -105,11 +105,6 @@
 #'   see Details).  To certify the whole \code{n}-draw sample at level
 #'   \eqn{\alpha} pass \code{tv_tol = alpha / n}; the cost grows only
 #'   logarithmically in \code{1/tv_tol}.
-#' @param m_convergence Optional integer override for the number of inner
-#'   Gibbs sweeps per stored draw.  When \code{NULL} (default) the
-#'   \code{tv_tol}-derived value is used.  A supplied value is floored at the
-#'   derived minimum: \code{max(m_convergence, m_min)} is used, with a
-#'   warning if the value had to be raised.
 #' @param gap_tol Legacy mode--mean gap tolerance for the pilot stage when
 #'   any Block~2 component uses \code{dIndependent_Normal_Gamma} and
 #'   \code{tv_tol} is \code{NULL}.  When \code{tv_tol} is set (default),
@@ -221,7 +216,7 @@
 #' @example inst/examples/Ex_lmerb.R
 #' @seealso \code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
 #'   \code{\link[glmbayesCore]{build_mu_all}},
-#'   \code{\link[glmbayesCore]{two_block_rNormal_reg_v2}},
+#'   \code{\link[glmbayesCore]{two_block_rNormal_reg}},
 #'   \code{\link[glmbayesCore]{lmerb_posterior_mean}},
 #'   \code{\link[glmbayesCore]{block_rNormalReg}},
 #'   \code{\link{lmb}}, \code{\link{glmb}}
@@ -236,7 +231,6 @@ lmerb <- function(
     dispersion_ranef,
     n = 1000L,
     tv_tol = 0.01,
-    m_convergence = NULL,
     gap_tol = 0.0196,
     mode_gap_max = 1.0,
     diag_sweeps = FALSE,
@@ -285,14 +279,6 @@ lmerb <- function(
   if (!is.numeric(tv_tol) || length(tv_tol) != 1L ||
       !is.finite(tv_tol) || tv_tol <= 0 || tv_tol >= 1) {
     stop("'tv_tol' must be a single value in (0, 1).", call. = FALSE)
-  }
-  if (!is.null(m_convergence)) {
-    if (!is.numeric(m_convergence) || length(m_convergence) != 1L ||
-        !is.finite(m_convergence) || m_convergence < 1) {
-      stop("'m_convergence' must be NULL or a single integer >= 1.",
-           call. = FALSE)
-    }
-    m_convergence <- as.integer(m_convergence)
   }
   if (!is.null(mode_gap_max)) {
     if (!is.numeric(mode_gap_max) || length(mode_gap_max) != 1L ||
@@ -350,29 +336,17 @@ lmerb <- function(
   }
 
   if (!isTRUE(simulate)) {
-    fixef_prior <- fixef
-    pm          <- glmbayesCore::lmerb_posterior_mean(design, prior)
-    fixef_start <- pm$fixef
-    icm_lbl     <- glmbayesCore:::.lmebayes_block2_icm_labels(prior, gaussian())
-    hdr <- sprintf("  %-18s  %-30s  %14s  %18s",
-                   "RE component", "parameter",
-                   icm_lbl$ref_label, icm_lbl$icm_label)
-    sep <- paste0("  ", strrep("-", nchar(hdr) - 2L))
-    cat("--- lmerb: Block 2 fixed effects ---\n")
-    cat(hdr, "\n")
-    cat(sep, "\n")
-    for (k in design$re_coef_names) {
-      nms_k   <- names(fixef_prior[[k]])
-      prior_v <- fixef_prior[[k]]
-      pm_v    <- fixef_start[[k]]
-      for (nm in nms_k) {
-        cat(sprintf("  %-18s  %-30s  %14.4f  %18.4f\n",
-                    k, nm, prior_v[[nm]], pm_v[[nm]]))
-      }
-    }
-    cat(sprintf("  (%s converged: %s, %d iter, delta = %.2e)\n\n",
-                icm_lbl$conv_label,
-                pm$converged, pm$iterations, pm$delta))
+    icm <- .lmebayes_icm_at_fixed_vc(
+      design = design,
+      prior  = prior,
+      family = gaussian()
+    )
+    .lmebayes_print_icm_simulate_false(
+      prior    = prior,
+      re_names = design$re_coef_names,
+      icm      = icm,
+      header   = "--- lmerb: Block 2 fixed effects ---"
+    )
     return(structure(
       list(
         call         = cl,
@@ -380,13 +354,17 @@ lmerb <- function(
         lmer         = lmer_fit,
         prior        = prior,
         model_setup  = design,
-        fixef.mode   = fixef_start,
-        ranef.mode   = pm$b_mean,
+        fixef.mode   = icm$fixef,
+        fixef.init   = icm$fixef_init,
+        ranef.mode   = icm$b_mean,
         fixef.means  = NULL,
         fixef        = NULL,
         coefficients = NULL,
+        joint_mode   = icm$joint_mode,
+        sigma2.mode  = icm$sigma2,
+        tau2.mode    = icm$tau2,
         fixef.mu     = as.matrix(
-          glmbayesCore::build_mu_all(design, fixef_start)$mu_all
+          glmbayesCore::build_mu_all(design, icm$fixef)$mu_all
         )
       ),
       class = c("lmerb", "list")
@@ -400,8 +378,6 @@ lmerb <- function(
     design          = design,
     prior           = prior,
     dispersion_ranef = dispersion_ranef,
-    fixef_start     = NULL,          # computed internally from design + prior
-    m_convergence = m_convergence, # NULL => derived from tv_tol
     tv_tol        = tv_tol,
     progbar       = progbar,
     verbose       = TRUE,
