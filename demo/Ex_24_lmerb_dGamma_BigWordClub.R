@@ -95,6 +95,102 @@ cat("\n=== lmer reference fit ===\n\n")
 fit_lmer <- lme4::lmer(form_lmer, data = dat, REML = TRUE)
 print(summary(fit_lmer))
 
+cat("\n=== lmer reference for BlockEnvelopeCentering check ===\n")
+cat(sprintf(
+  "  REML sigma^2 (compare to center$dispersion): %.6g\n",
+  stats::sigma(fit_lmer)^2
+))
+
+grp_col      <- design$group_name
+re_names_ref <- design$re_coef_names
+fe_lmer      <- lme4::fixef(fit_lmer)
+coef_raw     <- as.data.frame(coef(fit_lmer)[[grp_col]])
+cn_lmer      <- names(coef_raw)
+if (length(re_names_ref) == ncol(coef_raw)) {
+  if (!is.null(cn_lmer) && !identical(cn_lmer, re_names_ref)) {
+    if (all(re_names_ref %in% cn_lmer)) {
+      coef_raw <- coef_raw[, re_names_ref, drop = FALSE]
+    } else {
+      names(coef_raw) <- re_names_ref
+    }
+  } else if (is.null(cn_lmer)) {
+    names(coef_raw) <- re_names_ref
+  }
+}
+
+cat("  X_hyper predictors per RE (mu_all = X_hyper %*% fixef from lmer fixef):\n")
+for (k in re_names_ref) {
+  cat(sprintf(
+    "    %-20s: %s\n",
+    k,
+    paste(colnames(design$X_hyper[[k]]), collapse = ", ")
+  ))
+}
+
+.fe_name_for_lmer <- function(k, col, fe) {
+  if (k == "(Intercept)") {
+    if (col %in% names(fe)) col else NA_character_
+  } else if (col == "(Intercept)") {
+    if (k %in% names(fe)) k else NA_character_
+  } else {
+    cand <- c(paste0(col, ":", k), paste0(k, ":", col))
+    hit  <- cand[cand %in% names(fe)]
+    if (length(hit)) hit[1L] else NA_character_
+  }
+}
+
+fixef_lmer <- lapply(re_names_ref, function(k) {
+  cols_k <- colnames(design$X_hyper[[k]])
+  fe_nms <- vapply(
+    cols_k, .fe_name_for_lmer, character(1L), k = k, fe = fe_lmer
+  )
+  miss <- is.na(fe_nms) | !fe_nms %in% names(fe_lmer)
+  if (any(miss)) {
+    stop(
+      "lmer fixef missing term(s) for X_hyper[[", k, "]]: ",
+      paste(cols_k[miss], collapse = ", "),
+      call. = FALSE
+    )
+  }
+  mu_k <- vapply(fe_nms, function(nm) unname(fe_lmer[nm]), numeric(1L))
+  names(mu_k) <- cols_k
+  mu_k
+})
+names(fixef_lmer) <- re_names_ref
+
+coef_anchor <- vapply(re_names_ref, function(k) {
+  if (k == "(Intercept)") {
+    unname(fe_lmer["(Intercept)"])
+  } else if (k %in% names(fe_lmer)) {
+    unname(fe_lmer[k])
+  } else {
+    0
+  }
+}, numeric(1L))
+
+mu_all_lmer <- build_mu_all(design, fixef_lmer)$mu_all
+
+grp_levs  <- rownames(coef_raw)
+lmer_full <- matrix(
+  NA_real_,
+  nrow = length(grp_levs),
+  ncol = length(re_names_ref),
+  dimnames = list(grp_levs, re_names_ref)
+)
+for (j in seq_len(nrow(coef_raw))) {
+  lev <- grp_levs[j]
+  for (k in re_names_ref) {
+    lmer_full[lev, k] <- mu_all_lmer[k, lev] +
+      (unname(coef_raw[[k]][j]) - coef_anchor[k])
+  }
+}
+
+cat(
+  "  lmer_full = mu_all(lmer fixef) + (coef - anchor); ",
+  "compare to center$b_post_mean (centering uses ICM mu_all, not this table):\n"
+)
+print(round(lmer_full, 4))
+
 cat(sprintf(
   "\n=== dGamma sigma^2 prior mean (rate/(shape-1)): %.4f (REML sigma^2: %.4f) ===\n\n",
   m_disp$rate / (m_disp$shape - 1),
