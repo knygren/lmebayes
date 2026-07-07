@@ -6,7 +6,6 @@
 #' @keywords internal
 
 source("tests/manual/_bwc_lmerb_fixture.R")
-source("tests/manual/_lmerb_re_validate.R")
 
 #' Build dGamma dispersion_ranef from Prior_Setup ing_prior_measurement.
 #'

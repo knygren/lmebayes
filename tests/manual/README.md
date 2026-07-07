@@ -51,11 +51,17 @@ Rscript tests/manual/run_all.R small
 | `test_glmerb_mer_re_validation.R` | known + ING GLMM | Block~2 vs ICM + RE cor (Poisson airbnb) |
 | `_bwc_lmerb_fixture.R` | (helper) | Shared Big Word Club dat/form for lmerb manual tests |
 | `_lmerb_dgamma_fixture.R` | (helper) | dGamma `dispersion_ranef` builder |
-| `_glmerb_re_validate.R` | (helper) | glmerb ordering + `glmer_full` cor |
+| `_block2_fixef_validate.R` | (helper) | Bind `lmebayes:::.validate_manual_block2_fixef` after `load_all()` |
+| `_lmerb_re_validate.R` | (helper) | Bind `lmebayes:::.validate_lmerb_re` after `load_all()` |
+| `_glmerb_re_validate.R` | (helper) | Bind `lmebayes:::.validate_glmerb_re` after `load_all()` |
 
 Demos under `demo/` mirror these routes (`Ex_12`/`Ex_21` Gaussian+ING; `Ex_24`/`Ex_25` dGamma) with fuller printed output.
 
 **dGamma note:** Block~1 still uses **BlockEnvelopeCentering** until BlockEnvelopeSim ships; the manual dGamma script now uses the **same** Big Word Club rows and formula as `test_lmerb_mer_re_validation.R` so results are directly comparable across routes.
+
+**dGamma §1–§2 (BlockEnvelopeCentering):** chain means should match **`lmer_full`** (cor ≈ 1). **`fixef.mode` / `ranef.mode` ICM checks are skipped** (`z_icm_max = Inf`, relaxed RE ICM). **`se_ratio` uses the full `[0.85, 1.05]` band on all mapped rows** (do not pass `ing = TRUE` here — that only relaxes `null_effects` for Gaussian/glmer ING shrinkage). §2 still differs from §1 on dispersion sampling and structural checks only.
+
+**Block~2 fixef `se_ratio`:** Gaussian §1 and glmer §1 enforce `0.85 <= post_sd/lmer_se <= 1.05` on all mapped rows. **Gaussian/glmer ING** (`ing = TRUE`) relaxes the lower bound on `null_effects` only. dGamma §1–§2 skip ICM via `z_icm_max = Inf` but keep full `se_ratio` enforcement.
 
 ## Environment
 

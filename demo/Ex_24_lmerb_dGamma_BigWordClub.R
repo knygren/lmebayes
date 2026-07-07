@@ -205,7 +205,11 @@ fit <- lmerb(
 
 stopifnot(identical(fit$prior$dispersion_mode, "gamma"))
 stopifnot(!isTRUE(fit$prior$any_non_normal))
-stopifnot(is.null(fit$fixef.dispersion))
+stopifnot(is.matrix(fit$fixef.dispersion))
+stopifnot(
+  all(is.finite(fit$fixef.dispersion)), all(fit$fixef.dispersion > 0),
+  all(apply(fit$fixef.dispersion, 2L, stats::sd) == 0)
+)
 stopifnot(!is.null(fit$pilot_chisq))
 stopifnot(fit$pilot_chisq$n_pilot > 0L)
 stopifnot(identical(fit$pilot_chisq$n_pilot, fit$convergence$n_pilot))

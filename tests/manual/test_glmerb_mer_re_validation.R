@@ -9,6 +9,8 @@
 #   rGLMM_reg_known_vcov        (Poisson airbnb; Ex_13/14-style)
 #   rGLMM_reg_estimated_vcov    (same Poisson airbnb; ING Block~2)
 #
+# Block~2 fixef: post_sd vs glmer SE (see tests/manual/_block2_fixef_validate.R).
+#
 #   Rscript tests/manual/test_glmerb_mer_re_validation.R
 #   Rscript tests/manual/test_glmerb_mer_re_validation.R small
 
@@ -16,8 +18,11 @@ args <- commandArgs(trailingOnly = TRUE)
 use_small <- any(tolower(args) %in% c("small", "--small"))
 
 source("tests/manual/_load.R")
-source("tests/manual/_glmerb_re_validate.R")
 .manual_test_load(load_glmbayes_core = TRUE)
+source("tests/manual/_block2_fixef_validate.R")
+.bind_manual_block2_fixef()
+source("tests/manual/_glmerb_re_validate.R")
+.bind_glmerb_re_validate()
 
 N_MIN  <- 1000L
 N_FULL <- 3000L
@@ -71,7 +76,7 @@ stopifnot(inherits(fit, "glmerb"))
 re_names <- fit$model_setup$re_coef_names
 stopifnot(identical(nrow(fit$fixef[[re_names[1L]]]), n_poisson))
 
-lmebayes:::.validate_lmerb_block2_fixef_lmer(fit, label = "Poisson airbnb")
+.validate_manual_block2_fixef(fit, label = "Poisson airbnb")
 
 .validate_glmerb_re(fit, label = "Poisson airbnb")
 
@@ -106,7 +111,7 @@ stopifnot(identical(
 re_names2 <- fit2$model_setup$re_coef_names
 stopifnot(identical(re_names2, re_names))
 
-lmebayes:::.validate_lmerb_block2_fixef_lmer(fit2, label = "Poisson airbnb ING")
+.validate_manual_block2_fixef(fit2, label = "Poisson airbnb ING", ing = TRUE)
 
 .validate_glmerb_re(
   fit2,

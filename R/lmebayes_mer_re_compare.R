@@ -413,7 +413,7 @@ print_mer_bayes_re_compare <- function(
 #' Catches \code{simulate = FALSE} / mode-only fits (zero draw SD).  Under default
 #' \code{Prior_Setup_lmebayes(pwt = 0.01)} (\code{null_model} intercept,
 #' \code{null_effects} slopes), non-intercept hyperparameters are expected to
-#' shrink toward 0 relative to full-model \code{lmer} MLE; MC SE is often below
+#' shrink toward 0 relative to full-model \code{lmer} MLE; posterior SD is often below
 #' \code{lmer} SE.  The global intercept prior mean comes from the null model
 #' (reference in the table only); under weak \code{pwt} the posterior tracks
 #' full-model \code{lmer}, not that prior mean.  Primary simulation check:
@@ -426,8 +426,16 @@ print_mer_bayes_re_compare <- function(
 #'   \code{full_model_prior} rows only.
 #' @param shrink_slack Multiplier on \code{lmer SE} allowed beyond \code{|lmer est|}
 #'   when checking null-effects attenuation toward 0.
-#' @param se_ratio_min Lower bound on \code{MC SE / lmer SE} for \code{full_model_prior}.
-#' @param se_ratio_max Upper bound on \code{MC SE / lmer SE} for all mapped rows.
+#' @param se_ratio_min Lower bound on \code{post_sd / lmer SE} for
+#'   \code{global_intercept} and \code{full_model_prior} rows (weak \code{pwt}:
+#'   posterior SD should be near but typically below \code{lmer} SE).
+#' @param se_ratio_max Upper bound on \code{post_sd / lmer SE} for all mapped rows.
+#' @param se_ratio_min_null_effects Lower bound on \code{se_ratio} for
+#'   \code{null_effects} rows. Defaults to \code{se_ratio_min}; set \code{NA} to skip
+#'   (ING shrinkage may reduce posterior SD further).
+#' @param check_se_ratio If \code{FALSE}, print \code{se_ratio} but do not stop
+#'   (e.g. BlockEnvelopeCentering routes where \code{post_sd} is not comparable to
+#'   \code{lmer} SE even when chain means track \code{lmer}).
 #' @param digits Decimal places for printed table.
 #' @return Invisibly, a data.frame of comparisons.
 #' @keywords internal
@@ -438,8 +446,10 @@ print_mer_bayes_re_compare <- function(
     z_icm_max = 4,
     z_lmer_max = 4,
     shrink_slack = 0.5,
-    se_ratio_min = 0.2,
-    se_ratio_max = 5,
+    se_ratio_min = 0.85,
+    se_ratio_max = 1.05,
+    se_ratio_min_null_effects = 0.85,
+    check_se_ratio = TRUE,
     digits = 4L
 ) {
   if (!inherits(fit, c("lmerb", "glmerb"))) {
@@ -500,7 +510,7 @@ print_mer_bayes_re_compare <- function(
   cmp$z_icm <- with(cmp, (post_mean - icm) / mc_se)
   cmp$z_prior <- with(cmp, (post_mean - prior_mean) / mc_se)
   cmp$z_mer <- with(cmp, (post_mean - mer_est) / mer_se)
-  cmp$se_ratio <- with(cmp, mc_se / mer_se)
+  cmp$se_ratio <- with(cmp, post_sd / mer_se)
 
   w_num <- digits + 4L
   fmt_num <- function(x) {
@@ -512,20 +522,32 @@ print_mer_bayes_re_compare <- function(
     label, format(n_draws, big.mark = ",")
   ))
   cat(
-    "  Primary check: chain mean vs ICM (simulation).  ",
+    "  Primary check: chain mean vs ICM (simulation; z_icm uses MC SE of the mean).  ",
     mer_label, " MLE is reference only;\n",
+    if (check_se_ratio) {
+      paste0(
+        "  Uncertainty: post_sd vs ", mer_label,
+        "_se via se_ratio (weak pwt: expect slightly below 1; enforced on mapped rows).\n"
+      )
+    } else {
+      paste0(
+        "  se_ratio (post_sd / ", mer_label,
+        "_se) printed for reference only — not enforced on this route.\n"
+      )
+    },
     "  null_effects rows should shrink toward prior mean 0; ",
     "global intercept tracks full-model ", mer_label, " (null-model prior mean is reference only).\n\n",
     sep = ""
   )
   cat(sprintf(
-    "  %-18s  %-22s  %*s  %*s  %*s  %*s  %*s  %*s  %6s  %6s\n",
+    "  %-18s  %-22s  %*s  %*s  %*s  %*s  %*s  %*s  %*s  %6s  %6s\n",
     "RE component", "parameter",
     digits + 4L, "prior_mean",
     digits + 4L, paste0(mer_label, "_est"),
     digits + 4L, paste0(mer_label, "_se"),
     digits + 4L, "post_mean",
-    digits + 4L, "mc_se",
+    digits + 4L, "post_sd",
+    digits + 4L, "se_ratio",
     digits + 4L, mode_label,
     "z_icm", "z_mer"
   ))
@@ -537,7 +559,8 @@ print_mer_bayes_re_compare <- function(
       fmt_num(r$mer_est),
       fmt_num(r$mer_se),
       fmt_num(r$post_mean),
-      fmt_num(r$mc_se),
+      fmt_num(r$post_sd),
+      if (is.finite(r$se_ratio)) fmt_num(r$se_ratio) else sprintf("%*s", w_num, "NA"),
       fmt_num(r$icm),
       sprintf("%6.2f", r$z_icm),
       if (is.finite(r$z_mer)) sprintf("%6.2f", r$z_mer) else "   NA",
@@ -549,19 +572,40 @@ print_mer_bayes_re_compare <- function(
   stopifnot(all(is.finite(cmp$post_mean)), all(is.finite(cmp$mc_se)))
   stopifnot(all(cmp$post_sd > 0), n_draws > 1L)
 
-  if (any(abs(cmp$z_icm) >= z_icm_max, na.rm = TRUE)) {
-    bad <- cmp[which(abs(cmp$z_icm) >= z_icm_max), , drop = FALSE]
+  mapped <- is.finite(cmp$mer_est) & is.finite(cmp$mer_se) & cmp$mer_se > 0
+
+  .block2_stop_se_ratio <- function(bad, bound, threshold) {
+    if (nrow(bad) == 0L) {
+      return(invisible(NULL))
+    }
     stop(
-      "[", label, "] |z_icm| >= ", z_icm_max, " for: ",
+      "[", label, "] post_sd / ", mer_label, " SE ", bound, " ", threshold, " for: ",
       paste(
-        paste0(bad$component, "::", bad$parameter, " (z=", sprintf("%.2f", bad$z_icm), ")"),
+        paste0(
+          bad$component, "::", bad$parameter,
+          " (ratio=", sprintf("%.3f", bad$se_ratio), ")"
+        ),
         collapse = "; "
       ),
       call. = FALSE
     )
   }
 
-  mapped <- is.finite(cmp$mer_est) & is.finite(cmp$mer_se) & cmp$mer_se > 0
+  se_mapped <- mapped & is.finite(cmp$se_ratio)
+  if (isTRUE(check_se_ratio) && any(se_mapped)) {
+    high <- cmp[se_mapped & cmp$se_ratio > se_ratio_max, , drop = FALSE]
+    .block2_stop_se_ratio(high, ">", se_ratio_max)
+    se_min_rows <- cmp$row_kind %in% c("global_intercept", "full_model_prior") &
+      se_mapped
+    low <- cmp[se_min_rows & cmp$se_ratio < se_ratio_min, , drop = FALSE]
+    .block2_stop_se_ratio(low, "<", se_ratio_min)
+    if (is.finite(se_ratio_min_null_effects)) {
+      null_se <- cmp$row_kind == "null_effects" & se_mapped &
+        cmp$se_ratio < se_ratio_min_null_effects
+      low_null <- cmp[null_se, , drop = FALSE]
+      .block2_stop_se_ratio(low_null, "<", se_ratio_min_null_effects)
+    }
+  }
 
   ## null_effects: attenuated toward 0 vs full-model lmer (same sign, |post| <= |lmer|)
   null_rows <- cmp$row_kind == "null_effects" & mapped
@@ -639,63 +683,228 @@ print_mer_bayes_re_compare <- function(
         call. = FALSE
       )
     }
-    se_ok <- lmer_sym & is.finite(cmp$se_ratio)
-    if (any(se_ok)) {
-      ratio_bad <- se_ok & cmp$se_ratio > se_ratio_max
-      if (any(ratio_bad)) {
-        bad <- cmp[ratio_bad, , drop = FALSE]
-        stop(
-          "[", label, "] MC SE / ", mer_label, " SE > ", se_ratio_max, " for: ",
-          paste(
-            paste0(
-              bad$component, "::", bad$parameter,
-              " (ratio=", sprintf("%.2f", bad$se_ratio), ")"
-            ),
-            collapse = "; "
-          ),
-          call. = FALSE
-        )
-      }
-      ratio_low <- se_ok & cmp$row_kind == "full_model_prior" &
-        cmp$se_ratio < se_ratio_min
-      if (any(ratio_low)) {
-        bad <- cmp[ratio_low, , drop = FALSE]
-        stop(
-          "[", label, "] MC SE / ", mer_label, " SE < ", se_ratio_min,
-          " (full_model_prior) for: ",
-          paste(
-            paste0(
-              bad$component, "::", bad$parameter,
-              " (ratio=", sprintf("%.2f", bad$se_ratio), ")"
-            ),
-            collapse = "; "
-          ),
-          call. = FALSE
-        )
-      }
-    }
   }
 
-  ## null_effects / global_intercept: MC SE should not vastly exceed lmer SE
-  se_upper_rows <- cmp$row_kind %in% c("null_effects", "global_intercept") & mapped &
-    is.finite(cmp$se_ratio)
-  if (any(se_upper_rows)) {
-    ratio_bad <- se_upper_rows & cmp$se_ratio > se_ratio_max
-    if (any(ratio_bad)) {
-      bad <- cmp[ratio_bad, , drop = FALSE]
-      stop(
-        "[", label, "] MC SE / ", mer_label, " SE > ", se_ratio_max, " for: ",
-        paste(
-          paste0(
-            bad$component, "::", bad$parameter,
-            " (ratio=", sprintf("%.2f", bad$se_ratio), ")"
-          ),
-          collapse = "; "
-        ),
-        call. = FALSE
-      )
-    }
+  if (any(abs(cmp$z_icm) >= z_icm_max, na.rm = TRUE)) {
+    bad <- cmp[which(abs(cmp$z_icm) >= z_icm_max), , drop = FALSE]
+    stop(
+      "[", label, "] |z_icm| >= ", z_icm_max, " for: ",
+      paste(
+        paste0(bad$component, "::", bad$parameter, " (z=", sprintf("%.2f", bad$z_icm), ")"),
+        collapse = "; "
+      ),
+      call. = FALSE
+    )
   }
 
   invisible(cmp)
+}
+
+#' Manual-test defaults: \code{post_sd / mer_se} on all mapped Block~2 rows.
+#' @noRd
+BLOCK2_FIXEF_SE <- list(
+  se_ratio_min = 0.85,
+  se_ratio_max = 1.05
+)
+
+#' ING manual tests: no lower bound on \code{null_effects} \code{se_ratio}.
+#' @noRd
+BLOCK2_FIXEF_SE_ING <- list(
+  se_ratio_min = 0.85,
+  se_ratio_max = 1.05,
+  se_ratio_min_null_effects = NA_real_
+)
+
+#' Block~2 fixef validation wrapper for manual MER scripts (\code{pwt = 0.01}).
+#' @noRd
+.validate_manual_block2_fixef <- function(
+    fit,
+    label,
+    z_icm_max = 4,
+    ing = FALSE,
+    check_se_ratio = TRUE,
+    ...
+) {
+  se_args <- if (isTRUE(ing)) BLOCK2_FIXEF_SE_ING else BLOCK2_FIXEF_SE
+  do.call(
+    .validate_lmerb_block2_fixef_lmer,
+    c(
+      list(
+        fit = fit,
+        label = label,
+        z_icm_max = z_icm_max,
+        check_se_ratio = check_se_ratio
+      ),
+      se_args,
+      list(...)
+    )
+  )
+}
+
+#' Validate lmerb random effects: print cor / table, then ICM and lmer_full thresholds
+#' @noRd
+.validate_lmerb_re <- function(
+    fit,
+    label = "lmerb",
+    cor_icm_min = 0.9,
+    cor_full_min = 0.85,
+    mode_match_min = 0.9
+) {
+  stopifnot(inherits(fit, "lmerb"))
+  re_names <- fit$model_setup$re_coef_names
+  grp_col  <- fit$model_setup$group_name
+  grp_levs <- rownames(coef(fit$lmer)[[grp_col]])
+  J        <- length(grp_levs)
+  icm_b    <- fit$ranef.mode
+  n_draws  <- nrow(fit$fixef[[re_names[1L]]])
+
+  stopifnot(setequal(rownames(icm_b), grp_levs))
+  stopifnot(setequal(colnames(fit$fixef.mu), grp_levs))
+  stopifnot(setequal(unique(as.character(fit$coefficients[[grp_col]])), grp_levs))
+  stopifnot(identical(
+    sort(table(as.character(fit$coefficients[[grp_col]]))),
+    sort(table(rep(grp_levs, n_draws)))
+  ))
+  cat(sprintf("\n[%s] Ordering OK across ranef.mode / mu_all / coefficients\n", label))
+
+  re_draws_mean <- tapply(
+    seq_len(nrow(fit$coefficients)),
+    fit$coefficients[[grp_col]],
+    function(idx) colMeans(fit$coefficients[idx, re_names, drop = FALSE]),
+    simplify = FALSE
+  )
+
+  mcmc_mat <- do.call(rbind, lapply(grp_levs, function(l) {
+    re_draws_mean[[as.character(l)]]
+  }))
+  rownames(mcmc_mat) <- grp_levs
+  icm_mat <- icm_b[grp_levs, re_names, drop = FALSE]
+
+  n_match <- NA_integer_
+  if (length(re_names) > 1L) {
+    scl <- apply(icm_mat, 2L, sd)
+    scl[scl < 1e-8] <- 1
+    A <- sweep(mcmc_mat, 2L, scl, "/")
+    B <- sweep(icm_mat, 2L, scl, "/")
+    D <- outer(rowSums(A^2), rep(1, J)) +
+      outer(rep(1, J), rowSums(B^2)) - 2 * A %*% t(B)
+    nearest <- apply(D, 1L, which.min)
+    n_match <- sum(nearest == seq_len(J))
+    cat(sprintf(
+      "[%s] Nearest-mode matching: %d of %d groups on own ICM mode\n",
+      label, n_match, J
+    ))
+  } else {
+    cat(sprintf(
+      "[%s] Nearest-mode matching: skipped (univariate RE; use cor vs own ICM mode)\n",
+      label
+    ))
+  }
+
+  mer_full <- .mer_re_reference_full(fit)
+  cat(sprintf("[%s] cor(MCMC mean vs ICM / lmer_full):\n", label))
+  for (k in re_names) {
+    c_icm  <- cor(mcmc_mat[, k], icm_mat[, k])
+    c_full <- cor(mcmc_mat[, k], mer_full[, k])
+    cat(sprintf("  %-14s  vs ICM: %6.3f   vs lmer_full: %6.3f\n", k, c_icm, c_full))
+  }
+
+  cat(sprintf("\n=== Random effects table (%s) ===\n\n", label))
+  print_mer_bayes_re_compare(fit)
+
+  if (length(re_names) > 1L) {
+    stopifnot(n_match >= ceiling(mode_match_min * J))
+  }
+  for (k in re_names) {
+    c_icm  <- cor(mcmc_mat[, k], icm_mat[, k])
+    c_full <- cor(mcmc_mat[, k], mer_full[, k])
+    stopifnot(c_icm >= cor_icm_min)
+    stopifnot(c_full >= cor_full_min)
+  }
+
+  invisible(list(mcmc = mcmc_mat, mer_full = mer_full))
+}
+
+#' Validate glmerb random effects: print cor / table, then ICM and glmer_full thresholds
+#' @noRd
+.validate_glmerb_re <- function(
+    fit,
+    label = "glmerb",
+    cor_icm_min = 0.9,
+    cor_full_min = 0.8,
+    mode_match_min = 0.9
+) {
+  stopifnot(inherits(fit, "glmerb"))
+  re_names <- fit$model_setup$re_coef_names
+  grp_col  <- fit$model_setup$group_name
+  grp_levs <- rownames(coef(fit$glmer)[[grp_col]])
+  J        <- length(grp_levs)
+  icm_b    <- fit$ranef.mode
+  n_draws  <- nrow(fit$fixef[[re_names[1L]]])
+
+  stopifnot(setequal(rownames(icm_b), grp_levs))
+  stopifnot(setequal(colnames(fit$fixef.mu), grp_levs))
+  stopifnot(setequal(unique(as.character(fit$coefficients[[grp_col]])), grp_levs))
+  stopifnot(identical(
+    sort(table(as.character(fit$coefficients[[grp_col]]))),
+    sort(table(rep(grp_levs, n_draws)))
+  ))
+  cat(sprintf("\n[%s] Ordering OK across ranef.mode / mu_all / coefficients\n", label))
+
+  re_draws_mean <- tapply(
+    seq_len(nrow(fit$coefficients)),
+    fit$coefficients[[grp_col]],
+    function(idx) colMeans(fit$coefficients[idx, re_names, drop = FALSE]),
+    simplify = FALSE
+  )
+
+  mcmc_mat <- do.call(rbind, lapply(grp_levs, function(l) {
+    re_draws_mean[[as.character(l)]]
+  }))
+  rownames(mcmc_mat) <- grp_levs
+  icm_mat <- icm_b[grp_levs, re_names, drop = FALSE]
+
+  n_match <- NA_integer_
+  if (length(re_names) > 1L) {
+    scl <- apply(icm_mat, 2L, sd)
+    scl[scl < 1e-8] <- 1
+    A <- sweep(mcmc_mat, 2L, scl, "/")
+    B <- sweep(icm_mat, 2L, scl, "/")
+    D <- outer(rowSums(A^2), rep(1, J)) +
+      outer(rep(1, J), rowSums(B^2)) - 2 * A %*% t(B)
+    nearest <- apply(D, 1L, which.min)
+    n_match <- sum(nearest == seq_len(J))
+    cat(sprintf(
+      "[%s] Nearest-mode matching: %d of %d groups on own ICM mode\n",
+      label, n_match, J
+    ))
+  } else {
+    cat(sprintf(
+      "[%s] Nearest-mode matching: skipped (univariate RE; use cor vs own ICM mode)\n",
+      label
+    ))
+  }
+
+  mer_full <- .mer_re_reference_full(fit)
+  cat(sprintf("[%s] cor(MCMC mean vs ICM / glmer_full):\n", label))
+  for (k in re_names) {
+    c_icm  <- cor(mcmc_mat[, k], icm_mat[, k])
+    c_full <- cor(mcmc_mat[, k], mer_full[, k])
+    cat(sprintf("  %-14s  vs ICM: %6.3f   vs glmer_full: %6.3f\n", k, c_icm, c_full))
+  }
+
+  cat(sprintf("\n=== Random effects table (%s) ===\n\n", label))
+  print_mer_bayes_re_compare(fit)
+
+  if (length(re_names) > 1L) {
+    stopifnot(n_match >= ceiling(mode_match_min * J))
+  }
+  for (k in re_names) {
+    c_icm  <- cor(mcmc_mat[, k], icm_mat[, k])
+    c_full <- cor(mcmc_mat[, k], mer_full[, k])
+    stopifnot(c_icm >= cor_icm_min)
+    stopifnot(c_full >= cor_full_min)
+  }
+
+  invisible(list(mcmc = mcmc_mat, mer_full = mer_full))
 }

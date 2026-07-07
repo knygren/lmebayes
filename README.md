@@ -316,6 +316,23 @@ helpers). Index: [inst/R_FUNCTION_INVENTORY.md](inst/R_FUNCTION_INVENTORY.md).
 
 ## Future Plans
 
+- **Sweep-outer sampling and `sweep_history` on every `lmerb()` / `glmerb()` route:**
+  All two-block paths should use sweep-outer replication (as `rGLMM_sweep()` /
+  `rGLMM_reg_*` do today) so behaviour and RNG structure are consistent across
+  Gaussian, dGamma σ², and ING Block~2 configurations. Every fit with
+  `simulate = TRUE` should store **`$sweep_history`** (pilot and main when a pilot
+  runs) for inner-sweep convergence tables and `plot_sweep_history_diag()`. Some
+  routes already do (e.g. ING Block~2, `glmerb()`, dGamma σ² after glmbayesCore
+  passthrough); **Gaussian §1-style fixed-τ² LMM** still uses the v2 C++ batch
+  driver without history — tracked in **glmbayesCore** README *Future plans*.
+- **C++ inner-chain loops and within-block parallel sampling (glmbayesCore):**
+  Per-sweep replicate chains should move from R batch loops into C++ (`src/*.cpp`).
+  Parallel execution should be **within each block, across chains** at sweep `m`:
+  **Block~1** (random effects) parallel over chains (**higher priority**);
+  **Block~2** (fixed effects / τ²) parallel over chains where safe (**ideal**).
+  **lmebayes** stays on the matrix/formula wrappers (`rlmerb()`, `rglmerb()`,
+  `lmerb()`, `glmerb()`).
+
 - **R Mathlib (`nmath`) usage from C:** Today the package vendors local copies of
   selected R Mathlib routines and headers in `*.c` sources. The plan is to switch
   to calling the **same `nmath` functions that ship with R**, via the supported
