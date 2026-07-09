@@ -49,7 +49,7 @@ Rscript tests/manual/run_all.R small
 | `test_lmerb_mer_re_validation.R` | known + ING LMM | Same Big Word Club model; §2 ING Block~2 only |
 | `test_lmerb_dgamma_mer_re_validation.R` | dGamma LMM + dGamma+ING | Same BWC model; dGamma σ² route only |
 | `test_glmerb_mer_re_validation.R` | known + ING GLMM | Block~2 vs ICM + RE cor (Poisson airbnb) |
-| `_bwc_lmerb_fixture.R` | (helper) | Shared Big Word Club dat/form for lmerb manual tests |
+| `_bwc_lmerb_fixture.R` | (helper) | Shared BWC dat/form; drops rank-deficient `school_id` levels before prior setup |
 | `_lmerb_dgamma_fixture.R` | (helper) | dGamma `dispersion_ranef` builder |
 | `_block2_fixef_validate.R` | (helper) | Bind `lmebayes:::.validate_manual_block2_fixef` after `load_all()` |
 | `_lmerb_re_validate.R` | (helper) | Bind `lmebayes:::.validate_lmerb_re` after `load_all()` |
@@ -57,7 +57,9 @@ Rscript tests/manual/run_all.R small
 
 Demos under `demo/` mirror these routes (`Ex_12`/`Ex_21` Gaussian+ING; `Ex_24`/`Ex_25` dGamma) with fuller printed output.
 
-**dGamma note:** Block~1 still uses **BlockEnvelopeCentering** until BlockEnvelopeSim ships; the manual dGamma script now uses the **same** Big Word Club rows and formula as `test_lmerb_mer_re_validation.R` so results are directly comparable across routes.
+**BWC fixture:** `_bwc_lmerb_fixture.R` subsets to algebraically **full-rank** schools (`model_setup()$re_rank`) before `Prior_Setup_lmebayes`, matching `Ex_24` / `Ex_25`.
+
+**dGamma note:** Block~1 uses center → build → dispersion build → sim; the manual dGamma script uses the **same** filtered Big Word Club rows and formula as `test_lmerb_mer_re_validation.R`.
 
 **dGamma §1–§2 (BlockEnvelopeCentering):** chain means should match **`lmer_full`** (cor ≈ 1). **`fixef.mode` / `ranef.mode` ICM checks are skipped** (`z_icm_max = Inf`, relaxed RE ICM). **`se_ratio` uses the full `[0.85, 1.05]` band on all mapped rows** (do not pass `ing = TRUE` here — that only relaxes `null_effects` for Gaussian/glmer ING shrinkage). §2 still differs from §1 on dispersion sampling and structural checks only.
 

@@ -61,7 +61,9 @@
 #'   pilot and main replicate sampling inside \code{\link{rglmerb}}. Default
 #'   \code{FALSE}.
 #' @return Object of class \code{"glmerb"}: same \code{fixef.*} structure as
-#'   \code{"lmerb"}, with additional \code{family}, \code{glmer} (reference
+#'   \code{"lmerb"}, including \code{sigma2} and \code{sigma2.mean} for
+#'   \code{family = gaussian()} (see \code{\link{lmerb}}), with additional
+#'   \code{family}, \code{glmer} (reference
 #'   \code{\link[lme4]{glmer}} fit), \code{fixef.init} (main-chain start from
 #'   pilot colMeans when a pilot runs; \code{NULL} when no pilot runs),
 #'   \code{pilot_chisq} (Hotelling chi-squared test of
@@ -208,11 +210,14 @@ glmerb <- function(
         fixef        = NULL,
         coefficients = NULL,
         joint_mode   = icm$joint_mode,
+        sigma2       = icm$sigma2,
+        sigma2.mean  = icm$sigma2,
         sigma2.mode  = icm$sigma2,
         tau2.mode    = icm$tau2,
         fixef.mu     = as.matrix(
           glmbayesCore::build_mu_all(design, icm$fixef)$mu_all
-        )
+        ),
+        draw_engine  = NULL
       ),
       class = c("glmerb", "list")
     ))
@@ -255,7 +260,10 @@ glmerb <- function(
       fixef.iters.mean      = sampler$fixef.iters.mean,
       ranef.iters           = sampler$ranef.iters,
       ranef.iters.mean      = sampler$ranef.iters.mean,
+      sigma2                = sampler$sigma2,
+      sigma2.mean           = sampler$sigma2.mean,
       fixef.mu              = sampler$fixef.mu,
+      draw_engine           = sampler$draw_engine,
       m_convergence         = sampler$m_convergence,
       pilot_chisq           = sampler$pilot_chisq,
       gap_tol               = gap_tol,

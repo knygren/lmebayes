@@ -189,6 +189,18 @@
 #'     \item{\code{fixef.dispersion.mean}}{Named vector of posterior means of
 #'       \eqn{\tau^2_k} (\code{colMeans(fixef.dispersion)}).  \code{NULL} when
 #'       \code{simulate = FALSE}.}
+#'     \item{\code{sigma2}}{Observation-level residual variance \eqn{\sigma^2}:
+#'       a scalar when \code{dispersion_ranef} is fixed, a length-\code{n} vector
+#'       of final-sweep draws when \code{dispersion_ranef} is \code{dGamma()};
+#'       \code{NULL} when not applicable.  When \code{simulate = FALSE}, the
+#'       prior plug-in scalar (\code{prior$dispersion_ranef}) is returned for
+#'       Gaussian models.}
+#'     \item{\code{sigma2.mean}}{Posterior mean of \eqn{\sigma^2}; equals
+#'       \code{sigma2} when fixed.  \code{NULL} when \code{sigma2} is
+#'       \code{NULL}.}
+#'     \item{\code{draw_engine}}{Name of the Block~1 sampling engine used
+#'       (e.g. \code{"rGLMM_sweep_ing_block1_ind"}). \code{NULL} when
+#'       \code{simulate = FALSE}.}
 #'     \item{\code{fixef.iters}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
 #'       total number of Block~2 candidates generated per stored draw,
 #'       summed over the \code{m_convergence} inner sweeps.
@@ -361,11 +373,14 @@ lmerb <- function(
         fixef        = NULL,
         coefficients = NULL,
         joint_mode   = icm$joint_mode,
+        sigma2       = icm$sigma2,
+        sigma2.mean  = icm$sigma2,
         sigma2.mode  = icm$sigma2,
         tau2.mode    = icm$tau2,
         fixef.mu     = as.matrix(
           glmbayesCore::build_mu_all(design, icm$fixef)$mu_all
-        )
+        ),
+        draw_engine  = NULL
       ),
       class = c("lmerb", "list")
     ))
@@ -409,7 +424,10 @@ lmerb <- function(
       fixef.iters.mean      = sampler$fixef.iters.mean,
       ranef.iters           = sampler$ranef.iters,
       ranef.iters.mean      = sampler$ranef.iters.mean,
+      sigma2                = sampler$sigma2,
+      sigma2.mean           = sampler$sigma2.mean,
       fixef.mu              = sampler$fixef.mu,
+      draw_engine           = sampler$draw_engine,
       m_convergence         = m_convergence,
       pilot_chisq           = sampler$pilot_chisq,
       gap_tol               = if (isTRUE(prior$any_non_normal)) gap_tol else NULL,

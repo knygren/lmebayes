@@ -33,7 +33,9 @@
 #'   \code{tau2_overview} and \code{tau2_percentiles_overview} (posterior mode,
 #'   mean, SD on the variance scale, \code{Mean SD}, and tau^2 quantiles when
 #'   simulated), \code{tau2_sd_percentiles_overview} (2.5\%/median/97.5\% of
-#'   sqrt(tau^2) draws vs \code{lmer}/\code{glmer SD}), and optionally
+#'   sqrt(tau^2) draws vs \code{lmer}/\code{glmer SD}), a \code{Residual} row
+#'   for observation-level \eqn{\sigma^2} when \code{dispersion_ranef} is
+#'   supplied (same columns as the \eqn{\tau^2_k} rows), and optionally
 #'   \code{ranef_groups}.
 #' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
 #'   \code{\link[glmbayes]{summary.glmb}}, \code{\link[glmbayes]{summary.mlmb}}
@@ -560,6 +562,238 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }))
 
   rownames(tab) <- re_names
+  .lmerb_tau2_append_sigma2_row(tab, object, kind = "prior")
+}
+
+## Observation-level sigma^2: append a Residual row to tau^2 summary tables.
+#' @keywords internal
+.lmerb_sigma2_summary_enabled <- function(object) {
+  mode <- object$prior$dispersion_mode
+  !is.null(mode) && !identical(mode, "none")
+}
+
+#' @keywords internal
+.lmerb_sigma2_mer_reference <- function(object) {
+  re_names  <- object$model_setup$re_coef_names
+  mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
+  mer_vc    <- tryCatch(
+    glmbayesCore:::extract_mer_variance_components(
+      .lmerb_reference_fit(object),
+      re_coef_names = re_names
+    ),
+    error = function(e) NULL
+  )
+  resid_var <- if (!is.null(mer_vc)) {
+    mer_vc$residual_var
+  } else {
+    object$model_setup$residual_var
+  }
+  mer_sd <- if (is.finite(resid_var) && resid_var >= 0) {
+    sqrt(resid_var)
+  } else {
+    NA_real_
+  }
+  list(
+    mer_label  = mer_label,
+    mer_sigma2 = resid_var,
+    mer_sd     = mer_sd
+  )
+}
+
+#' @keywords internal
+.lmerb_sigma2_prior_params <- function(object) {
+  mode <- object$prior$dispersion_mode
+  pl   <- object$prior$dispersion_prior_list
+  mer  <- .lmerb_sigma2_mer_reference(object)
+
+  if (identical(mode, "gamma") && !is.null(pl)) {
+    shape <- as.numeric(pl$shape[1L])
+    rate  <- as.numeric(pl$rate[1L])
+    inv_E <- if (is.finite(shape) && shape > 0 &&
+                  is.finite(rate) && rate > 0) {
+      rate / shape
+    } else {
+      NA_real_
+    }
+    E_sigma2 <- if (is.finite(shape) && shape > 1 &&
+                       is.finite(rate) && rate > 0) {
+      rate / (shape - 1)
+    } else {
+      NA_real_
+    }
+    d_lo <- suppressWarnings(as.numeric(pl$disp_lower))
+    d_hi <- suppressWarnings(as.numeric(pl$disp_upper))
+    if (!is.finite(d_lo)) d_lo <- NA_real_
+    if (!is.finite(d_hi)) d_hi <- NA_real_
+    prior_label <- "dGamma"
+  } else if (identical(mode, "fixed")) {
+    d <- as.numeric(object$prior$dispersion_ranef)
+    inv_E <- E_sigma2 <- d
+    d_lo <- d_hi <- NA_real_
+    prior_label <- "fixed"
+  } else {
+    return(NULL)
+  }
+
+  sqrt_E <- if (is.finite(E_sigma2) && E_sigma2 >= 0) {
+    sqrt(E_sigma2)
+  } else {
+    NA_real_
+  }
+
+  list(
+    prior_label = prior_label,
+    inv_E       = inv_E,
+    E_sigma2    = E_sigma2,
+    sqrt_E      = sqrt_E,
+    disp_lower  = d_lo,
+    disp_upper  = d_hi,
+    mer_sigma2  = mer$mer_sigma2,
+    mer_sd      = mer$mer_sd,
+    mer_label   = mer$mer_label
+  )
+}
+
+#' @keywords internal
+.lmerb_tau2_append_sigma2_row <- function(
+    tab,
+    object,
+    kind = c("prior", "overview", "percentiles", "sd_percentiles"),
+    simulated = FALSE,
+    n_draws = NULL
+) {
+  kind <- match.arg(kind)
+  if (!.lmerb_sigma2_summary_enabled(object)) {
+    return(tab)
+  }
+  if (is.null(tab) || nrow(tab) == 0L) {
+    return(tab)
+  }
+
+  params <- .lmerb_sigma2_prior_params(object)
+  if (is.null(params)) {
+    return(tab)
+  }
+
+  if (identical(kind, "prior")) {
+    df <- data.frame(
+      Prior           = params$prior_label,
+      `1/E[1/tau2]`   = params$inv_E,
+      `E[tau2]`       = params$E_sigma2,
+      `sqrt(E[tau2])` = params$sqrt_E,
+      disp_lower      = params$disp_lower,
+      disp_upper      = params$disp_upper,
+      check.names     = FALSE,
+      stringsAsFactors = FALSE
+    )
+    df[[params$mer_label]] <- params$mer_sigma2
+    df[[paste0(params$mer_label, " SD")]] <- params$mer_sd
+    rownames(df) <- "Residual"
+    return(rbind(tab, df))
+  }
+
+  if (identical(kind, "overview")) {
+    post_mode <- if (identical(object$prior$dispersion_mode, "fixed")) {
+      as.numeric(object$prior$dispersion_ranef)
+    } else {
+      params$E_sigma2
+    }
+    if (!simulated) {
+      out <- cbind(`Post.Mode` = post_mode)
+      rownames(out) <- "Residual"
+      return(rbind(tab, out))
+    }
+
+    sigma2 <- object$sigma2
+    if (is.null(sigma2)) {
+      out <- cbind(`Post.Mode` = post_mode)
+      rownames(out) <- "Residual"
+      return(rbind(tab, out))
+    }
+    sigma2 <- as.numeric(sigma2)
+    post_mean <- if (!is.null(object$sigma2.mean)) {
+      as.numeric(object$sigma2.mean)
+    } else {
+      mean(sigma2)
+    }
+    post_sd <- stats::sd(sigma2)
+    mean_sd <- mean(sqrt(sigma2))
+    mc_err <- if (!is.null(n_draws) && n_draws > 0L) {
+      post_sd / sqrt(n_draws)
+    } else {
+      NA_real_
+    }
+    pval2 <- if (identical(object$prior$dispersion_mode, "gamma") &&
+                  is.finite(params$E_sigma2)) {
+      p1 <- mean(sigma2 < params$E_sigma2)
+      min(p1, 1 - p1)
+    } else {
+      NA_real_
+    }
+    out <- cbind(
+      `Post.Mode`      = post_mode,
+      `Post.Mean`      = post_mean,
+      `Post.Sd`        = post_sd,
+      `MC Error`       = mc_err,
+      `Mean SD`        = mean_sd,
+      `Pr(Prior_tail)` = pval2
+    )
+    if ("Cand/draw" %in% colnames(tab) && !is.null(object$ranef.iters.mean)) {
+      out <- cbind(out, `Cand/draw` = unname(object$ranef.iters.mean))
+    }
+    rownames(out) <- "Residual"
+    return(rbind(tab, out))
+  }
+
+  if (identical(kind, "percentiles")) {
+    if (!simulated) {
+      return(tab)
+    }
+    sigma2 <- object$sigma2
+    if (is.null(sigma2)) {
+      return(tab)
+    }
+    sigma2 <- as.numeric(sigma2)
+    pct <- stats::quantile(
+      sigma2,
+      probs = c(0.01, 0.025, 0.05, 0.5, 0.95, 0.975, 0.99)
+    )
+    out <- cbind(
+      `1.0%`   = pct[[1L]],
+      `2.5%`   = pct[[2L]],
+      `5.0%`   = pct[[3L]],
+      Median   = pct[[4L]],
+      `95.0%`  = pct[[5L]],
+      `97.5%`  = pct[[6L]],
+      `99.0%`  = pct[[7L]]
+    )
+    rownames(out) <- "Residual"
+    return(rbind(tab, out))
+  }
+
+  if (identical(kind, "sd_percentiles")) {
+    if (!simulated) {
+      return(tab)
+    }
+    sigma2 <- object$sigma2
+    if (is.null(sigma2)) {
+      return(tab)
+    }
+    sigma2 <- as.numeric(sigma2)
+    sd_draws <- sqrt(sigma2)
+    pct <- stats::quantile(sd_draws, probs = c(0.025, 0.5, 0.975))
+    mer_sd_col <- paste0(params$mer_label, " SD")
+    out <- cbind(
+      `2.5%`  = pct[[1L]],
+      Median  = pct[[2L]],
+      `97.5%` = pct[[3L]],
+      params$mer_sd
+    )
+    colnames(out)[ncol(out)] <- mer_sd_col
+    rownames(out) <- "Residual"
+    return(rbind(tab, out))
+  }
+
   tab
 }
 
@@ -586,14 +820,18 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   if (!simulated) {
     out <- cbind(`Post.Mode` = post_mode)
     rownames(out) <- re_names
-    return(out)
+    return(.lmerb_tau2_append_sigma2_row(
+      out, object, kind = "overview", simulated = simulated, n_draws = n_draws
+    ))
   }
 
   td <- object$fixef.dispersion
   if (is.null(td)) {
     out <- cbind(`Post.Mode` = post_mode)
     rownames(out) <- re_names
-    return(out)
+    return(.lmerb_tau2_append_sigma2_row(
+      out, object, kind = "overview", simulated = simulated, n_draws = n_draws
+    ))
   }
 
   post_mean <- colMeans(td)[re_names]
@@ -631,7 +869,9 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
 
   rownames(out) <- re_names
-  out
+  .lmerb_tau2_append_sigma2_row(
+    out, object, kind = "overview", simulated = simulated, n_draws = n_draws
+  )
 }
 
 ## Per-component tau^2 posterior percentiles from fixef.dispersion draws.
@@ -666,7 +906,9 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     `99.0%`  = percentiles[, 7L]
   )
   rownames(tab) <- re_names
-  tab
+  .lmerb_tau2_append_sigma2_row(
+    tab, object, kind = "percentiles", simulated = simulated
+  )
 }
 
 ## Per-component SD (sqrt(tau^2)) posterior percentiles from fixef.dispersion draws.
@@ -709,7 +951,9 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   tab <- cbind(tab, mer_sd)
   colnames(tab)[ncol(tab)] <- mer_sd_col
   rownames(tab) <- re_names
-  tab
+  .lmerb_tau2_append_sigma2_row(
+    tab, object, kind = "sd_percentiles", simulated = simulated
+  )
 }
 
 #' @keywords internal

@@ -47,7 +47,9 @@ table), \code{any_non_normal}, \code{tau2_prior_overview} (per-component
 \code{tau2_overview} and \code{tau2_percentiles_overview} (posterior mode,
 mean, SD on the variance scale, \code{Mean SD}, and tau^2 quantiles when
 simulated), \code{tau2_sd_percentiles_overview} (2.5\\%/median/97.5\\% of
-sqrt(tau^2) draws vs \code{lmer}/\code{glmer SD}), and optionally
+sqrt(tau^2) draws vs \code{lmer}/\code{glmer SD}), a \code{Residual} row
+for observation-level \eqn{\sigma^2} when \code{dispersion_ranef} is
+supplied (same columns as the \eqn{\tau^2_k} rows), and optionally
 \code{ranef_groups}.
 }
 \description{

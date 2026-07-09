@@ -34,7 +34,7 @@
       "GLMBAYESCORE_ROOT",
       unset = file.path(dirname(root), "glmbayesCore")
     )
-    if (dir.exists(file.path(core, "DESCRIPTION"))) {
+    if (file.exists(file.path(core, "DESCRIPTION"))) {
       pkgload::load_all(core, export_all = FALSE, quiet = TRUE)
     }
   }

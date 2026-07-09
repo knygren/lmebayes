@@ -175,7 +175,9 @@ how many inner sweeps are shown.}
 }
 \value{
 Object of class \code{"glmerb"}: same \code{fixef.*} structure as
-\code{"lmerb"}, with additional \code{family}, \code{glmer} (reference
+\code{"lmerb"}, including \code{sigma2} and \code{sigma2.mean} for
+\code{family = gaussian()} (see \code{\link{lmerb}}), with additional
+\code{family}, \code{glmer} (reference
 \code{\link[lme4]{glmer}} fit), \code{fixef.init} (main-chain start from
 pilot colMeans when a pilot runs; \code{NULL} when no pilot runs),
 \code{pilot_chisq} (Hotelling chi-squared test of

@@ -26,12 +26,12 @@
 
 #
 
+# Requires dev glmbayesCore (sibling package) for pwt_measurement and Block~1 ING.
+#
 #   Rscript tests/manual/test_lmerb_dgamma_mer_re_validation.R
 
-
-
 source("tests/manual/_load.R")
-source("tests/manual/_lmerb_dgamma_fixture.R")
+source("tests/manual/_bwc_lmerb_fixture.R")
 .manual_test_load(load_glmbayes_core = TRUE)
 source("tests/manual/_block2_fixef_validate.R")
 .bind_manual_block2_fixef()
@@ -42,9 +42,10 @@ source("tests/manual/_lmerb_re_validate.R")
 
 N_DGAMMA      <- 1000L
 N_DGAMMA_ING  <- 3000L
+PWT_MEASUREMENT <- 0.2
 
-## Block~1 uses BlockEnvelopeCentering until BlockEnvelopeSim: chain means track
-## lmer_full, but ranef.mode / fixef.mode are plug-in ICM — skip ICM thresholds §1–§2.
+## Block~1: BlockEnvelopeCentering → Build → DispersionBuild → Sim; ranef.mode / fixef.mode
+## are plug-in ICM — skip ICM thresholds §1–§2.
 DGAMMA_ENV_RE <- list(cor_full_min = 0.85, cor_icm_min = 0, mode_match_min = 0)
 
 
@@ -73,15 +74,38 @@ stopifnot(identical(
 
 ## --- 1. Random sigma^2, fixed Block~2 tau^2 (parallel to Gaussian §1) -------
 
+ps <- Prior_Setup_lmebayes(
+  form,
+  data            = dat,
+  pwt             = 0.01,
+  pwt_measurement = PWT_MEASUREMENT
+)
+pf <- pfamily_list(ps)
 
+m_disp <- ps$ing_prior_measurement
+cat(sprintf(
+  paste0(
+    "\n=== dGamma sigma^2 prior (section 1; pwt_measurement = %.2g); ",
+    "window [%.4g, %.4g]; sigma2_hat = %.4g ===\n\n"
+  ),
+  ps$pwt_measurement,
+  m_disp$disp_lower,
+  m_disp$disp_upper,
+  m_disp$sigma2_hat
+))
 
-pf <- pfamily_list(fx$ps)
-
-disp_pf <- .dgamma_dispersion_ranef(fx$ps, narrow_window = TRUE)
-
-
+disp_pf <- dGamma(
+  shape          = m_disp$shape,
+  rate           = m_disp$rate,
+  beta           = matrix(0, 1, 1, dimnames = list("(Intercept)", NULL)),
+  Inv_Dispersion = TRUE,
+  disp_lower     = m_disp$disp_lower,
+  disp_upper     = m_disp$disp_upper
+)
 
 cat("\n=== lmerb dGamma sigma^2, fixed Block~2 tau^2; n =", N_DGAMMA, "===\n\n")
+
+
 
 fit <- lmerb(
 
@@ -99,7 +123,7 @@ fit <- lmerb(
 
 )
 
-
+summary(fit)
 
 stopifnot(inherits(fit, "lmerb"))
 
@@ -190,13 +214,51 @@ ps2 <- Prior_Setup_lmebayes(
 
   pwt              = 0.01,
 
-  pwt_dispersion   = 0.2
+  pwt_dispersion   = 0.2,
+
+  pwt_measurement  = PWT_MEASUREMENT
 
 )
 
 pf2 <- pfamily_list(ps2, ptypes = "dIndependent_Normal_Gamma")
 
-disp_pf2 <- .dgamma_dispersion_ranef(ps2, narrow_window = FALSE)
+m_disp2 <- ps2$ing_prior_measurement
+
+cat(sprintf(
+
+  paste0(
+
+    "\n=== dGamma sigma^2 prior (section 2; pwt_measurement = %.2g); ",
+
+    "window [%.4g, %.4g]; sigma2_hat = %.4g ===\n\n"
+
+  ),
+
+  ps2$pwt_measurement,
+
+  m_disp2$disp_lower,
+
+  m_disp2$disp_upper,
+
+  m_disp2$sigma2_hat
+
+))
+
+disp_pf2 <- dGamma(
+
+  shape          = m_disp2$shape,
+
+  rate           = m_disp2$rate,
+
+  beta           = matrix(0, 1, 1, dimnames = list("(Intercept)", NULL)),
+
+  Inv_Dispersion = TRUE,
+
+  disp_lower     = m_disp2$disp_lower,
+
+  disp_upper     = m_disp2$disp_upper
+
+)
 
 
 
