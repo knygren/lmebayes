@@ -47,3 +47,55 @@ test_that("summary.lmerb overview includes glmer reference and Pr(Prior_tail)", 
 
   expect_true(is.null(sm$ranef.iters.mean))
 })
+
+test_that("ranef/coef/fixef mirror lme4 layout on lmerb fit", {
+  skip_on_cran()
+
+  data(sleepstudy, package = "lme4", envir = environment())
+  dat <- sleepstudy
+  dat$Subject <- factor(dat$Subject)
+  form <- Reaction ~ Days + (Days || Subject)
+
+  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  set.seed(2L)
+  fit <- lmerb(
+    form,
+    data             = dat,
+    pfamily_list     = pfamily_list(ps),
+    dispersion_ranef = ps$dispersion_ranef,
+    n                = 40L
+  )
+
+  re_mode <- lme4::ranef(fit, type = "mode")
+  expect_s3_class(re_mode, "ranef.lmerb")
+  expect_equal(
+    as.matrix(re_mode$Subject),
+    fit$ranef.mode,
+    tolerance = 1e-10
+  )
+
+  re_mean <- lme4::ranef(fit, type = "mean", condVar = TRUE)
+  expect_true(!is.null(attr(re_mean, "postVar")))
+  manual_mean <- tapply(
+    seq_len(nrow(fit$coefficients)),
+    fit$coefficients$Subject,
+    function(idx) colMeans(fit$coefficients[idx, fit$model_setup$re_coef_names, drop = FALSE]),
+    simplify = FALSE
+  )
+  manual_mat <- do.call(rbind, manual_mean[rownames(fit$ranef.mode)])
+  expect_equal(as.matrix(re_mean$Subject), manual_mat, tolerance = 1e-10)
+
+  long <- as.data.frame(re_mean)
+  expect_true(all(c("grpvar", "term", "grp", "condval", "condsd") %in% names(long)))
+  expect_true(all(is.finite(long$condsd)))
+
+  expect_equal(unname(lme4::fixef(fit)), unname(lme4::fixef(fit$lmer)))
+
+  cf <- coef(fit, type = "mode")
+  expect_s3_class(cf, "coef.lmerb")
+  mer_cf <- as.matrix(coef(fit$lmer)$Subject)
+  expect_equal(as.matrix(cf$Subject), mer_cf, tolerance = 0.25)
+
+  cf_mean <- coef(fit, type = "mean")
+  expect_equal(as.matrix(cf_mean$Subject), manual_mat, tolerance = 1e-10)
+})

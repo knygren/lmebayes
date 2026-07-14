@@ -51,6 +51,7 @@ Suggests:
     ggplot2,
     bayesrules,
     bayestestR,
+    glmmTMB,
     LearnBayes,
     testthat (>= 3.0.0),
     spelling

@@ -39,6 +39,12 @@ dGamma <- glmbayesCore::dGamma
 #' @export
 glmbayesCore::pfamily_list
 
+#' @inherit glmbayesCore::dGamma_list title description details params return seealso
+#' @name dGamma_list
+#' @importFrom glmbayesCore dGamma_list
+#' @export
+glmbayesCore::dGamma_list
+
 #' @inherit glmbayesCore::plot_sweep_history_diag title description details params return seealso examples
 #' @export
 plot_sweep_history_diag <- glmbayesCore::plot_sweep_history_diag

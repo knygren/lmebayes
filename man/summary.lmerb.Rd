@@ -49,8 +49,9 @@ mean, SD on the variance scale, \code{Mean SD}, and tau^2 quantiles when
 simulated), \code{tau2_sd_percentiles_overview} (2.5\\%/median/97.5\\% of
 sqrt(tau^2) draws vs \code{lmer}/\code{glmer SD}), a \code{Residual} row
 for observation-level \eqn{\sigma^2} when \code{dispersion_ranef} is
-supplied (same columns as the \eqn{\tau^2_k} rows), and optionally
-\code{ranef_groups}.
+supplied (same columns as the \eqn{\tau^2_k} rows; not used for
+per-group \code{gamma_list} priors --- see \code{\link{summary_sigma2}}),
+and optionally \code{ranef_groups}.
 }
 \description{
 Methods for \code{\link{lmerb}} fits.  \code{summary.lmerb} builds
@@ -60,5 +61,6 @@ multi-response structure of \code{\link[glmbayes]{summary.mlmb}}.
 }
 \seealso{
 \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
-\code{\link[glmbayes]{summary.glmb}}, \code{\link[glmbayes]{summary.mlmb}}
+\code{\link{summary_sigma2}}, \code{\link[glmbayes]{summary.glmb}},
+\code{\link[glmbayes]{summary.mlmb}}
 }

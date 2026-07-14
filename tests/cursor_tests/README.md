@@ -1,4 +1,4 @@
-# cursor_tests — manual regression via package demos
+t# cursor_tests — manual regression via package demos
 
 This folder is **not** part of `R CMD check`. Do **not** add `test-*.R`, smoke
 scripts, or ad-hoc fixtures here.

@@ -350,7 +350,7 @@ print_mer_bayes_re_compare <- function(
     ), digits))
 
     for (nm in re_names) {
-      sub <- subset(level_long, term == nm)
+      sub <- level_long[level_long$term == nm, , drop = FALSE]
       if (nrow(sub) < 2L) next
       cat(sprintf("\n--- %s ---\n", nm))
       if (nm %in% names(anchor)) {
@@ -532,7 +532,7 @@ print_mer_bayes_re_compare <- function(
     } else {
       paste0(
         "  se_ratio (post_sd / ", mer_label,
-        "_se) printed for reference only — not enforced on this route.\n"
+        "_se) printed for reference only \u2014 not enforced on this route.\n"
       )
     },
     "  null_effects rows should shrink toward prior mean 0; ",

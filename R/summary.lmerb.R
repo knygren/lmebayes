@@ -35,10 +35,12 @@
 #'   simulated), \code{tau2_sd_percentiles_overview} (2.5\%/median/97.5\% of
 #'   sqrt(tau^2) draws vs \code{lmer}/\code{glmer SD}), a \code{Residual} row
 #'   for observation-level \eqn{\sigma^2} when \code{dispersion_ranef} is
-#'   supplied (same columns as the \eqn{\tau^2_k} rows), and optionally
-#'   \code{ranef_groups}.
+#'   supplied (same columns as the \eqn{\tau^2_k} rows; not used for
+#'   per-group \code{gamma_list} priors --- see \code{\link{summary_sigma2}}),
+#'   and optionally \code{ranef_groups}.
 #' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
-#'   \code{\link[glmbayes]{summary.glmb}}, \code{\link[glmbayes]{summary.mlmb}}
+#'   \code{\link{summary_sigma2}}, \code{\link[glmbayes]{summary.glmb}},
+#'   \code{\link[glmbayes]{summary.mlmb}}
 #' @export
 #' @method summary lmerb
 summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("digits") - 3L), ...) {
@@ -565,11 +567,232 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   .lmerb_tau2_append_sigma2_row(tab, object, kind = "prior")
 }
 
+## Per-group observation-level sigma^2 when dispersion_ranef is a gamma_list.
+#' @keywords internal
+.lmerb_sigma2_gamma_list_prior_overview <- function(object) {
+  if (!identical(object$prior$dispersion_mode, "gamma_list")) {
+    return(NULL)
+  }
+  pl <- object$prior$dispersion_prior_list
+  if (is.null(pl) || is.null(pl$shape_group)) {
+    return(NULL)
+  }
+  grp <- names(pl$shape_group)
+  if (!length(grp)) {
+    return(NULL)
+  }
+  mer <- .lmerb_sigma2_mer_reference(object)
+
+  ## Number of random-effect coefficients (p) shared by every group's dGamma()
+  ## envelope; used to back out the implied per-group effective prior sample
+  ## size n_prior under the Prior_Setup() default k = 1 calibration
+  ## (shape_ING = (n_prior + k + p)/2), i.e. the same convention used by
+  ## glmbayesCore:::.ing_n_prior_from_shape().
+  p_re <- length(object$model_setup$re_coef_names)
+  n_data_group <- table(object$model_setup$groups)
+
+  tab <- do.call(rbind, lapply(grp, function(g) {
+    sh <- as.numeric(pl$shape_group[[g]])
+    rt <- as.numeric(pl$rate_group[[g]])
+    n_prior_g <- if (is.finite(sh)) 2 * sh - 1 - p_re else NA_real_
+    n_data_g  <- if (g %in% names(n_data_group)) {
+      as.numeric(n_data_group[[g]])
+    } else {
+      NA_real_
+    }
+    inv_E <- if (is.finite(sh) && sh > 0 && is.finite(rt) && rt > 0) {
+      rt / sh
+    } else {
+      NA_real_
+    }
+    E_sigma2 <- if (is.finite(sh) && sh > 1 && is.finite(rt) && rt > 0) {
+      rt / (sh - 1)
+    } else {
+      NA_real_
+    }
+    sqrt_E <- if (is.finite(E_sigma2) && E_sigma2 >= 0) {
+      sqrt(E_sigma2)
+    } else {
+      NA_real_
+    }
+    d_lo <- suppressWarnings(as.numeric(pl$disp_lower_group[[g]]))
+    d_hi <- suppressWarnings(as.numeric(pl$disp_upper_group[[g]]))
+    if (!is.finite(d_lo)) d_lo <- NA_real_
+    if (!is.finite(d_hi)) d_hi <- NA_real_
+
+    wdiag <- object$prior$window_diagnostics
+    wrow <- if (!is.null(wdiag) && g %in% wdiag$group) {
+      wdiag[wdiag$group == g, , drop = FALSE]
+    } else {
+      NULL
+    }
+
+    df <- data.frame(
+      Prior             = "dGamma",
+      n_prior           = n_prior_g,
+      `1/E[1/sigma2]`   = inv_E,
+      `E[sigma2]`       = E_sigma2,
+      `sqrt(E[sigma2])` = sqrt_E,
+      disp_lower        = d_lo,
+      disp_upper        = d_hi,
+      n_data            = n_data_g,
+      check.names       = FALSE,
+      stringsAsFactors  = FALSE
+    )
+    if (!is.null(wrow) && nrow(wrow) == 1L) {
+      df$blup_infl <- wrow$blup_infl
+      df$R_lo <- wrow$R_lo
+      df$R_hi <- wrow$R_hi
+      df$asymmetric_window <- wrow$asymmetric_window
+    }
+    df[[mer$mer_label]] <- mer$mer_sigma2
+    df[[paste0(mer$mer_label, " SD")]] <- mer$mer_sd
+    df
+  }))
+  rownames(tab) <- grp
+  tab
+}
+
+#' @keywords internal
+.lmerb_sigma2_gamma_list_posterior_overview <- function(
+    object,
+    simulated = FALSE,
+    n_draws = NULL
+) {
+  prior_tab <- .lmerb_sigma2_gamma_list_prior_overview(object)
+  if (is.null(prior_tab) || nrow(prior_tab) == 0L) {
+    return(NULL)
+  }
+  grp <- rownames(prior_tab)
+  E_prior <- prior_tab[["E[sigma2]"]]
+  n_total <- prior_tab[["n_prior"]] + prior_tab[["n_data"]]
+
+  post_mode <- if (!is.null(object$sigma2.mode)) {
+    sm <- object$sigma2.mode
+    if (is.matrix(sm)) {
+      vapply(grp, function(g) {
+        j <- match(g, colnames(sm))
+        if (is.na(j)) NA_real_ else as.numeric(sm[1L, j])
+      }, numeric(1L))
+    } else {
+      v <- as.numeric(sm)
+      if (length(v) == length(grp)) {
+        v[match(grp, names(v))]
+      } else if (length(v) == 1L) {
+        rep(v, length(grp))
+      } else {
+        rep(NA_real_, length(grp))
+      }
+    }
+  } else {
+    rep(NA_real_, length(grp))
+  }
+
+  if (!isTRUE(simulated)) {
+    out <- cbind(`n_total` = n_total, `Post.Mode` = post_mode)
+    rownames(out) <- grp
+    return(out)
+  }
+
+  sigma2 <- object$sigma2
+  if (is.null(sigma2) || !is.matrix(sigma2)) {
+    out <- cbind(`n_total` = n_total, `Post.Mode` = post_mode)
+    rownames(out) <- grp
+    return(out)
+  }
+
+  tab <- do.call(rbind, lapply(seq_along(grp), function(i) {
+    g <- grp[i]
+    j <- match(g, colnames(sigma2))
+    draws <- if (!is.na(j)) sigma2[, j] else NA_real_
+    post_mean <- mean(draws)
+    post_sd   <- stats::sd(draws)
+    mean_sd   <- mean(sqrt(draws))
+    mc_err    <- if (!is.null(n_draws) && n_draws > 0L) {
+      post_sd / sqrt(n_draws)
+    } else {
+      NA_real_
+    }
+    pval2 <- if (is.finite(E_prior[i])) {
+      p1 <- mean(draws < E_prior[i])
+      min(p1, 1 - p1)
+    } else {
+      NA_real_
+    }
+    c(
+      `n_total`        = n_total[i],
+      `Post.Mode`      = post_mode[i],
+      `Post.Mean`      = post_mean,
+      `Post.Sd`        = post_sd,
+      `MC Error`       = mc_err,
+      `Mean SD`        = mean_sd,
+      `Pr(Prior_tail)` = pval2
+    )
+  }))
+  rownames(tab) <- grp
+
+  cand <- if (!is.null(object$sigma2.iters.mean)) {
+    v <- object$sigma2.iters.mean[grp]
+    if (is.null(names(v))) {
+      stats::setNames(v, grp)
+    } else {
+      v
+    }
+  } else if (!is.null(object$ranef.iters.mean)) {
+    rep(unname(object$ranef.iters.mean), length(grp))
+  } else {
+    NULL
+  }
+  if (!is.null(cand)) {
+    tab <- cbind(tab, `Cand/draw` = unname(cand))
+  }
+
+  tab
+}
+
+## Per-group sigma^2 posterior percentiles, for comparison against
+## disp_lower/disp_upper (see .lmerb_sigma2_gamma_list_prior_overview()) --
+## mirrors .lmerb_tau2_percentiles_overview()'s Block~2 layout, so it is
+## easy to see whether draws pile up against the truncation bounds.
+#' @keywords internal
+.lmerb_sigma2_gamma_list_percentiles_overview <- function(object, simulated) {
+  if (!isTRUE(simulated)) {
+    return(NULL)
+  }
+  sigma2 <- object$sigma2
+  if (is.null(sigma2) || !is.matrix(sigma2)) {
+    return(NULL)
+  }
+  grp <- colnames(sigma2)
+  if (is.null(grp) || !length(grp)) {
+    return(NULL)
+  }
+
+  percentiles <- t(apply(sigma2, 2L, stats::quantile,
+    probs = c(0.01, 0.025, 0.05, 0.5, 0.95, 0.975, 0.99)
+  ))
+  tab <- cbind(
+    `1.0%`   = percentiles[, 1L],
+    `2.5%`   = percentiles[, 2L],
+    `5.0%`   = percentiles[, 3L],
+    Median   = percentiles[, 4L],
+    `95.0%`  = percentiles[, 5L],
+    `97.5%`  = percentiles[, 6L],
+    `99.0%`  = percentiles[, 7L]
+  )
+  rownames(tab) <- grp
+  tab
+}
+
 ## Observation-level sigma^2: append a Residual row to tau^2 summary tables.
 #' @keywords internal
 .lmerb_sigma2_summary_enabled <- function(object) {
   mode <- object$prior$dispersion_mode
-  !is.null(mode) && !identical(mode, "none")
+  # "gamma_list" (per-group dGamma() priors) draws sigma2 as an n x J
+  # matrix; the pooled prior-vs-posterior Residual row below is not yet
+  # meaningful per group, so it is skipped until per-group summary
+  # reporting is designed.
+  !is.null(mode) && !identical(mode, "none") && !identical(mode, "gamma_list")
 }
 
 #' @keywords internal
@@ -738,8 +961,17 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
       `Mean SD`        = mean_sd,
       `Pr(Prior_tail)` = pval2
     )
-    if ("Cand/draw" %in% colnames(tab) && !is.null(object$ranef.iters.mean)) {
-      out <- cbind(out, `Cand/draw` = unname(object$ranef.iters.mean))
+    if ("Cand/draw" %in% colnames(tab)) {
+      ## 'tab' already has this column (added upstream whenever
+      ## fixef.iters.mean is non-NULL); rbind() requires the sigma2 row to
+      ## have it too, even when the Block~1 rate (ranef.iters.mean) is NA
+      ## (e.g. dispersion_ranef is fixed/known -- no Block~1 envelope).
+      cand_val <- if (!is.null(object$ranef.iters.mean)) {
+        unname(object$ranef.iters.mean)
+      } else {
+        NA_real_
+      }
+      out <- cbind(out, `Cand/draw` = cand_val)
     }
     rownames(out) <- "Residual"
     return(rbind(tab, out))

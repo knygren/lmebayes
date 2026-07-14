@@ -11,8 +11,10 @@
 #' coefficient) plus the observation-level measurement dispersion
 #' (\code{dispersion_ranef}).  Both are typically built from
 #' \code{\link{Prior_Setup_lmebayes}}:
-#' \code{pfamily_list = pfamily_list(ps)} and
-#' \code{dispersion_ranef = ps$dispersion_ranef}.  The Block~1 random-effect
+#' \code{pfamily_list = pfamily_list(ps)} and either a fixed scalar
+#' \code{dispersion_ranef = ps$dispersion_ranef}, a single pooled
+#' \code{dGamma()} prior, or a named per-group list from
+#' \code{dGamma_list(ps)}.  The Block~1 random-effect
 #' covariance is reconstructed from the Block~2 pfamily dispersions
 #' (\code{Sigma_ranef = diag(tau^2_k)}); \code{lmerb} does not call
 #' \code{Prior_Setup_lmebayes} internally.
@@ -92,10 +94,29 @@
 #'   (\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
 #'   \code{\link[glmbayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
 #'   \code{\link{Prior_Setup_lmebayes}} object.
-#' @param dispersion_ranef Required positive scalar: the observation-level
-#'   measurement dispersion \eqn{\sigma^2}, treated as known during sampling.
-#'   Typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.  (A prior
-#'   specification for this parameter may be supported in the future.)
+#' @param dispersion_ranef Observation-level measurement dispersion
+#'   \eqn{\sigma^2} for Block~1.  One of: a positive scalar (treated as
+#'   known; typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}), a
+#'   single \code{\link[glmbayesCore]{dGamma}()} \code{pfamily} (pooled
+#'   \eqn{\sigma^2} across groups), or a named list of \code{dGamma()}
+#'   objects (one per group level) from
+#'   \code{\link[glmbayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}(Prior_Setup_lmebayes(...))}.
+#'   Which of these three shapes is accepted depends on \code{dispformula}
+#'   (see below).
+#' @param dispformula One-sided formula selecting the measurement-dispersion
+#'   structure: \code{~1} (default, pooled) requires \code{dispersion_ranef}
+#'   to be a fixed scalar or a single (pooled) \code{dGamma()};
+#'   \code{~<group_name>}, matching the random-effects grouping factor
+#'   exactly, requires \code{dispersion_ranef} to be a
+#'   \code{dGamma_list(...)} (one \code{dGamma()} per group level). Any other
+#'   formula is an error. \code{~1} never fits an extra reference model;
+#'   \code{~<group_name>} additionally fits
+#'   \code{\link[glmmTMB]{glmmTMB}(formula, data, dispformula = dispformula)}
+#'   as a diagnostic-only reference, stored as \code{dispersion_fit}
+#'   (\pkg{glmmTMB} must be installed). \code{lmer} is always the plain
+#'   \code{\link[lme4]{lmer}} fit regardless of \code{dispformula}; the
+#'   sampler route (pooled vs. per-group) already follows from
+#'   \code{dispersion_ranef}'s shape alone.
 #' @param n Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).
 #' @param tv_tol Total variation tolerance per stored draw, in (0, 1)
 #'   (default \code{0.01}, the conventional threshold of the honest-burn-in
@@ -154,7 +175,13 @@
 #'     \item{\code{lmer}}{\code{\link[lme4]{lmer}} fit from
 #'       \code{model_setup} (full \code{formula}), embedded as a sub-object —
 #'       analogous to \code{glmb$glm} and \code{lmb$lm}.  Use
-#'       \code{coef(fit$lmer)} for per-group classical coefficients.}
+#'       \code{coef(fit$lmer)} for per-group classical coefficients.  Always
+#'       the plain pooled-dispersion \code{lmer} fit, regardless of
+#'       \code{dispformula}.}
+#'     \item{\code{dispformula}}{The \code{dispformula} supplied.}
+#'     \item{\code{dispersion_fit}}{\code{NULL} when \code{dispformula = ~1};
+#'       otherwise the diagnostic-only \code{\link[glmmTMB]{glmmTMB}} fit with
+#'       per-group residual dispersion (\code{dispformula}).}
 #'     \item{\code{prior}}{Normalized prior container: \code{pfamily_list}
 #'       (as supplied, reordered to the RE coefficient names),
 #'       \code{dispersion_ranef}, the reconstructed \code{Sigma_ranef}, and
@@ -241,6 +268,7 @@ lmerb <- function(
     data = NULL,
     pfamily_list,
     dispersion_ranef,
+    dispformula = ~1,
     n = 1000L,
     tv_tol = 0.01,
     gap_tol = 0.0196,
@@ -340,6 +368,31 @@ lmerb <- function(
     fn_name          = "lmerb"
   )
 
+  dispformula_kind <- .lmebayes_validate_dispformula(
+    dispformula = dispformula,
+    group_name  = design$group_name,
+    family      = gaussian(),
+    disp_mode   = prior$dispersion_mode
+  )
+  dispersion_fit <- NULL
+  if (identical(dispformula_kind, "group")) {
+    dispersion_fit <- .lmebayes_fit_glmmtmb_dispersion(
+      formula           = formula,
+      data              = data,
+      family            = gaussian(),
+      dispformula       = dispformula,
+      REML              = REML,
+      mer_optional_args = glmbayesCore:::.lmebayes_mer_optional_args(
+        start     = start,
+        subset    = subset,
+        weights   = weights,
+        na.action = na.action,
+        offset    = offset,
+        contrasts = contrasts
+      )
+    )
+  }
+
   lmer_fit <- design$lmer_fit
 
   if (is.null(fixef)) {
@@ -364,6 +417,8 @@ lmerb <- function(
         call         = cl,
         formula      = formula,
         lmer         = lmer_fit,
+        dispformula    = dispformula,
+        dispersion_fit = dispersion_fit,
         prior        = prior,
         model_setup  = design,
         fixef.mode   = icm$fixef,
@@ -410,6 +465,8 @@ lmerb <- function(
       call                  = cl,
       formula               = formula,
       lmer                  = lmer_fit,
+      dispformula           = dispformula,
+      dispersion_fit        = dispersion_fit,
       prior                 = prior,
       model_setup           = design,
       fixef.mode            = sampler$fixef.mode,
@@ -426,6 +483,8 @@ lmerb <- function(
       ranef.iters.mean      = sampler$ranef.iters.mean,
       sigma2                = sampler$sigma2,
       sigma2.mean           = sampler$sigma2.mean,
+      sigma2.iters          = sampler$sigma2.iters,
+      sigma2.iters.mean     = sampler$sigma2.iters.mean,
       fixef.mu              = sampler$fixef.mu,
       draw_engine           = sampler$draw_engine,
       m_convergence         = m_convergence,

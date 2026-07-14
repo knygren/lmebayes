@@ -14,10 +14,26 @@
 #' @param family A \code{\link[stats]{family}} object describing the response
 #'   distribution and link. Defaults to \code{gaussian()}.
 #' @param dispersion_ranef Observation-level measurement dispersion, treated
-#'   as known during sampling.  Required positive scalar for families with a
-#'   dispersion parameter (e.g. \code{gaussian()}); must be \code{NULL}
-#'   (default) for \code{poisson()} and \code{binomial()}.  Typically
-#'   \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.
+#'   as known during sampling.  For families with a dispersion parameter
+#'   (e.g. \code{gaussian()}): a positive scalar, a single pooled
+#'   \code{dGamma()}, or (with \code{dispformula = ~<group_name>}) a
+#'   \code{dGamma_list(...)}.  Must be \code{NULL} (default) for
+#'   \code{poisson()} and \code{binomial()}.  Typically
+#'   \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.  Which shapes are
+#'   accepted depends on \code{dispformula} (see below).
+#' @param dispformula One-sided formula selecting the measurement-dispersion
+#'   structure: \code{~1} (default, pooled) requires \code{dispersion_ranef}
+#'   to be a fixed scalar, \code{NULL}, or a single (pooled) \code{dGamma()};
+#'   \code{~<group_name>}, matching the random-effects grouping factor
+#'   exactly, requires \code{dispersion_ranef} to be a
+#'   \code{dGamma_list(...)} and errors for families without a dispersion
+#'   parameter. \code{~1} never fits an extra reference model;
+#'   \code{~<group_name>} additionally fits
+#'   \code{\link[glmmTMB]{glmmTMB}(formula, data, family, dispformula =
+#'   dispformula)} as a diagnostic-only reference, stored as
+#'   \code{dispersion_fit} (\pkg{glmmTMB} must be installed). \code{glmer} is
+#'   always the plain \code{\link[lme4]{glmer}} fit regardless of
+#'   \code{dispformula}.
 #' @param gap_tol Legacy mode--mean gap tolerance. When \code{tv_tol} is
 #'   \code{NULL}, the number of pilot chains is derived as
 #'   \code{ceiling((qnorm(0.975) / gap_tol)^2)} (default \code{gap_tol = 0.0196}
@@ -64,7 +80,11 @@
 #'   \code{"lmerb"}, including \code{sigma2} and \code{sigma2.mean} for
 #'   \code{family = gaussian()} (see \code{\link{lmerb}}), with additional
 #'   \code{family}, \code{glmer} (reference
-#'   \code{\link[lme4]{glmer}} fit), \code{fixef.init} (main-chain start from
+#'   \code{\link[lme4]{glmer}} fit, always the plain pooled-dispersion fit
+#'   regardless of \code{dispformula}), \code{dispformula} (as supplied),
+#'   \code{dispersion_fit} (\code{NULL} unless \code{dispformula} requests
+#'   per-group dispersion, in which case the diagnostic-only
+#'   \code{\link[glmmTMB]{glmmTMB}} fit), \code{fixef.init} (main-chain start from
 #'   pilot colMeans when a pilot runs; \code{NULL} when no pilot runs),
 #'   \code{pilot_chisq} (Hotelling chi-squared test of
 #'   pilot mean vs ICM mode), \code{gap_tol}, and \code{mode_gap_max}.
@@ -82,6 +102,7 @@ glmerb <- function(
     family = gaussian(),
     pfamily_list,
     dispersion_ranef = NULL,
+    dispformula = ~1,
     n = 1000L,
     gap_tol = 0.0196,
     mode_gap_max = 1.0,
@@ -158,6 +179,34 @@ glmerb <- function(
     fn_name          = "glmerb"
   )
 
+  dispformula_kind <- .lmebayes_validate_dispformula(
+    dispformula = dispformula,
+    group_name  = design$group_name,
+    family      = family,
+    disp_mode   = prior$dispersion_mode
+  )
+
+  mer_optional_args <- glmbayesCore:::.lmebayes_mer_optional_args(
+    start = start,
+    subset = subset,
+    weights = weights,
+    na.action = na.action,
+    offset = offset,
+    contrasts = contrasts
+  )
+
+  dispersion_fit <- NULL
+  if (identical(dispformula_kind, "group")) {
+    dispersion_fit <- .lmebayes_fit_glmmtmb_dispersion(
+      formula           = formula,
+      data              = data,
+      family            = family,
+      dispformula       = dispformula,
+      REML              = REML,
+      mer_optional_args = mer_optional_args
+    )
+  }
+
   glmer_args <- c(
     list(
       formula = formula,
@@ -166,14 +215,7 @@ glmerb <- function(
       verbose = verbose
     ),
     if (!is.null(control)) list(control = control),
-    glmbayesCore:::.lmebayes_mer_optional_args(
-      start = start,
-      subset = subset,
-      weights = weights,
-      na.action = na.action,
-      offset = offset,
-      contrasts = contrasts
-    ),
+    mer_optional_args,
     list(...)
   )
   glmer_fit <- do.call(lme4::glmer, glmer_args)
@@ -201,6 +243,8 @@ glmerb <- function(
         formula      = formula,
         family       = family,
         glmer        = glmer_fit,
+        dispformula    = dispformula,
+        dispersion_fit = dispersion_fit,
         prior        = prior,
         model_setup  = design,
         fixef.mode   = icm$fixef,
@@ -246,6 +290,8 @@ glmerb <- function(
       formula               = formula,
       family                = family,
       glmer                 = glmer_fit,
+      dispformula           = dispformula,
+      dispersion_fit        = dispersion_fit,
       prior                 = prior,
       model_setup           = design,
       fixef.mode            = sampler$fixef.mode,
@@ -262,6 +308,8 @@ glmerb <- function(
       ranef.iters.mean      = sampler$ranef.iters.mean,
       sigma2                = sampler$sigma2,
       sigma2.mean           = sampler$sigma2.mean,
+      sigma2.iters          = sampler$sigma2.iters,
+      sigma2.iters.mean     = sampler$sigma2.iters.mean,
       fixef.mu              = sampler$fixef.mu,
       draw_engine           = sampler$draw_engine,
       m_convergence         = sampler$m_convergence,

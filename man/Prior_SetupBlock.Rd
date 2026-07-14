@@ -33,6 +33,73 @@ Prior_SetupBlock(
 \item{block}{Block partition: \code{factor} or vector of length \code{nrow(data)}
 (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
 counts, or a list of row index vectors (see \code{\link[glmbayesCore]{normalize_block}}).}
+
+\item{family}{a description of the error distribution and link function to be used in the model.}
+
+\item{data}{an optional data frame, list or environment (or object
+    coercible by \code{\link{as.data.frame}} to a data frame) containing
+    the variables in the model.  If not found in \code{data}, the
+    variables are taken from \code{environment(formula)},
+    typically the environment from which \code{glm} is called.}
+
+\item{weights}{an optional vector of \sQuote{prior weights} to be used
+    in the fitting process.  Should be \code{NULL} or a numeric vector.}
+
+\item{subset}{an optional vector specifying a subset of observations
+    to be used in the fitting process.  (See additional details about how
+    this argument interacts with data-dependent bases in the
+    \sQuote{Details} below.)}
+
+\item{na.action}{how \code{NAs} are treated. The default is first, any \code{\link{na.action}} attribute of
+data, second a \code{na.action} setting of \link{options}, and third \code{na.fail} if that is unset.
+The \code{factory-fresh} default is \code{na.omit}. Another possible value is \code{NULL}.}
+
+\item{offset}{this can be used to specify an \emph{a priori} known
+    component to be included in the linear predictor during fitting.
+    This should be \code{NULL} or a numeric vector of length equal to
+    the number of cases.  One or more \code{\link[stats]{offset}} terms can be
+    included in the formula instead or as well, and if more than one is
+    specified their sum is used.  See \code{\link[stats]{model.offset}}.}
+
+\item{contrasts}{an optional list. See the \code{contrasts.arg}
+    of \code{model.matrix.default}.}
+
+\item{pwt, n_prior, sd, mu, dispersion, k}{Each of these six calibration
+arguments (passed to \code{\link[glmbayesCore]{Prior_Setup}} for every
+block) may be supplied in \strong{either} of two forms:
+\itemize{
+\item the ordinary shared form documented in
+\code{\link[glmbayesCore]{Prior_Setup}} (a scalar, or a
+per-coefficient vector for \code{pwt}/\code{sd}/\code{mu}) -- applied
+identically to every block (default, unchanged behavior); or
+\item a \strong{named list with one element per block}, keyed by the
+block/group level IDs (\code{names(Prior_SetupBlock(...))}, i.e.
+\code{normalize_block()$ids}) -- each element supplies that block's
+own value, in the same shape \code{Prior_Setup()} would otherwise
+accept. \code{names(x)} must exactly match the block IDs (extra or
+missing names raise an error). An element may be \code{NULL},
+meaning "use \code{Prior_Setup()}'s own default for this argument in
+this block."
+}
+The two forms may be mixed freely across the six arguments in one call
+(e.g. a shared \code{sd} together with a per-block \code{n_prior}).}
+
+\item{pwt_default_low}{Default prior weight used when \code{pwt} is not supplied and the model
+dimension is below 14. Defaults to 0.01.}
+
+\item{pwt_default_high}{Default prior weight used when \code{pwt} is not supplied and the model
+dimension is 14 or greater. Defaults to 0.05.}
+
+\item{intercept_source}{Specifies the method through which the prior mean for the intercept term is set. Options are based on the null intercept only model (null_model) or full_models. The default is the null model which is safer if variables are not centered.}
+
+\item{effects_source}{Specifies the method through which the prior means for the effects terms are set. Options are null_effects (prior means set to zero) or full_model (effect means set to match maximum likelihood estimates).}
+
+\item{...}{
+    For \code{glm}: arguments to be used to form the default
+    \code{control} argument if it is not supplied directly.
+
+    For \code{weights}: further arguments passed to or from other methods.
+  }
 }
 \value{
 A named list of class \code{"block_PriorSetup"}. Each element is a
