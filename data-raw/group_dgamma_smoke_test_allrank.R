@@ -45,8 +45,14 @@ cat(sprintf(
   n_schools, N_DGAMMA
 ))
 
-## --- lme4 reference (tau^2 for diagnostics) --------------------------------
-fit_lmer <- lme4::lmer(form, data = dat)
+source("tests/manual/_reference_mer_compare.R")
+ref_fits <- .print_reference_mer_compare(
+  form        = form,
+  dat         = dat,
+  group_name  = "school_id",
+  dispformula = ~school_id
+)
+fit_lmer <- ref_fits$lmer
 
 ## --- Prior setup + per-group dGamma_list() --------------------------------
 ps <- Prior_Setup_lmebayes(
@@ -54,8 +60,10 @@ ps <- Prior_Setup_lmebayes(
   data            = dat,
   pwt             = 0.01,
   pwt_measurement = 0.1,
-  max_disp_perc   = max_disp_perc
+  max_disp_perc   = max_disp_perc,
+  dispformula     = ~school_id
 )
+
 pf <- pfamily_list(ps)
 disp_pf_list <- dGamma_list(ps)
 
@@ -90,9 +98,6 @@ rate_w_j <- sigma2_hat_j * (n_combined_j + p_re - 1) / 2
 shape_w_j <- (n_combined_j + 1) / 2 + p_re / 2
 disp_upper_sym <- 1 / stats::qgamma(1 - max_disp_perc, shape = shape_w_j, rate = rate_w_j)
 stopifnot(all(vapply(disp_pf_list, function(pf) pf$prior_list$disp_upper, 0) >= disp_upper_sym - 1e-6))
-
-cat("\n=== lme4::lmer reference (same form and dat) ===\n\n")
-print(summary(fit_lmer))
 
 cat("\n=== lmerb with per-group dGamma() priors; n =", N_DGAMMA, "===\n\n")
 

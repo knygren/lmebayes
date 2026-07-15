@@ -164,10 +164,32 @@ fit; shared population RE standard deviations for per-group calibration.}
 \item{\code{max_disp_perc}}{The \code{max_disp_perc} value used for both
 the \eqn{\sigma^2} and \eqn{\tau^2_k} truncation windows.}
 \item{\code{design}}{Full \code{\link[glmbayesCore]{model_setup}} object (all groups).}
-\item{\code{fit_ref}}{Reference \code{lmer}/\code{glmer} fit on all
-groups (the full-formula fit from \code{\link[glmbayesCore]{model_setup}}).}
+\item{\code{mer_fit}}{Reference \code{lmer}/\code{glmer} fit on all
+groups (the full-formula fit from \code{\link[glmbayesCore]{model_setup}}), always
+present regardless of \code{dispformula} (backs
+\code{dispersion_ranef} and \code{x$lmer}/\code{x$glmer} in
+\code{lmerb()}/\code{glmerb()}).}
+\item{\code{fit_ref}}{The calibration reference for Block~2
+(\code{fixef}/\eqn{\tau^2_k}) and the per-group Block~1 inputs
+(\code{sd_tau}, BLUP coefficients): identical to \code{mer_fit} when
+\code{dispformula = ~1}; otherwise an equivalent \code{glmmTMB}
+fit with the same \code{dispformula} (Gaussian models only). See
+\code{calibration_source}.}
+\item{\code{dispersion_fit}}{\code{NULL} when \code{dispformula = ~1};
+otherwise the same \code{glmmTMB} object as \code{fit_ref}.}
+\item{\code{sigma2_group}}{\code{NULL} when \code{dispformula = ~1};
+otherwise a named length-\eqn{J} vector of per-group observation-level
+dispersion read from \code{fit_ref}'s dispersion linear predictor
+(\code{glmmTMB::predict(fit_ref, type = "disp")}, aggregated by
+group). Diagnostic only -- not the value fed to the sampler; compare
+against \code{ing_prior_measurement_group}'s \code{sigma2_hat}.}
+\item{\code{calibration_source}}{\code{"lme4"} or \code{"glmmTMB"};
+which reference fit produced \code{fit_ref} (and therefore
+\code{prior_list}, \code{ing_prior}, \code{sd_tau}, and
+\code{ing_prior_measurement_group}).}
 \item{\code{dispersion_ranef}}{Scalar \eqn{\sigma^2} for Gaussian models
-only; \code{NULL} otherwise.}
+only; \code{NULL} otherwise. Always derived from \code{mer_fit}
+(pooled), independent of \code{dispformula}.}
 \item{\code{Sigma_ranef}}{Diagonal RE covariance matrix (Block~1).}
 \item{\code{prior_list}}{Named Block~2 prior list per RE coefficient.}
 \item{\code{ing_prior}}{Named per-component list of the prospective
@@ -250,7 +272,11 @@ observation-level dispersion; Block~1 uses \code{dNormal} with
 \strong{Why default calibration depends on classical estimates.}
 \code{Prior_Setup_lmebayes} scales Block~2 covariances from
 \code{vcov(fit_ref)} by \eqn{(1-\mathrm{pwt})/\mathrm{pwt}} and plugs in
-RE variances from the full reference fit.  By default the global intercept
+RE variances from the full reference fit, where \code{fit_ref} is the
+pooled \code{lmer}/\code{glmer} fit when \code{dispformula = ~1}, or an
+equivalent \code{glmmTMB} fit with the same \code{dispformula} when
+per-group dispersion is requested (see \code{calibration_source} and
+\code{mer_fit} above).  By default the global intercept
 prior mean comes from a random-intercept-only null fit; all other prior
 means are zero (\code{effects_source = "null_effects"}).  This requires:
 \enumerate{

@@ -21,9 +21,13 @@ expected_re <- fx$design$re_coef_names
 stopifnot(identical(expected_re, c("(Intercept)", "distracted_ppvt")))
 stopifnot(nlevels(fx$design$groups) == 5L)
 
-cat("\n=== lmer reference fit ===\n\n")
-fit_lmer <- lme4::lmer(form, data = dat, REML = TRUE)
-summary(fit_lmer)
+source("tests/manual/_reference_mer_compare.R")
+ref_fits <- .print_reference_mer_compare(
+  form        = form,
+  dat         = dat,
+  group_name  = "school_id",
+  dispformula = ~1
+)
 
 ps <- Prior_Setup_lmebayes(
   form,

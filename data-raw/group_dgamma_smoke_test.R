@@ -25,18 +25,24 @@ p_re <- length(design$re_coef_names)
 stopifnot(identical(design$re_coef_names, c("(Intercept)", "distracted_ppvt")))
 stopifnot(all(design$re_rank))
 
-max_disp_perc <- 0.99
+source("tests/manual/_reference_mer_compare.R")
+ref_fits <- .print_reference_mer_compare(
+  form        = form,
+  dat         = dat,
+  group_name  = "school_id",
+  dispformula = ~school_id
+)
 
-## --- lme4 reference (tau^2 for diagnostics) --------------------------------
-fit_lmer <- lme4::lmer(form, data = dat)
+max_disp_perc <- 0.99
 
 ## --- Prior setup + per-group dGamma_list() --------------------------------
 ps <- Prior_Setup_lmebayes(
   form,
   data            = dat,
-  pwt             = 0.01,
+  pwt             = 0.05,
   pwt_measurement = 0.1,
-  max_disp_perc   = max_disp_perc
+  max_disp_perc   = max_disp_perc,
+  dispformula     = ~school_id
 )
 pf <- pfamily_list(ps)
 disp_pf_list <- dGamma_list(ps)
@@ -74,17 +80,6 @@ disp_upper_sym <- 1 / stats::qgamma(1 - max_disp_perc, shape = shape_w_j, rate =
 stopifnot(all(vapply(disp_pf_list, function(pf) pf$prior_list$disp_upper, 0) >= disp_upper_sym - 1e-6))
 
 disp_pf_list
-
-cat("\n=== lme4::lmer reference (same form and dat) ===\n\n")
-print(summary(fit_lmer))
-cat("\nfixef(lmer):\n")
-print(lme4::fixef(fit_lmer))
-cat("\nVarCorr(lmer):\n")
-print(lme4::VarCorr(fit_lmer), comp = "Std.Dev.")
-cat("\nranef(lmer):\n")
-print(lme4::ranef(fit_lmer))
-cat("\ncoef(lmer):\n")
-print(coef(fit_lmer))
 
 cat("\n=== lmerb with a per-group list of dGamma() priors; n =", N_DGAMMA, "===\n\n")
 

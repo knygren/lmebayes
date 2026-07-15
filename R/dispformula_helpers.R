@@ -85,28 +85,31 @@
 #' \code{x$dispersion_fit} and is only fit when \code{dispformula} requests
 #' per-group dispersion (see \code{\link{.lmebayes_validate_dispformula}}).
 #'
+#' Thin wrapper around glmbayesCore's
+#' \code{.lmebayes_fit_glmmtmb_reference()} (the same helper
+#' \code{Prior_Setup_lmebayes()} uses to calibrate priors when
+#' \code{dispformula} requests per-group dispersion), so \code{lmerb()} only
+#' re-fits glmmTMB here when the caller's \code{dispersion_ranef} was not
+#' already produced by
+#' \code{dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))}
+#' (which carries the fit forward as an attribute; see \code{lmerb()}).
+#'
 #' @noRd
 .lmebayes_fit_glmmtmb_dispersion <- function(
     formula, data, family, dispformula, REML, mer_optional_args = list(), ...
 ) {
-  if (!requireNamespace("glmmTMB", quietly = TRUE)) {
-    stop(
-      "Package 'glmmTMB' is required for dispformula = ", deparse(dispformula),
-      " (per-group residual dispersion reference fit). Install it with ",
-      "install.packages(\"glmmTMB\").",
-      call. = FALSE
+  do.call(
+    glmbayesCore:::.lmebayes_fit_glmmtmb_reference,
+    c(
+      list(
+        formula     = formula,
+        data        = data,
+        family      = family,
+        dispformula = dispformula,
+        REML        = isTRUE(REML)
+      ),
+      mer_optional_args,
+      list(...)
     )
-  }
-  tmb_args <- c(
-    list(
-      formula     = formula,
-      data        = data,
-      family      = family,
-      dispformula = dispformula,
-      REML        = isTRUE(REML)
-    ),
-    mer_optional_args,
-    list(...)
   )
-  do.call(glmmTMB::glmmTMB, tmb_args)
 }

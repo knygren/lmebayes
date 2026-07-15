@@ -110,13 +110,16 @@
 #'   exactly, requires \code{dispersion_ranef} to be a
 #'   \code{dGamma_list(...)} (one \code{dGamma()} per group level). Any other
 #'   formula is an error. \code{~1} never fits an extra reference model;
-#'   \code{~<group_name>} additionally fits
-#'   \code{\link[glmmTMB]{glmmTMB}(formula, data, dispformula = dispformula)}
-#'   as a diagnostic-only reference, stored as \code{dispersion_fit}
-#'   (\pkg{glmmTMB} must be installed). \code{lmer} is always the plain
-#'   \code{\link[lme4]{lmer}} fit regardless of \code{dispformula}; the
-#'   sampler route (pooled vs. per-group) already follows from
-#'   \code{dispersion_ranef}'s shape alone.
+#'   \code{~<group_name>} additionally requires a \code{glmmTMB} reference fit
+#'   (\pkg{glmmTMB} must be installed), stored as \code{dispersion_fit}. When
+#'   \code{dispersion_ranef = dGamma_list(Prior_Setup_lmebayes(..., dispformula
+#'   = dispformula))}, that call already fit this reference model to
+#'   calibrate the priors, and \code{lmerb()} reuses it here rather than
+#'   fitting \code{glmmTMB} a second time; keep \code{dispformula} identical
+#'   between the two calls, since it is not re-validated against the reused
+#'   fit. \code{lmer} is always the plain \code{\link[lme4]{lmer}} fit
+#'   regardless of \code{dispformula}; the sampler route (pooled vs.
+#'   per-group) already follows from \code{dispersion_ranef}'s shape alone.
 #' @param n Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).
 #' @param tv_tol Total variation tolerance per stored draw, in (0, 1)
 #'   (default \code{0.01}, the conventional threshold of the honest-burn-in
@@ -376,21 +379,27 @@ lmerb <- function(
   )
   dispersion_fit <- NULL
   if (identical(dispformula_kind, "group")) {
-    dispersion_fit <- .lmebayes_fit_glmmtmb_dispersion(
-      formula           = formula,
-      data              = data,
-      family            = gaussian(),
-      dispformula       = dispformula,
-      REML              = REML,
-      mer_optional_args = glmbayesCore:::.lmebayes_mer_optional_args(
-        start     = start,
-        subset    = subset,
-        weights   = weights,
-        na.action = na.action,
-        offset    = offset,
-        contrasts = contrasts
+    ## dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))
+    ## already carries its glmmTMB reference fit forward as an attribute;
+    ## reuse it instead of re-fitting glmmTMB here.
+    dispersion_fit <- attr(dispersion_ranef, "dispersion_fit")
+    if (is.null(dispersion_fit)) {
+      dispersion_fit <- .lmebayes_fit_glmmtmb_dispersion(
+        formula           = formula,
+        data              = data,
+        family            = gaussian(),
+        dispformula       = dispformula,
+        REML              = REML,
+        mer_optional_args = glmbayesCore:::.lmebayes_mer_optional_args(
+          start     = start,
+          subset    = subset,
+          weights   = weights,
+          na.action = na.action,
+          offset    = offset,
+          contrasts = contrasts
+        )
       )
-    )
+    }
   }
 
   lmer_fit <- design$lmer_fit

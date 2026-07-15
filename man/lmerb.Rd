@@ -90,13 +90,16 @@ to be a fixed scalar or a single (pooled) \code{dGamma()};
 exactly, requires \code{dispersion_ranef} to be a
 \code{dGamma_list(...)} (one \code{dGamma()} per group level). Any other
 formula is an error. \code{~1} never fits an extra reference model;
-\code{~<group_name>} additionally fits
-\code{\link[glmmTMB]{glmmTMB}(formula, data, dispformula = dispformula)}
-as a diagnostic-only reference, stored as \code{dispersion_fit}
-(\pkg{glmmTMB} must be installed). \code{lmer} is always the plain
-\code{\link[lme4]{lmer}} fit regardless of \code{dispformula}; the
-sampler route (pooled vs. per-group) already follows from
-\code{dispersion_ranef}'s shape alone.}
+\code{~<group_name>} additionally requires a \code{glmmTMB} reference fit
+(\pkg{glmmTMB} must be installed), stored as \code{dispersion_fit}. When
+\code{dispersion_ranef = dGamma_list(Prior_Setup_lmebayes(..., dispformula
+  = dispformula))}, that call already fit this reference model to
+calibrate the priors, and \code{lmerb()} reuses it here rather than
+fitting \code{glmmTMB} a second time; keep \code{dispformula} identical
+between the two calls, since it is not re-validated against the reused
+fit. \code{lmer} is always the plain \code{\link[lme4]{lmer}} fit
+regardless of \code{dispformula}; the sampler route (pooled vs.
+per-group) already follows from \code{dispersion_ranef}'s shape alone.}
 
 \item{n}{Number of iid draws per group (default \code{1000L}, as in \code{\link{lmb}}).}
 

@@ -28,12 +28,13 @@
 #'   exactly, requires \code{dispersion_ranef} to be a
 #'   \code{dGamma_list(...)} and errors for families without a dispersion
 #'   parameter. \code{~1} never fits an extra reference model;
-#'   \code{~<group_name>} additionally fits
-#'   \code{\link[glmmTMB]{glmmTMB}(formula, data, family, dispformula =
-#'   dispformula)} as a diagnostic-only reference, stored as
-#'   \code{dispersion_fit} (\pkg{glmmTMB} must be installed). \code{glmer} is
-#'   always the plain \code{\link[lme4]{glmer}} fit regardless of
-#'   \code{dispformula}.
+#'   \code{~<group_name>} additionally requires a \code{glmmTMB} reference fit
+#'   (\pkg{glmmTMB} must be installed), stored as \code{dispersion_fit}
+#'   (reused from \code{dispersion_ranef}'s \code{"dispersion_fit"} attribute
+#'   when \code{dispersion_ranef} was built via
+#'   \code{dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))},
+#'   rather than re-fitting \code{glmmTMB}). \code{glmer} is always the plain
+#'   \code{\link[lme4]{glmer}} fit regardless of \code{dispformula}.
 #' @param gap_tol Legacy mode--mean gap tolerance. When \code{tv_tol} is
 #'   \code{NULL}, the number of pilot chains is derived as
 #'   \code{ceiling((qnorm(0.975) / gap_tol)^2)} (default \code{gap_tol = 0.0196}
@@ -197,14 +198,20 @@ glmerb <- function(
 
   dispersion_fit <- NULL
   if (identical(dispformula_kind, "group")) {
-    dispersion_fit <- .lmebayes_fit_glmmtmb_dispersion(
-      formula           = formula,
-      data              = data,
-      family            = family,
-      dispformula       = dispformula,
-      REML              = REML,
-      mer_optional_args = mer_optional_args
-    )
+    ## dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))
+    ## already carries its glmmTMB reference fit forward as an attribute;
+    ## reuse it instead of re-fitting glmmTMB here.
+    dispersion_fit <- attr(dispersion_ranef, "dispersion_fit")
+    if (is.null(dispersion_fit)) {
+      dispersion_fit <- .lmebayes_fit_glmmtmb_dispersion(
+        formula           = formula,
+        data              = data,
+        family            = family,
+        dispformula       = dispformula,
+        REML              = REML,
+        mer_optional_args = mer_optional_args
+      )
+    }
   }
 
   glmer_args <- c(

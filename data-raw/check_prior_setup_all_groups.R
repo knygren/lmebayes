@@ -19,7 +19,12 @@ form <- score_ppvt ~ private_school + title1 + free_reduced_lunch +
 ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
 print(ps)
 
-## fit_ref must be the all-groups reference fit from model_setup
+## dispformula = ~1 (pooled, the default here): fit_ref is identical to
+## mer_fit and design$lmer_fit -- both the all-groups lme4 reference fit from
+## model_setup(). Only dispformula = ~<group_name> makes fit_ref a separate
+## glmmTMB fit (see Prior_Setup_lmebayes()'s calibration_source).
+stopifnot(identical(ps$calibration_source, "lme4"))
+stopifnot(identical(ps$fit_ref, ps$mer_fit))
 stopifnot(identical(ps$fit_ref, ps$design$lmer_fit))
 stopifnot(nlevels(ps$design$groups) ==
             nlevels(lme4::getME(ps$fit_ref, "flist")[[1L]]))
