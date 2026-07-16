@@ -20,6 +20,8 @@ tolerance (`tv_tol`); non-Gaussian GLMMs may run a pilot stage when `gap_tol` is
 Non-Gaussian **`glmerb()`** / **`rglmerb()`** use **`glmbayesCore::rGLMM()`** (sweep-outer
 driver) only; legacy **`rglmerb_v5()`** / C++ short-chain code has been removed (see [NEWS.md](NEWS.md)).
 
+Shifting to using lmebayesCore for now.
+
 This repository is **0.1.0** in development.
 The [GitHub](https://github.com/knygren/lmebayes) repository holds the source;
 [R-Universe](https://knygren.r-universe.dev/lmebayes) builds binaries from it.
