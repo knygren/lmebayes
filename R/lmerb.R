@@ -6,7 +6,7 @@
 #' Calls \code{\link{model_setup}} on \code{formula} and \code{data} for design
 #' matrices (\code{y}, \code{Z}, \code{groups}, \code{X_hyper}, etc.) and embeds
 #' the resulting \code{\link[lme4]{lmer}} fit as \code{lmer}. Priors are
-#' supplied as a named list of \code{\link[glmbayesCore]{pfamily}} objects
+#' supplied as a named list of \code{\link[lmebayesCore]{pfamily}} objects
 #' (\code{pfamily_list}, the Block~2 hyperpriors -- one per random-effect
 #' coefficient) plus the observation-level measurement dispersion
 #' (\code{dispersion_ranef}).  Both are typically built from
@@ -23,7 +23,7 @@
 #' group-level random effects \eqn{b_j} given the current hyper means; Block 2
 #' updates the hyper means (level-2 fixed effects \eqn{\boldsymbol{\gamma}_k})
 #' given the current \eqn{b_j} draw, using
-#' \code{\link[glmbayesCore]{multi_rNormal_reg}}
+#' \code{\link[lmebayesCore]{multi_rNormal_reg}}
 #' with the hyper design matrices from \code{design$X_hyper}.
 #'
 #' @details
@@ -47,11 +47,11 @@
 #' \strong{TV-calibrated \code{m_convergence}.}
 #' The number of inner Gibbs sweeps per stored draw (\code{m_convergence}) is
 #' derived from \code{tv_tol}: \code{lmerb} computes the Remark 8 eigenvalue
-#' spectrum with \code{\link[glmbayesCore]{two_block_rate_from_pfamily_list}} and inverts the
+#' spectrum with \code{\link[lmebayesCore]{two_block_rate_from_pfamily_list}} and inverts the
 #' exact Theorem 3 bound with
-#' \code{\link[glmbayesCore]{two_block_l_for_tv}}.  Because every replicate
+#' \code{\link[lmebayesCore]{two_block_l_for_tv}}.  Because every replicate
 #' chain is started at the exact joint posterior mean (computed by ICM via
-#' \code{\link[glmbayesCore]{lmerb_posterior_mean}}), the mean term of the
+#' \code{\link[lmebayesCore]{lmerb_posterior_mean}}), the mean term of the
 #' bound vanishes and only the variance-convergence sum remains.  One extra
 #' sweep is added because the bound applies to the block updated second in
 #' each sweep (the level-2 fixed effects \eqn{\gamma}); the stored
@@ -72,7 +72,7 @@
 #'   as \code{\link{model_setup}}).
 #' @param data Data frame containing all variables in \code{formula}.
 #' @param pfamily_list Required named list of
-#'   \code{\link[glmbayesCore]{pfamily}} objects, one per random-effect
+#'   \code{\link[lmebayesCore]{pfamily}} objects, one per random-effect
 #'   coefficient (names must match the random-effect coefficient names, any
 #'   order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and
 #'   the Block~1 random-effect variances \eqn{\tau^2_k}.  \code{dNormal}
@@ -81,7 +81,7 @@
 #'   \code{dIndependent_Normal_Gamma} components place a Gamma prior on the
 #'   Block~2 precision \eqn{1/\tau^2_k}: Block~2 then makes a joint
 #'   \eqn{(\gamma_k, \tau^2_k)} draw via the likelihood-subgradient envelope
-#'   sampler (\code{\link[glmbayesCore]{rindepNormalGamma_reg}}), and the
+#'   sampler (\code{\link[lmebayesCore]{rindepNormalGamma_reg}}), and the
 #'   sampled \eqn{\tau^2_k} feeds back into the Block~1 prior precision.
 #'   ING components must supply both truncation bounds: each
 #'   \eqn{\tau^2_k} draw is hard-truncated to
@@ -92,15 +92,15 @@
 #'   for every dispersion in the truncated support).  They must also
 #'   satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
 #'   (\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
-#'   \code{\link[glmbayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
+#'   \code{\link[lmebayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
 #'   \code{\link{Prior_Setup_lmebayes}} object.
 #' @param dispersion_ranef Observation-level measurement dispersion
 #'   \eqn{\sigma^2} for Block~1.  One of: a positive scalar (treated as
 #'   known; typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}), a
-#'   single \code{\link[glmbayesCore]{dGamma}()} \code{pfamily} (pooled
+#'   single \code{\link[lmebayesCore]{dGamma}()} \code{pfamily} (pooled
 #'   \eqn{\sigma^2} across groups), or a named list of \code{dGamma()}
 #'   objects (one per group level) from
-#'   \code{\link[glmbayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}(Prior_Setup_lmebayes(...))}.
+#'   \code{\link[lmebayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}(Prior_Setup_lmebayes(...))}.
 #'   Which of these three shapes is accepted depends on \code{dispformula}
 #'   (see below).
 #' @param dispformula One-sided formula selecting the measurement-dispersion
@@ -161,7 +161,7 @@
 #'   \code{pfamily_list} prior means.
 #' @param diag_sweeps Temporary diagnostic flag (ING models with pilot).
 #'   Non-\code{dNormal} sampling already runs via
-#'   \code{glmbayesCore::run_sweep_outer_chains_v6()} (R sweep-outer;
+#'   \code{lmebayesCore::run_sweep_outer_chains_v6()} (R sweep-outer;
 #'   pilot then main).  When \code{TRUE}, each stage auto-prints one combined
 #'   Block~2 chain-mean table when that stage finishes (same layout as
 #'   \code{print()} on \code{$sweep_history}).  \code{sweep_history} is
@@ -196,7 +196,7 @@
 #'     \item{\code{fixef.mode}}{Named list of exact posterior mode (= mean,
 #'       since the joint posterior is Gaussian) vectors for the level-2 fixed
 #'       effects \eqn{\gamma_k}, computed by
-#'       \code{\link[glmbayesCore]{lmerb_posterior_mean}} (ICM).}
+#'       \code{\link[lmebayesCore]{lmerb_posterior_mean}} (ICM).}
 #'     \item{\code{ranef.mode}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix
 #'       of exact posterior mode random effects from ICM.  Rows are group
 #'       levels (\code{levels(design$groups)}); columns are
@@ -247,7 +247,7 @@
 #'       \code{NULL} when \code{simulate = FALSE}.}
 #'     \item{\code{fixef.mu}}{Numeric matrix \code{p_re x J} of Block 1 prior
 #'       means at the final Gibbs state (from
-#'       \code{\link[glmbayesCore]{build_mu_all}}).}
+#'       \code{\link[lmebayesCore]{build_mu_all}}).}
 #'     \item{\code{convergence}}{List describing the sweep-count calibration:
 #'       \code{method} (\code{"exact"}, or \code{"local_gaussian_mode"} for
 #'       non-Gaussian \code{\link{glmerb}}), \code{tv_tol},
@@ -257,10 +257,10 @@
 #'   }
 #' @example inst/examples/Ex_lmerb.R
 #' @seealso \code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
-#'   \code{\link[glmbayesCore]{build_mu_all}},
-#'   \code{\link[glmbayesCore]{two_block_rNormal_reg}},
-#'   \code{\link[glmbayesCore]{lmerb_posterior_mean}},
-#'   \code{\link[glmbayesCore]{block_rNormalReg}},
+#'   \code{\link[lmebayesCore]{build_mu_all}},
+#'   \code{\link[lmebayesCore]{two_block_rNormal_reg}},
+#'   \code{\link[lmebayesCore]{lmerb_posterior_mean}},
+#'   \code{\link[lmebayesCore]{block_rNormalReg}},
 #'   \code{\link{lmb}}, \code{\link{glmb}}
 #' @param digits Number of significant digits to use when printing.
 #' @title Fit a Bayesian linear mixed-effects model (LMM) to data, via two-Block Gibbs sampling
@@ -363,7 +363,7 @@ lmerb <- function(
     stop("model_setup() must return a model_setup object.", call. = FALSE)
   }
 
-  prior <- glmbayesCore:::.lmebayes_priors_from_pfamily_list(
+  prior <- lmebayesCore:::.lmebayes_priors_from_pfamily_list(
     pfamily_list     = pfamily_list,
     dispersion_ranef = dispersion_ranef,
     design           = design,
@@ -390,7 +390,7 @@ lmerb <- function(
         family            = gaussian(),
         dispformula       = dispformula,
         REML              = REML,
-        mer_optional_args = glmbayesCore:::.lmebayes_mer_optional_args(
+        mer_optional_args = lmebayesCore:::.lmebayes_mer_optional_args(
           start     = start,
           subset    = subset,
           weights   = weights,
@@ -442,7 +442,7 @@ lmerb <- function(
         sigma2.mode  = icm$sigma2,
         tau2.mode    = icm$tau2,
         fixef.mu     = as.matrix(
-          glmbayesCore::build_mu_all(design, icm$fixef)$mu_all
+          lmebayesCore::build_mu_all(design, icm$fixef)$mu_all
         ),
         draw_engine  = NULL
       ),
@@ -452,7 +452,7 @@ lmerb <- function(
 
   # ICM posterior mean, block1_prior, convergence calibration, and sampling
   # are all handled inside rlmerb.
-  sampler <- glmbayesCore::rlmerb(
+  sampler <- lmebayesCore::rlmerb(
     n               = n,
     design          = design,
     prior           = prior,

@@ -493,7 +493,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   re_names  <- object$model_setup$re_coef_names
   mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
   mer_vc    <- tryCatch(
-    glmbayesCore:::extract_mer_variance_components(
+    lmebayesCore:::extract_mer_variance_components(
       .lmerb_reference_fit(object),
       re_coef_names = re_names
     ),
@@ -587,7 +587,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   ## envelope; used to back out the implied per-group effective prior sample
   ## size n_prior under the Prior_Setup() default k = 1 calibration
   ## (shape_ING = (n_prior + k + p)/2), i.e. the same convention used by
-  ## glmbayesCore:::.ing_n_prior_from_shape().
+  ## lmebayesCore:::.ing_n_prior_from_shape().
   p_re <- length(object$model_setup$re_coef_names)
   n_data_group <- table(object$model_setup$groups)
 
@@ -800,7 +800,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   re_names  <- object$model_setup$re_coef_names
   mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
   mer_vc    <- tryCatch(
-    glmbayesCore:::extract_mer_variance_components(
+    lmebayesCore:::extract_mer_variance_components(
       .lmerb_reference_fit(object),
       re_coef_names = re_names
     ),

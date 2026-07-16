@@ -33,7 +33,7 @@
     group_levels           = group_levels,
     n                      = n
   )
-  glmbayesCore:::.two_block_as_staged_names(
+  lmebayesCore:::.two_block_as_staged_names(
     x,
     fixef_mode = fixef_mode,
     fixef_init = fixef_init
@@ -51,13 +51,13 @@
   re_names <- design$re_coef_names
   is_gaussian <- identical(family$family, "gaussian")
   if (is_gaussian) {
-    pm <- glmbayesCore::lmerb_posterior_mean(
+    pm <- lmebayesCore::lmerb_posterior_mean(
       design                 = design,
       measurement_prior_list = measurement_prior_list
     )
     icm_label <- "ICM mean"
   } else {
-    pm <- glmbayesCore::glmerb_posterior_mode(
+    pm <- lmebayesCore::glmerb_posterior_mode(
       design                 = design,
       family                 = family,
       measurement_prior_list = measurement_prior_list
@@ -89,7 +89,7 @@
 #' Print Block~2 ICM table for \code{simulate = FALSE}
 #' @noRd
 .lmebayes_print_icm_simulate_false <- function(prior, re_names, icm, header) {
-  glmbayesCore:::.lmebayes_print_icm_fixef_table(
+  lmebayesCore:::.lmebayes_print_icm_fixef_table(
     prior_list = prior$prior_list,
     re_names   = re_names,
     fixef_icm  = icm$fixef,

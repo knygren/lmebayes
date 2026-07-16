@@ -21,7 +21,7 @@ prior_list <- list(
   ddef       = FALSE
 )
 
-out <- glmbayesCore::block_rNormalReg(
+out <- lmebayesCore::block_rNormalReg(
   n          = 1L,
   y          = y,
   x          = x,

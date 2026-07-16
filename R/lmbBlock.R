@@ -4,11 +4,11 @@
 #' Fits one \code{\link[glmbayes]{lmb}} per observation block (SAS \code{BY}-style split on
 #' rows), sharing the same formula on each subset. Contrast with
 #' \code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
-#' \code{\link[glmbayesCore]{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
+#' \code{\link[lmebayesCore]{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
 #'
 #' @param block Block partition: \code{factor} or vector of length \code{nrow(data)}
 #'   (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-#'   counts, or a list of row index vectors (see \code{\link[glmbayesCore]{normalize_block}}).
+#'   counts, or a list of row index vectors (see \code{\link[lmebayesCore]{normalize_block}}).
 #' @name lmbBlock
 #' @family modelfuns
 NULL
@@ -169,7 +169,7 @@ lmbBlock <- function(
 
   l2 <- nrow(mf)
   block_vec <- .blmb_resolve_block(block, data, mf, l2)
-  block_info <- glmbayesCore::normalize_block(block_vec, l2)
+  block_info <- lmebayesCore::normalize_block(block_vec, l2)
 
   mt <- attr(mf, "terms")
   x_mat <- stats::model.matrix(mt, mf, contrasts)
@@ -373,7 +373,7 @@ lmbBlock <- function(
 #'
 #' @param x Numeric design matrix \code{(l2 x l1)}.
 #' @param block Block specification: factor, integer/character vector, or list
-#'   of row-index vectors.  Passed to \code{\link[glmbayesCore]{normalize_block}()}.
+#'   of row-index vectors.  Passed to \code{\link[lmebayesCore]{normalize_block}()}.
 #' @param X_nbhd Optional \code{(k x q)} numeric matrix of group-level
 #'   covariates (one row per block, in block-id order or with matching
 #'   \code{rownames}).  \code{NULL} assumes an intercept-only hyper design.
@@ -381,7 +381,7 @@ lmbBlock <- function(
 #' @return Invisibly, the same list structure as
 #'   \code{block_check_identifiability()}.
 #' @seealso \code{block_check_identifiability()},
-#'   \code{\link[glmbayesCore]{block_rNormalGLM}}
+#'   \code{\link[lmebayesCore]{block_rNormalGLM}}
 #' @keywords internal
 block_check_identifiability_xy <- function(
     x,
@@ -392,7 +392,7 @@ block_check_identifiability_xy <- function(
   on_failure <- match.arg(on_failure)
   x <- as.matrix(x)
   l2 <- nrow(x)
-  block_info <- glmbayesCore::normalize_block(block, l2)
+  block_info <- lmebayesCore::normalize_block(block, l2)
   k  <- block_info$k
 
   ri   <- .blmb_blocks_full_rank_xy(x, block_info)

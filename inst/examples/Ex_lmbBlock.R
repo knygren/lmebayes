@@ -11,7 +11,7 @@ ps_block <- Prior_SetupBlock(
 )
 
 pfamily_list <- lapply(ps_block, function(ps) {
-  glmbayesCore::dNormal_Gamma(
+  dNormal_Gamma(
     mu = ps$mu, Sigma_0 = ps$Sigma_0, shape = ps$shape, rate = ps$rate
   )
 })

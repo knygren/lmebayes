@@ -32,7 +32,7 @@ Prior_SetupBlock(
 
 \item{block}{Block partition: \code{factor} or vector of length \code{nrow(data)}
 (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-counts, or a list of row index vectors (see \code{\link[glmbayesCore]{normalize_block}}).}
+counts, or a list of row index vectors (see \code{\link[lmebayesCore]{normalize_block}}).}
 
 \item{family}{a description of the error distribution and link function to be used in the model.}
 
@@ -65,11 +65,11 @@ The \code{factory-fresh} default is \code{na.omit}. Another possible value is \c
     of \code{model.matrix.default}.}
 
 \item{pwt, n_prior, sd, mu, dispersion, k}{Each of these six calibration
-arguments (passed to \code{\link[glmbayesCore]{Prior_Setup}} for every
+arguments (passed to \code{\link[lmebayesCore]{Prior_Setup}} for every
 block) may be supplied in \strong{either} of two forms:
 \itemize{
 \item the ordinary shared form documented in
-\code{\link[glmbayesCore]{Prior_Setup}} (a scalar, or a
+\code{\link[lmebayesCore]{Prior_Setup}} (a scalar, or a
 per-coefficient vector for \code{pwt}/\code{sd}/\code{mu}) -- applied
 identically to every block (default, unchanged behavior); or
 \item a \strong{named list with one element per block}, keyed by the
@@ -103,13 +103,13 @@ dimension is 14 or greater. Defaults to 0.05.}
 }
 \value{
 A named list of class \code{"block_PriorSetup"}. Each element is a
-\code{\link[glmbayesCore]{Prior_Setup}} result for one block.
+\code{\link[lmebayesCore]{Prior_Setup}} result for one block.
 }
 \description{
-Runs \code{\link[glmbayesCore]{Prior_Setup}} on each block subset of the data.
+Runs \code{\link[lmebayesCore]{Prior_Setup}} on each block subset of the data.
 }
 \seealso{
-\code{\link{lmbBlock}}, \code{\link[glmbayesCore]{multi_prior_setup}},
-\code{\link{Prior_Setup_lmebayes}}, \code{\link[glmbayesCore]{normalize_block}}
+\code{\link{lmbBlock}}, \code{\link[lmebayesCore]{multi_prior_setup}},
+\code{\link{Prior_Setup_lmebayes}}, \code{\link[lmebayesCore]{normalize_block}}
 }
 \concept{prior}

@@ -67,24 +67,66 @@ ps <- Prior_Setup_lmebayes(
 pf <- pfamily_list(ps)
 disp_pf_list <- dGamma_list(ps)
 
+## ing_grp is now the Part VI "full marginal" calibration (production, as of
+## the Part VI swap in Prior_Setup_lmebayes()) -- same object dGamma_list()
+## consumed above to build disp_pf_list.
 ing_grp <- ps$ing_prior_measurement_group
 sigma2_hat_j <- vapply(ing_grp, `[[`, 0, "sigma2_hat")
 names(sigma2_hat_j) <- group_levels
 
+## Part I "classical" calibration (mu_j from the group's own within-group
+## null-model fit; no Omega widening) -- always computed unconditionally by
+## Prior_Setup_lmebayes() as the fallback/reference for Part VI (see the
+## SWAP POINT comment there), stored on ps$ing_prior_measurement_group_
+## classical. Printed here (as the '_classical' columns) next to the
+## production Part VI calibration above for comparison. Mirrors
+## glmbayesCore's own print inside Prior_Setup_lmebayes() and
+## data-raw/group_dgamma_bounds_derivation_check.R section 2c. See
+## glmbayesCore's inst/DGAMMA_LIST_MARGINAL_AND_BOUNDS.md Part VI.
+classical_grp <- ps$ing_prior_measurement_group_classical
+sigma2_hat_classical_j <- vapply(classical_grp, `[[`, 0, "sigma2_hat")
+names(sigma2_hat_classical_j) <- group_levels
+n_combined_classical_j <- vapply(classical_grp, `[[`, 0, "n_combined")
+
+window_diag_cur <- attr(disp_pf_list, "window_diagnostics")
+blup_infl_j <- stats::setNames(window_diag_cur$blup_infl, window_diag_cur$group)[group_levels]
+
+xwin_classical <- stats::setNames(
+  lapply(group_levels, function(lev) {
+    glmbayesCore:::.lmebayes_dgamma_window_cross_percentiles(
+      shape         = (n_combined_classical_j[[lev]] + 1) / 2 + p_re / 2,
+      rate_w        = sigma2_hat_classical_j[[lev]] * (n_combined_classical_j[[lev]] + p_re - 1) / 2,
+      rate_u        = sigma2_hat_classical_j[[lev]] * (n_combined_classical_j[[lev]] + p_re - 1) / 2 *
+        blup_infl_j[[lev]],
+      max_disp_perc = max_disp_perc,
+      blup_infl     = blup_infl_j[[lev]],
+      sigma2_hat    = sigma2_hat_classical_j[[lev]]
+    )
+  }),
+  group_levels
+)
+
 guard_df <- data.frame(
-  school     = group_levels,
-  n_j        = vapply(ing_grp, `[[`, 0, "n_j"),
-  n_prior    = round(vapply(ing_grp, `[[`, 0, "n_prior"), 3),
-  n_combined = round(vapply(ing_grp, `[[`, 0, "n_combined"), 3),
-  sigma2_hat = round(sigma2_hat_j, 2),
-  shape_ING  = round(vapply(ing_grp, `[[`, 0, "shape_ING"), 3),
-  rate_gamma = round(vapply(ing_grp, `[[`, 0, "rate_gamma"), 1),
-  pwt_group  = round(vapply(ing_grp, `[[`, 0, "pwt_group"), 4),
-  disp_lower = round(vapply(disp_pf_list, function(pf) pf$prior_list$disp_lower, 0), 2),
-  disp_upper = round(vapply(disp_pf_list, function(pf) pf$prior_list$disp_upper, 0), 2),
+  school               = group_levels,
+  n_j                  = vapply(ing_grp, `[[`, 0, "n_j"),
+  n_prior              = round(vapply(ing_grp, `[[`, 0, "n_prior"), 3),
+  n_combined           = round(vapply(ing_grp, `[[`, 0, "n_combined"), 3),
+  sigma2_hat           = round(sigma2_hat_j, 2),
+  shape_ING            = round(vapply(ing_grp, `[[`, 0, "shape_ING"), 3),
+  rate_gamma           = round(vapply(ing_grp, `[[`, 0, "rate_gamma"), 1),
+  pwt_group            = round(vapply(ing_grp, `[[`, 0, "pwt_group"), 4),
+  disp_lower           = round(vapply(disp_pf_list, function(pf) pf$prior_list$disp_lower, 0), 2),
+  disp_upper           = round(vapply(disp_pf_list, function(pf) pf$prior_list$disp_upper, 0), 2),
+  sigma2_hat_classical = round(sigma2_hat_classical_j[group_levels], 2),
+  disp_lower_classical = round(vapply(xwin_classical, `[[`, 0, "disp_lower")[group_levels], 2),
+  disp_upper_classical = round(vapply(xwin_classical, `[[`, 0, "disp_upper")[group_levels], 2),
   stringsAsFactors = FALSE
 )
-cat("\n=== Per-group dGamma_list() measurement dispersion priors ===\n\n")
+cat("\n=== Per-group dGamma_list() measurement dispersion priors ===\n")
+cat("    (base columns: Part VI 'full marginal', production; '_classical'\n")
+cat("     columns: Part I reference/fallback, not consumed by\n")
+cat("     dGamma_list() -- see glmbayesCore's\n")
+cat("     inst/DGAMMA_LIST_MARGINAL_AND_BOUNDS.md Part VI)\n\n")
 print(guard_df)
 
 stopifnot(all(vapply(

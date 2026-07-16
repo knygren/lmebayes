@@ -28,13 +28,13 @@ Description: Provides Bayesian linear and generalized linear mixed-effects
     prior family specifications for Gaussian, Poisson, binomial, and Gamma
     models with log-concave likelihoods. Sampling uses efficient two-block
     Gibbs sampling procedures with parallel chains and theoretically driven
-    stopping rules. Gibbs sampling engines are provided by the 'glmbayesCore'
+    stopping rules. Gibbs sampling engines are provided by the 'lmebayesCore'
     package.
 License: GPL (>= 2)
 URL: https://github.com/knygren/lmebayes
 BugReports: https://github.com/knygren/lmebayes/issues
 Imports:
-    glmbayesCore,
+    lmebayesCore,
     glmbayes,
     stats,
     Matrix,

@@ -51,7 +51,7 @@ as \code{\link{model_setup}}).}
 distribution and link. Defaults to \code{gaussian()}.}
 
 \item{pfamily_list}{Required named list of
-\code{\link[glmbayesCore]{pfamily}} objects, one per random-effect
+\code{\link[lmebayesCore]{pfamily}} objects, one per random-effect
 coefficient (names must match the random-effect coefficient names, any
 order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and
 the Block~1 random-effect variances \eqn{\tau^2_k}.  \code{dNormal}
@@ -60,7 +60,7 @@ known and make conjugate \eqn{\gamma_k} draws.
 \code{dIndependent_Normal_Gamma} components place a Gamma prior on the
 Block~2 precision \eqn{1/\tau^2_k}: Block~2 then makes a joint
 \eqn{(\gamma_k, \tau^2_k)} draw via the likelihood-subgradient envelope
-sampler (\code{\link[glmbayesCore]{rindepNormalGamma_reg}}), and the
+sampler (\code{\link[lmebayesCore]{rindepNormalGamma_reg}}), and the
 sampled \eqn{\tau^2_k} feeds back into the Block~1 prior precision.
 ING components must supply both truncation bounds: each
 \eqn{\tau^2_k} draw is hard-truncated to
@@ -71,7 +71,7 @@ increases the contraction rate \eqn{\lambda^*}, so the bound holds
 for every dispersion in the truncated support).  They must also
 satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
 (\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
-\code{\link[glmbayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
+\code{\link[lmebayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
 \code{\link{Prior_Setup_lmebayes}} object.}
 
 \item{dispersion_ranef}{Observation-level measurement dispersion, treated
@@ -105,7 +105,7 @@ rather than re-fitting \code{glmmTMB}). \code{glmer} is always the plain
 \code{ceiling((qnorm(0.975) / gap_tol)^2)} (default \code{gap_tol = 0.0196}
 gives \code{n_pilot = 10000}). When \code{tv_tol} is set (default),
 \code{n_pilot} is instead chosen by
-\code{\link[glmbayesCore]{two_block_optimize_pilot_cost}} to minimize total
+\code{\link[lmebayesCore]{two_block_optimize_pilot_cost}} to minimize total
 inner-sweep cost. Set \code{NULL} to skip the pilot unless \code{tv_tol}
 is set. Ignored for \code{gaussian()} without ING Block~2 components.}
 
@@ -131,8 +131,8 @@ sweeps per stored draw is calibrated exactly as in \code{\link{lmerb}}
 calibration is applied to the \emph{local-Gaussian approximation of the
 posterior at its mode}: per-observation likelihood precisions are
 evaluated at the ICM posterior mode
-(\code{two_block_mode_weights()} in \pkg{glmbayesCore}) and fed to
-\code{\link[glmbayesCore]{two_block_rate_from_pfamily_list}}.  The derived sweep count is
+(\code{two_block_mode_weights()} in \pkg{lmebayesCore}) and fed to
+\code{\link[lmebayesCore]{two_block_rate_from_pfamily_list}}.  The derived sweep count is
 then the \emph{minimum} number of iterations required to converge to
 that hypothetical multivariate normal approximation -- a lower bound
 for the true (non-normal) posterior, not a guarantee.}
@@ -218,7 +218,7 @@ Currently a copy of \code{\link{lmerb}} with an additional \code{family}
 argument. When \code{family = gaussian()}, behaviour matches
 \code{\link{lmerb}} except that the embedded reference fit is from
 \code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}. Non-Gaussian
-families use \code{\link[glmbayesCore]{block_rNormalGLM}} for Block~1 Gibbs updates.
+families use \code{\link[lmebayesCore]{block_rNormalGLM}} for Block~1 Gibbs updates.
 }
 \examples{
 ## glmerb: neighborhood random effects on bayesrules::airbnb_small (Poisson)
@@ -258,7 +258,7 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
 }
 }
 \seealso{
-\code{\link{lmerb}}, \code{\link[glmbayesCore]{glmerb_posterior_mode}},
+\code{\link{lmerb}}, \code{\link[lmebayesCore]{glmerb_posterior_mode}},
 \code{\link{glmb}}; \code{\link[utils]{demo}} for the full sampling workflow
 (\code{demo("Ex_14_glmerb_airbnb_small", package = "lmebayes")}).
 }

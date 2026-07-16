@@ -10,8 +10,8 @@
 #' @details
 #' Row-block interfaces include \code{\link{lmbBlock}} and \code{\link{glmbBlock}};
 #' mixed-model setup from \pkg{lme4} formulas via \code{\link{model_setup}}.
-#' Lower-level simulation uses \code{\link[glmbayesCore]{simfunction}} and envelope
-#' utilities from \pkg{glmbayesCore}.
+#' Lower-level simulation uses \code{\link[lmebayesCore]{simfunction}} and envelope
+#' utilities from \pkg{lmebayesCore}.
 #'
 #' See the package README at \url{https://github.com/knygren/lmebayes} for examples.
 #'
@@ -29,10 +29,10 @@
 #'
 #' @seealso
 #' \code{\link{lmerb}}, \code{\link{model_setup}}, \code{\link{lmbBlock}}, \code{\link{glmbBlock}};
-#' \code{\link[glmbayesCore]{simfunction}}, \code{\link[glmbayesCore]{EnvelopeBuild}};
+#' \code{\link[lmebayesCore]{simfunction}}, \code{\link[lmebayesCore]{EnvelopeBuild}};
 #' \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects-only Bayesian
 #' linear and generalized linear models;
-#' \code{\link[glmbayesCore]{rlmb}} and \code{\link[glmbayesCore]{rglmb}} for iid
+#' \code{\link[lmebayesCore]{rlmb}} and \code{\link[lmebayesCore]{rglmb}} for iid
 #' posterior draws.
 #'
 #' Useful links:
@@ -46,7 +46,7 @@
 #' @author
 #' Kjell Nygren
 #'
-#' @import stats Rcpp glmbayesCore
+#' @import stats Rcpp lmebayesCore
 #' @importFrom Rcpp evalCpp
 #' @importFrom MASS mvrnorm
 #' @importFrom Rdpack reprompt
@@ -55,7 +55,7 @@
 #' @importFrom glmbayes glmb.covratio glmb.dffits glmb.influence.measures
 #' @importFrom glmbayes extractDIC
 #' @importFrom glmbayes has_opencl get_opencl_core_count
-#' @importFrom glmbayesCore Prior_Setup dNormal dNormal_Gamma multi_prior_setup rlmb rglmb build_mu_all lmerb_posterior_mean glmerb_posterior_mode
+#' @importFrom lmebayesCore Prior_Setup dNormal dNormal_Gamma multi_prior_setup rlmb rglmb build_mu_all lmerb_posterior_mean glmerb_posterior_mode
 #' @useDynLib lmebayes, .registration = TRUE
 "_PACKAGE"
 

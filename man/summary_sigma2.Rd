@@ -46,7 +46,7 @@ An object of class \code{"summary.sigma2.lmerb"} with components
 \code{prior}, \code{overview}, \code{percentiles} (all when applicable),
 \code{group_name}, \code{n_groups}, \code{simulated}, and
 \code{mer_label}.  When \code{window_diagnostics} were attached by
-\code{\link[glmbayesCore]{dGamma_list}()}, the prior table includes
+\code{\link[lmebayesCore]{dGamma_list}()}, the prior table includes
 \code{blup_infl}, \code{R_lo}, \code{R_hi}, and \code{asymmetric_window}.
 }
 \description{

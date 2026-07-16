@@ -8,7 +8,7 @@
 #' argument. When \code{family = gaussian()}, behaviour matches
 #' \code{\link{lmerb}} except that the embedded reference fit is from
 #' \code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}. Non-Gaussian
-#' families use \code{\link[glmbayesCore]{block_rNormalGLM}} for Block~1 Gibbs updates.
+#' families use \code{\link[lmebayesCore]{block_rNormalGLM}} for Block~1 Gibbs updates.
 #'
 #' @inheritParams lmerb
 #' @param family A \code{\link[stats]{family}} object describing the response
@@ -40,7 +40,7 @@
 #'   \code{ceiling((qnorm(0.975) / gap_tol)^2)} (default \code{gap_tol = 0.0196}
 #'   gives \code{n_pilot = 10000}). When \code{tv_tol} is set (default),
 #'   \code{n_pilot} is instead chosen by
-#'   \code{\link[glmbayesCore]{two_block_optimize_pilot_cost}} to minimize total
+#'   \code{\link[lmebayesCore]{two_block_optimize_pilot_cost}} to minimize total
 #'   inner-sweep cost. Set \code{NULL} to skip the pilot unless \code{tv_tol}
 #'   is set. Ignored for \code{gaussian()} without ING Block~2 components.
 #' @param tv_tol Total variation tolerance per stored draw, in (0, 1)
@@ -51,8 +51,8 @@
 #'   calibration is applied to the \emph{local-Gaussian approximation of the
 #'   posterior at its mode}: per-observation likelihood precisions are
 #'   evaluated at the ICM posterior mode
-#'   (\code{two_block_mode_weights()} in \pkg{glmbayesCore}) and fed to
-#'   \code{\link[glmbayesCore]{two_block_rate_from_pfamily_list}}.  The derived sweep count is
+#'   (\code{two_block_mode_weights()} in \pkg{lmebayesCore}) and fed to
+#'   \code{\link[lmebayesCore]{two_block_rate_from_pfamily_list}}.  The derived sweep count is
 #'   then the \emph{minimum} number of iterations required to converge to
 #'   that hypothetical multivariate normal approximation -- a lower bound
 #'   for the true (non-normal) posterior, not a guarantee.
@@ -89,7 +89,7 @@
 #'   pilot colMeans when a pilot runs; \code{NULL} when no pilot runs),
 #'   \code{pilot_chisq} (Hotelling chi-squared test of
 #'   pilot mean vs ICM mode), \code{gap_tol}, and \code{mode_gap_max}.
-#' @seealso \code{\link{lmerb}}, \code{\link[glmbayesCore]{glmerb_posterior_mode}},
+#' @seealso \code{\link{lmerb}}, \code{\link[lmebayesCore]{glmerb_posterior_mode}},
 #'   \code{\link{glmb}}; \code{\link[utils]{demo}} for the full sampling workflow
 #'   (\code{demo("Ex_14_glmerb_airbnb_small", package = "lmebayes")}).
 #' @param digits Number of significant digits to use when printing.
@@ -172,7 +172,7 @@ glmerb <- function(
     stop("model_setup() must return a model_setup object.", call. = FALSE)
   }
 
-  prior <- glmbayesCore:::.lmebayes_priors_from_pfamily_list(
+  prior <- lmebayesCore:::.lmebayes_priors_from_pfamily_list(
     pfamily_list     = pfamily_list,
     dispersion_ranef = dispersion_ranef,
     design           = design,
@@ -187,7 +187,7 @@ glmerb <- function(
     disp_mode   = prior$dispersion_mode
   )
 
-  mer_optional_args <- glmbayesCore:::.lmebayes_mer_optional_args(
+  mer_optional_args <- lmebayesCore:::.lmebayes_mer_optional_args(
     start = start,
     subset = subset,
     weights = weights,
@@ -266,7 +266,7 @@ glmerb <- function(
         sigma2.mode  = icm$sigma2,
         tau2.mode    = icm$tau2,
         fixef.mu     = as.matrix(
-          glmbayesCore::build_mu_all(design, icm$fixef)$mu_all
+          lmebayesCore::build_mu_all(design, icm$fixef)$mu_all
         ),
         draw_engine  = NULL
       ),
@@ -275,7 +275,7 @@ glmerb <- function(
   }
 
   # ICM and sampling: rglmerb routes Gaussian to rLMMNormal_reg, non-Gaussian to rGLMM.
-  sampler <- glmbayesCore::rglmerb(
+  sampler <- lmebayesCore::rglmerb(
     n                   = n,
     design              = design,
     prior               = prior,

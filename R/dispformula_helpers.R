@@ -1,6 +1,6 @@
 ## Internal helpers for the `dispformula` argument on lmerb() / glmerb().
 ## `dispformula` gates which `dispersion_ranef` shape (and therefore which
-## glmbayesCore sampler route) is accepted; it does not touch the embedded
+## lmebayesCore sampler route) is accepted; it does not touch the embedded
 ## lme4::lmer/glmer reference fit (x$lmer / x$glmer stay unchanged in every
 ## case). When per-group dispersion is requested it additionally fits a
 ## glmmTMB::glmmTMB() diagnostic reference model, stored separately.
@@ -12,7 +12,7 @@
 #' or \code{"gamma"} (no dispersion parameter, a fixed scalar, or a single
 #' pooled \code{dGamma()}). `dispformula = ~<group_name>` (per-group) requires
 #' `disp_mode == "gamma_list"` (a named list from
-#' \code{\link[glmbayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}()}).
+#' \code{\link[lmebayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}()}).
 #' No other `dispformula` or mode combination is accepted.
 #'
 #' @param dispformula One-sided formula: `~1` or `~<group_name>`.
@@ -21,7 +21,7 @@
 #' @param family A \code{\link[stats]{family}} object.
 #' @param disp_mode `"none"`, `"fixed"`, `"gamma"`, or `"gamma_list"` (from
 #'   `prior$dispersion_mode`, already resolved by
-#'   `glmbayesCore:::.lmebayes_resolve_dispersion_ranef()` inside
+#'   `lmebayesCore:::.lmebayes_resolve_dispersion_ranef()` inside
 #'   `.lmebayes_priors_from_pfamily_list()`).
 #' @return `"pooled"` or `"group"`.
 #' @noRd
@@ -85,7 +85,7 @@
 #' \code{x$dispersion_fit} and is only fit when \code{dispformula} requests
 #' per-group dispersion (see \code{\link{.lmebayes_validate_dispformula}}).
 #'
-#' Thin wrapper around glmbayesCore's
+#' Thin wrapper around lmebayesCore's
 #' \code{.lmebayes_fit_glmmtmb_reference()} (the same helper
 #' \code{Prior_Setup_lmebayes()} uses to calibrate priors when
 #' \code{dispformula} requests per-group dispersion), so \code{lmerb()} only
@@ -99,7 +99,7 @@
     formula, data, family, dispformula, REML, mer_optional_args = list(), ...
 ) {
   do.call(
-    glmbayesCore:::.lmebayes_fit_glmmtmb_reference,
+    lmebayesCore:::.lmebayes_fit_glmmtmb_reference,
     c(
       list(
         formula     = formula,
