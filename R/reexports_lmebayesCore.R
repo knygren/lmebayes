@@ -1,34 +1,34 @@
-## Re-export symbols from lmebayesCore.
+## Re-export symbols from glmbayesCore and lmebayesCore.
 
-#' @inherit lmebayesCore::Prior_Setup title description details params return seealso references
+#' @inherit glmbayesCore::Prior_Setup title description details params return seealso references
 #' @examples
 #' \dontrun{
-#' ## Full runnable examples are maintained in \pkg{lmebayesCore}:
-#' example(Prior_Setup, package = "lmebayesCore", ask = FALSE, echo = TRUE)
+#' ## Full runnable examples are maintained in \pkg{glmbayesCore}:
+#' example(Prior_Setup, package = "glmbayesCore", ask = FALSE, echo = TRUE)
 #' }
 #' @export
-Prior_Setup <- lmebayesCore::Prior_Setup
+Prior_Setup <- glmbayesCore::Prior_Setup
 
-#' @inherit lmebayesCore::pfamily title description details params return seealso references
+#' @inherit glmbayesCore::pfamily title description details params return seealso references
 #' @name pfamily
 #' @aliases dNormal dNormal_Gamma dIndependent_Normal_Gamma dGamma
 NULL
 
 #' @rdname pfamily
 #' @export
-dNormal <- lmebayesCore::dNormal
+dNormal <- glmbayesCore::dNormal
 
 #' @rdname pfamily
 #' @export
-dNormal_Gamma <- lmebayesCore::dNormal_Gamma
+dNormal_Gamma <- glmbayesCore::dNormal_Gamma
 
 #' @rdname pfamily
 #' @export
-dIndependent_Normal_Gamma <- lmebayesCore::dIndependent_Normal_Gamma
+dIndependent_Normal_Gamma <- glmbayesCore::dIndependent_Normal_Gamma
 
 #' @rdname pfamily
 #' @export
-dGamma <- lmebayesCore::dGamma
+dGamma <- glmbayesCore::dGamma
 
 ## Proper re-export (not a copy) so S3 methods register against the
 ## lmebayesCore generic.  The lmebayes_prior_setup method lives in Core;
@@ -53,7 +53,8 @@ plot_sweep_history_diag <- lmebayesCore::plot_sweep_history_diag
 ## rGLMM, rLMMNormal_reg, block_rNormalGLM) are lmebayesCore-only; lmebayes
 ## calls them with lmebayesCore:: internally.  C++ callbacks (EnvelopeOpt,
 ## EnvelopeSort, glmbfamfunc, rNormal_reg.wfit, rgamma_ct) resolve from the
-## lmebayesCore namespace in Core; they are not re-exported from lmebayes.
+## glmbayesCore namespace inside lmebayesCore's compiled code; they are not
+## re-exported from lmebayes.
 
 #' @inherit lmebayesCore::rlmerb title description details params return seealso
 #' @export

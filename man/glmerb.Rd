@@ -51,7 +51,7 @@ as \code{\link{model_setup}}).}
 distribution and link. Defaults to \code{gaussian()}.}
 
 \item{pfamily_list}{Required named list of
-\code{\link[lmebayesCore]{pfamily}} objects, one per random-effect
+\code{\link[glmbayesCore]{pfamily}} objects, one per random-effect
 coefficient (names must match the random-effect coefficient names, any
 order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and
 the Block~1 random-effect variances \eqn{\tau^2_k}.  \code{dNormal}
@@ -60,7 +60,7 @@ known and make conjugate \eqn{\gamma_k} draws.
 \code{dIndependent_Normal_Gamma} components place a Gamma prior on the
 Block~2 precision \eqn{1/\tau^2_k}: Block~2 then makes a joint
 \eqn{(\gamma_k, \tau^2_k)} draw via the likelihood-subgradient envelope
-sampler (\code{\link[lmebayesCore]{rindepNormalGamma_reg}}), and the
+sampler (\code{\link[glmbayesCore]{rindepNormalGamma_reg}}), and the
 sampled \eqn{\tau^2_k} feeds back into the Block~1 prior precision.
 ING components must supply both truncation bounds: each
 \eqn{\tau^2_k} draw is hard-truncated to

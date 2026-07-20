@@ -7,12 +7,11 @@ print(d.AD <- data.frame(treatment, outcome, counts))
 
 glm.D93 <- glm(counts ~ outcome + treatment, family = poisson())
 
-## Plain iid GLM fitting engine (rglmb) is not yet re-exported from lmebayes:
-## it will eventually live in the stripped-down glmbayesCore, but for now the
-## up-to-date copy is in lmebayesCore, so we source it from there directly.
+## Plain iid GLM fitting engine (rglmb) is not re-exported from lmebayes;
+## it lives in glmbayesCore, so we source it from there directly.
 ps <- Prior_Setup(counts ~ outcome + treatment, family = poisson())
 
-rglmb.D93 <- lmebayesCore::rglmb(
+rglmb.D93 <- glmbayesCore::rglmb(
   n = 200,
   y = ps$y,
   x = as.matrix(ps$x),

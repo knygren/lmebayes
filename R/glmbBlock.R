@@ -91,11 +91,14 @@ glmbBlock <- function(
     x = x,
     y = y,
     Gridtype = Gridtype,
-    n_envopt = n_envopt,
     use_parallel = use_parallel,
     use_opencl = use_opencl,
     verbose = verbose
   )
+  ## NOTE: n_envopt is only added when non-NULL; see the matching comment in
+  ## lmbBlock() (R/lmbBlock.R) for why -- glmbayes's internal display-call
+  ## helpers can choke on an explicit NULL for a not-yet-present call slot.
+  if (!is.null(n_envopt)) glmb_args$n_envopt <- n_envopt
   if (!missing(subset)) glmb_args$subset <- subset
   if (!missing(weights)) glmb_args$weights <- weights
   if (!missing(na.action)) glmb_args$na.action <- na.action

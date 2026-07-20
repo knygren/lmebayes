@@ -29,7 +29,7 @@ calibration quantities.}
 \item{family}{Model \code{\link[stats]{family}}.  Default \code{gaussian()}.
 Non-Gaussian families use \code{\link[lme4]{glmer}} for calibration;
 \code{dispersion_ranef} is omitted (analogous to
-\code{\link[lmebayesCore]{Prior_Setup}} for flat GLMs).}
+\code{\link[glmbayesCore]{Prior_Setup}} for flat GLMs).}
 
 \item{pwt}{Prior weight(s) in \eqn{(0, 1)}.  Either a \strong{scalar}
 (applied to every random-effect component and every Block~2 predictor),
@@ -39,7 +39,7 @@ Each list element is a scalar (recycled over that component's Block~2
 predictors) or a vector of length \eqn{p_k} (optionally named with the
 predictor column names of \code{X_hyper[[k]]}, reordered to match).
 The prior covariance for each \code{fixef_k} block is scaled relative to
-\code{vcov(fit_ref)} following the \code{\link[lmebayesCore]{Prior_Setup}}
+\code{vcov(fit_ref)} following the \code{\link[glmbayesCore]{Prior_Setup}}
 convention: \eqn{(1-\mathrm{pwt})/\mathrm{pwt}} for a scalar, and
 elementwise
 \eqn{\sqrt{(1-\mathrm{pwt}_i)/\mathrm{pwt}_i}\,
@@ -108,14 +108,14 @@ of the relevant Gamma (precision) distribution, inverted to the
 dispersion scale.  Tighter values (e.g.\\ \code{0.95}) shrink the
 truncation window and typically improve Block~1 acceptance rates at the
 cost of slightly less envelope coverage; looser values (e.g.\\ \code{0.999})
-widen the window.  Passed to \code{\link[lmebayesCore]{dGamma}()} as \code{max_disp_perc}.}
+widen the window.  Passed to \code{\link[glmbayesCore]{dGamma}()} as \code{max_disp_perc}.}
 
 \item{intercept_source}{Character string controlling the prior mean for the
 global intercept hyperparameter \code{(Intercept)::(Intercept)} only.
 One of \code{"null_model"} (default) or \code{"full_model"}.  When
 \code{"null_model"}, the prior mean is taken from a random-intercept-only
 reference fit \code{y ~ 1 + (1 | group)} that omits all fixed-effect
-predictors (analogous to \code{\link[lmebayesCore]{Prior_Setup}} with
+predictors (analogous to \code{\link[glmbayesCore]{Prior_Setup}} with
 \code{intercept_source = "null_model"}).  When \code{"full_model"}, the
 full-model MLE intercept is used.}
 
@@ -225,7 +225,7 @@ mean-matched \code{shape} / \code{rate} with
 \code{disp_lower} / \code{disp_upper} as the central
 \eqn{2 \times \mathrm{max\_disp\_perc} - 1} prior-mass interval from
 the same calibrated \code{shape}/\code{rate}.  Pass these fields to
-\code{\link[lmebayesCore]{dGamma}()}.}
+\code{\link[glmbayesCore]{dGamma}()}.}
 \item{\code{ing_prior_measurement_group}}{Gaussian models only, and only
 when \code{dispformula} requests per-group dispersion: named list
 (one entry per group level) of per-group \code{dGamma()} density
@@ -259,7 +259,7 @@ two-block Gibbs sampler:
         + \mathrm{diag}(1/\tau^2_k)}
 when \code{family = gaussian()}.  For non-Gaussian families there is no
 observation-level dispersion; Block~1 uses \code{dNormal} with
-\code{ddef = TRUE} (see \code{\link[lmebayesCore]{dNormal}}).
+\code{ddef = TRUE} (see \code{\link[glmbayesCore]{dNormal}}).
 
 \strong{Block 2} (per-RE coefficient \eqn{k}, independent):
 \deqn{p(\mathrm{fixef}_k \mid \mathbf{b}_k, \tau^2_k)
@@ -290,6 +290,6 @@ Fits with \code{lme4} \code{checkConv} failures (e.g.\\ large
 }
 }
 \seealso{
-\code{\link[lmebayesCore]{model_setup}}, \code{\link[lmebayesCore]{Prior_Setup}},
+\code{\link[lmebayesCore]{model_setup}}, \code{\link[glmbayesCore]{Prior_Setup}},
 \code{\link[lmebayesCore]{build_mu_all}}
 }

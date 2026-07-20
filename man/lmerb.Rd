@@ -50,7 +50,7 @@ as \code{\link{model_setup}}).}
 \item{data}{Data frame containing all variables in \code{formula}.}
 
 \item{pfamily_list}{Required named list of
-\code{\link[lmebayesCore]{pfamily}} objects, one per random-effect
+\code{\link[glmbayesCore]{pfamily}} objects, one per random-effect
 coefficient (names must match the random-effect coefficient names, any
 order).  Supplies the Block~2 hyperpriors (\code{mu}, \code{Sigma}) and
 the Block~1 random-effect variances \eqn{\tau^2_k}.  \code{dNormal}
@@ -59,7 +59,7 @@ known and make conjugate \eqn{\gamma_k} draws.
 \code{dIndependent_Normal_Gamma} components place a Gamma prior on the
 Block~2 precision \eqn{1/\tau^2_k}: Block~2 then makes a joint
 \eqn{(\gamma_k, \tau^2_k)} draw via the likelihood-subgradient envelope
-sampler (\code{\link[lmebayesCore]{rindepNormalGamma_reg}}), and the
+sampler (\code{\link[glmbayesCore]{rindepNormalGamma_reg}}), and the
 sampled \eqn{\tau^2_k} feeds back into the Block~1 prior precision.
 ING components must supply both truncation bounds: each
 \eqn{\tau^2_k} draw is hard-truncated to
@@ -76,7 +76,7 @@ satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
 \item{dispersion_ranef}{Observation-level measurement dispersion
 \eqn{\sigma^2} for Block~1.  One of: a positive scalar (treated as
 known; typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}), a
-single \code{\link[lmebayesCore]{dGamma}()} \code{pfamily} (pooled
+single \code{\link[glmbayesCore]{dGamma}()} \code{pfamily} (pooled
 \eqn{\sigma^2} across groups), or a named list of \code{dGamma()}
 objects (one per group level) from
 \code{\link[lmebayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}(Prior_Setup_lmebayes(...))}.
@@ -285,7 +285,7 @@ analogous to \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects models.
 Calls \code{\link{model_setup}} on \code{formula} and \code{data} for design
 matrices (\code{y}, \code{Z}, \code{groups}, \code{X_hyper}, etc.) and embeds
 the resulting \code{\link[lme4]{lmer}} fit as \code{lmer}. Priors are
-supplied as a named list of \code{\link[lmebayesCore]{pfamily}} objects
+supplied as a named list of \code{\link[glmbayesCore]{pfamily}} objects
 (\code{pfamily_list}, the Block~2 hyperpriors -- one per random-effect
 coefficient) plus the observation-level measurement dispersion
 (\code{dispersion_ranef}).  Both are typically built from
@@ -302,7 +302,7 @@ Runs a two-block Gibbs sampler for \code{n} iterations. Block 1 draws
 group-level random effects \eqn{b_j} given the current hyper means; Block 2
 updates the hyper means (level-2 fixed effects \eqn{\boldsymbol{\gamma}_k})
 given the current \eqn{b_j} draw, using
-\code{\link[lmebayesCore]{multi_rNormal_reg}}
+\code{\link[glmbayesCore]{multi_rNormal_reg}}
 with the hyper design matrices from \code{design$X_hyper}.
 
 \strong{Exact posterior and convergence characterisation.}

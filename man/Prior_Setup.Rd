@@ -101,7 +101,7 @@ where \eqn{p} is the number of coefficients (columns of the model matrix). \code
 controls the tail behavior and effective degrees of freedom of the variance prior. It does
 not change the posterior mean of \eqn{\sigma^2} or the covariance of \eqn{\beta}, but larger
 \code{k} makes the prior and posterior for \eqn{\sigma^2} more concentrated and less
-heavy-tailed. Not yet used in calibration; passed through to \code{\link[lmebayesCore]{compute_gaussian_prior}}
+heavy-tailed. Not yet used in calibration; passed through to \code{\link[glmbayesCore]{compute_gaussian_prior}}
 for future use.}
 
 \item{...}{
@@ -117,7 +117,7 @@ A list of class \code{"PriorSetup"} with components:
 \item{Sigma}{Coefficient-scale prior variance–covariance matrix.}
 \item{Sigma_0}{For \code{family = gaussian()} only: dispersion-independent
 prior covariance on the precision-weighted coefficient scale (the
-\code{Sigma_0} passed to \code{\link[lmebayesCore]{compute_gaussian_prior}}). Under
+\code{Sigma_0} passed to \code{\link[glmbayesCore]{compute_gaussian_prior}}). Under
 scalar \code{pwt},
 \eqn{\Sigma_0^{-1} = \frac{\mathrm{pwt}}{1-\mathrm{pwt}} X^\top W X}.}
 \item{dispersion}{Calibrated dispersion (Gaussian models only), equal to
@@ -151,7 +151,7 @@ single-column design (intercept-only), scalar \code{pwt}, finite positive scalar
 \code{n_prior}, and negligible \code{offset}.  Then a named list with conjugate
 \code{Gamma(shape, rate)} hyperparameters on the Poisson rate, with \eqn{\texttt{shape} =
   n_{\mathrm{prior}}\,\bar{y}_w}, \eqn{\texttt{rate} = n_{\mathrm{prior}}}, and \code{beta}
-centered at the weighted sample mean \eqn{\bar{y}_w}; pass to \code{\link[lmebayesCore]{dGamma}} with \code{Inv_Dispersion = FALSE}.
+centered at the weighted sample mean \eqn{\bar{y}_w}; pass to \code{\link[glmbayesCore]{dGamma}} with \code{Inv_Dispersion = FALSE}.
 See Details.}
 }
 \description{
@@ -336,8 +336,8 @@ the same weak-prior limit as the conjugate Normal–Gamma posterior:
 }
 \examples{
 \dontrun{
-## Full runnable examples are maintained in \pkg{lmebayesCore}:
-example(Prior_Setup, package = "lmebayesCore", ask = FALSE, echo = TRUE)
+## Full runnable examples are maintained in \pkg{glmbayesCore}:
+example(Prior_Setup, package = "glmbayesCore", ask = FALSE, echo = TRUE)
 }
 }
 \references{
@@ -347,19 +347,19 @@ Vignette in the glmbayes R package.
 R vignette name: Chapter-A12.}{}
 }
 \seealso{
-\code{\link[lmebayesCore]{pfamily}} for prior-family objects and the constructors
-\code{\link[lmebayesCore]{dNormal}}, \code{\link[lmebayesCore]{dNormal_Gamma}}, \code{\link[lmebayesCore]{dGamma}},
-and \code{\link[lmebayesCore]{dIndependent_Normal_Gamma}}.
+\code{\link[glmbayesCore]{pfamily}} for prior-family objects and the constructors
+\code{\link[glmbayesCore]{dNormal}}, \code{\link[glmbayesCore]{dNormal_Gamma}}, \code{\link[glmbayesCore]{dGamma}},
+and \code{\link[glmbayesCore]{dIndependent_Normal_Gamma}}.
 
-\code{\link[lmebayesCore]{rglmb}}, \code{\link[lmebayesCore]{rlmb}} for matrix-input fits with a
-\code{pfamily} built from \code{Prior_Setup()} output; \code{\link[lmebayesCore]{rglmb}},
-\code{\link[lmebayesCore]{rlmb}} for matrix-based sampling that consumes the same prior
-structure; \code{\link[lmebayesCore]{simfuncs}} for functions that take a \code{prior_list}
+\code{\link[glmbayesCore]{rglmb}}, \code{\link[glmbayesCore]{rlmb}} for matrix-input fits with a
+\code{pfamily} built from \code{Prior_Setup()} output; \code{\link[glmbayesCore]{rglmb}},
+\code{\link[glmbayesCore]{rlmb}} for matrix-based sampling that consumes the same prior
+structure; \code{\link[glmbayesCore]{simfuncs}} for functions that take a \code{prior_list}
 assembled from those components (including
-\code{\link[lmebayesCore]{rindepNormalGamma_reg}} for
-\code{\link[lmebayesCore]{dIndependent_Normal_Gamma}()}).
-\code{\link[lmebayesCore]{multi_prior_setup}} for a matrix/cbind response with Gaussian;
-use with \code{\link[lmebayesCore]{rlmb}}
+\code{\link[glmbayesCore]{rindepNormalGamma_reg}} for
+\code{\link[glmbayesCore]{dIndependent_Normal_Gamma}()}).
+\code{\link[glmbayesCore]{multi_prior_setup}} for a matrix/cbind response with Gaussian;
+use with \code{\link[glmbayesCore]{rlmb}}
 \code{Prior_Setup} per column.
 
 (Zellner 1986);
@@ -370,6 +370,6 @@ use with \code{\link[lmebayesCore]{rlmb}}
 (Nygren 2025).
 
 Other prior: 
-\code{\link[lmebayesCore]{Prior_Check}()},
-\code{\link[lmebayesCore]{multi_prior_setup}()}
+\code{\link[glmbayesCore]{Prior_Check}()},
+\code{\link[glmbayesCore]{multi_prior_setup}()}
 }

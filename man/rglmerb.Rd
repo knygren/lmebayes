@@ -30,7 +30,7 @@ rglmerb(
 
 \item{dispersion_ranef}{Observation-level measurement dispersion \eqn{\sigma^2}:
 required positive scalar for \code{family = gaussian()}, or a
-\code{\link[lmebayesCore]{dGamma}()} pfamily with \code{Inv_Dispersion = TRUE}; must be
+\code{\link[glmbayesCore]{dGamma}()} pfamily with \code{Inv_Dispersion = TRUE}; must be
 \code{NULL} (default) for \code{poisson()} and \code{binomial()}.}
 
 \item{gap_tol}{Legacy mode--mean gap for deriving the pilot chain count when

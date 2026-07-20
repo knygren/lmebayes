@@ -1,5 +1,21 @@
 ﻿# lmebayes (development version)
 
+* **Fixed `lmbBlock()` / `glmbBlock()` crash ("subscript out of bounds"):**
+  both functions unconditionally forwarded `n_envopt = NULL` (the default)
+  through `do.call()` into `glmbayes::lmb()` / `glmbayes::glmb()`. When
+  `n_envopt` is explicitly present (even as `NULL`) in the constructed call,
+  `glmbayes`'s internal call-display helper assigns `NULL` onto a
+  not-yet-present name in a `call` object via `[[<-`, which base R treats as
+  an out-of-range removal (`"subscript out of bounds"`) rather than a no-op
+  (unlike for lists). `n_envopt` is now only added to the forwarded argument
+  list when non-`NULL`, avoiding the call shape that triggers this. No
+  **glmbayes** changes were made or required.
+
+* **Stage 0 — `glmbayesCore` dependency wiring (deduplication prep):**
+  **lmebayesCore** now `Imports: glmbayesCore (>= 0.5.1)` (transitive for
+  **lmebayes**). No direct **lmebayes** import or re-export changes yet;
+  priors still come from **lmebayesCore** until Stage 1c.
+
 * **Dropped C++ callback re-exports:** no longer re-exports **`EnvelopeOpt()`**,
   **`EnvelopeSort()`**, **`glmbfamfunc()`**, **`rNormal_reg.wfit()`**, or
   **`rgamma_ct()`** from **glmbayesCore**; Core C++ resolves them from the

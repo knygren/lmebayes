@@ -13,7 +13,7 @@ sampling within blocks.
 \details{
 Row-block interfaces include \code{\link{lmbBlock}} and \code{\link{glmbBlock}};
 mixed-model setup from \pkg{lme4} formulas via \code{\link{model_setup}}.
-Lower-level simulation uses \code{\link[lmebayesCore]{simfunction}} and envelope
+Lower-level simulation uses \code{\link[glmbayesCore]{simfunction}} and envelope
 utilities from \pkg{lmebayesCore}.
 
 See the package README at \url{https://github.com/knygren/lmebayes} for examples.
@@ -40,12 +40,11 @@ print(d.AD <- data.frame(treatment, outcome, counts))
 
 glm.D93 <- glm(counts ~ outcome + treatment, family = poisson())
 
-## Plain iid GLM fitting engine (rglmb) is not yet re-exported from lmebayes:
-## it will eventually live in the stripped-down glmbayesCore, but for now the
-## up-to-date copy is in lmebayesCore, so we source it from there directly.
+## Plain iid GLM fitting engine (rglmb) is not re-exported from lmebayes;
+## it lives in glmbayesCore, so we source it from there directly.
 ps <- Prior_Setup(counts ~ outcome + treatment, family = poisson())
 
-rglmb.D93 <- lmebayesCore::rglmb(
+rglmb.D93 <- glmbayesCore::rglmb(
   n = 200,
   y = ps$y,
   x = as.matrix(ps$x),
@@ -61,10 +60,10 @@ summary(rglmb.D93)
 }
 \seealso{
 \code{\link{lmerb}}, \code{\link{model_setup}}, \code{\link{lmbBlock}}, \code{\link{glmbBlock}};
-\code{\link[lmebayesCore]{simfunction}}, \code{\link[lmebayesCore]{EnvelopeBuild}};
+\code{\link[glmbayesCore]{simfunction}}, \code{\link[glmbayesCore]{EnvelopeBuild}};
 \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects-only Bayesian
 linear and generalized linear models;
-\code{\link[lmebayesCore]{rlmb}} and \code{\link[lmebayesCore]{rglmb}} for iid
+\code{\link[glmbayesCore]{rlmb}} and \code{\link[glmbayesCore]{rglmb}} for iid
 posterior draws.
 
 Useful links:

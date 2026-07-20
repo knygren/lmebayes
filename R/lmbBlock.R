@@ -98,11 +98,19 @@ lmbBlock <- function(
     singular.ok = singular.ok,
     contrasts = contrasts,
     Gridtype = Gridtype,
-    n_envopt = n_envopt,
     use_parallel = use_parallel,
     use_opencl = use_opencl,
     verbose = verbose
   )
+  ## NOTE: n_envopt is only added when non-NULL (not unconditionally, as the
+  ## other arguments above are). glmbayes::lmb()'s internal
+  ## .mlmb_lmb_display_call() builds fit$call via `cl[[nm]] <- mc_multi[[nm]]`
+  ## for each recognized argument name; assigning NULL to a *new* name on a
+  ## call object throws "subscript out of bounds" (unlike for lists, where
+  ## it is a no-op). That only happens if n_envopt is explicitly present
+  ## (even as NULL) in the do.call()-constructed call below, so we omit it
+  ## entirely when NULL rather than passing n_envopt = NULL.
+  if (!is.null(n_envopt)) lmb_args$n_envopt <- n_envopt
   if (!missing(subset)) lmb_args$subset <- subset
   if (!missing(weights)) lmb_args$weights <- weights
   if (!missing(na.action)) lmb_args$na.action <- na.action
