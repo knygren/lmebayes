@@ -44,6 +44,10 @@ table), \code{any_non_normal}, \code{tau2_prior_overview} (per-component
 \eqn{\tau^2_k} prior reference: Block~2 \code{pfamily} name (\code{Prior}),
 \eqn{1/E[1/\tau^2]}, \eqn{E[\tau^2]}, truncation window,
 \code{sqrt(E[tau2])}, and \code{lmer}/\code{glmer} MLE),
+\code{sim_method_used} (\code{"DEFAULT"} for the exact-iid engine,
+\code{"TWO_BLOCK_GIBBS"} for the two-block Gibbs engine, or \code{NULL}
+when \code{simulated} is \code{FALSE}; see \code{\link{lmerb}}'s
+\code{sim_method}),
 \code{tau2_overview} and \code{tau2_percentiles_overview} (posterior mode,
 mean, SD on the variance scale, \code{Mean SD}, and tau^2 quantiles when
 simulated), \code{tau2_sd_percentiles_overview} (2.5\\%/median/97.5\\% of

@@ -17,6 +17,7 @@ lmerb(
   mode_gap_max = 1,
   diag_sweeps = FALSE,
   progbar = NULL,
+  sim_method = "DEFAULT",
   simulate = TRUE,
   REML = TRUE,
   control = lme4::lmerControl(),
@@ -142,6 +143,20 @@ collected regardless.  Default \code{FALSE}.}
 \item{progbar}{Logical. Show text progress bars during sampling (passed to
 \code{\link{rlmerb}}). Default \code{NULL}: \code{FALSE} when
 \code{diag_sweeps = TRUE}, otherwise \code{TRUE}.}
+
+\item{sim_method}{Sampling engine: \code{"DEFAULT"} or
+\code{"TWO_BLOCK_GIBBS"}. Only changes behavior when
+\code{dispersion_ranef} is fixed (a scalar or a named per-group vector)
+\strong{and} every \code{pfamily_list} component is \code{dNormal()}
+(known variance components) -- the joint posterior is then exactly
+multivariate normal, and \code{"DEFAULT"} draws directly, iid, from that
+closed form (no Gibbs sweeps, no burn-in, no autocorrelation between
+draws); \code{"TWO_BLOCK_GIBBS"} forces the two-block Gibbs sampler
+described above instead. Every other model (any
+\code{dIndependent_Normal_Gamma} component, or a sampled/estimated
+variance component) only has the two-block Gibbs engine, so both values
+behave identically there. See
+\code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}}.}
 
 \item{simulate}{Logical (default \code{TRUE}).  When \code{TRUE} the
 two-block Gibbs sampler is run for \code{n} iterations and posterior draws
@@ -275,11 +290,15 @@ acceptance rate of the ING envelope sampler otherwise).
 means at the final Gibbs state (from
 \code{\link[lmebayesCore]{build_mu_all}}).}
 \item{\code{convergence}}{List describing the sweep-count calibration:
-\code{method} (\code{"exact"}, or \code{"local_gaussian_mode"} for
-non-Gaussian \code{\link{glmerb}}), \code{tv_tol},
+\code{method} (\code{"exact"}, \code{"exact_iid"} when
+\code{sim_method_used = "DEFAULT"}, or \code{"local_gaussian_mode"}
+for non-Gaussian \code{\link{glmerb}}), \code{tv_tol},
 \code{lambda_star}, \code{eigenvalues}, \code{m_min} (derived
 minimum sweeps), and \code{m_convergence} (sweeps actually used).
 \code{NULL} when \code{simulate = FALSE}.}
+\item{\code{sim_method_used}}{\code{"DEFAULT"} (exact iid draws) or
+\code{"TWO_BLOCK_GIBBS"} (two-block Gibbs sweeps), whichever engine
+actually ran. \code{NULL} when \code{simulate = FALSE}.}
 }
 }
 \description{

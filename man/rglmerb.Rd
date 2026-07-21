@@ -15,7 +15,8 @@ rglmerb(
   mode_gap_max = 1,
   collect_block1 = TRUE,
   verbose = TRUE,
-  progbar = FALSE
+  progbar = FALSE,
+  sim_method = "DEFAULT"
 )
 }
 \arguments{
@@ -49,6 +50,10 @@ Gaussian+ING only).}
 \item{verbose}{Print stage headers and diagnostics.}
 
 \item{progbar}{Progress bars when \code{verbose} is \code{FALSE}.}
+
+\item{sim_method}{Sampling engine for \code{family = gaussian()}:
+\code{"DEFAULT"} or \code{"TWO_BLOCK_GIBBS"}; see \code{\link[lmebayesCore]{rlmerb}}.
+Ignored (two-block Gibbs is the only engine) for non-Gaussian families.}
 }
 \value{
 Object of class \code{c("rglmerb", "list")} with Block~2 fields in

@@ -176,6 +176,19 @@
 #' @param progbar Logical. Show text progress bars during sampling (passed to
 #'   \code{\link{rlmerb}}). Default \code{NULL}: \code{FALSE} when
 #'   \code{diag_sweeps = TRUE}, otherwise \code{TRUE}.
+#' @param sim_method Sampling engine: \code{"DEFAULT"} or
+#'   \code{"TWO_BLOCK_GIBBS"}. Only changes behavior when
+#'   \code{dispersion_ranef} is fixed (a scalar or a named per-group vector)
+#'   \strong{and} every \code{pfamily_list} component is \code{dNormal()}
+#'   (known variance components) -- the joint posterior is then exactly
+#'   multivariate normal, and \code{"DEFAULT"} draws directly, iid, from that
+#'   closed form (no Gibbs sweeps, no burn-in, no autocorrelation between
+#'   draws); \code{"TWO_BLOCK_GIBBS"} forces the two-block Gibbs sampler
+#'   described above instead. Every other model (any
+#'   \code{dIndependent_Normal_Gamma} component, or a sampled/estimated
+#'   variance component) only has the two-block Gibbs engine, so both values
+#'   behave identically there. See
+#'   \code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}}.
 #' @param ... Reserved for future use.
 #' @return Object of class \code{"lmerb"}: a list with the following
 #'   components (parallel to \code{\link{glmb}} and \code{\link{lmb}}):
@@ -256,11 +269,15 @@
 #'       means at the final Gibbs state (from
 #'       \code{\link[lmebayesCore]{build_mu_all}}).}
 #'     \item{\code{convergence}}{List describing the sweep-count calibration:
-#'       \code{method} (\code{"exact"}, or \code{"local_gaussian_mode"} for
-#'       non-Gaussian \code{\link{glmerb}}), \code{tv_tol},
+#'       \code{method} (\code{"exact"}, \code{"exact_iid"} when
+#'       \code{sim_method_used = "DEFAULT"}, or \code{"local_gaussian_mode"}
+#'       for non-Gaussian \code{\link{glmerb}}), \code{tv_tol},
 #'       \code{lambda_star}, \code{eigenvalues}, \code{m_min} (derived
 #'       minimum sweeps), and \code{m_convergence} (sweeps actually used).
 #'       \code{NULL} when \code{simulate = FALSE}.}
+#'     \item{\code{sim_method_used}}{\code{"DEFAULT"} (exact iid draws) or
+#'       \code{"TWO_BLOCK_GIBBS"} (two-block Gibbs sweeps), whichever engine
+#'       actually ran. \code{NULL} when \code{simulate = FALSE}.}
 #'   }
 #' @example inst/examples/Ex_lmerb.R
 #' @seealso \code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
@@ -285,6 +302,7 @@ lmerb <- function(
     mode_gap_max = 1.0,
     diag_sweeps = FALSE,
     progbar = NULL,
+    sim_method = "DEFAULT",
     simulate = TRUE,
     REML = TRUE,
     control = lme4::lmerControl(),
@@ -337,6 +355,7 @@ lmerb <- function(
            call. = FALSE)
     }
   }
+  sim_method <- lmebayesCore:::.rLMM_validate_sim_method(sim_method, fn_name = "lmerb")
 
   setup_args <- list(
     formula = formula,
@@ -453,7 +472,8 @@ lmerb <- function(
         fixef.mu     = as.matrix(
           lmebayesCore::build_mu_all(design, icm$fixef)$mu_all
         ),
-        draw_engine  = NULL
+        draw_engine  = NULL,
+        sim_method_used = NULL
       ),
       class = c("lmerb", "list")
     ))
@@ -471,7 +491,8 @@ lmerb <- function(
     verbose       = TRUE,
     gap_tol             = gap_tol,
     mode_gap_max        = mode_gap_max,
-    diag_sweeps         = diag_sweeps
+    diag_sweeps         = diag_sweeps,
+    sim_method          = sim_method
   )
 
   convergence_info <- sampler$convergence
@@ -505,6 +526,7 @@ lmerb <- function(
       sigma2.iters.mean     = sampler$sigma2.iters.mean,
       fixef.mu              = sampler$fixef.mu,
       draw_engine           = sampler$draw_engine,
+      sim_method_used       = sampler$sim_method_used,
       m_convergence         = m_convergence,
       pilot_chisq           = sampler$pilot_chisq,
       gap_tol               = if (isTRUE(prior$any_non_normal)) gap_tol else NULL,
@@ -563,7 +585,8 @@ print.lmerb <- function(
   if (simulated) {
     n_draws <- nrow(x$fixef[[re_names[1L]]])
     cat(sprintf(
-      "Bayesian linear mixed model  [%d draws, two-block Gibbs]\n", n_draws))
+      "Bayesian linear mixed model  [%d draws, %s]\n",
+      n_draws, .lmerb_engine_label(x$sim_method_used)))
   } else {
     cat("Bayesian linear mixed model  [ICM only; use simulate = TRUE for draws]\n")
   }

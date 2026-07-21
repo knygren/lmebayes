@@ -29,6 +29,7 @@ glmerb(
   devFunOnly = FALSE,
   fixef = NULL,
   progbar = FALSE,
+  sim_method = "DEFAULT",
   ...
 )
 
@@ -185,6 +186,17 @@ When \code{NULL} (default), iter-0 means are taken from the
 \item{progbar}{Logical. When \code{TRUE}, show text progress bars during
 pilot and main replicate sampling inside \code{\link{rglmerb}}. Default
 \code{FALSE}.}
+
+\item{sim_method}{Sampling engine: \code{"DEFAULT"} or
+\code{"TWO_BLOCK_GIBBS"}. Only changes behavior for
+\code{family = gaussian()} with fixed \code{dispersion_ranef} (a scalar
+or a named per-group vector) \strong{and} all-\code{dNormal()}
+\code{pfamily_list} components (known variance components) -- see
+\code{\link{lmerb}}'s \code{sim_method} for details. Every other
+\code{glmerb} model (non-Gaussian families, or any
+\code{dIndependent_Normal_Gamma} component, or a sampled variance
+component) only has the two-block Gibbs engine, so both values behave
+identically there.}
 
 \item{...}{Reserved for future use.}
 

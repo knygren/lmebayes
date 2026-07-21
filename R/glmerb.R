@@ -86,6 +86,16 @@
 #' @param progbar Logical. When \code{TRUE}, show text progress bars during
 #'   pilot and main replicate sampling inside \code{\link{rglmerb}}. Default
 #'   \code{FALSE}.
+#' @param sim_method Sampling engine: \code{"DEFAULT"} or
+#'   \code{"TWO_BLOCK_GIBBS"}. Only changes behavior for
+#'   \code{family = gaussian()} with fixed \code{dispersion_ranef} (a scalar
+#'   or a named per-group vector) \strong{and} all-\code{dNormal()}
+#'   \code{pfamily_list} components (known variance components) -- see
+#'   \code{\link{lmerb}}'s \code{sim_method} for details. Every other
+#'   \code{glmerb} model (non-Gaussian families, or any
+#'   \code{dIndependent_Normal_Gamma} component, or a sampled variance
+#'   component) only has the two-block Gibbs engine, so both values behave
+#'   identically there.
 #' @return Object of class \code{"glmerb"}: same \code{fixef.*} structure as
 #'   \code{"lmerb"}, including \code{sigma2} and \code{sigma2.mean} for
 #'   \code{family = gaussian()} (see \code{\link{lmerb}}), with additional
@@ -130,6 +140,7 @@ glmerb <- function(
     devFunOnly = FALSE,
     fixef = NULL,
     progbar = FALSE,
+    sim_method = "DEFAULT",
     ...
 ) {
   cl <- match.call()
@@ -169,6 +180,7 @@ glmerb <- function(
       !is.finite(tv_tol) || tv_tol <= 0 || tv_tol >= 1) {
     stop("'tv_tol' must be a single value in (0, 1).", call. = FALSE)
   }
+  sim_method <- lmebayesCore:::.rLMM_validate_sim_method(sim_method, fn_name = "glmerb")
   setup_args <- list(
     formula = formula,
     data = data,
@@ -279,7 +291,8 @@ glmerb <- function(
         fixef.mu     = as.matrix(
           lmebayesCore::build_mu_all(design, icm$fixef)$mu_all
         ),
-        draw_engine  = NULL
+        draw_engine  = NULL,
+        sim_method_used = NULL
       ),
       class = c("glmerb", "list")
     ))
@@ -297,7 +310,8 @@ glmerb <- function(
     mode_gap_max        = mode_gap_max,
     collect_block1      = TRUE,
     verbose             = TRUE,
-    progbar             = progbar
+    progbar             = progbar,
+    sim_method          = sim_method
   )
 
   run_pilot <- !is.null(sampler$n_pilot) && sampler$n_pilot > 0L
@@ -330,6 +344,7 @@ glmerb <- function(
       sigma2.iters.mean     = sampler$sigma2.iters.mean,
       fixef.mu              = sampler$fixef.mu,
       draw_engine           = sampler$draw_engine,
+      sim_method_used       = sampler$sim_method_used,
       m_convergence         = sampler$m_convergence,
       pilot_chisq           = sampler$pilot_chisq,
       gap_tol               = gap_tol,
@@ -478,8 +493,8 @@ print.glmerb <- function(
   if (simulated) {
     n_draws <- nrow(x$fixef[[re_names[1L]]])
     cat(sprintf(
-      "Bayesian generalized linear mixed model  [%s; %d draws, two-block Gibbs]\n",
-      fam, n_draws))
+      "Bayesian generalized linear mixed model  [%s; %d draws, %s]\n",
+      fam, n_draws, .lmerb_engine_label(x$sim_method_used)))
   } else {
     cat(sprintf(
       "Bayesian generalized linear mixed model  [%s; ICM only]\n", fam))

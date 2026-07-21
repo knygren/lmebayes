@@ -1,5 +1,27 @@
 ﻿# lmebayes (development version)
 
+* **New `sim_method` argument for `lmerb()` / `glmerb()`: exact iid sampling
+  for the fixed-dispersion / known-variance-components route.** `lmerb()` and
+  `glmerb()` gain a `sim_method` argument: `"DEFAULT"` (new default) or
+  `"TWO_BLOCK_GIBBS"`. This only changes behavior when `dispersion_ranef` is
+  fixed (a scalar or a named per-group vector) **and** every `pfamily_list`
+  component is `dNormal()` (known variance components) -- the same condition
+  under which the joint posterior over `(gamma, b_1, ..., b_J)` is exactly
+  multivariate normal. `sim_method = "DEFAULT"` draws directly, iid, from that
+  closed-form posterior: no Gibbs sweeps, no burn-in, no autocorrelation
+  between stored draws, and no change to `n` or `tv_tol`'s meaning.
+  `sim_method = "TWO_BLOCK_GIBBS"` forces the previous two-block Gibbs
+  sampler. Every other model (any `dIndependent_Normal_Gamma` component, a
+  sampled/estimated variance component, or a non-Gaussian `glmerb()` family)
+  only has the two-block Gibbs engine, so both values behave identically
+  there -- **no behavior change for those models.** The fit object gains
+  `sim_method_used` (`"DEFAULT"` or `"TWO_BLOCK_GIBBS"`, whichever engine
+  actually ran; `NULL` when `simulate = FALSE`), and `print()`/`summary()`
+  headers now say `"exact iid"` or `"two-block Gibbs"` accordingly instead of
+  always saying `"two-block Gibbs"`. See `?lmerb` / `?glmerb`'s `sim_method`
+  for details, and **lmebayesCore**'s `NEWS.md` / `inst/README_KNOWN_VCOV_GAUSSIAN.md`
+  for the underlying engine.
+
 * **New `dispersion_ranef` shape for `lmerb()` / `glmerb(family = gaussian())`:
   a fixed per-group dispersion vector.** `dispersion_ranef` now also accepts
   a named numeric vector of positive, fixed \eqn{\sigma^2} values, one per

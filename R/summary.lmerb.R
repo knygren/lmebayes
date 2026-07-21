@@ -30,6 +30,10 @@
 #'   \eqn{\tau^2_k} prior reference: Block~2 \code{pfamily} name (\code{Prior}),
 #'   \eqn{1/E[1/\tau^2]}, \eqn{E[\tau^2]}, truncation window,
 #'   \code{sqrt(E[tau2])}, and \code{lmer}/\code{glmer} MLE),
+#'   \code{sim_method_used} (\code{"DEFAULT"} for the exact-iid engine,
+#'   \code{"TWO_BLOCK_GIBBS"} for the two-block Gibbs engine, or \code{NULL}
+#'   when \code{simulated} is \code{FALSE}; see \code{\link{lmerb}}'s
+#'   \code{sim_method}),
 #'   \code{tau2_overview} and \code{tau2_percentiles_overview} (posterior mode,
 #'   mean, SD on the variance scale, \code{Mean SD}, and tau^2 quantiles when
 #'   simulated), \code{tau2_sd_percentiles_overview} (2.5\%/median/97.5\% of
@@ -91,7 +95,8 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     tau2_sd_percentiles_overview = .lmerb_tau2_sd_percentiles_overview(
       object, simulated = simulated
     ),
-    ranef.iters.mean = if (simulated) object$ranef.iters.mean else NULL
+    ranef.iters.mean = if (simulated) object$ranef.iters.mean else NULL,
+    sim_method_used  = object$sim_method_used
   )
 
   if (!is.null(groups) && length(groups) > 0L) {
@@ -118,7 +123,9 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   cat("\n\n")
 
   if (isTRUE(x$simulated)) {
-    cat(sprintf("Bayesian linear mixed model fit  [%d draws, two-block Gibbs]\n", x$n))
+    cat(sprintf(
+      "Bayesian linear mixed model fit  [%d draws, %s]\n",
+      x$n, .lmerb_engine_label(x$sim_method_used)))
   } else {
     cat("Bayesian linear mixed model fit  [ICM only; simulation not run]\n")
   }
