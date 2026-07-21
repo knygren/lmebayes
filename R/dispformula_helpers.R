@@ -11,16 +11,18 @@
 #' `dispformula = ~1` (pooled) accepts `disp_mode` \code{"none"}, \code{"fixed"},
 #' or \code{"gamma"} (no dispersion parameter, a fixed scalar, or a single
 #' pooled \code{dGamma()}). `dispformula = ~<group_name>` (per-group) requires
-#' `disp_mode == "gamma_list"` (a named list from
-#' \code{\link[lmebayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}()}).
-#' No other `dispformula` or mode combination is accepted.
+#' `disp_mode` to be `"gamma_list"` (a named list from
+#' \code{\link[lmebayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}()})
+#' or `"fixed_vector"` (a plain named numeric vector, one known fixed
+#' dispersion per group). No other `dispformula` or mode combination is
+#' accepted.
 #'
 #' @param dispformula One-sided formula: `~1` or `~<group_name>`.
 #' @param group_name Character scalar, the random-effects grouping factor
 #'   (`design$group_name`).
 #' @param family A \code{\link[stats]{family}} object.
-#' @param disp_mode `"none"`, `"fixed"`, `"gamma"`, or `"gamma_list"` (from
-#'   `prior$dispersion_mode`, already resolved by
+#' @param disp_mode `"none"`, `"fixed"`, `"gamma"`, `"gamma_list"`, or
+#'   `"fixed_vector"` (from `prior$dispersion_mode`, already resolved by
 #'   `lmebayesCore:::.lmebayes_resolve_dispersion_ranef()` inside
 #'   `.lmebayes_priors_from_pfamily_list()`).
 #' @return `"pooled"` or `"group"`.
@@ -57,18 +59,18 @@
         call. = FALSE
       )
     }
-    if (!identical(disp_mode, "gamma_list")) {
+    if (!disp_mode %in% c("gamma_list", "fixed_vector")) {
       stop(
         "dispformula = ~", group_name, " requires 'dispersion_ranef' to be ",
-        "a dGamma_list(...) result (one dGamma() per ", group_name,
-        " level); got dispersion_ranef mode = '", disp_mode, "'. Use ",
-        "dispformula = ~1 for a fixed scalar or a pooled dGamma().",
+        "a dGamma_list(...) result or a named numeric vector (one value per ",
+        group_name, " level); got dispersion_ranef mode = '", disp_mode,
+        "'. Use dispformula = ~1 for a fixed scalar or a pooled dGamma().",
         call. = FALSE
       )
     }
-  } else if (identical(disp_mode, "gamma_list")) {
+  } else if (disp_mode %in% c("gamma_list", "fixed_vector")) {
     stop(
-      "'dispersion_ranef' is a dGamma_list(...) (per-group); this requires ",
+      "'dispersion_ranef' is per-group (", disp_mode, "); this requires ",
       "dispformula = ~", group_name, ", not dispformula = ~1.",
       call. = FALSE
     )

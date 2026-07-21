@@ -789,10 +789,43 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 .lmerb_sigma2_summary_enabled <- function(object) {
   mode <- object$prior$dispersion_mode
   # "gamma_list" (per-group dGamma() priors) draws sigma2 as an n x J
-  # matrix; the pooled prior-vs-posterior Residual row below is not yet
-  # meaningful per group, so it is skipped until per-group summary
-  # reporting is designed.
-  !is.null(mode) && !identical(mode, "none") && !identical(mode, "gamma_list")
+  # matrix, and "fixed_vector" (per-group known constants) is a length-J
+  # vector; the pooled prior-vs-posterior Residual row below only makes
+  # sense for a single pooled value, so both per-group modes are routed to
+  # summary_sigma2() instead (see .lmerb_sigma2_fixed_vector_overview() and
+  # .lmerb_sigma2_gamma_list_prior_overview()).
+  !is.null(mode) && !identical(mode, "none") &&
+    !mode %in% c("gamma_list", "fixed_vector")
+}
+
+## Per-group observation-level sigma^2 when dispersion_ranef is a fixed,
+## known numeric vector (mode = "fixed_vector"): no prior to calibrate and
+## nothing sampled, so this is just the constant values themselves next to
+## the lmer/glmer residual variance for reference.
+#' @keywords internal
+.lmerb_sigma2_fixed_vector_overview <- function(object) {
+  if (!identical(object$prior$dispersion_mode, "fixed_vector")) {
+    return(NULL)
+  }
+  sigma2 <- object$prior$dispersion_ranef
+  if (is.null(sigma2) || !length(sigma2)) {
+    return(NULL)
+  }
+  grp <- names(sigma2)
+  if (is.null(grp) || !length(grp)) {
+    grp <- levels(object$model_setup$groups)
+  }
+  mer <- .lmerb_sigma2_mer_reference(object)
+
+  df <- data.frame(
+    `Fixed sigma2` = as.numeric(sigma2),
+    check.names    = FALSE,
+    stringsAsFactors = FALSE
+  )
+  df[[mer$mer_label]] <- mer$mer_sigma2
+  df[[paste0(mer$mer_label, " SD")]] <- mer$mer_sd
+  rownames(df) <- grp
+  df
 }
 
 #' @keywords internal

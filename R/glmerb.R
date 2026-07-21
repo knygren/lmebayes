@@ -17,24 +17,33 @@
 #'   as known during sampling.  For families with a dispersion parameter
 #'   (e.g. \code{gaussian()}): a positive scalar, a single pooled
 #'   \code{dGamma()}, or (with \code{dispformula = ~<group_name>}) a
-#'   \code{dGamma_list(...)}.  Must be \code{NULL} (default) for
-#'   \code{poisson()} and \code{binomial()}.  Typically
-#'   \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.  Which shapes are
-#'   accepted depends on \code{dispformula} (see below).
+#'   \code{dGamma_list(...)} or a named numeric vector of positive, fixed
+#'   per-group values (names must match the random-effects grouping factor's
+#'   levels exactly).  Must be \code{NULL} (default) for \code{poisson()} and
+#'   \code{binomial()}.  Typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.
+#'   Which shapes are accepted depends on \code{dispformula} (see below). The
+#'   fixed numeric vector shape currently only takes effect for
+#'   \code{family = gaussian()} (shared code path with \code{\link{lmerb}});
+#'   observation-level dispersion is not yet wired into the sampler for the
+#'   other dispersion families (\code{Gamma()}, \code{quasipoisson()},
+#'   \code{quasibinomial()}).
 #' @param dispformula One-sided formula selecting the measurement-dispersion
 #'   structure: \code{~1} (default, pooled) requires \code{dispersion_ranef}
 #'   to be a fixed scalar, \code{NULL}, or a single (pooled) \code{dGamma()};
 #'   \code{~<group_name>}, matching the random-effects grouping factor
-#'   exactly, requires \code{dispersion_ranef} to be a
-#'   \code{dGamma_list(...)} and errors for families without a dispersion
-#'   parameter. \code{~1} never fits an extra reference model;
-#'   \code{~<group_name>} additionally requires a \code{glmmTMB} reference fit
-#'   (\pkg{glmmTMB} must be installed), stored as \code{dispersion_fit}
-#'   (reused from \code{dispersion_ranef}'s \code{"dispersion_fit"} attribute
-#'   when \code{dispersion_ranef} was built via
+#'   exactly, requires \code{dispersion_ranef} to be a \code{dGamma_list(...)}
+#'   or a named numeric vector, and errors for families without a dispersion
+#'   parameter. \code{~1} never fits an extra reference model.
+#'   \code{~<group_name>} with a \code{dGamma_list(...)} additionally
+#'   requires a \code{glmmTMB} reference fit (\pkg{glmmTMB} must be
+#'   installed), stored as \code{dispersion_fit} (reused from
+#'   \code{dispersion_ranef}'s \code{"dispersion_fit"} attribute when
+#'   \code{dispersion_ranef} was built via
 #'   \code{dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))},
-#'   rather than re-fitting \code{glmmTMB}). \code{glmer} is always the plain
-#'   \code{\link[lme4]{glmer}} fit regardless of \code{dispformula}.
+#'   rather than re-fitting \code{glmmTMB}); \code{~<group_name>} with a fixed
+#'   numeric vector never fits one, since the per-group dispersion is
+#'   directly user-supplied, not a prior to calibrate. \code{glmer} is always
+#'   the plain \code{\link[lme4]{glmer}} fit regardless of \code{dispformula}.
 #' @param gap_tol Legacy mode--mean gap tolerance. When \code{tv_tol} is
 #'   \code{NULL}, the number of pilot chains is derived as
 #'   \code{ceiling((qnorm(0.975) / gap_tol)^2)} (default \code{gap_tol = 0.0196}
@@ -197,10 +206,12 @@ glmerb <- function(
   )
 
   dispersion_fit <- NULL
-  if (identical(dispformula_kind, "group")) {
+  if (identical(prior$dispersion_mode, "gamma_list")) {
     ## dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))
     ## already carries its glmmTMB reference fit forward as an attribute;
-    ## reuse it instead of re-fitting glmmTMB here.
+    ## reuse it instead of re-fitting glmmTMB here. A "fixed_vector"
+    ## dispersion_ranef is a directly user-supplied constant, not a prior to
+    ## calibrate, so it never needs a glmmTMB reference fit.
     dispersion_fit <- attr(dispersion_ranef, "dispersion_fit")
     if (is.null(dispersion_fit)) {
       dispersion_fit <- .lmebayes_fit_glmmtmb_dispersion(

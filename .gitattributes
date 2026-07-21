@@ -1,0 +1,27 @@
+# Normalize all text files to LF on checkout/commit so cross-platform
+# clones (e.g. the r-universe Linux builder) don't see spurious "local
+# modifications" caused by CRLF/LF ambiguity in committed blobs.
+* text=auto eol=lf
+
+# sh scripts run by Rtools/MSYS sh.exe (and configure on Linux/macOS)
+# require LF; CRLF breaks the shebang interpreter.
+configure text eol=lf
+configure.win text eol=lf
+
+# Binary/compressed formats: never touch line endings.
+*.rds binary
+*.RData binary
+*.Rdata binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.docx binary
+*.dll binary
+*.so binary
+*.o binary
+*.a binary
+*.zip binary
+*.gz binary

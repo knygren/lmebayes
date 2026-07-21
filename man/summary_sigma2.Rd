@@ -43,28 +43,39 @@ summary_sigma2(object, ...)
 }
 \value{
 An object of class \code{"summary.sigma2.lmerb"} with components
-\code{prior}, \code{overview}, \code{percentiles} (all when applicable),
-\code{group_name}, \code{n_groups}, \code{simulated}, and
+\code{prior}, \code{overview}, \code{percentiles} (\code{overview} and
+\code{percentiles} are always \code{NULL} for \code{"fixed_vector"}),
+\code{group_name}, \code{n_groups}, \code{simulated}, \code{mode}, and
 \code{mer_label}.  When \code{window_diagnostics} were attached by
 \code{\link[lmebayesCore]{dGamma_list}()}, the prior table includes
 \code{blup_infl}, \code{R_lo}, \code{R_hi}, and \code{asymmetric_window}.
 }
 \description{
 Per-group observation-level \eqn{\sigma^2} summaries when
-\code{dispersion_ranef} is a named list of \code{\link{dGamma}()} priors
-(\code{dispersion_mode == "gamma_list"}).  Layout mirrors the Block~2
-\eqn{\tau^2_k} tables in \code{\link{summary.lmerb}}: a prior reference
-table (with a common \code{lmer}/\code{glmer} residual column), an
-optional posterior overview from stored draws (including per-group
-\code{Cand/draw}, envelope candidates per inner sweep), and per-group
-distribution percentiles of the \eqn{\sigma^2} draws (1\\%/2.5\\%/5\\%/
-median/95\\%/97.5\\%/99\\%) -- comparing these against \code{disp_lower}/
-\code{disp_upper} in the prior table shows whether the simulation tends
-to pile up against the truncation bounds. The prior table also reports
-each group's implied effective prior sample size (\code{n_prior},
-back-computed from \code{shape_ING} under the \code{Prior_Setup()}
-default \code{k = 1} calibration) and observed data sample size
-(\code{n_data}); the overview table reports their sum (\code{n_total}).
+\code{dispersion_ranef} is per-group: either a named list of
+\code{\link{dGamma}()} priors (\code{dispersion_mode == "gamma_list"}) or
+a named numeric vector of fixed, known values
+(\code{dispersion_mode == "fixed_vector"}).
+
+For \code{"gamma_list"}, the layout mirrors the Block~2 \eqn{\tau^2_k}
+tables in \code{\link{summary.lmerb}}: a prior reference table (with a
+common \code{lmer}/\code{glmer} residual column), an optional posterior
+overview from stored draws (including per-group \code{Cand/draw},
+envelope candidates per inner sweep), and per-group distribution
+percentiles of the \eqn{\sigma^2} draws (1\\%/2.5\\%/5\\%/median/95\\%/97.5\\%/
+99\\%) -- comparing these against \code{disp_lower}/\code{disp_upper} in
+the prior table shows whether the simulation tends to pile up against the
+truncation bounds. The prior table also reports each group's implied
+effective prior sample size (\code{n_prior}, back-computed from
+\code{shape_ING} under the \code{Prior_Setup()} default \code{k = 1}
+calibration) and observed data sample size (\code{n_data}); the overview
+table reports their sum (\code{n_total}).
+
+For \code{"fixed_vector"}, there is no prior to calibrate and nothing is
+sampled (each group's \eqn{\sigma^2_j} is known and constant throughout),
+so only a single table of the fixed per-group values next to the
+\code{lmer}/\code{glmer} residual variance is returned; \code{overview}
+and \code{percentiles} are \code{NULL}.
 }
 \seealso{
 \code{\link{summary.lmerb}}, \code{\link{lmerb}}.

@@ -2,28 +2,39 @@
 #'
 #' @description
 #' Per-group observation-level \eqn{\sigma^2} summaries when
-#' \code{dispersion_ranef} is a named list of \code{\link{dGamma}()} priors
-#' (\code{dispersion_mode == "gamma_list"}).  Layout mirrors the Block~2
-#' \eqn{\tau^2_k} tables in \code{\link{summary.lmerb}}: a prior reference
-#' table (with a common \code{lmer}/\code{glmer} residual column), an
-#' optional posterior overview from stored draws (including per-group
-#' \code{Cand/draw}, envelope candidates per inner sweep), and per-group
-#' distribution percentiles of the \eqn{\sigma^2} draws (1\%/2.5\%/5\%/
-#' median/95\%/97.5\%/99\%) -- comparing these against \code{disp_lower}/
-#' \code{disp_upper} in the prior table shows whether the simulation tends
-#' to pile up against the truncation bounds. The prior table also reports
-#' each group's implied effective prior sample size (\code{n_prior},
-#' back-computed from \code{shape_ING} under the \code{Prior_Setup()}
-#' default \code{k = 1} calibration) and observed data sample size
-#' (\code{n_data}); the overview table reports their sum (\code{n_total}).
+#' \code{dispersion_ranef} is per-group: either a named list of
+#' \code{\link{dGamma}()} priors (\code{dispersion_mode == "gamma_list"}) or
+#' a named numeric vector of fixed, known values
+#' (\code{dispersion_mode == "fixed_vector"}).
+#'
+#' For \code{"gamma_list"}, the layout mirrors the Block~2 \eqn{\tau^2_k}
+#' tables in \code{\link{summary.lmerb}}: a prior reference table (with a
+#' common \code{lmer}/\code{glmer} residual column), an optional posterior
+#' overview from stored draws (including per-group \code{Cand/draw},
+#' envelope candidates per inner sweep), and per-group distribution
+#' percentiles of the \eqn{\sigma^2} draws (1\%/2.5\%/5\%/median/95\%/97.5\%/
+#' 99\%) -- comparing these against \code{disp_lower}/\code{disp_upper} in
+#' the prior table shows whether the simulation tends to pile up against the
+#' truncation bounds. The prior table also reports each group's implied
+#' effective prior sample size (\code{n_prior}, back-computed from
+#' \code{shape_ING} under the \code{Prior_Setup()} default \code{k = 1}
+#' calibration) and observed data sample size (\code{n_data}); the overview
+#' table reports their sum (\code{n_total}).
+#'
+#' For \code{"fixed_vector"}, there is no prior to calibrate and nothing is
+#' sampled (each group's \eqn{\sigma^2_j} is known and constant throughout),
+#' so only a single table of the fixed per-group values next to the
+#' \code{lmer}/\code{glmer} residual variance is returned; \code{overview}
+#' and \code{percentiles} are \code{NULL}.
 #'
 #' @param object An \code{lmerb} or \code{glmerb} fit.
 #' @param type \code{"both"} (default), \code{"prior"}, or \code{"overview"}.
 #' @param digits Number of significant digits for printing.
 #' @param \ldots Ignored.
 #' @return An object of class \code{"summary.sigma2.lmerb"} with components
-#'   \code{prior}, \code{overview}, \code{percentiles} (all when applicable),
-#'   \code{group_name}, \code{n_groups}, \code{simulated}, and
+#'   \code{prior}, \code{overview}, \code{percentiles} (\code{overview} and
+#'   \code{percentiles} are always \code{NULL} for \code{"fixed_vector"}),
+#'   \code{group_name}, \code{n_groups}, \code{simulated}, \code{mode}, and
 #'   \code{mer_label}.  When \code{window_diagnostics} were attached by
 #'   \code{\link[lmebayesCore]{dGamma_list}()}, the prior table includes
 #'   \code{blup_infl}, \code{R_lo}, \code{R_hi}, and \code{asymmetric_window}.
@@ -65,10 +76,13 @@ summary_sigma2.glmerb <- function(
   if (!inherits(object, c("lmerb", "glmerb"))) {
     stop("object must be an lmerb or glmerb fit.", call. = FALSE)
   }
-  if (!identical(object$prior$dispersion_mode, "gamma_list")) {
+  mode <- object$prior$dispersion_mode
+  if (!isTRUE(mode %in% c("gamma_list", "fixed_vector"))) {
     stop(
-      "summary_sigma2() applies only when dispersion_ranef is a per-group ",
-      "list of dGamma() priors (dispersion_mode = \"gamma_list\").",
+      "summary_sigma2() applies only when dispersion_ranef is per-group: ",
+      "a dGamma_list(...) result (dispersion_mode = \"gamma_list\") or a ",
+      "named numeric vector of fixed values (dispersion_mode = ",
+      "\"fixed_vector\"); got dispersion_mode = '", mode, "'.",
       call. = FALSE
     )
   }
@@ -80,6 +94,35 @@ summary_sigma2.glmerb <- function(
     NULL
   }
   mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
+
+  if (identical(mode, "fixed_vector")) {
+    prior <- .lmerb_sigma2_fixed_vector_overview(object)
+    if (is.null(prior) || nrow(prior) == 0L) {
+      stop(
+        "No per-group fixed sigma^2 values found on ",
+        "object$prior$dispersion_ranef.",
+        call. = FALSE
+      )
+    }
+    return(structure(
+      list(
+        call        = object$call,
+        formula     = object$formula,
+        type        = type,
+        digits      = digits,
+        group_name  = object$model_setup$group_name,
+        n_groups    = nlevels(object$model_setup$groups),
+        simulated   = FALSE,
+        n           = n_draws,
+        mer_label   = mer_label,
+        mode        = mode,
+        prior       = if (type %in% c("both", "prior")) prior else NULL,
+        overview    = NULL,
+        percentiles = NULL
+      ),
+      class = "summary.sigma2.lmerb"
+    ))
+  }
 
   prior <- .lmerb_sigma2_gamma_list_prior_overview(object)
   if (is.null(prior) || nrow(prior) == 0L) {
@@ -106,6 +149,7 @@ summary_sigma2.glmerb <- function(
       simulated   = simulated,
       n           = n_draws,
       mer_label   = mer_label,
+      mode        = mode,
       prior       = if (type %in% c("both", "prior")) prior else NULL,
       overview    = if (type %in% c("both", "overview")) overview else NULL,
       percentiles = if (type %in% c("both", "overview")) percentiles else NULL
@@ -135,14 +179,20 @@ print.summary.sigma2.lmerb <- function(x, digits = NULL, ...) {
     "Groups: %s (%d level(s))",
     x$group_name, x$n_groups
   ))
-  if (isTRUE(x$simulated)) {
+  if (identical(x$mode, "fixed_vector")) {
+    cat("  [fixed, known values; nothing sampled]\n\n")
+  } else if (isTRUE(x$simulated)) {
     cat(sprintf("  [%d draws]\n\n", x$n))
   } else {
     cat("  [ICM only; no stored draws]\n\n")
   }
 
   if (!is.null(x$prior) && nrow(x$prior) > 0L) {
-    cat(sprintf("Prior and %s reference:\n\n", mer_label))
+    if (identical(x$mode, "fixed_vector")) {
+      cat(sprintf("Fixed values and %s reference:\n\n", mer_label))
+    } else {
+      cat(sprintf("Prior and %s reference:\n\n", mer_label))
+    }
     .lmerb_print_summary_table(x$prior, digits = digits)
   }
 

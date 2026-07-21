@@ -40,9 +40,14 @@ Formula drivers call re-exported `model_setup()`, `Prior_Setup_lmebayes()`, `rlm
 and `rglmerb()` without namespace qualification.
 
 **Direct Core calls (must stay exported):** `build_mu_all()`, `lmerb_posterior_mean()`,
-`glmerb_posterior_mode()` (`importFrom`); `normalize_block()` (`glmbayesCore::` in
-`.blmb_formula_block_meta()`). See
+`glmerb_posterior_mode()` (`importFrom`). See
 [R_EXPORTED_AND_DOCUMENTED.md](R_EXPORTED_AND_DOCUMENTED.md).
+
+**Direct `lmebayesCore` call:** `normalize_block()` (`lmebayesCore::` in
+`.blmb_formula_block_meta()`; also called directly by `block_check_identifiability_xy()`).
+This is `lmbBlock()`/`glmbBlock()`/`Prior_SetupBlock()`'s only runtime dependency on
+`lmebayesCore` — full trace in
+[lmebayesCore/inst/LMBBLOCK_LMEBAYESCORE_DEPENDENCIES.md](../../lmebayesCore/inst/LMBBLOCK_LMEBAYESCORE_DEPENDENCIES.md).
 
 **Indirect only (export optional for lmebayes):** `rGLMM()`, `rLMMNormal_reg()`,
 `rLMMNormal_reg_estimated_vcov()`, `rLMMindepNormalGamma_reg()` — listed under
@@ -84,6 +89,11 @@ and `rglmerb()` without namespace qualification.
 | `.blmb_dic_table()` | `lmbBlock.R` | `summary.blmb()`, `summary.bglmb()`, `print.blmb()`, `print.bglmb()` |
 | `.blmb_glmb_display_call()` | `glmbBlock.R` | `glmbBlock()` |
 | `.bglmb_assemble()` | `glmbBlock.R` | `glmbBlock()` |
+| `.blmb_resolve_block_calibration_arg()` | `prior_setup_lmebayes.R` | `Prior_SetupBlock()` |
+
+Full inventory and call graphs, including the `lmbBlock()`/`glmbBlock()`
+symmetry and where `Prior_SetupBlock()` fits in:
+[README_LMBBLOCK.md](README_LMBBLOCK.md).
 
 ---
 

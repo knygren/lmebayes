@@ -1,5 +1,23 @@
 ﻿# lmebayes (development version)
 
+* **New `dispersion_ranef` shape for `lmerb()` / `glmerb(family = gaussian())`:
+  a fixed per-group dispersion vector.** `dispersion_ranef` now also accepts
+  a named numeric vector of positive, fixed \eqn{\sigma^2} values, one per
+  random-effects group level, paired with `dispformula = ~<group_name>`
+  (the same pairing already used for `dGamma_list(...)`). Unlike
+  `dGamma_list(...)` (a per-group *prior* that is sampled and requires the
+  design to be full column rank for its ING envelope), a fixed vector is a
+  directly user-supplied constant: no sampling, no rank restriction, and no
+  `glmmTMB` reference fit (the `glmmTMB`-fit trigger is now specifically
+  `dGamma_list(...)`, not just any per-group `dispformula`). `fit$sigma2`
+  and `fit$sigma2.mean` are the constant named vector (reordered to
+  `levels(<group>)`), unchanged across draws. `summary(fit)` omits the
+  pooled Block~1 `Residual` row for this mode (as it already does for
+  `dGamma_list(...)`); use the new `summary_sigma2(fit)` support for a
+  per-group fixed-values table instead (alongside its existing
+  `dGamma_list(...)` support). See `?lmerb` / `?glmerb` for the
+  `dispersion_ranef` / `dispformula` argument docs.
+
 * **Fixed `lmbBlock()` / `glmbBlock()` crash ("subscript out of bounds"):**
   both functions unconditionally forwarded `n_envopt = NULL` (the default)
   through `do.call()` into `glmbayes::lmb()` / `glmbayes::glmb()`. When

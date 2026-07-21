@@ -54,6 +54,7 @@ Rscript tests/manual/run_all.R small
 | `_block2_fixef_validate.R` | (helper) | Bind `lmebayes:::.validate_manual_block2_fixef` after `load_all()` |
 | `_lmerb_re_validate.R` | (helper) | Bind `lmebayes:::.validate_lmerb_re` after `load_all()` |
 | `_glmerb_re_validate.R` | (helper) | Bind `lmebayes:::.validate_glmerb_re` after `load_all()` |
+| `test_lmerb_fixed_vector_dispersion.R` | (standalone) | Fixed per-group `dispersion_ranef` vector (`dispersion_mode = "fixed_vector"`); `lme4::sleepstudy`, no `bayesrules` needed. Covers `lmerb()`, `summary_sigma2()`, validation errors, and `glmerb(family = gaussian())` parity |
 
 Demos under `demo/` mirror these routes (`Ex_12`/`Ex_21` Gaussian+ING; `Ex_24`/`Ex_25` dGamma) with fuller printed output.
 
