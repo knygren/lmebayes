@@ -193,7 +193,7 @@ glmerb <- function(
     stop("model_setup() must return a model_setup object.", call. = FALSE)
   }
 
-  prior <- lmebayesCore:::.lmebayes_priors_from_pfamily_list(
+  prior <- lmebayesCore::priors_from_pfamily_list(
     pfamily_list     = pfamily_list,
     dispersion_ranef = dispersion_ranef,
     design           = design,

@@ -1,4 +1,10 @@
-﻿# lmebayes (development version)
+# lmebayes (development version)
+
+* Internal: `lmerb()`/`glmerb()` now call **lmebayesCore**'s newly exported
+  `priors_from_pfamily_list()` (was reached via `lmebayesCore:::.lmebayes_priors_from_pfamily_list()`).
+  No user-visible change; see **lmebayesCore**'s `NEWS.md` for details --
+  the helper's argument list and return shape are unchanged but are noted
+  there as a refactor candidate.
 
 * **New `sim_method` argument for `lmerb()` / `glmerb()`: exact iid sampling
   for the fixed-dispersion / known-variance-components route.** `lmerb()` and
