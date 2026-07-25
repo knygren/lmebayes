@@ -4,29 +4,13 @@
 \alias{plot_sweep_history_diag}
 \title{Plot Block~2 sweep-history diagnostics (cross-chain mean or SD)}
 \usage{
-plot_sweep_history_diag(
-  hist,
-  coef_focus,
-  what = c("sd", "mean"),
-  engine = c("base", "ggplot"),
-  stage_label = hist$stage
-)
+plot_sweep_history_diag(hist, ...)
 }
 \arguments{
 \item{hist}{Object of class \code{"two_block_sweep_history"} (see
 \code{\link[lmebayesCore]{print.two_block_sweep_history}}).}
 
-\item{coef_focus}{List of length-2 character vectors
-\code{c(re_component, covariate)}, matching rows of \code{hist$table}.
-Example: \code{list(c("(Intercept)", "(Intercept)"), c("violent_i", "(Intercept)"))}.}
-
-\item{what}{One or both of \code{"sd"} and \code{"mean"} (cross-chain
-summary after each inner sweep). Default both (\code{sd} first).}
-
-\item{engine}{\code{"base"} for one panel per coefficient (default), or
-\code{"ggplot"} for a single faceted figure (requires \pkg{ggplot2}).}
-
-\item{stage_label}{Character label for titles; defaults to \code{hist$stage}.}
+\item{...}{Passed to methods; see \code{\link[lmebayesCore]{plot_sweep_history_diag.default}}.}
 }
 \value{
 \code{hist} invisibly.
