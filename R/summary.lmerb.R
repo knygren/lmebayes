@@ -76,7 +76,7 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     varcor        = lme4::VarCorr(mer_fit),
     dispersion    = object$prior$dispersion_ranef,
     n_obs         = length(object$model_setup$y),
-    n_groups      = nlevels(object$model_setup$groups),
+    n_groups      = nlevels(object$model_setup$group),
     group_name    = object$model_setup$group_name,
     fixef_prior_overview = .lmerb_fixef_prior_overview(fixef_parts),
     fixef_overview = .lmerb_fixef_overview(object, simulated = simulated),
@@ -596,7 +596,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   ## (shape_ING = (n_prior + k + p)/2), i.e. the same convention used by
   ## lmebayesCore:::.ing_n_prior_from_shape().
   p_re <- length(object$model_setup$re_coef_names)
-  n_data_group <- table(object$model_setup$groups)
+  n_data_group <- table(object$model_setup$group)
 
   tab <- do.call(rbind, lapply(grp, function(g) {
     sh <- as.numeric(pl$shape_group[[g]])
@@ -820,7 +820,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
   grp <- names(sigma2)
   if (is.null(grp) || !length(grp)) {
-    grp <- levels(object$model_setup$groups)
+    grp <- levels(object$model_setup$group)
   }
   mer <- .lmerb_sigma2_mer_reference(object)
 

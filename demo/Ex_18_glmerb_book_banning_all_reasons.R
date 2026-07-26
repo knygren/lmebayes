@@ -193,7 +193,7 @@ design <- model_setup(form_glmerb, data = dat, family = binomial())
 cat("\n=== model_setup (X_hyper per RE component) ===\n\n")
 for (k in design$re_coef_names) {
   cat(k, ":\n")
-  print(colnames(design$X_hyper[[k]]))
+  print(colnames(design$W[[k]]))
 }
 
 ps <- tryCatch(

@@ -16,7 +16,7 @@ source("tests/manual/_small5_lmerb_fixture.R")
 fx <- .prepare_small5_lmerb_manual(n_schools = 5L)
 dat  <- fx$dat
 design <- fx$design
-group_levels <- levels(design$groups)
+group_levels <- levels(design$group)
 form_block <- score_ppvt ~ 1 + distracted_ppvt
 form_lmer  <- score_ppvt ~ 1 + distracted_ppvt + (1 + distracted_ppvt || school_id)
 

@@ -121,7 +121,7 @@ for (k in re_names_ref) {
   cat(sprintf(
     "    %-20s: %s\n",
     k,
-    paste(colnames(design$X_hyper[[k]]), collapse = ", ")
+    paste(colnames(design$W[[k]]), collapse = ", ")
   ))
 }
 
@@ -138,7 +138,7 @@ for (k in re_names_ref) {
 }
 
 fixef_lmer <- lapply(re_names_ref, function(k) {
-  cols_k <- colnames(design$X_hyper[[k]])
+  cols_k <- colnames(design$W[[k]])
   fe_nms <- vapply(
     cols_k, .fe_name_for_lmer, character(1L), k = k, fe = fe_lmer
   )

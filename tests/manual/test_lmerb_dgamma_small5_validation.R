@@ -19,7 +19,7 @@ form <- fx$form
 expected_re <- fx$design$re_coef_names
 
 stopifnot(identical(expected_re, c("(Intercept)", "distracted_ppvt")))
-stopifnot(nlevels(fx$design$groups) == 5L)
+stopifnot(nlevels(fx$design$group) == 5L)
 
 source("tests/manual/_reference_mer_compare.R")
 ref_fits <- .print_reference_mer_compare(

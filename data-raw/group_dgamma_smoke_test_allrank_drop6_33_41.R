@@ -43,7 +43,7 @@ if (length(drop)) {
 }
 
 design <- model_setup(form, data = dat)
-group_levels <- levels(design$groups)
+group_levels <- levels(design$group)
 n_schools <- length(group_levels)
 p_re <- length(design$re_coef_names)
 

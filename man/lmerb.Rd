@@ -240,7 +240,7 @@ effects \eqn{\gamma_k}, computed by
 \code{\link[lmebayesCore]{lmerb_posterior_mean}} (ICM).}
 \item{\code{ranef.mode}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix
 of exact posterior mode random effects from ICM.  Rows are group
-levels (\code{levels(design$groups)}); columns are
+levels (\code{levels(design$group)}); columns are
 \code{design$re_coef_names}.}
 \item{\code{fixef.means}}{Named list of posterior mean vectors computed
 as \code{colMeans(fixef[[k]])} — the MCMC estimate of the
@@ -329,7 +329,7 @@ group-level random effects \eqn{b_j} given the current hyper means; Block 2
 updates the hyper means (level-2 fixed effects \eqn{\boldsymbol{\gamma}_k})
 given the current \eqn{b_j} draw, using
 \code{\link[glmbayesCore]{multi_rNormal_reg}}
-with the hyper design matrices from \code{design$X_hyper}.
+with the hyper design matrices from \code{design$W}.
 
 \strong{Exact posterior and convergence characterisation.}
 When variance components are treated as fixed at their \code{lmer} estimates

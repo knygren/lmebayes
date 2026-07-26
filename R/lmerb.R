@@ -24,7 +24,7 @@
 #' updates the hyper means (level-2 fixed effects \eqn{\boldsymbol{\gamma}_k})
 #' given the current \eqn{b_j} draw, using
 #' \code{\link[glmbayesCore]{multi_rNormal_reg}}
-#' with the hyper design matrices from \code{design$X_hyper}.
+#' with the hyper design matrices from \code{design$W}.
 #'
 #' @details
 #' \strong{Exact posterior and convergence characterisation.}
@@ -219,7 +219,7 @@
 #'       \code{\link[lmebayesCore]{lmerb_posterior_mean}} (ICM).}
 #'     \item{\code{ranef.mode}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix
 #'       of exact posterior mode random effects from ICM.  Rows are group
-#'       levels (\code{levels(design$groups)}); columns are
+#'       levels (\code{levels(design$group)}); columns are
 #'       \code{design$re_coef_names}.}
 #'     \item{\code{fixef.means}}{Named list of posterior mean vectors computed
 #'       as \code{colMeans(fixef[[k]])} — the MCMC estimate of the
@@ -573,7 +573,7 @@ print.lmerb <- function(
   re_names <- x$model_setup$re_coef_names
   grp      <- x$model_setup$group_name
   n_obs    <- length(x$model_setup$y)
-  n_grp    <- nlevels(x$model_setup$groups)
+  n_grp    <- nlevels(x$model_setup$group)
   simulated <- !is.null(x$coefficients)
 
   # --- Call ---

@@ -173,7 +173,7 @@ cat("4a. Missing disp_upper rejected: OK\n")
 ##     end-to-end and samples.  The limiting-posterior disp_lower sits
 ##     above tau^2/2 for moderate J (ratio ~ 0.63 at J = 47), so lambda*
 ##     should be *below* the tau^2/2 case.
-J_cal <- nlevels(ps$design$groups)
+J_cal <- nlevels(ps$design$group)
 for (k in re_names) {
   pr     <- pf_ing0[[k]]$prior_list
   tau2_k <- unname(ps$prior_list[[k]]$dispersion_fixef)

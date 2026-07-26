@@ -61,13 +61,16 @@ matrices and rank diagnostics only (used by \code{glmerb()} in lmebayes).}
 \item{...}{Ignored.}
 }
 \value{
-Object of class \code{"model_setup"}: \code{y}, \code{Z},
-\code{groups}, \code{X_hyper}, \code{formula}, \code{family},
+Object of class \code{"model_setup"}: \code{y}, \code{D},
+\code{group}, \code{W}, \code{formula}, \code{family},
 \code{vcov_formula} (deprecated alias of \code{formula}),
 \code{lmer_fit} / \code{glmer_fit}, \code{lmer_vcov_fit} /
 \code{glmer_vcov_fit} (same object as the full-formula fit),
-\code{varcorr}, \code{vcov_re}, \code{residual_var}, and \code{re_rank} (named logical
-vector: \code{TRUE} if \code{Z_j} is full column rank for that group).
+\code{varcorr}, \code{vcov_re}, \code{residual_var}; plus \code{re_rank},
+\code{re_estimable}, \code{re_glm_check}, \code{hyper_rank},
+\code{hyper_deficient}, and \code{rank_ok} from
+\code{\link[lmebayesCore]{check_identifiability}} (see its \code{@return} for exact
+definitions).
 }
 \description{
 Wrapper around \code{\link[lme4]{lmer}} or \code{\link[lme4]{glmer}} for
@@ -104,33 +107,18 @@ these three types---level-2 covariate, population mean slope, or cross-level
 moderation interaction---are rejected with an informative error.
 
 \strong{Two-step identifiability assessment.}
-After fitting \code{lmer}, \code{model_setup} performs a two-step rank
-check that assesses whether the model is empirically identified at both the
-within-group and across-group levels:
-
-\enumerate{
-\item \emph{Level 1 (within-group):}  For each group \eqn{j}, the
-within-group random-effects design submatrix \eqn{\mathbf{Z}_j} is
-checked for full column rank (\code{re_rank}).  A rank-deficient group
-has too few distinct observations to estimate all random slopes
-independently; its BLUPs are identified through the prior rather than
-the data alone.  Such groups are flagged in \code{re_rank} but are
-retained in the \code{lmer} fit; \code{\link[lmebayesCore]{Prior_Setup_lmebayes}}
-excludes them when calibrating priors.
-
-\item \emph{Level 2 (across-group):}  Restricting to the full-rank groups
-from Step 1, each hyper-design matrix \code{X_hyper[[k]]} is checked
-for full column rank (\code{hyper_rank}).  Rank deficiency at this level
-means the level-2 hyperparameters \eqn{\boldsymbol{\mu}_k}---the prior
-means for random-effect coefficient \eqn{k} across groups---are not
-identified by the data, even as the number of full-rank groups grows.
-}
-
-The scalar \code{rank_ok} is \code{TRUE} only when every
-\code{X_hyper[[k]]} is full-rank after Step 2.  This is a necessary
-condition for \code{\link[lmebayesCore]{Prior_Setup_lmebayes}} to derive default priors
-automatically; models with \code{rank_ok = FALSE} require user-supplied
-hyperpriors.
+After fitting \code{lmer}/\code{glmer}, \code{model_setup} calls
+\code{\link[lmebayesCore]{check_identifiability}} to assess whether the model is
+empirically identified at both the within-group (\code{re_rank},
+\code{re_estimable}, \code{re_glm_check}) and across-group
+(\code{hyper_rank}, \code{hyper_deficient}, \code{rank_ok}) levels, and
+copies its fields onto the returned design object -- see
+\code{\link[lmebayesCore]{check_identifiability}} for the full algorithm description
+(including the family-specific estimability checks and how
+\code{rank_ok} is derived). Non-estimable groups are flagged but retained
+in the \code{lmer}/\code{glmer} fit; \code{\link[lmebayesCore]{Prior_Setup_lmebayes}}
+excludes them when calibrating priors, and requires \code{rank_ok = TRUE}
+to derive default hyperpriors automatically.
 
 The example uses \code{big_word_club} from the Suggested package
 \pkg{bayesrules} (see \code{?bayesrules::big_word_club}) and the same
@@ -138,6 +126,7 @@ formula as the full \code{lmerb()} demo in lmebayes
 (\code{demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")}).
 }
 \seealso{
+\code{\link[lmebayesCore]{check_identifiability}},
 \code{\link[lmebayesCore]{extract_re_hyper_matrices}},
 \code{\link[lmebayesCore]{lmerb_default_vcov_formula}},
 \code{\link[lmebayesCore]{extract_lmer_variance_components}}

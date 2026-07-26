@@ -56,7 +56,7 @@ form_lmer <- score_ppvt ~
 w0 <- 0.01
 ps0 <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = w0)
 re_names <- names(ps0$prior_list)
-J <- nlevels(ps0$design$groups)
+J <- nlevels(ps0$design$group)
 stopifnot(length(re_names) == 3L)
 
 stopifnot(
@@ -136,7 +136,7 @@ cat("Per-component scalar pwt: OK\n")
 
 ## --- 4. per-predictor vector weights within a component ----------------------
 k1     <- re_names[1L]
-cols_1 <- colnames(ps0$design$X_hyper[[k1]])
+cols_1 <- colnames(ps0$design$W[[k1]])
 p_1    <- length(cols_1)
 w_vec  <- stats::setNames(seq(0.02, 0.3, length.out = p_1), cols_1)
 w_vec_scrambled <- w_vec[rev(seq_len(p_1))]

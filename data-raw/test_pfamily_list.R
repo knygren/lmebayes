@@ -44,7 +44,7 @@ ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
 re_names <- names(ps$prior_list)
 stopifnot(length(re_names) == 3L)
 
-J       <- nlevels(ps$design$groups)
+J       <- nlevels(ps$design$group)
 ## Default dispersion-prior weight is derived from pwt (mean across each
 ## component's predictors; scalar pwt = 0.01 here), so n_prior_dispersion
 ## defaults to J * 0.01 / 0.99 per component.

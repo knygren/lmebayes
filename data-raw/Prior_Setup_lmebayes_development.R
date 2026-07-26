@@ -114,16 +114,16 @@ for (nm in ps$design$re_coef_names) {
 cat("=== Block 1 demo: posterior b[j] for first group ===\n")
 
 design   <- ps$design
-grp1     <- levels(design$groups)[1L]
-idx1     <- which(as.character(design$groups) == grp1)
+grp1     <- levels(design$group)[1L]
+idx1     <- which(as.character(design$group) == grp1)
 y1       <- design$y[idx1]
-Z1       <- design$Z[idx1, , drop = FALSE]
+Z1       <- design$D[idx1, , drop = FALSE]
 Sig_r    <- ps$Sigma_ranef
 Sig_r_inv <- diag(1 / diag(Sig_r), nrow = nrow(Sig_r))   # diagonal inverse
 
 mu_b_prior1 <- setNames(
   vapply(design$re_coef_names, function(k) {
-    xrow <- design$X_hyper[[k]][grp1, , drop = TRUE]
+    xrow <- design$W[[k]][grp1, , drop = TRUE]
     sum(xrow * ps$prior_list[[k]]$mu_fixef)
   }, numeric(1L)),
   design$re_coef_names

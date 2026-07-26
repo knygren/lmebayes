@@ -73,10 +73,10 @@ stopifnot(inherits(fit, "lmerb"))
 stopifnot(identical(names(fit), c("model_setup", "lmer", "mu_all", "fixef",
                                    "fixef_mean", "fixef_draws", "fixef_draws_mean",
                                    "coefficients")))
-stopifnot(all(dim(fit$fixef.mu) == c(length(design$re_coef_names), nlevels(design$groups))))
+stopifnot(all(dim(fit$fixef.mu) == c(length(design$re_coef_names), nlevels(design$group))))
 stopifnot(inherits(fit$model_setup, "model_setup"))
 stopifnot(inherits(fit$lmer, "lmerMod"))
-stopifnot(nrow(fit$coefficients) == nlevels(design$groups))
+stopifnot(nrow(fit$coefficients) == nlevels(design$group))
 stopifnot(identical(
   names(fit$coefficients),
   c("draw", design$group_name, design$re_coef_names)

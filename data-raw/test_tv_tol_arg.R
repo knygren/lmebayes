@@ -51,9 +51,9 @@ block2_prior_list <- stats::setNames(
   re_names
 )
 rate <- glmbayesCore::two_block_rate(
-  x = design$Z, block = design$groups, x_hyper = design$X_hyper,
+  x = design$D, block = design$group, x_hyper = design$W,
   prior_list_block1 = block1_prior, prior_list_block2 = block2_prior_list,
-  family = gaussian(), group_levels = levels(design$groups)
+  family = gaussian(), group_levels = levels(design$group)
 )
 m_default <- glmbayesCore::two_block_l_for_tv(rate, 0.01) + 1L
 m_strict  <- glmbayesCore::two_block_l_for_tv(rate, 1e-5) + 1L

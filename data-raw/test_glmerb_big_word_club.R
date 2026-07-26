@@ -334,6 +334,6 @@ stopifnot(!is.null(ps$dispersion_ranef))
 stopifnot(isTRUE(design$rank_ok))
 re_names <- fit$model_setup$re_coef_names
 stopifnot(nrow(fit$fixef[[re_names[1L]]]) == n_draw)
-stopifnot(nrow(fit$coefficients) == n_draw * nlevels(design$groups))
+stopifnot(nrow(fit$coefficients) == n_draw * nlevels(design$group))
 
 cat("\ntest_glmerb_big_word_club: OK\n")

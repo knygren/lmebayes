@@ -43,11 +43,11 @@
   design <- model_setup(form, data = dat)
   stopifnot(all(design$re_rank))
   stopifnot(identical(design$re_coef_names, c("(Intercept)", "distracted_ppvt")))
-  stopifnot(nlevels(design$groups) == n_schools)
+  stopifnot(nlevels(design$group) == n_schools)
 
   message(sprintf(
     "Small fixture: %d schools, %d obs, RE = [%s]",
-    nlevels(design$groups),
+    nlevels(design$group),
     nrow(dat),
     paste(design$re_coef_names, collapse = ", ")
   ))
@@ -106,7 +106,7 @@
       "All-rank small fixture: %d schools, %d obs ",
       "(mean %.1f obs/school, RE = [%s])"
     ),
-    nlevels(design$groups),
+    nlevels(design$group),
     nrow(dat),
     mean(n_g),
     paste(design$re_coef_names, collapse = ", ")

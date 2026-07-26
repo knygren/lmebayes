@@ -30,7 +30,7 @@ fx <- .prepare_small5_all_full_rank_manual()
 dat  <- fx$dat
 form <- fx$form
 design <- fx$design
-group_levels <- levels(design$groups)
+group_levels <- levels(design$group)
 n_schools <- length(group_levels)
 p_re <- length(design$re_coef_names)
 

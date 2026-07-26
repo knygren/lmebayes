@@ -44,7 +44,7 @@ ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
 
 ## --- two-block sampler inputs, exactly as lmerb() builds them --------------
 re_names     <- design$re_coef_names
-group_levels <- levels(design$groups)
+group_levels <- levels(design$group)
 block1_prior <- glmbayesCore:::.lmebayes_block1_prior_list(ps)
 block2_prior_list <- stats::setNames(
   lapply(re_names, function(k) {
@@ -59,9 +59,9 @@ block2_prior_list <- stats::setNames(
 )
 
 rate <- glmbayesCore::two_block_rate(
-  x = design$Z,
-  block = design$groups,
-  x_hyper = design$X_hyper,
+  x = design$D,
+  block = design$group,
+  x_hyper = design$W,
   prior_list_block1 = block1_prior,
   prior_list_block2 = block2_prior_list,
   family = gaussian(),
@@ -74,13 +74,13 @@ print(rate)
 stopifnot(inherits(rate, "two_block_rate"))
 stopifnot(rate$dims$J == length(group_levels))
 stopifnot(rate$dims$p_re == length(re_names))
-stopifnot(rate$dims$q == sum(vapply(design$X_hyper, ncol, integer(1L))))
+stopifnot(rate$dims$q == sum(vapply(design$W, ncol, integer(1L))))
 stopifnot(all(rate$eigenvalues >= 0), all(rate$eigenvalues < 1))
 
 ## --- 1. Dense brute-force validation on the real design --------------------
 P_b  <- block1_prior$P
-w    <- rep(1 / block1_prior$dispersion, nrow(design$Z))
-q_k  <- vapply(design$X_hyper, ncol, integer(1L))
+w    <- rep(1 / block1_prior$dispersion, nrow(design$D))
+q_k  <- vapply(design$W, ncol, integer(1L))
 q    <- sum(q_k)
 cols <- split(seq_len(q), rep(seq_along(q_k), q_k))
 J    <- length(group_levels)
@@ -89,7 +89,7 @@ p_re <- length(re_names)
 H <- lapply(seq_len(J), function(j) {
   Hj <- matrix(0, p_re, q)
   for (k in seq_len(p_re)) {
-    X_k <- as.matrix(design$X_hyper[[k]])
+    X_k <- as.matrix(design$W[[k]])
     Hj[k, cols[[k]]] <- X_k[group_levels[j], ]
   }
   Hj
@@ -98,10 +98,10 @@ H <- lapply(seq_len(J), function(j) {
 P22 <- matrix(0, J * p_re, J * p_re)
 P12 <- matrix(0, q, J * p_re)
 P11 <- matrix(0, q, q)
-grp_int <- as.integer(design$groups)
+grp_int <- as.integer(design$group)
 for (j in seq_len(J)) {
   rows <- which(grp_int == j)
-  Z_j <- design$Z[rows, , drop = FALSE]
+  Z_j <- design$D[rows, , drop = FALSE]
   B_j <- crossprod(Z_j, Z_j * w[rows]) + P_b
   bc <- (j - 1L) * p_re + seq_len(p_re)
   P22[bc, bc] <- B_j

@@ -32,7 +32,7 @@ fx_full <- .prepare_small5_all_full_rank_manual()
 mer_fit  <- fx_full$design$lmer_fit        # exact reference fit model_setup() builds
 re_names <- fx_full$design$re_coef_names   # e.g. c("(Intercept)", "distracted_ppvt")
 grp_col  <- fx_full$design$group_name
-groups   <- fx_full$design$groups          # per-observation factor, same order as residuals()
+groups   <- fx_full$design$group          # per-observation factor, same order as residuals()
 p_re     <- length(re_names)
 
 stopifnot(identical(nlevels(groups), nrow(coef(mer_fit)[[grp_col]])))

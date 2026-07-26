@@ -482,7 +482,7 @@ print.glmerb <- function(
   re_names <- x$model_setup$re_coef_names
   grp      <- x$model_setup$group_name
   n_obs    <- length(x$model_setup$y)
-  n_grp    <- nlevels(x$model_setup$groups)
+  n_grp    <- nlevels(x$model_setup$group)
   simulated <- !is.null(x$coefficients)
   fam      <- if (!is.null(x$family)) x$family$family else "gaussian"
 

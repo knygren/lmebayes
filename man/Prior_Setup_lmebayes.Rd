@@ -242,11 +242,12 @@ truncation bounds are assembled there.}
 Calibrates priors for the level-2 fixed effects (\code{fixef}) of a
 hierarchical mixed model using the reference \code{lmer}/\code{glmer} fits
 on \strong{all} groups (from \code{\link[lmebayesCore]{model_setup}}).  Per-group design
-rank (\code{re_rank}) is a diagnostic check only and does not subset the
-data.  For \code{family = binomial()}, \code{Prior_Setup_lmebayes()} also
-fits a classical \code{glm} within each algebraically full-rank group and
-records \code{design$re_estimable} (whether a finite MLE exists); this does
-not subset the reference \code{glmer} fit.  Random-effect variances are
+rank (\code{re_rank}) and estimability (\code{re_estimable} --
+classical-\code{glm} MLE existence for \code{family =
+binomial()}/\code{poisson()}/\code{Gamma()}, residual degrees of freedom
+for \code{family = gaussian()}) are diagnostic checks computed by
+\code{\link[lmebayesCore]{model_setup}} and do not subset the data or the reference
+\code{glmer} fit.  Random-effect variances are
 treated as fixed at their mixed-model estimates.  The returned object
 two-block Gibbs sampler:
 }

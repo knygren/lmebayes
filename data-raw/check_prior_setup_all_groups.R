@@ -26,6 +26,6 @@ print(ps)
 stopifnot(identical(ps$calibration_source, "lme4"))
 stopifnot(identical(ps$fit_ref, ps$mer_fit))
 stopifnot(identical(ps$fit_ref, ps$design$lmer_fit))
-stopifnot(nlevels(ps$design$groups) ==
+stopifnot(nlevels(ps$design$group) ==
             nlevels(lme4::getME(ps$fit_ref, "flist")[[1L]]))
-cat("\nfit_ref uses all", nlevels(ps$design$groups), "schools: OK\n")
+cat("\nfit_ref uses all", nlevels(ps$design$group), "schools: OK\n")

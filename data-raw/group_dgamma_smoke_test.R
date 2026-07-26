@@ -19,7 +19,7 @@ fx <- .prepare_small5_lmerb_manual(n_schools = 5L)
 dat  <- fx$dat
 form <- fx$form
 design <- fx$design
-group_levels <- levels(design$groups)
+group_levels <- levels(design$group)
 p_re <- length(design$re_coef_names)
 
 stopifnot(identical(design$re_coef_names, c("(Intercept)", "distracted_ppvt")))
