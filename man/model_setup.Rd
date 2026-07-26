@@ -20,6 +20,7 @@ model_setup(
   contrasts = NULL,
   devFunOnly = FALSE,
   fit_mer = TRUE,
+  dispformula = ~1,
   ...
 )
 }
@@ -58,6 +59,19 @@ fit when \code{fit_mer = TRUE}.}
 models and extract variance components. If \code{FALSE}, return design
 matrices and rank diagnostics only (used by \code{glmerb()} in lmebayes).}
 
+\item{dispformula}{One-sided formula selecting the measurement-dispersion
+structure: \code{~1} (default, pooled) or \code{~<group_name>} (matching
+the random-effects grouping factor exactly, requesting per-group
+dispersion). Only affects \code{design$glmmTMB_fit} (see \code{@return});
+\code{design$lmer_fit}/\code{design$glmer_fit} are always the plain
+pooled-dispersion \code{lmer}/\code{glmer} fit, regardless of
+\code{dispformula}. \code{~<group_name>} additionally requires
+\code{family = gaussian()} (no observation-level dispersion parameter
+to model per group otherwise). Mirrors the \code{dispformula} argument
+on \code{\link[lmebayesCore]{Prior_Setup_lmebayes}} and on
+\code{lmerb()}/\code{glmerb()} in \pkg{lmebayes}; all three are
+independent arguments that must be kept consistent by the caller.}
+
 \item{...}{Ignored.}
 }
 \value{
@@ -70,7 +84,16 @@ Object of class \code{"model_setup"}: \code{y}, \code{D},
 \code{re_estimable}, \code{re_glm_check}, \code{hyper_rank},
 \code{hyper_deficient}, and \code{rank_ok} from
 \code{\link[lmebayesCore]{check_identifiability}} (see its \code{@return} for exact
-definitions).
+definitions); plus \code{dispformula} (as supplied) and
+\code{glmmTMB_fit}: \code{NULL} when \code{dispformula = ~1} or
+\code{fit_mer = FALSE}; otherwise a \code{\link[glmmTMB]{glmmTMB}} fit
+on \code{formula} with the same \code{dispformula} (Gaussian models
+only), fit via the same \code{data}/\code{REML}/\code{control}-derived
+arguments as the \code{lmer_fit} above. This is \strong{additive}:
+\code{lmer_fit}/\code{glmer_fit} are never replaced by a \code{glmmTMB}
+fit. \code{\link[lmebayesCore]{Prior_Setup_lmebayes}} and \code{lmerb()} (in
+\pkg{lmebayes}) reuse \code{glmmTMB_fit} as their per-group-dispersion
+calibration reference instead of fitting \code{glmmTMB} a second time.
 }
 \description{
 Wrapper around \code{\link[lme4]{lmer}} or \code{\link[lme4]{glmer}} for

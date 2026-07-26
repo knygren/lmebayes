@@ -24,7 +24,7 @@ rlmerb(
 \code{m_convergence} inner Gibbs sweeps).}
 
 \item{design}{A \code{model_setup} object (from \code{\link[lmebayesCore]{model_setup}})
-supplying \code{y}, \code{Z}, \code{groups}, \code{X_hyper},
+supplying \code{y}, \code{D}, \code{group}, \code{W},
 \code{group_name}, and \code{re_coef_names}.}
 
 \item{prior}{Normalized prior container with \code{Sigma_ranef}, \code{prior_list},

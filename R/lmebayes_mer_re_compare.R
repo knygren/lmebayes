@@ -32,11 +32,12 @@
   if (!inherits(fit, c("lmerb", "glmerb"))) {
     stop("fit must be an lmerb or glmerb object.", call. = FALSE)
   }
-  is_lmerb  <- inherits(fit, "lmerb")
-  mer_fit   <- if (is_lmerb) fit$lmer else fit$glmer
-  if (is.null(mer_fit)) {
-    stop("fit has no reference lmer/glmer fit.", call. = FALSE)
-  }
+  ## .lmerb_reference_fit() prefers fit$glmmTMB (per-group dispersion
+  ## reference) over fit$lmer/fit$glmer when present, so comparisons match
+  ## whichever fit actually calibrated the priors; .lmebayes_reference_coef()
+  ## / .lmebayes_reference_fixef() dispatch coef()/fixef() uniformly for
+  ## either fit type (glmmTMB's are nested under $cond).
+  mer_fit   <- .lmerb_reference_fit(fit)
   re_names <- fit$model_setup$re_coef_names
   grp_col  <- fit$model_setup$group_name
   mu_mat   <- as.matrix(fit$fixef.mu)
@@ -44,9 +45,11 @@
     stop("fit$fixef.mu is NULL.", call. = FALSE)
   }
 
-  coef_raw <- as.data.frame(coef(mer_fit)[[grp_col]][, re_names, drop = FALSE])
+  coef_raw <- as.data.frame(
+    lmebayesCore:::.lmebayes_reference_coef(mer_fit)[[grp_col]][, re_names, drop = FALSE]
+  )
   grp_levs <- rownames(coef_raw)
-  fe_mer   <- lme4::fixef(mer_fit)
+  fe_mer   <- lmebayesCore:::.lmebayes_reference_fixef(mer_fit)
   anchor   <- .mer_coef_anchor(re_names, fe_mer, fit$fixef.mode)
 
   mer_full <- matrix(
@@ -156,8 +159,8 @@ print_mer_bayes_re_compare <- function(
   }
 
   mer_full <- .mer_re_reference_full(fit)
-  mer_fit  <- if (is_lmerb) fit$lmer else fit$glmer
-  fe_mer   <- lme4::fixef(mer_fit)
+  mer_fit  <- .lmerb_reference_fit(fit)
+  fe_mer   <- lmebayesCore:::.lmebayes_reference_fixef(mer_fit)
   anchor   <- .mer_coef_anchor(re_names, fe_mer, fit$fixef.mode)
   grp_levs <- rownames(mer_full)
 
@@ -203,7 +206,9 @@ print_mer_bayes_re_compare <- function(
       print(round(cmp_k, digits))
     }
   } else {
-    coef_raw_df <- as.data.frame(coef(mer_fit)[[grp_col]][, re_names, drop = FALSE])
+    coef_raw_df <- as.data.frame(
+      lmebayesCore:::.lmebayes_reference_coef(mer_fit)[[grp_col]][, re_names, drop = FALSE]
+    )
     mu_mat      <- as.matrix(fit$fixef.mu)
 
     mer_by_level <- coef_raw_df
@@ -753,7 +758,9 @@ BLOCK2_FIXEF_SE_ING <- list(
   stopifnot(inherits(fit, "lmerb"))
   re_names <- fit$model_setup$re_coef_names
   grp_col  <- fit$model_setup$group_name
-  grp_levs <- rownames(coef(fit$lmer)[[grp_col]])
+  grp_levs <- rownames(
+    lmebayesCore:::.lmebayes_reference_coef(.lmerb_reference_fit(fit))[[grp_col]]
+  )
   J        <- length(grp_levs)
   icm_b    <- fit$ranef.mode
   n_draws  <- nrow(fit$fixef[[re_names[1L]]])
@@ -837,7 +844,9 @@ BLOCK2_FIXEF_SE_ING <- list(
   stopifnot(inherits(fit, "glmerb"))
   re_names <- fit$model_setup$re_coef_names
   grp_col  <- fit$model_setup$group_name
-  grp_levs <- rownames(coef(fit$glmer)[[grp_col]])
+  grp_levs <- rownames(
+    lmebayesCore:::.lmebayes_reference_coef(.lmerb_reference_fit(fit))[[grp_col]]
+  )
   J        <- length(grp_levs)
   icm_b    <- fit$ranef.mode
   n_draws  <- nrow(fit$fixef[[re_names[1L]]])

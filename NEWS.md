@@ -1,5 +1,25 @@
 # lmebayes (development version)
 
+* **`lmerb()` gains a `$glmmTMB` field; several `summary()`/`print()` /
+  validation helpers now prefer it over the pooled `$lmer` fit when
+  present.** `lmerb()` now passes its `dispformula` argument through to its
+  `model_setup()` call (**lmebayesCore**), which fits and returns the
+  `glmmTMB` per-group-dispersion reference as `design$glmmTMB_fit` whenever
+  `dispformula` requests it. `lmerb()`'s new `$glmmTMB` field reuses this
+  (or the `"dispersion_fit"` attribute already carried forward by
+  `dGamma_list(Prior_Setup_lmebayes(...))`) instead of fitting `glmmTMB` a
+  third time; it is identical in value to the existing `$dispersion_fit`
+  field (kept for backward compatibility) and `NULL` when
+  `dispformula = ~1`. `$lmer` is **unchanged** -- always the plain
+  pooled-dispersion `lmer` fit, regardless of `dispformula`, exactly as
+  documented before. Internal consumers that previously read `$lmer`
+  unconditionally for calibration/summary tables now prefer `$glmmTMB` when
+  it is non-`NULL` (a bug fix for `dispformula = ~<group_name>` models, not
+  a behavior change for `dispformula = ~1`): `summary.lmerb()`'s `VarCorr`
+  and Block~2 `lmer`-reference columns, `print.lmerb()`'s `VarCorr` display,
+  and the `tests/manual` MER-comparison validation helpers
+  (`lmebayes_mer_re_compare.R`).
+
 * Internal: `lmerb()`/`glmerb()` now call **lmebayesCore**'s newly exported
   `priors_from_pfamily_list()` (was reached via `lmebayesCore:::.lmebayes_priors_from_pfamily_list()`).
   No user-visible change; see **lmebayesCore**'s `NEWS.md` for details --

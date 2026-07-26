@@ -27,7 +27,7 @@ NULL
 #'   \code{postVar}.
 #' @seealso \code{\link[lme4]{ranef}}, \code{\link{coef.lmerb}},
 #'   \code{\link{fixef.lmerb}}, \code{\link{lmerb}}.
-#' @importFrom lme4 fixef ranef
+#' @importFrom lme4 fixef ranef VarCorr
 #' @importFrom stats coef
 #' @export
 #' @method ranef lmerb

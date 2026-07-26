@@ -204,7 +204,15 @@
 #'     \item{\code{dispformula}}{The \code{dispformula} supplied.}
 #'     \item{\code{dispersion_fit}}{\code{NULL} when \code{dispformula = ~1};
 #'       otherwise the diagnostic-only \code{\link[glmmTMB]{glmmTMB}} fit with
-#'       per-group residual dispersion (\code{dispformula}).}
+#'       per-group residual dispersion (\code{dispformula}). Identical to
+#'       \code{glmmTMB} below; kept for backward compatibility.}
+#'     \item{\code{glmmTMB}}{Same value as \code{dispersion_fit} (an alias):
+#'       \code{NULL} when \code{dispformula = ~1}, otherwise the
+#'       \code{\link[glmmTMB]{glmmTMB}} per-group-dispersion reference fit.
+#'       Prefer this field name in new code; downstream consumers that need
+#'       a per-group-dispersion-aware reference fit (e.g.\
+#'       \code{summary.lmerb()}) use \code{glmmTMB} when non-\code{NULL} and
+#'       fall back to \code{lmer} otherwise.}
 #'     \item{\code{prior}}{Normalized prior container: \code{pfamily_list}
 #'       (as supplied, reordered to the RE coefficient names),
 #'       \code{dispersion_ranef}, the reconstructed \code{Sigma_ranef}, and
@@ -363,7 +371,8 @@ lmerb <- function(
     REML = REML,
     control = control,
     verbose = verbose,
-    devFunOnly = devFunOnly
+    devFunOnly = devFunOnly,
+    dispformula = dispformula
   )
   if (!missing(start) && !is.null(start)) {
     setup_args$start <- start
@@ -407,10 +416,16 @@ lmerb <- function(
   if (identical(prior$dispersion_mode, "gamma_list")) {
     ## dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))
     ## already carries its glmmTMB reference fit forward as an attribute;
-    ## reuse it instead of re-fitting glmmTMB here. A "fixed_vector"
-    ## dispersion_ranef is a directly user-supplied constant, not a prior to
-    ## calibrate, so it never needs a glmmTMB reference fit.
+    ## reuse it instead of re-fitting glmmTMB here. Failing that, the
+    ## model_setup() call above already fit and stored the same reference
+    ## (design$glmmTMB_fit) whenever dispformula requests per-group
+    ## dispersion, so only fit a third copy if both are unavailable. A
+    ## "fixed_vector" dispersion_ranef is a directly user-supplied constant,
+    ## not a prior to calibrate, so it never needs a glmmTMB reference fit.
     dispersion_fit <- attr(dispersion_ranef, "dispersion_fit")
+    if (is.null(dispersion_fit)) {
+      dispersion_fit <- design$glmmTMB_fit
+    }
     if (is.null(dispersion_fit)) {
       dispersion_fit <- .lmebayes_fit_glmmtmb_dispersion(
         formula           = formula,
@@ -454,6 +469,7 @@ lmerb <- function(
         call         = cl,
         formula      = formula,
         lmer         = lmer_fit,
+        glmmTMB      = dispersion_fit,
         dispformula    = dispformula,
         dispersion_fit = dispersion_fit,
         prior        = prior,
@@ -504,6 +520,7 @@ lmerb <- function(
       call                  = cl,
       formula               = formula,
       lmer                  = lmer_fit,
+      glmmTMB               = dispersion_fit,
       dispformula           = dispformula,
       dispersion_fit        = dispersion_fit,
       prior                 = prior,
@@ -599,7 +616,8 @@ print.lmerb <- function(
   } else {
     cat("Random effects (variance components fixed at lmer estimates):\n")
   }
-  print(lme4::VarCorr(x$lmer), comp = "Std.Dev.", digits = digits)
+  vc_fit <- if (!is.null(x$glmmTMB)) x$glmmTMB else x$lmer
+  print(VarCorr(vc_fit), comp = "Std.Dev.", digits = digits)
   cat(sprintf("Number of obs: %d,  groups: %s, %d\n\n", n_obs, grp, n_grp))
   if (any_non_normal && !is.null(x$fixef.dispersion.mean)) {
     cat("Posterior mean tau^2_k: ",

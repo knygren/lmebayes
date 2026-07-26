@@ -73,7 +73,7 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     simulated     = simulated,
     mer_label     = mer_label,
     mer           = mer_fit,
-    varcor        = lme4::VarCorr(mer_fit),
+    varcor        = VarCorr(mer_fit),
     dispersion    = object$prior$dispersion_ranef,
     n_obs         = length(object$model_setup$y),
     n_groups      = nlevels(object$model_setup$group),
@@ -276,7 +276,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     par_name,
     re_slope_moderation = NULL
 ) {
-  fe <- lme4::fixef(lmer_fit)
+  is_glmmtmb <- inherits(lmer_fit, "glmmTMB")
+  fe <- if (is_glmmtmb) glmmTMB::fixef(lmer_fit)$cond else fixef(lmer_fit)
   fe_names <- names(fe)
 
   candidates <- character(0)
@@ -312,8 +313,11 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   sm <- tryCatch(summary(lmer_fit), error = function(e) NULL)
   est <- unname(fe[[nm]])
   se  <- NA_real_
-  if (!is.null(sm) && nm %in% rownames(sm$coefficients)) {
-    se <- sm$coefficients[nm, "Std. Error"]
+  if (!is.null(sm)) {
+    coefs <- if (is_glmmtmb) sm$coefficients$cond else sm$coefficients
+    if (!is.null(coefs) && nm %in% rownames(coefs)) {
+      se <- coefs[nm, "Std. Error"]
+    }
   }
   list(estimate = est, se = se)
 }
@@ -500,9 +504,10 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   re_names  <- object$model_setup$re_coef_names
   mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
   mer_vc    <- tryCatch(
-    lmebayesCore:::extract_mer_variance_components(
+    lmebayesCore:::.lmebayes_extract_reference_variance_components(
       .lmerb_reference_fit(object),
-      re_coef_names = re_names
+      re_coef_names = re_names,
+      group_name    = object$model_setup$group_name
     ),
     error = function(e) NULL
   )
@@ -835,13 +840,26 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   df
 }
 
+#' Pooled \code{lmer}/\code{glmer} residual variance, for comparison against
+#' per-group dispersion tables (\code{gamma_list} / \code{fixed_vector}).
+#'
+#' Deliberately uses the plain pooled reference fit
+#' (\code{object$lmer}/\code{object$glmer}), \strong{not}
+#' \code{\link{.lmerb_reference_fit}}: when \code{dispformula} requests
+#' per-group dispersion, the whole point of these tables is comparing the
+#' per-group values against a single pooled baseline, and a \code{glmmTMB}
+#' fit with a per-group \code{dispformula} has no single residual variance
+#' to report (\code{extract_glmmtmb_variance_components()} always returns
+#' \code{residual_var = NA} for it).
 #' @keywords internal
+#' @noRd
 .lmerb_sigma2_mer_reference <- function(object) {
-  re_names  <- object$model_setup$re_coef_names
-  mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
+  re_names   <- object$model_setup$re_coef_names
+  mer_label  <- if (inherits(object, "glmerb")) "glmer" else "lmer"
+  pooled_fit <- if (inherits(object, "glmerb")) object$glmer else object$lmer
   mer_vc    <- tryCatch(
     lmebayesCore:::extract_mer_variance_components(
-      .lmerb_reference_fit(object),
+      pooled_fit,
       re_coef_names = re_names
     ),
     error = function(e) NULL

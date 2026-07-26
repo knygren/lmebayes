@@ -225,7 +225,15 @@ the plain pooled-dispersion \code{lmer} fit, regardless of
 \item{\code{dispformula}}{The \code{dispformula} supplied.}
 \item{\code{dispersion_fit}}{\code{NULL} when \code{dispformula = ~1};
 otherwise the diagnostic-only \code{\link[glmmTMB]{glmmTMB}} fit with
-per-group residual dispersion (\code{dispformula}).}
+per-group residual dispersion (\code{dispformula}). Identical to
+\code{glmmTMB} below; kept for backward compatibility.}
+\item{\code{glmmTMB}}{Same value as \code{dispersion_fit} (an alias):
+\code{NULL} when \code{dispformula = ~1}, otherwise the
+\code{\link[glmmTMB]{glmmTMB}} per-group-dispersion reference fit.
+Prefer this field name in new code; downstream consumers that need
+a per-group-dispersion-aware reference fit (e.g.\
+\code{summary.lmerb()}) use \code{glmmTMB} when non-\code{NULL} and
+fall back to \code{lmer} otherwise.}
 \item{\code{prior}}{Normalized prior container: \code{pfamily_list}
 (as supplied, reordered to the RE coefficient names),
 \code{dispersion_ranef}, the reconstructed \code{Sigma_ranef}, and

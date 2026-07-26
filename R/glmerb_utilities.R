@@ -14,8 +14,20 @@
   if (identical(sim_method_used, "DEFAULT")) "exact iid" else "two-block Gibbs"
 }
 
+#' Reference fit backing calibration/summary tables for an \code{lmerb}/
+#' \code{glmerb} object.
+#'
+#' Prefers \code{object$glmmTMB} (the per-group-dispersion \code{glmmTMB}
+#' reference; only non-\code{NULL} when \code{dispformula} requested
+#' per-group dispersion) when present, since \code{object$lmer}/
+#' \code{object$glmer} is always the plain pooled-dispersion fit and would
+#' misreport per-group residual variance / fixed-effect SEs for those
+#' models. Falls back to \code{object$lmer}/\code{object$glmer} otherwise.
 #' @noRd
 .lmerb_reference_fit <- function(object) {
+  if (!is.null(object$glmmTMB)) {
+    return(object$glmmTMB)
+  }
   if (inherits(object, "glmerb")) {
     if (is.null(object$glmer)) {
       stop("glmerb fit is missing component 'glmer'.", call. = FALSE)

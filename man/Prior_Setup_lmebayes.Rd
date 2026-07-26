@@ -87,15 +87,18 @@ not groups).  See \code{pwt_measurement}.}
 \item{dispformula}{One-sided formula selecting the Block~1 measurement-
 dispersion structure: \code{~1} (default, pooled) or \code{~<group_name>}
 (matching the random-effects grouping factor exactly, requesting
-per-group dispersion).  Gaussian models only compute the per-group
-\code{ing_prior_measurement_group} calibration (a within-group
-regression fit for every group level, used only by
-\code{\link[lmebayesCore]{dGamma_list}()}) when \code{dispformula} is the group
-formula; \code{dispformula = ~1} skips it entirely, so \code{pwt_measurement}
-/ \code{n_prior_measurement} must then be scalar (pooled).  Mirrors the
-\code{dispformula} argument on \code{lmerb()}/\code{glmerb()} in
-\pkg{lmebayes}, which gates the analogous choice of sampler route; the
-two are independent arguments that must be kept consistent by the caller.}
+per-group dispersion).  Passed through to \code{\link[lmebayesCore]{model_setup}},
+which fits and stores the \code{glmmTMB} reference
+(\code{design$glmmTMB_fit}) reused below as \code{fit_ref}.  Gaussian
+models only compute the per-group \code{ing_prior_measurement_group}
+calibration (a within-group regression fit for every group level, used
+only by \code{\link[lmebayesCore]{dGamma_list}()}) when \code{dispformula} is the
+group formula; \code{dispformula = ~1} skips it entirely, so
+\code{pwt_measurement} / \code{n_prior_measurement} must then be scalar
+(pooled).  Mirrors the \code{dispformula} argument on
+\code{lmerb()}/\code{glmerb()} in \pkg{lmebayes}, which gates the
+analogous choice of sampler route; the two are independent arguments
+that must be kept consistent by the caller.}
 
 \item{max_disp_perc}{Scalar in \eqn{(0.5, 1)}, default \code{0.99}.
 Tail probability used to compute the \eqn{\sigma^2} (Block~1) and
