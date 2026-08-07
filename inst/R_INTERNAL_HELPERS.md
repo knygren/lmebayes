@@ -36,7 +36,7 @@ Mixed-model sampling, prior-setup, and lme4 design helpers were moved to
 | `.mrglmb_normalize_pfamily_lists` | *(Core)* | `lmbBlock()`, `glmbBlock()` (alias in `block_core_pfamily.R`) |
 | `.validate_pfamily_for_rlmb` | *(Core)* | `lmbBlock()`, `glmbBlock()` (alias in `block_core_pfamily.R`) |
 
-Formula drivers call re-exported `model_setup()`, `Prior_Setup_lmebayes()`, `rlmerb()`,
+Formula drivers call re-exported `model_setup()`, `Prior_Setup_GLMM()`, `rlmerb()`,
 and `rglmerb()` without namespace qualification.
 
 **Direct Core calls (must stay exported):** `build_mu_all()`, `lmerb_posterior_mean()`,

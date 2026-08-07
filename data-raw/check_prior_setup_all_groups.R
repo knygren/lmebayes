@@ -1,4 +1,4 @@
-## Quick check: Prior_Setup_lmebayes calibrates from ALL groups (full-rank
+## Quick check: Prior_Setup_GLMM calibrates from ALL groups (full-rank
 ## status is a design check only).  Run: Rscript data-raw/check_prior_setup_all_groups.R
 pkgload::load_all("C:/Rpackages/lmebayes", export_all = FALSE, quiet = TRUE)
 
@@ -16,13 +16,13 @@ form <- score_ppvt ~ private_school + title1 + free_reduced_lunch +
   distracted_a1 + distracted_ppvt + free_reduced_lunch:distracted_a1 +
   (1 + distracted_ppvt + distracted_a1 || school_id)
 
-ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+ps <- Prior_Setup_GLMM(form, data = dat, pwt = 0.01)
 print(ps)
 
 ## dispformula = ~1 (pooled, the default here): fit_ref is identical to
 ## mer_fit and design$lmer_fit -- both the all-groups lme4 reference fit from
 ## model_setup(). Only dispformula = ~<group_name> makes fit_ref a separate
-## glmmTMB fit (see Prior_Setup_lmebayes()'s calibration_source).
+## glmmTMB fit (see Prior_Setup_GLMM()'s calibration_source).
 stopifnot(identical(ps$calibration_source, "lme4"))
 stopifnot(identical(ps$fit_ref, ps$mer_fit))
 stopifnot(identical(ps$fit_ref, ps$design$lmer_fit))

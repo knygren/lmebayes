@@ -7,7 +7,7 @@
 #'
 #' After the usual NA / complete-case filter, drops \code{school_id} levels that
 #' are not algebraically full-rank on \code{Z_j} (\code{model_setup()$re_rank})
-#' before \code{\link{Prior_Setup_lmebayes}} — same rule as
+#' before \code{\link{Prior_Setup_GLMM}} — same rule as
 #' \code{demo("Ex_24_lmerb_dGamma_BigWordClub")}.
 #'
 #' @param pwt Prior weight for Block~2 setup.
@@ -60,7 +60,7 @@
   if (!is.null(pwt_dispersion)) {
     ps_args$pwt_dispersion <- pwt_dispersion
   }
-  ps <- do.call(Prior_Setup_lmebayes, ps_args)
+  ps <- do.call(Prior_Setup_GLMM, ps_args)
 
   list(dat = dat, form = form, design = design, ps = ps)
 }

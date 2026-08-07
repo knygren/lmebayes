@@ -9,7 +9,7 @@ rglmerb(
   design,
   prior,
   family = poisson(),
-  dispersion_ranef = NULL,
+  group.dispersion = NULL,
   gap_tol = 0.0196,
   tv_tol = 0.01,
   mode_gap_max = 1,
@@ -24,12 +24,12 @@ rglmerb(
 
 \item{design}{A \code{model_setup} object (from \code{\link[lmebayesCore]{model_setup}}).}
 
-\item{prior}{A normalized prior container with \code{Sigma_ranef},
-\code{prior_list}, and \code{pfamily_list}.}
+\item{prior}{A normalized prior container with \code{group.Sigma},
+\code{pop.prior_list}, and \code{pfamily_list}.}
 
 \item{family}{A \code{\link[stats]{family}} object. Default \code{poisson()}.}
 
-\item{dispersion_ranef}{Observation-level measurement dispersion \eqn{\sigma^2}:
+\item{group.dispersion}{Observation-level measurement dispersion \eqn{\sigma^2}:
 required positive scalar for \code{family = gaussian()}, or a
 \code{\link[glmbayesCore]{dGamma}()} pfamily with \code{Inv_Dispersion = TRUE}; must be
 \code{NULL} (default) for \code{poisson()} and \code{binomial()}.}
@@ -76,7 +76,7 @@ prior containers. Routes by response family:
 \code{\link[lmebayesCore]{rLMMNormal_reg_estimated_vcov}},
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_known_vcov}}, or
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}} according to
-\code{dispersion_ranef} and Block~2 \code{pfamily_list}.
+\code{group.dispersion} and Block~2 \code{pfamily_list}.
 \item Non-Gaussian families delegate via \code{\link[lmebayesCore]{rGLMM_reg}} routes
 (through internal \code{.lmebayes_run_glmm_engine()} and
 \code{REG_ROUTE_TABLE}; pilot stage always unless \code{n_pilot = 0L};
@@ -86,12 +86,12 @@ routes differ in eigenvalue-bound complexity). Inner sweeps use
 
 For formula-level fitting, \code{glmerb()} in the lmebayes package wraps this sampler.
 Design matrices are built with \code{\link[lmebayesCore]{model_setup}} and priors with
-\code{\link[lmebayesCore]{Prior_Setup_lmebayes}}.
+\code{\link[lmebayesCore]{Prior_Setup_GLMM}}.
 }
 \seealso{
 \code{\link[lmebayesCore]{rlmerb}}, \code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}},
 \code{\link[lmebayesCore]{rLMMNormal_reg_estimated_vcov}},
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_known_vcov}},
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}}, \code{\link[lmebayesCore]{rGLMM_reg}},
-\code{\link[lmebayesCore]{Prior_Setup_lmebayes}}
+\code{\link[lmebayesCore]{Prior_Setup_GLMM}}
 }

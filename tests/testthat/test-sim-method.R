@@ -16,14 +16,14 @@ test_that("lmerb(): sim_method dispatches DEFAULT to iid and TWO_BLOCK_GIBBS to 
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
 
   set.seed(1L)
   fit_default <- lmerb(
     form,
     data             = dat,
     pfamily_list     = pfamily_list(ps),
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     n                = 50L,
     progbar          = FALSE
   )
@@ -37,7 +37,7 @@ test_that("lmerb(): sim_method dispatches DEFAULT to iid and TWO_BLOCK_GIBBS to 
     form,
     data             = dat,
     pfamily_list     = pfamily_list(ps),
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     n                = 50L,
     progbar          = FALSE,
     sim_method       = "TWO_BLOCK_GIBBS"
@@ -62,7 +62,7 @@ test_that("lmerb(): sim_method is a no-op off the fixed+known-vcov route", {
   dat <- subset(dat, !is.na(score_ppvt))
   form <- score_ppvt ~ private_school + (1 | school_id)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
   pf <- pfamily_list(ps, ptypes = "dIndependent_Normal_Gamma")
 
   set.seed(1L)
@@ -70,7 +70,7 @@ test_that("lmerb(): sim_method is a no-op off the fixed+known-vcov route", {
     form,
     data             = dat,
     pfamily_list     = pf,
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     n                = 20L,
     gap_tol          = NULL,
     progbar          = FALSE
@@ -82,7 +82,7 @@ test_that("lmerb(): sim_method is a no-op off the fixed+known-vcov route", {
     form,
     data             = dat,
     pfamily_list     = pf,
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     n                = 20L,
     gap_tol          = NULL,
     progbar          = FALSE,
@@ -99,14 +99,14 @@ test_that("lmerb()/glmerb() reject unknown sim_method values", {
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
 
   expect_error(
     lmerb(
       form,
       data             = dat,
       pfamily_list     = pfamily_list(ps),
-      dispersion_ranef = ps$dispersion_ranef,
+      dispersion_ranef = ps$group.dispersion,
       n                = 2L,
       sim_method       = "bogus"
     ),
@@ -119,7 +119,7 @@ test_that("lmerb()/glmerb() reject unknown sim_method values", {
       data             = dat,
       family           = gaussian(),
       pfamily_list     = pfamily_list(ps),
-      dispersion_ranef = ps$dispersion_ranef,
+      dispersion_ranef = ps$group.dispersion,
       n                = 2L,
       sim_method       = "bogus"
     ),
@@ -135,7 +135,7 @@ test_that("glmerb(family = gaussian()): sim_method dispatches like lmerb()", {
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
 
   set.seed(1L)
   fit_default <- glmerb(
@@ -143,7 +143,7 @@ test_that("glmerb(family = gaussian()): sim_method dispatches like lmerb()", {
     data             = dat,
     family           = gaussian(),
     pfamily_list     = pfamily_list(ps),
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     n                = 50L,
     progbar          = FALSE
   )
@@ -157,7 +157,7 @@ test_that("glmerb(family = gaussian()): sim_method dispatches like lmerb()", {
     data             = dat,
     family           = gaussian(),
     pfamily_list     = pfamily_list(ps),
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     n                = 50L,
     progbar          = FALSE,
     sim_method       = "TWO_BLOCK_GIBBS"
@@ -172,13 +172,13 @@ test_that("lmerb(): simulate = FALSE leaves sim_method_used NULL", {
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
 
   fit <- lmerb(
     form,
     data             = dat,
     pfamily_list     = pfamily_list(ps),
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     simulate         = FALSE
   )
   expect_null(fit$sim_method_used)

@@ -20,7 +20,7 @@ form_lmer <- score_ppvt ~
   (1 + distracted_ppvt + distracted_a1 || school_id)
 
 run_case <- function(label, ...) {
-  ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01, ...)
+  ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01, ...)
   pf <- pfamily_list(ps, ptypes = "dIndependent_Normal_Gamma")
   out <- capture.output(
     fit <- lmerb(form_lmer, data = dat,

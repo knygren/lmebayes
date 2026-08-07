@@ -66,8 +66,8 @@ Set `simulate = FALSE` on `lmerb()` / `glmerb()` for ICM posterior mean/mode onl
 |----------|------|
 | `Prior_SetupBlock()` | Run `Prior_Setup()` independently on each row block (for `lmbBlock()` / `glmbBlock()`). |
 
-Typical workflow: `model_setup()` → `Prior_Setup_lmebayes()` → `pfamily_list(ps)` → `lmerb()` / `glmerb()`.
-(`model_setup`, `Prior_Setup_lmebayes`, `pfamily_list`, and their `print` methods are implemented in **lmebayesCore** and re-exported here.)
+Typical workflow: `model_setup()` → `Prior_Setup_GLMM()` → `pfamily_list(ps)` → `lmerb()` / `glmerb()`.
+(`model_setup`, `Prior_Setup_GLMM`, `pfamily_list`, and their `print` methods are implemented in **lmebayesCore** and re-exported here.)
 
 #### Diagnostics and build utilities
 
@@ -102,10 +102,10 @@ Row-block wrappers `lmbBlock()` and `glmbBlock()` call these per block.
 
 | Function | Role |
 |----------|------|
-| `pfamily_list()` | Generic plus `lmebayes_prior_setup` method (`?lmebayesCore::pfamily_list.lmebayes_prior_setup`): build Block~2 `pfamily` objects from `Prior_Setup_lmebayes()`. |
+| `pfamily_list()` | Generic plus `Prior_Setup_GLMM` method (`?lmebayesCore::pfamily_list.Prior_Setup_GLMM`): build Block~2 `pfamily` objects from `Prior_Setup_GLMM()`. |
 | `plot_sweep_history_diag()` | Cross-chain mean/SD vs inner sweep for `two_block_sweep_history` (e.g. `fit$sweep_history$main` from `lmerb()` / `glmerb()` or `rlmerb()` / `rglmerb()`). |
 | `model_setup()` | Parse an `lme4`-style formula into design matrices and variance components (single grouping factor). |
-| `Prior_Setup_lmebayes()` | Calibrate Block~2 hyperpriors from a reference `lmer` / `glmer` fit. |
+| `Prior_Setup_GLMM()` | Calibrate Block~2 hyperpriors from a reference `lmer` / `glmer` fit. |
 | `rlmerb()` | Matrix-level Gaussian LMM sampler (two-block Gibbs; replicate chains). |
 | `rglmerb()` | Matrix-level GLMM sampler: Gaussian → `rLMMNormal_reg()` / ING; other families → `rGLMM_reg()` sweep-outer. |
 
@@ -183,7 +183,7 @@ Requires the **bayesrules** package (`install.packages("bayesrules")`).
     lme4::lmer(form, data = dat)
 
     ## Bayesian lmerb — prior setup + ICM posterior mean/mode (no Gibbs draws)
-    ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+    ps <- Prior_Setup_GLMM(form, data = dat, pwt = 0.01)
     fit <- lmerb(
       form,
       data             = dat,
@@ -196,16 +196,16 @@ Requires the **bayesrules** package (`install.packages("bayesrules")`).
     print(fit)
     summary(fit)
 
-`Prior_Setup_lmebayes()` calibrates Block~2 hyperpriors from a weak-prior **lmer** fit;
+`Prior_Setup_GLMM()` calibrates Block~2 hyperpriors from a weak-prior **lmer** fit;
 `lmerb(..., simulate = FALSE)` returns that reference fit plus exact **ICM** posterior
 mean/mode values (no stored draws). For iid Gibbs samples, set `simulate = TRUE` or run
 the demos listed below.
 
 ## Priors and GLM families
 
-Formula-based iid priors (`Prior_Setup`, `pfamily`, `dNormal`, …) are re-exported from **glmbayesCore**; `glmb()` / `lmb()` are re-exported directly from **glmbayes** (see `R/reexports_glmbayes.R`) and called per block by `lmbBlock()` / `glmbBlock()`. Mixed-model Block~2 setup (`Prior_Setup_lmebayes`, `pfamily_list`, `model_setup`) and matrix samplers (`rlmerb`, `rglmerb`) are implemented in **lmebayesCore** and re-exported here. **lmebayes** adds row-block priors via `Prior_SetupBlock()` and formula drivers `lmerb()` / `glmerb()`.
+Formula-based iid priors (`Prior_Setup`, `pfamily`, `dNormal`, …) are re-exported from **glmbayesCore**; `glmb()` / `lmb()` are re-exported directly from **glmbayes** (see `R/reexports_glmbayes.R`) and called per block by `lmbBlock()` / `glmbBlock()`. Mixed-model Block~2 setup (`Prior_Setup_GLMM`, `pfamily_list`, `model_setup`) and matrix samplers (`rlmerb`, `rglmerb`) are implemented in **lmebayesCore** and re-exported here. **lmebayes** adds row-block priors via `Prior_SetupBlock()` and formula drivers `lmerb()` / `glmerb()`.
 
-See `?Prior_Setup`, `?Prior_Setup_lmebayes`, `?pfamily_list`, and **glmbayes** `vignette("Chapter-04", package = "glmbayes")`.
+See `?Prior_Setup`, `?Prior_Setup_GLMM`, `?pfamily_list`, and **glmbayes** `vignette("Chapter-04", package = "glmbayes")`.
 
 ## Examples and Demos
 

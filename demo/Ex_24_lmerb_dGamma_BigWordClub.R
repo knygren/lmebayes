@@ -73,8 +73,8 @@ cat("\n=== model_setup (full-rank schools only) ===\n\n")
 print(design)
 stopifnot(all(design$re_rank))
 
-ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
-cat("\n=== Prior_Setup_lmebayes ===\n\n")
+ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01)
+cat("\n=== Prior_Setup_GLMM ===\n\n")
 print(ps)
 
 pf <- pfamily_list(ps)

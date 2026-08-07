@@ -72,8 +72,8 @@ increases the contraction rate \eqn{\lambda^*}, so the bound holds
 for every dispersion in the truncated support).  They must also
 satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
 (\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
-\code{\link[lmebayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
-\code{\link{Prior_Setup_lmebayes}} object.}
+\code{\link[lmebayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list}} from a
+\code{\link{Prior_Setup_GLMM}} object.}
 
 \item{dispersion_ranef}{Observation-level measurement dispersion, treated
 as known during sampling.  For families with a dispersion parameter
@@ -82,7 +82,7 @@ as known during sampling.  For families with a dispersion parameter
 \code{dGamma_list(...)} or a named numeric vector of positive, fixed
 per-group values (names must match the random-effects grouping factor's
 levels exactly).  Must be \code{NULL} (default) for \code{poisson()} and
-\code{binomial()}.  Typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.
+\code{binomial()}.  Typically \code{Prior_Setup_GLMM(...)$dispersion_ranef}.
 Which shapes are accepted depends on \code{dispformula} (see below). The
 fixed numeric vector shape currently only takes effect for
 \code{family = gaussian()} (shared code path with \code{\link{lmerb}});
@@ -102,7 +102,7 @@ requires a \code{glmmTMB} reference fit (\pkg{glmmTMB} must be
 installed), stored as \code{dispersion_fit} (reused from
 \code{dispersion_ranef}'s \code{"dispersion_fit"} attribute when
 \code{dispersion_ranef} was built via
-\code{dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))},
+\code{dGamma_list(Prior_Setup_GLMM(..., dispformula = dispformula))},
 rather than re-fitting \code{glmmTMB}); \code{~<group_name>} with a fixed
 numeric vector never fits one, since the per-group dispersion is
 directly user-supplied, not a prior to calibrate. \code{glmer} is always
@@ -263,7 +263,7 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
 
   form <- reviews ~ walk_c + rating_c + (1 + rating_c || neighborhood)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, family = poisson(), pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, family = poisson(), pop.pwt = 0.01)
 
   fit <- glmerb(
     form,

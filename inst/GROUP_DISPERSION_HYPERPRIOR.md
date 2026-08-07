@@ -6,12 +6,12 @@ per-group variance estimates. As shown in §8, the *prior* stays shared
 across groups; group-specific behavior comes from the envelope's
 truncation window and from each group's own likelihood at draw time, not
 from a group-specific prior mean. Not yet wired into
-`Prior_Setup_lmebayes()`; see `data-raw/scale_school_smoke_test.R` for the
+`Prior_Setup_GLMM()`; see `data-raw/scale_school_smoke_test.R` for the
 runnable version this note describes.
 
 ## 1. Motivation
 
-`Prior_Setup_lmebayes()` currently calibrates **one pooled** measurement
+`Prior_Setup_GLMM()` currently calibrates **one pooled** measurement
 dispersion, `dispersion_ranef = sigma(lmer_fit)^2`, shared by every group.
 Classical per-group estimates on the `big_word_club` all-full-rank fixture
 (39 schools, `p_re = 2`) show substantial heterogeneity around that pooled
@@ -127,7 +127,7 @@ tau2_hat = 17963.92
 ## 6. Mapping `(mu_hat, tau2_hat)` to Gamma hyperparameters
 
 Same mean-matching convention already used by `ing_prior` /
-`ing_prior_measurement` in `Prior_Setup_lmebayes()`:
+`ing_prior_measurement` in `Prior_Setup_GLMM()`:
 
 ```
 a0 <- 2 + mu_hat^2 / tau2_hat

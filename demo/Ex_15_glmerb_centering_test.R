@@ -61,7 +61,7 @@ stopifnot(nlevels(dat$neighborhood) == 6L)
 
 form <- reviews ~ walk_c + rating_c + (1 + rating_c || neighborhood)
 
-ps <- Prior_Setup_lmebayes(form, data = dat, family = poisson(), pwt = 0.01)
+ps <- Prior_Setup_GLMM(form, data = dat, family = poisson(), pwt = 0.01)
 
 fit <- glmerb(
   form,

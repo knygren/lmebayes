@@ -1,6 +1,6 @@
 # The ING tau^2 truncation window
 
-How `Prior_Setup_lmebayes()` chooses the default `disp_lower` / `disp_upper`
+How `Prior_Setup_GLMM()` chooses the default `disp_lower` / `disp_upper`
 bounds for `dIndependent_Normal_Gamma` (ING) Block-2 dispersion priors, and
 why they are quantiles of the *limiting posterior* rather than of the prior.
 
@@ -102,7 +102,7 @@ Properties:
 - The truncation is part of the model: ~1% of posterior mass is clipped in
   each tail (asymptotically).  This slightly shortens the reported extreme
   `tau2` quantiles.  Diagnose with the `Cand/draw` column of
-  `summary()` and the printed window in `print(Prior_Setup_lmebayes(...))`.
+  `summary()` and the printed window in `print(Prior_Setup_GLMM(...))`.
 - The per-sweep conditional posterior's rate fluctuates with the current
   group-effect draws; the coverage statements above use the mean-matched
   plug-in rate.  The shape -- which controls the width -- is exact.

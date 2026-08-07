@@ -31,8 +31,8 @@ dIndependent_Normal_Gamma <- glmbayesCore::dIndependent_Normal_Gamma
 dGamma <- glmbayesCore::dGamma
 
 ## Proper re-export (not a copy) so S3 methods register against the
-## lmebayesCore generic.  The lmebayes_prior_setup method lives in Core;
-## see ?lmebayesCore::pfamily_list.lmebayes_prior_setup.
+## lmebayesCore generic.  The Prior_Setup_GLMM method lives in Core;
+## see ?lmebayesCore::pfamily_list.Prior_Setup_GLMM.
 #' @inherit lmebayesCore::pfamily_list title description details params return seealso
 #' @name pfamily_list
 #' @importFrom lmebayesCore pfamily_list
@@ -68,6 +68,6 @@ rglmerb <- lmebayesCore::rglmerb
 #' @export
 model_setup <- lmebayesCore::model_setup
 
-#' @inherit lmebayesCore::Prior_Setup_lmebayes title description details params return seealso
+#' @inherit lmebayesCore::Prior_Setup_GLMM title description details params return seealso
 #' @export
-Prior_Setup_lmebayes <- lmebayesCore::Prior_Setup_lmebayes
+Prior_Setup_GLMM <- lmebayesCore::Prior_Setup_GLMM

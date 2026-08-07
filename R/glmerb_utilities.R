@@ -72,11 +72,11 @@
 #' @noRd
 .lmebayes_icm_at_fixed_vc <- function(design, prior, family) {
   measurement_prior_list <- list(
-    Sigma_ranef      = prior$Sigma_ranef,
-    prior_list       = prior$prior_list,
-    dispersion_ranef = prior$dispersion_ranef
+    group.Sigma      = prior$group.Sigma,
+    pop.prior_list   = prior$pop.prior_list,
+    group.dispersion = prior$group.dispersion
   )
-  re_names <- design$re_coef_names
+  re_names <- design$groupef.names
   is_gaussian <- identical(family$family, "gaussian")
   if (is_gaussian) {
     pm <- lmebayesCore::lmerb_posterior_mean(
@@ -92,10 +92,10 @@
     )
     icm_label <- "ICM mode"
   }
-  fixef_init <- lapply(prior$prior_list, `[[`, "mu_fixef")
+  fixef_init <- lapply(prior$pop.prior_list, `[[`, "mu")
   names(fixef_init) <- re_names
   tau2_mode <- stats::setNames(
-    vapply(re_names, function(k) prior$prior_list[[k]]$dispersion_fixef, numeric(1)),
+    vapply(re_names, function(k) prior$pop.prior_list[[k]]$dispersion, numeric(1)),
     re_names
   )
   list(
@@ -109,7 +109,7 @@
     ),
     icm_label  = icm_label,
     joint_mode = FALSE,
-    sigma2     = prior$dispersion_ranef,
+    sigma2     = prior$group.dispersion,
     tau2       = tau2_mode
   )
 }
@@ -118,7 +118,7 @@
 #' @noRd
 .lmebayes_print_icm_simulate_false <- function(prior, re_names, icm, header) {
   lmebayesCore:::.lmebayes_print_icm_fixef_table(
-    prior_list = prior$prior_list,
+    prior_list = prior$pop.prior_list,
     re_names   = re_names,
     fixef_icm  = icm$fixef,
     icm_info   = icm$icm_info,

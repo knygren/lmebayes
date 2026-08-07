@@ -31,7 +31,7 @@ message("Posterior draws: n = ", n_draw)
 ## random slopes. Cross-level moderation: free_reduced_lunch:distracted_a1
 ## (school lunch status moderates the distracted_a1 random slope).
 ##
-## Workflow: model_setup(), then Prior_Setup_lmebayes(), then glmerb().
+## Workflow: model_setup(), then Prior_Setup_GLMM(), then glmerb().
 
 data(big_word_club, package = "bayesrules")
 
@@ -60,7 +60,7 @@ design <- model_setup(form_lmer, data = dat)
 cat("\n=== model_setup ===\n\n")
 print(design)
 
-ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
+ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01)
 
 
 

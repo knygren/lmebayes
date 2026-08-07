@@ -11,7 +11,7 @@ in [README.md — Examples and Demos](../README.md#examples-and-demos), plus
 **`Ex_23`** for the full Gaussian LMM 2×2. Standard workflow:
 
 ```r
-ps <- Prior_Setup_lmebayes(form, data = dat, ...)
+ps <- Prior_Setup_GLMM(form, data = dat, ...)
 pf <- pfamily_list(ps)   # or ptypes = "dIndependent_Normal_Gamma" for ING Block~2
 fit <- lmerb(form, data = dat, pfamily_list = pf, dispersion_ranef = ps$dispersion_ranef, ...)
 # or glmerb(..., family = ..., pfamily_list = pf, ...)

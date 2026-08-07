@@ -71,16 +71,16 @@ increases the contraction rate \eqn{\lambda^*}, so the bound holds
 for every dispersion in the truncated support).  They must also
 satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
 (\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
-\code{\link[lmebayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
-\code{\link{Prior_Setup_lmebayes}} object.}
+\code{\link[lmebayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list}} from a
+\code{\link{Prior_Setup_GLMM}} object.}
 
 \item{dispersion_ranef}{Observation-level measurement dispersion
 \eqn{\sigma^2} for Block~1.  One of: a positive scalar (treated as
-known; typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}), a
+known; typically \code{Prior_Setup_GLMM(...)$dispersion_ranef}), a
 single \code{\link[glmbayesCore]{dGamma}()} \code{pfamily} (pooled
 \eqn{\sigma^2} across groups), a named list of \code{dGamma()}
 objects (one per group level) from
-\code{\link[lmebayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}(Prior_Setup_lmebayes(...))},
+\code{\link[lmebayesCore:dGamma_list.Prior_Setup_GLMM]{dGamma_list}(Prior_Setup_GLMM(...))},
 or a named numeric vector of positive, fixed per-group values (names
 must match the random-effects grouping factor's levels exactly; each
 group's \eqn{\sigma^2_j} is then treated as known, like the pooled
@@ -99,7 +99,7 @@ never fits an extra reference model. \code{~<group_name>} with a
 fit (\pkg{glmmTMB} must be installed), stored as \code{dispersion_fit};
 \code{~<group_name>} with a fixed numeric vector never fits one, since
 the per-group dispersion is directly user-supplied, not a prior to
-calibrate. When \code{dispersion_ranef = dGamma_list(Prior_Setup_lmebayes(...,
+calibrate. When \code{dispersion_ranef = dGamma_list(Prior_Setup_GLMM(...,
   dispformula = dispformula))}, that call already fit the glmmTMB
 reference model to calibrate the priors, and \code{lmerb()} reuses it
 here rather than fitting \code{glmmTMB} a second time; keep
@@ -323,14 +323,14 @@ supplied as a named list of \code{\link[glmbayesCore]{pfamily}} objects
 (\code{pfamily_list}, the Block~2 hyperpriors -- one per random-effect
 coefficient) plus the observation-level measurement dispersion
 (\code{dispersion_ranef}).  Both are typically built from
-\code{\link{Prior_Setup_lmebayes}}:
+\code{\link{Prior_Setup_GLMM}}:
 \code{pfamily_list = pfamily_list(ps)} and either a fixed scalar
 \code{dispersion_ranef = ps$dispersion_ranef}, a single pooled
 \code{dGamma()} prior, or a named per-group list from
 \code{dGamma_list(ps)}.  The Block~1 random-effect
 covariance is reconstructed from the Block~2 pfamily dispersions
 (\code{Sigma_ranef = diag(tau^2_k)}); \code{lmerb} does not call
-\code{Prior_Setup_lmebayes} internally.
+\code{Prior_Setup_GLMM} internally.
 
 Runs a two-block Gibbs sampler for \code{n} iterations. Block 1 draws
 group-level random effects \eqn{b_j} given the current hyper means; Block 2
@@ -399,13 +399,13 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
     (1 + distracted_ppvt || school_id)
 
   ## Default hyperpriors calibrated from a reference lmer fit (weak prior).
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
 
   fit <- lmerb(
     form,
     data             = dat,
     pfamily_list     = pfamily_list(ps),
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     simulate         = FALSE
   )
   ## lmer MLE vs ICM posterior mean (no MCMC means when simulate = FALSE).
@@ -424,7 +424,7 @@ probability distributions via Markov chain Monte Carlo.
 \emph{Statistical Science} \bold{16}, 312--334.
 }
 \seealso{
-\code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
+\code{\link{Prior_Setup_GLMM}}, \code{\link{model_setup}},
 \code{\link[lmebayesCore]{build_mu_all}},
 \code{\link[lmebayesCore]{two_block_rNormal_reg}},
 \code{\link[lmebayesCore]{lmerb_posterior_mean}},

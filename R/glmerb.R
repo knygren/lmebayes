@@ -20,7 +20,7 @@
 #'   \code{dGamma_list(...)} or a named numeric vector of positive, fixed
 #'   per-group values (names must match the random-effects grouping factor's
 #'   levels exactly).  Must be \code{NULL} (default) for \code{poisson()} and
-#'   \code{binomial()}.  Typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}.
+#'   \code{binomial()}.  Typically \code{Prior_Setup_GLMM(...)$dispersion_ranef}.
 #'   Which shapes are accepted depends on \code{dispformula} (see below). The
 #'   fixed numeric vector shape currently only takes effect for
 #'   \code{family = gaussian()} (shared code path with \code{\link{lmerb}});
@@ -39,7 +39,7 @@
 #'   installed), stored as \code{dispersion_fit} (reused from
 #'   \code{dispersion_ranef}'s \code{"dispersion_fit"} attribute when
 #'   \code{dispersion_ranef} was built via
-#'   \code{dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))},
+#'   \code{dGamma_list(Prior_Setup_GLMM(..., dispformula = dispformula))},
 #'   rather than re-fitting \code{glmmTMB}); \code{~<group_name>} with a fixed
 #'   numeric vector never fits one, since the per-group dispersion is
 #'   directly user-supplied, not a prior to calibrate. \code{glmer} is always
@@ -159,7 +159,7 @@ glmerb <- function(
   if (missing(pfamily_list) || is.null(pfamily_list)) {
     stop(
       "'pfamily_list' is required. Build it with ",
-      "pfamily_list(Prior_Setup_lmebayes(...)) and pass the result to glmerb().",
+      "pfamily_list(Prior_Setup_GLMM(...)) and pass the result to glmerb().",
       call. = FALSE
     )
   }
@@ -195,7 +195,7 @@ glmerb <- function(
 
   prior <- lmebayesCore::priors_from_pfamily_list(
     pfamily_list     = pfamily_list,
-    dispersion_ranef = dispersion_ranef,
+    group.dispersion = dispersion_ranef,
     design           = design,
     family           = family,
     fn_name          = "glmerb"
@@ -219,12 +219,12 @@ glmerb <- function(
 
   dispersion_fit <- NULL
   if (identical(prior$dispersion_mode, "gamma_list")) {
-    ## dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))
+    ## dGamma_list(Prior_Setup_GLMM(..., dispformula = dispformula))
     ## already carries its glmmTMB reference fit forward as an attribute;
     ## reuse it instead of re-fitting glmmTMB here. A "fixed_vector"
     ## dispersion_ranef is a directly user-supplied constant, not a prior to
     ## calibrate, so it never needs a glmmTMB reference fit.
-    dispersion_fit <- attr(dispersion_ranef, "dispersion_fit")
+    dispersion_fit <- attr(dispersion_ranef, "group.dispersion.fit")
     if (is.null(dispersion_fit)) {
       dispersion_fit <- .lmebayes_fit_glmmtmb_dispersion(
         formula           = formula,
@@ -251,8 +251,8 @@ glmerb <- function(
   glmer_fit <- do.call(lme4::glmer, glmer_args)
 
   if (is.null(fixef)) {
-    fixef <- lapply(prior$prior_list, `[[`, "mu_fixef")
-    names(fixef) <- design$re_coef_names
+    fixef <- lapply(prior$pop.prior_list, `[[`, "mu")
+    names(fixef) <- design$groupef.names
   }
 
   if (!isTRUE(simulate)) {
@@ -263,7 +263,7 @@ glmerb <- function(
     )
     .lmebayes_print_icm_simulate_false(
       prior    = prior,
-      re_names = design$re_coef_names,
+      re_names = design$groupef.names,
       icm      = icm,
       header   = "--- glmerb: Block 2 fixed effects ---"
     )
@@ -304,7 +304,7 @@ glmerb <- function(
     design              = design,
     prior               = prior,
     family              = family,
-    dispersion_ranef    = dispersion_ranef,
+    group.dispersion    = dispersion_ranef,
     gap_tol             = gap_tol,
     tv_tol              = tv_tol,
     mode_gap_max        = mode_gap_max,
@@ -402,7 +402,7 @@ print_coef_means <- function(x, digits = 4L, ...) {
   if (has_mer) {
     mer_v <- lme4::fixef(mer_fit)
     # Map (component, parameter) -> fixef name using the same convention as
-    # fe_name_for() in Prior_Setup_lmebayes:
+    # fe_name_for() in Prior_Setup_GLMM:
     #   (Intercept) component, col X  -> fixef["X"]
     #   component K, (Intercept) col  -> fixef["K"]
     #   component K, col X            -> fixef["X:K"] or fixef["K:X"]
@@ -479,7 +479,7 @@ print.glmerb <- function(
     ...
 ) {
 
-  re_names <- x$model_setup$re_coef_names
+  re_names <- x$model_setup$groupef.names
   grp      <- x$model_setup$group_name
   n_obs    <- length(x$model_setup$y)
   n_grp    <- nlevels(x$model_setup$group)

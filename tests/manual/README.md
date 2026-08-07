@@ -58,7 +58,7 @@ Rscript tests/manual/run_all.R small
 
 Demos under `demo/` mirror these routes (`Ex_12`/`Ex_21` Gaussian+ING; `Ex_24`/`Ex_25` dGamma) with fuller printed output.
 
-**BWC fixture:** `_bwc_lmerb_fixture.R` subsets to algebraically **full-rank** schools (`model_setup()$re_rank`) before `Prior_Setup_lmebayes`, matching `Ex_24` / `Ex_25`.
+**BWC fixture:** `_bwc_lmerb_fixture.R` subsets to algebraically **full-rank** schools (`model_setup()$re_rank`) before `Prior_Setup_GLMM`, matching `Ex_24` / `Ex_25`.
 
 **dGamma note:** Block~1 uses center → build → dispersion build → sim; the manual dGamma script uses the **same** filtered Big Word Club rows and formula as `test_lmerb_mer_re_validation.R`.
 

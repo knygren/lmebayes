@@ -6,7 +6,7 @@ source("tests/manual/_small5_lmerb_fixture.R")
 .manual_test_load(load_glmbayes_core = TRUE)
 
 fx <- .prepare_small5_all_full_rank_manual()
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   fx$form,
   data = fx$dat,
   pwt = 0.01,

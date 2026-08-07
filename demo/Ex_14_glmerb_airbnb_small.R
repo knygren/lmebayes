@@ -31,7 +31,7 @@ dat$neighborhood <- droplevels(factor(dat$neighborhood))
 form <- reviews ~ walk_c + rating_c + (1 + rating_c || neighborhood)
 
 ## Default hyperpriors calibrated from a reference glmer fit (weak prior).
-ps <- Prior_Setup_lmebayes(form, data = dat, family = poisson(), pwt = 0.01)
+ps <- Prior_Setup_GLMM(form, data = dat, family = poisson(), pwt = 0.01)
 
 ## Inflate tau^2 to stress-test convergence calibration (optional).
 #ps$Sigma_ranef <- ps$Sigma_ranef * 25

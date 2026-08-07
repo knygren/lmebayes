@@ -69,7 +69,7 @@ ref_fits <- .print_reference_mer_compare(
 fit_lmer <- ref_fits$lmer
 
 ## --- Prior setup + per-group dGamma_list() --------------------------------
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   form,
   data            = dat,
   pwt             = 0.01,

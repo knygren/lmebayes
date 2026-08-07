@@ -1,7 +1,7 @@
 #' Print lme4 and glmmTMB reference fits for manual smoke-test diagnostics.
 #'
 #' Intended for scripts under \code{tests/manual/} and \code{data-raw/} only.
-#' Mirrors \code{Prior_Setup_lmebayes()} routing: \code{dispformula = ~1}
+#' Mirrors \code{Prior_Setup_GLMM()} routing: \code{dispformula = ~1}
 #' shows \code{lme4::lmer} only (the calibration reference); per-group
 #' \code{dispformula} adds the matching \code{glmmTMB} fit used as
 #' \code{fit_ref}.
@@ -11,7 +11,7 @@
 #' @param group_name Grouping variable name (default \code{"school_id"}).
 #' @param dispformula One-sided formula, \code{~1} (pooled) or
 #'   \code{~group_name} (per-group residual variance). Must match the
-#'   \code{dispformula} passed to \code{Prior_Setup_lmebayes()} /
+#'   \code{dispformula} passed to \code{Prior_Setup_GLMM()} /
 #'   \code{lmerb()} in the calling script.
 #' @return Invisibly a list with \code{lmer} and optional \code{glmmTMB}.
 #' @keywords internal
@@ -40,7 +40,7 @@
 
   if (identical(disp_kind, "pooled")) {
     cat(
-      "\n(dispformula = ~1: Prior_Setup_lmebayes() uses lme4 only; ",
+      "\n(dispformula = ~1: Prior_Setup_GLMM() uses lme4 only; ",
       "skipping glmmTMB reference fit.)\n",
       sep = ""
     )

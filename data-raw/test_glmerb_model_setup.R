@@ -27,7 +27,7 @@ ps <- structure(
     Sigma_ranef = diag(1),
     dispersion_ranef = 1
   ),
-  class = "lmebayes_prior_setup"
+  class = "Prior_Setup_GLMM"
 )
 
 fit <- glmerb(form, data = dat, family = gaussian(),

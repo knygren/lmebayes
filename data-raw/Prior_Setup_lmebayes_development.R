@@ -1,6 +1,6 @@
-## Prior_Setup_lmebayes -- development script
+## Prior_Setup_GLMM -- development script
 ##
-## Drafts the Prior_Setup_lmebayes() function for the two-block Gibbs sampler.
+## Drafts the Prior_Setup_GLMM() function for the two-block Gibbs sampler.
 ##
 ## First implementation: Gaussian family, variance components FIXED at lmer
 ## estimates (dNormal analog from glmbayes).  The posterior over the unknowns
@@ -30,7 +30,7 @@
 ##
 ##     where b_k = (b_k[1], ..., b_k[J])  current per-group slopes for RE k
 ##
-## Prior returned by Prior_Setup_lmebayes():
+## Prior returned by Prior_Setup_GLMM():
 ##   dispersion_ranef : sigma2  (scalar, fixed at lmer estimate)
 ##   Sigma_ranef      : diagonal matrix (p_re x p_re), tau2_k on diagonal
 ##   prior_list       : named list, one entry per RE k, each containing:
@@ -57,7 +57,7 @@ if (!requireNamespace("bayesrules", quietly = TRUE)) {
 }
 pkgload::load_all(export_all = FALSE)
 
-## Prior_Setup_lmebayes() and print.lmebayes_prior_setup are now in
+## Prior_Setup_GLMM() and print.Prior_Setup_GLMM are now in
 ## R/prior_setup_lmebayes.R.  This script loads them via pkgload::load_all().
 
 ## ===========================================================================
@@ -82,8 +82,8 @@ form_lmer <- score_ppvt ~
   free_reduced_lunch:distracted_a1 +
   (1 + distracted_ppvt + distracted_a1 || school_id)
 
-cat("=== Prior_Setup_lmebayes: pwt = 0.01 ===\n\n")
-ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
+cat("=== Prior_Setup_GLMM: pwt = 0.01 ===\n\n")
+ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01)
 print(ps)
 
 ## ---------------------------------------------------------------------------

@@ -55,7 +55,7 @@ ref_fits <- .print_reference_mer_compare(
 fit_lmer <- ref_fits$lmer
 
 ## --- Prior setup + per-group dGamma_list() --------------------------------
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   form,
   data            = dat,
   pwt             = 0.01,
@@ -68,7 +68,7 @@ pf <- pfamily_list(ps)
 disp_pf_list <- dGamma_list(ps)
 
 ## ing_grp is now the Part VI "full marginal" calibration (production, as of
-## the Part VI swap in Prior_Setup_lmebayes()) -- same object dGamma_list()
+## the Part VI swap in Prior_Setup_GLMM()) -- same object dGamma_list()
 ## consumed above to build disp_pf_list.
 ing_grp <- ps$ing_prior_measurement_group
 sigma2_hat_j <- vapply(ing_grp, `[[`, 0, "sigma2_hat")
@@ -76,11 +76,11 @@ names(sigma2_hat_j) <- group_levels
 
 ## Part I "classical" calibration (mu_j from the group's own within-group
 ## null-model fit; no Omega widening) -- always computed unconditionally by
-## Prior_Setup_lmebayes() as the fallback/reference for Part VI (see the
+## Prior_Setup_GLMM() as the fallback/reference for Part VI (see the
 ## SWAP POINT comment there), stored on ps$ing_prior_measurement_group_
 ## classical. Printed here (as the '_classical' columns) next to the
 ## production Part VI calibration above for comparison. Mirrors
-## glmbayesCore's own print inside Prior_Setup_lmebayes() and
+## glmbayesCore's own print inside Prior_Setup_GLMM() and
 ## data-raw/group_dgamma_bounds_derivation_check.R section 2c. See
 ## glmbayesCore's inst/DGAMMA_LIST_MARGINAL_AND_BOUNDS.md Part VI.
 classical_grp <- ps$ing_prior_measurement_group_classical

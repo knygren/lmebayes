@@ -23,7 +23,7 @@ source("tests/manual/_small5_lmerb_fixture.R")
 ## across all schools (design$residual_var = sigma(lmer_fit)^2). As a first
 ## step toward exploring school-specific sigma^2_j priors informed by a
 ## classical group-level estimate, compute a per-school dispersion estimate
-## from the SAME reference lmer fit that Prior_Setup_lmebayes/model_setup
+## from the SAME reference lmer fit that Prior_Setup_GLMM/model_setup
 ## already builds (all full-rank schools) and compare it to the pooled
 ## estimate. No new production function -- exploratory script code only.
 ## ---------------------------------------------------------------------------
@@ -142,7 +142,7 @@ cat(sprintf(
 ##
 ## (a0, b0) are then the mean-matched Inverse-Gamma hyperparameters implied
 ## by (mu_hat, tau2_hat) -- same mean-matching convention already used by
-## ing_prior / ing_prior_measurement in Prior_Setup_lmebayes.
+## ing_prior / ing_prior_measurement in Prior_Setup_GLMM.
 ## ---------------------------------------------------------------------------
 df_j      <- (n_j - p_re)[valid]
 sig_valid <- sigma2_hat_j[valid]
@@ -212,7 +212,7 @@ for (k in K_SCHOOLS) {
     cat(sprintf("--- k = %d  pwt_measurement = %.2f ---\n", k, pwt))
 
     result <- tryCatch({
-      ps <- Prior_Setup_lmebayes(
+      ps <- Prior_Setup_GLMM(
         fx$form,
         data            = fx$dat,
         pwt             = 0.01,

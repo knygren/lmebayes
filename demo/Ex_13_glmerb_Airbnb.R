@@ -50,7 +50,7 @@ form_glmer <- reviews ~
   walk_c:rating_c + transit_c:log_price_c +
   (1 + rating_c + log_price_c || neighborhood)
 
-ps <- Prior_Setup_lmebayes(form_glmer, data = dat, family = poisson(), pwt = 0.01)
+ps <- Prior_Setup_GLMM(form_glmer, data = dat, family = poisson(), pwt = 0.01)
 
 fit <- glmerb(
   form_glmer,

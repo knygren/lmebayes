@@ -41,7 +41,7 @@ form_lmer <- score_ppvt ~
   free_reduced_lunch:distracted_a1 +
   (1 + distracted_ppvt + distracted_a1 || school_id)
 
-ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
+ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01)
 re_names <- names(ps$prior_list)
 
 ## --- baseline: dNormal path (full sampler) ----------------------------------

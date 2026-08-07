@@ -25,7 +25,7 @@ form <- Reaction ~ Days + (Days || Subject)
 grp_levels <- levels(dat$Subject)
 J <- length(grp_levels)
 
-ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+ps <- Prior_Setup_GLMM(form, data = dat, pwt = 0.01)
 pooled_sigma2 <- as.numeric(ps$dispersion_ranef)
 
 set.seed(42L)

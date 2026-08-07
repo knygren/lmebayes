@@ -36,7 +36,7 @@ form_lmer <- score_ppvt ~
   free_reduced_lunch:distracted_a1 +
   (1 + distracted_ppvt + distracted_a1 || school_id)
 
-ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
+ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01)
 
 ## --- expected m_convergence from the rate/bound machinery directly ---------
 design <- model_setup(form_lmer, data = dat)
@@ -143,7 +143,7 @@ ab <- airbnb_small
 ab$rating_c <- ab$rating - mean(ab$rating)
 ab <- ab[complete.cases(ab[, c("reviews", "rating_c", "neighborhood")]), ]
 form_pois <- reviews ~ rating_c + (1 + rating_c || neighborhood)
-ps_pois <- Prior_Setup_lmebayes(form_pois, data = ab, family = poisson(),
+ps_pois <- Prior_Setup_GLMM(form_pois, data = ab, family = poisson(),
                                 pwt = 0.01)
 out5 <- capture.output(
   fit5 <- glmerb(form_pois, data = ab, family = poisson(),

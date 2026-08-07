@@ -14,7 +14,7 @@
 ## All four covariates together fail lme4 checkConv on the reference glmer fit
 ## (max|grad| ~ 0.029).  This demo uses the largest passing subset:
 ##   political_value_index, median_income, hs_grad_rate
-## (college_grad_rate omitted so Prior_Setup_lmebayes() can calibrate from glmer).
+## (college_grad_rate omitted so Prior_Setup_GLMM() can calibrate from glmer).
 ##
 ## After fitting:
 ##   print(fit, sweep_history = TRUE, max_sweeps = 5)
@@ -211,7 +211,7 @@ cat(
   sep = ""
 )
 
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   form_glmerb,
   data   = dat,
   family = binomial(),

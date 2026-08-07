@@ -8,7 +8,7 @@
 ##
 ## Replica of a full lmerb run with stored draws (the ?lmerb man-page example
 ## uses simulate = FALSE for R CMD check).  Keeps model_setup(),
-## Prior_Setup_lmebayes(), lmerb(), print_coef_means(), and short Gaussian
+## Prior_Setup_GLMM(), lmerb(), print_coef_means(), and short Gaussian
 ## draws-vs-ICM z diagnostics.
 ##
 ##   demo("Ex_14_lmerb_Sleepstudy", package = "lmebayes")
@@ -22,7 +22,7 @@ if (!requireNamespace("lme4", quietly = TRUE)) {
 ## Gaussian LMM for Reaction (ms).  Fixed effect Days_c (centered); random
 ## intercept and Days_c slope by Subject.  No level-2 covariates.
 ##
-## Workflow: model_setup(), Prior_Setup_lmebayes(), pfamily_list(), then
+## Workflow: model_setup(), Prior_Setup_GLMM(), pfamily_list(), then
 ## lmerb(pfamily_list = , dispersion_ranef = ).
 
 data(sleepstudy, package = "lme4")
@@ -35,8 +35,8 @@ design <- model_setup(form, data = dat)
 cat("\n=== model_setup ===\n\n")
 print(design)
 
-ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
-cat("\n=== Prior_Setup_lmebayes ===\n\n")
+ps <- Prior_Setup_GLMM(form, data = dat, pwt = 0.01)
+cat("\n=== Prior_Setup_GLMM ===\n\n")
 print(ps)
 
 fit <- lmerb(

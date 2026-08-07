@@ -1,4 +1,4 @@
-test_that("Prior_Setup_lmebayes stops when glmer checkConv fails (Ex_18)", {
+test_that("Prior_Setup_GLMM stops when glmer checkConv fails (Ex_18)", {
   skip_on_cran()
   skip_if_not_installed("bayesrules")
 
@@ -22,14 +22,14 @@ test_that("Prior_Setup_lmebayes stops when glmer checkConv fails (Ex_18)", {
 
   expect_error(
     suppressWarnings(
-      Prior_Setup_lmebayes(form, dat, family = binomial(), pwt = 0.01)
+      Prior_Setup_GLMM(form, dat, family = binomial(), pop.pwt = 0.01)
     ),
     "requires converged glmer reference fits",
     fixed = FALSE
   )
 })
 
-test_that("Prior_Setup_lmebayes accepts converged glmer (violent only, Ex_16)", {
+test_that("Prior_Setup_GLMM accepts converged glmer (violent only, Ex_16)", {
   skip_on_cran()
   skip_if_not_installed("bayesrules")
 
@@ -40,8 +40,8 @@ test_that("Prior_Setup_lmebayes accepts converged glmer (violent only, Ex_16)", 
   dat$violent_i <- as.integer(dat$violent == TRUE | dat$violent == 1L)
 
   form <- removed_i ~ violent_i + (1 + violent_i || state)
-  ps <- Prior_Setup_lmebayes(form, dat, family = binomial(), pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, dat, family = binomial(), pop.pwt = 0.01)
 
-  expect_s3_class(ps, "lmebayes_prior_setup")
+  expect_s3_class(ps, "Prior_Setup_GLMM")
   expect_true(inherits(ps$fit_ref, "glmerMod"))
 })

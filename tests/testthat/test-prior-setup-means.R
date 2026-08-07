@@ -1,4 +1,4 @@
-test_that("Prior_Setup_lmebayes: null intercept only; other hyperprior means are 0", {
+test_that("Prior_Setup_GLMM: null intercept only; other hyperprior means are 0", {
   skip_on_cran()
   skip_if_not_installed("bayesrules")
 
@@ -16,22 +16,22 @@ test_that("Prior_Setup_lmebayes: null intercept only; other hyperprior means are
     explicit_i + language_i + violent_i +
     (1 + explicit_i + language_i + violent_i || state)
 
-  ps <- Prior_Setup_lmebayes(form, dat, family = binomial(), pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, dat, family = binomial(), pop.pwt = 0.01)
 
   expect_equal(
-    unname(ps$prior_list[["(Intercept)"]]$mu_fixef["(Intercept)"]),
+    unname(ps$pop.prior_list[["(Intercept)"]]$mu["(Intercept)"]),
     unname(lme4::fixef(lme4::glmer(
       removed_i ~ 1 + (1 | state),
       data = dat,
       family = binomial()
     ))["(Intercept)"])
   )
-  expect_equal(unname(ps$prior_list[["explicit_i"]]$mu_fixef["(Intercept)"]), 0)
-  expect_equal(unname(ps$prior_list[["language_i"]]$mu_fixef["(Intercept)"]), 0)
-  expect_equal(unname(ps$prior_list[["violent_i"]]$mu_fixef["(Intercept)"]), 0)
+  expect_equal(unname(ps$pop.prior_list[["explicit_i"]]$mu["(Intercept)"]), 0)
+  expect_equal(unname(ps$pop.prior_list[["language_i"]]$mu["(Intercept)"]), 0)
+  expect_equal(unname(ps$pop.prior_list[["violent_i"]]$mu["(Intercept)"]), 0)
 })
 
-test_that("Prior_Setup_lmebayes: effects_source = full_model uses glmer slopes", {
+test_that("Prior_Setup_GLMM: pop.effects_source = full_model uses glmer slopes", {
   skip_on_cran()
   skip_if_not_installed("bayesrules")
 
@@ -42,14 +42,14 @@ test_that("Prior_Setup_lmebayes: effects_source = full_model uses glmer slopes",
   dat$violent_i <- as.integer(dat$violent == TRUE | dat$violent == 1L)
 
   form <- removed_i ~ violent_i + (1 + violent_i || state)
-  ps <- Prior_Setup_lmebayes(
-    form, dat, family = binomial(), pwt = 0.01,
-    effects_source = "full_model"
+  ps <- Prior_Setup_GLMM(
+    form, dat, family = binomial(), pop.pwt = 0.01,
+    pop.effects_source = "full_model"
   )
 
   fe <- lme4::fixef(ps$fit_ref)
   expect_equal(
-    unname(ps$prior_list[["violent_i"]]$mu_fixef["(Intercept)"]),
+    unname(ps$pop.prior_list[["violent_i"]]$mu["(Intercept)"]),
     unname(fe["violent_i"])
   )
 })

@@ -38,7 +38,7 @@
   ## / .lmebayes_reference_fixef() dispatch coef()/fixef() uniformly for
   ## either fit type (glmmTMB's are nested under $cond).
   mer_fit   <- .lmerb_reference_fit(fit)
-  re_names <- fit$model_setup$re_coef_names
+  re_names <- fit$model_setup$groupef.names
   grp_col  <- fit$model_setup$group_name
   mu_mat   <- as.matrix(fit$fixef.mu)
   if (is.null(mu_mat)) {
@@ -78,7 +78,7 @@
   if (is.null(fit$coefficients)) {
     return(NULL)
   }
-  re_names <- fit$model_setup$re_coef_names
+  re_names <- fit$model_setup$groupef.names
   grp_col  <- fit$model_setup$group_name
   re_draws_mean <- tapply(
     seq_len(nrow(fit$coefficients)),
@@ -140,7 +140,7 @@ print_mer_bayes_re_compare <- function(
   is_lmerb   <- inherits(fit, "lmerb")
   mer_label  <- if (is_lmerb) "lmer" else "glmer"
   bayes_label <- if (is_lmerb) "lmerb" else "glmerb"
-  re_names   <- fit$model_setup$re_coef_names
+  re_names   <- fit$model_setup$groupef.names
   grp_col    <- fit$model_setup$group_name
   n_draws    <- if (!is.null(fit$fixef) && length(re_names)) {
     nrow(fit$fixef[[re_names[1L]]])
@@ -416,7 +416,7 @@ print_mer_bayes_re_compare <- function(
 #' Validate Block~2 fixed effects: MCMC vs ICM and prior-aware \code{lmer} checks
 #'
 #' Catches \code{simulate = FALSE} / mode-only fits (zero draw SD).  Under default
-#' \code{Prior_Setup_lmebayes(pwt = 0.01)} (\code{null_model} intercept,
+#' \code{Prior_Setup_GLMM(pwt = 0.01)} (\code{null_model} intercept,
 #' \code{null_effects} slopes), non-intercept hyperparameters are expected to
 #' shrink toward 0 relative to full-model \code{lmer} MLE; posterior SD is often below
 #' \code{lmer} SE.  The global intercept prior mean comes from the null model
@@ -471,22 +471,22 @@ print_mer_bayes_re_compare <- function(
   is_lmerb   <- inherits(fit, "lmerb")
   mer_label  <- if (is_lmerb) "lmer" else "glmer"
   mode_label <- if (is_lmerb) "ICM mean" else "post.mode"
-  re_names   <- fit$model_setup$re_coef_names
+  re_names   <- fit$model_setup$groupef.names
   n_draws    <- nrow(fit$fixef[[re_names[1L]]])
   mer_fit    <- .lmerb_reference_fit(fit)
-  re_mod     <- fit$model_setup$re_slope_moderation
+  re_mod     <- fit$model_setup$popef.moderation
 
   rows <- lapply(re_names, function(k) {
     dm_k  <- fit$fixef.means[[k]]
     sd_k  <- apply(fit$fixef[[k]], 2L, stats::sd)
     se_k  <- sd_k / sqrt(n_draws)
     icm_k <- fit$fixef.mode[[k]]
-    pl_k <- fit$prior$prior_list[[k]]
+    pl_k <- fit$prior$pop.prior_list[[k]]
     lapply(names(dm_k), function(nm) {
       mer_ref <- .lmerb_lmer_fixef_lookup(
         mer_fit, k, nm, re_slope_moderation = re_mod
       )
-      prior_mean <- unname(pl_k$mu_fixef[nm])
+      prior_mean <- unname(pl_k$mu[nm])
       data.frame(
         component   = k,
         parameter   = nm,
@@ -756,7 +756,7 @@ BLOCK2_FIXEF_SE_ING <- list(
     mode_match_min = 0.9
 ) {
   stopifnot(inherits(fit, "lmerb"))
-  re_names <- fit$model_setup$re_coef_names
+  re_names <- fit$model_setup$groupef.names
   grp_col  <- fit$model_setup$group_name
   grp_levs <- rownames(
     lmebayesCore:::.lmebayes_reference_coef(.lmerb_reference_fit(fit))[[grp_col]]
@@ -842,7 +842,7 @@ BLOCK2_FIXEF_SE_ING <- list(
     mode_match_min = 0.9
 ) {
   stopifnot(inherits(fit, "glmerb"))
-  re_names <- fit$model_setup$re_coef_names
+  re_names <- fit$model_setup$groupef.names
   grp_col  <- fit$model_setup$group_name
   grp_levs <- rownames(
     lmebayesCore:::.lmebayes_reference_coef(.lmerb_reference_fit(fit))[[grp_col]]

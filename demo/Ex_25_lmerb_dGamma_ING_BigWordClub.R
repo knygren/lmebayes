@@ -74,13 +74,13 @@ cat("\n=== model_setup (full-rank schools only) ===\n\n")
 print(design)
 stopifnot(all(design$re_rank))
 
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   form_lmer,
   data           = dat,
   pwt            = 0.01,
   pwt_dispersion = 0.2
 )
-cat("\n=== Prior_Setup_lmebayes (ING calibration) ===\n\n")
+cat("\n=== Prior_Setup_GLMM (ING calibration) ===\n\n")
 print(ps)
 
 pf <- pfamily_list(ps, ptypes = "dIndependent_Normal_Gamma")

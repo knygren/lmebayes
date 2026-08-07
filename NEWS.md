@@ -1,5 +1,9 @@
 # lmebayes (development version)
 
+* **Rename: `Prior_Setup_lmebayes()` is now `Prior_Setup_GLMM()`**
+  (re-exported from **lmebayesCore**). The S3 class is
+  `"Prior_Setup_GLMM"`; update call sites accordingly.
+
 * **`lmerb()` gains a `$glmmTMB` field; several `summary()`/`print()` /
   validation helpers now prefer it over the pooled `$lmer` fit when
   present.** `lmerb()` now passes its `dispformula` argument through to its
@@ -7,7 +11,7 @@
   `glmmTMB` per-group-dispersion reference as `design$glmmTMB_fit` whenever
   `dispformula` requests it. `lmerb()`'s new `$glmmTMB` field reuses this
   (or the `"dispersion_fit"` attribute already carried forward by
-  `dGamma_list(Prior_Setup_lmebayes(...))`) instead of fitting `glmmTMB` a
+  `dGamma_list(Prior_Setup_GLMM(...))`) instead of fitting `glmmTMB` a
   third time; it is identical in value to the existing `$dispersion_fit`
   field (kept for backward compatibility) and `NULL` when
   `dispformula = ~1`. `$lmer` is **unchanged** -- always the plain
@@ -169,7 +173,7 @@
   valid since the truncation bounds the chain's support by construction.
   Because the window no longer depends on the dispersion-prior strength,
   weak dispersion priors carry no computational penalty, so the
-  `pwt_dispersion` default in `Prior_Setup_lmebayes()` remains derived
+  `pwt_dispersion` default in `Prior_Setup_GLMM()` remains derived
   from `pwt` (an interim flat-0.2 default, introduced earlier in this
   development cycle to keep the prior-quantile window moderate, has been
   reverted).
@@ -189,7 +193,7 @@
   ill-calibrated prior).
 
 * **ING Gamma rate now follows the glmbayesCore default calibration
-  (mean-matched):** `Prior_Setup_lmebayes()` (`ing_prior` field) and
+  (mean-matched):** `Prior_Setup_GLMM()` (`ing_prior` field) and
   `pfamily_list()` previously set `rate = tau2_k * n0/2`, which matches the
   `glmbayesCore::Prior_Setup()` default `b_0 = tau2_k * (n0 + p_k - 1)/2`
   only for single-predictor components (`p_k = 1`).  For `p_k > 1` the
@@ -233,7 +237,7 @@
   `rindepNormalGamma_reg` in glmbayes/glmbayesCore.
 
 * **Per-component `pwt` and decoupled dispersion prior in
-  `Prior_Setup_lmebayes()`:** `pwt` now accepts, besides a scalar, a list
+  `Prior_Setup_GLMM()`:** `pwt` now accepts, besides a scalar, a list
   with one element per random-effect component (named with the RE
   coefficient names or positional); each element is a scalar (recycled
   over that component's Block-2 predictors) or a per-predictor vector
@@ -280,7 +284,7 @@
   `m_min = 156`.
 
 * **`lmerb()`/`glmerb()` prior interface migrated to pfamily lists:** The
-  `measurement_prior_list` argument (a whole `Prior_Setup_lmebayes()`
+  `measurement_prior_list` argument (a whole `Prior_Setup_GLMM()`
   object) is replaced by two explicit arguments placed before `n`:
   `pfamily_list` (named list of `dNormal` pfamilies, one per random-effect
   coefficient - the Block-2 hyperpriors) and `dispersion_ranef` (the
@@ -289,7 +293,7 @@
   The Block-1 random-effect covariance is reconstructed from the pfamily
   dispersions (`Sigma_ranef = diag(tau^2_k)`), so the pair is
   information-complete.  Typical workflow:
-  `ps <- Prior_Setup_lmebayes(...)`, then
+  `ps <- Prior_Setup_GLMM(...)`, then
   `lmerb(f, dat, pfamily_list = pfamily_list(ps),
   dispersion_ranef = ps$dispersion_ranef)`.
   `dIndependent_Normal_Gamma` components are rejected with a clear message
@@ -300,8 +304,8 @@
   `.lmebayes_priors_from_pfamily_list()`.
 
 * **Block-2 hyperpriors as pfamily objects (`pfamily_list()`):** New S3
-  method `pfamily_list.lmebayes_prior_setup()` converts the per-component
-  Block-2 hyperprior parameters of a `Prior_Setup_lmebayes()` object into a
+  method `pfamily_list.Prior_Setup_GLMM()` converts the per-component
+  Block-2 hyperprior parameters of a `Prior_Setup_GLMM()` object into a
   named list of `glmbayesCore` pfamily objects (one per random-effect
   coefficient).  The `ptypes` argument is either a single string recycled
   to every component or a character vector / list with one entry per

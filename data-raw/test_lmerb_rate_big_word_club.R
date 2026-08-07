@@ -2,7 +2,7 @@
 # (bayesrules::big_word_club, Gaussian, school random intercept + slopes).
 #
 # Builds the exact same two-block sampler inputs as lmerb() (model_setup +
-# Prior_Setup_lmebayes + .lmebayes_block1_prior_list) and computes the
+# Prior_Setup_GLMM + .lmebayes_block1_prior_list) and computes the
 # Remark 8 eigenvalues / lambda* (Nygren 2020).  Validates against a dense
 # brute-force construction of the joint precision and cross-checks lambda*
 # empirically against the ICM mean recursion, which contracts at exactly
@@ -40,7 +40,7 @@ form_lmer <- score_ppvt ~
   (1 + distracted_ppvt + distracted_a1 || school_id)
 
 design <- model_setup(form_lmer, data = dat)
-ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
+ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01)
 
 ## --- two-block sampler inputs, exactly as lmerb() builds them --------------
 re_names     <- design$re_coef_names

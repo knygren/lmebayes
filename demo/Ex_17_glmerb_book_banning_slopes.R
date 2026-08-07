@@ -37,7 +37,7 @@ for (k in design$re_coef_names) {
   print(colnames(design$W[[k]]))
 }
 
-ps <- Prior_Setup_lmebayes(form_glmerb, data = dat, family = binomial(), pwt = 0.01)
+ps <- Prior_Setup_GLMM(form_glmerb, data = dat, family = binomial(), pwt = 0.01)
 
 print(ps)
 

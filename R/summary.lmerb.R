@@ -53,7 +53,7 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     stop("'object' must be an lmerb or glmerb fit.", call. = FALSE)
   }
 
-  re_names  <- object$model_setup$re_coef_names
+  re_names  <- object$model_setup$groupef.names
   simulated <- !is.null(object$coefficients)
   n_draws   <- if (simulated) nrow(object$fixef[[re_names[1L]]]) else NULL
   mer_fit   <- .lmerb_reference_fit(object)
@@ -74,7 +74,7 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     mer_label     = mer_label,
     mer           = mer_fit,
     varcor        = VarCorr(mer_fit),
-    dispersion    = object$prior$dispersion_ranef,
+    dispersion    = object$prior$group.dispersion,
     n_obs         = length(object$model_setup$y),
     n_groups      = nlevels(object$model_setup$group),
     group_name    = object$model_setup$group_name,
@@ -325,19 +325,19 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 #' @keywords internal
 .lmerb_fixef_component_summary <- function(object, k, n_draws, simulated) {
 
-  pl_k   <- object$prior$prior_list[[k]]
+  pl_k   <- object$prior$pop.prior_list[[k]]
   par    <- names(object$fixef.mode[[k]])
   q_k    <- length(par)
 
-  prior_mean <- unname(pl_k$mu_fixef)
-  prior_sd   <- sqrt(diag(pl_k$Sigma_fixef))
+  prior_mean <- unname(pl_k$mu)
+  prior_sd   <- sqrt(diag(pl_k$Sigma))
 
   mer_ref <- lapply(par, function(nm) {
     .lmerb_lmer_fixef_lookup(
       .lmerb_reference_fit(object),
       k,
       nm,
-      re_slope_moderation = object$model_setup$re_slope_moderation
+      re_slope_moderation = object$model_setup$popef.moderation
     )
   })
   mer_est <- vapply(mer_ref, `[[`, numeric(1), "estimate")
@@ -455,7 +455,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 #' @keywords internal
 .lmerb_fixef_overview <- function(object, simulated) {
 
-  re_names <- object$model_setup$re_coef_names
+  re_names <- object$model_setup$groupef.names
 
   rows_list <- lapply(re_names, function(k) {
     par <- names(object$fixef.mode[[k]])
@@ -471,7 +471,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
       post_mean  <- unname(object$fixef.means[[k]])
       post_sd    <- apply(draws, 2L, stats::sd)
       n          <- nrow(draws)
-      prior_mean <- unname(object$prior$prior_list[[k]]$mu_fixef)
+      prior_mean <- unname(object$prior$pop.prior_list[[k]]$mu)
       pval2 <- vapply(seq_len(n_p), function(j) {
         p1 <- mean(draws[, j] < prior_mean[j])
         min(p1, 1 - p1)
@@ -501,22 +501,22 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     return(NULL)
   }
 
-  re_names  <- object$model_setup$re_coef_names
+  re_names  <- object$model_setup$groupef.names
   mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
   mer_vc    <- tryCatch(
     lmebayesCore:::.lmebayes_extract_reference_variance_components(
       .lmerb_reference_fit(object),
-      re_coef_names = re_names,
+      groupef.names = re_names,
       group_name    = object$model_setup$group_name
     ),
     error = function(e) NULL
   )
-  vcov_re <- if (!is.null(mer_vc)) mer_vc$vcov_re else object$model_setup$vcov_re
+  vcov_re <- if (!is.null(mer_vc)) mer_vc$Psi else object$model_setup$Psi
 
   tab <- do.call(rbind, lapply(re_names, function(k) {
     ptype <- ptypes[[k]]
     pf    <- object$prior$pfamily_list[[k]]
-    pl    <- if (!is.null(pf)) pf$prior_list else object$prior$prior_list[[k]]
+    pl    <- if (!is.null(pf)) pf$prior_list else object$prior$pop.prior_list[[k]]
     prior_label <- as.character(ptype)
     mer_tau2 <- if (!is.null(vcov_re) && k %in% names(vcov_re)) {
       unname(vcov_re[[k]])
@@ -549,7 +549,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
       if (!is.finite(d_lo)) d_lo <- NA_real_
       if (!is.finite(d_hi)) d_hi <- NA_real_
     } else {
-      d <- as.numeric(object$prior$prior_list[[k]]$dispersion_fixef)
+      d <- as.numeric(object$prior$pop.prior_list[[k]]$dispersion)
       inv_E <- E_tau2 <- d
       d_lo <- d_hi <- NA_real_
     }
@@ -600,7 +600,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   ## size n_prior under the Prior_Setup() default k = 1 calibration
   ## (shape_ING = (n_prior + k + p)/2), i.e. the same convention used by
   ## lmebayesCore:::.ing_n_prior_from_shape().
-  p_re <- length(object$model_setup$re_coef_names)
+  p_re <- length(object$model_setup$groupef.names)
   n_data_group <- table(object$model_setup$group)
 
   tab <- do.call(rbind, lapply(grp, function(g) {
@@ -819,7 +819,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   if (!identical(object$prior$dispersion_mode, "fixed_vector")) {
     return(NULL)
   }
-  sigma2 <- object$prior$dispersion_ranef
+  sigma2 <- object$prior$group.dispersion
   if (is.null(sigma2) || !length(sigma2)) {
     return(NULL)
   }
@@ -854,20 +854,20 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 #' @keywords internal
 #' @noRd
 .lmerb_sigma2_mer_reference <- function(object) {
-  re_names   <- object$model_setup$re_coef_names
+  re_names   <- object$model_setup$groupef.names
   mer_label  <- if (inherits(object, "glmerb")) "glmer" else "lmer"
   pooled_fit <- if (inherits(object, "glmerb")) object$glmer else object$lmer
   mer_vc    <- tryCatch(
     lmebayesCore:::extract_mer_variance_components(
       pooled_fit,
-      re_coef_names = re_names
+      groupef.names = re_names
     ),
     error = function(e) NULL
   )
   resid_var <- if (!is.null(mer_vc)) {
-    mer_vc$residual_var
+    mer_vc$dispersion
   } else {
-    object$model_setup$residual_var
+    object$model_setup$dispersion
   }
   mer_sd <- if (is.finite(resid_var) && resid_var >= 0) {
     sqrt(resid_var)
@@ -908,7 +908,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     if (!is.finite(d_hi)) d_hi <- NA_real_
     prior_label <- "dGamma"
   } else if (identical(mode, "fixed")) {
-    d <- as.numeric(object$prior$dispersion_ranef)
+    d <- as.numeric(object$prior$group.dispersion)
     inv_E <- E_sigma2 <- d
     d_lo <- d_hi <- NA_real_
     prior_label <- "fixed"
@@ -975,7 +975,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 
   if (identical(kind, "overview")) {
     post_mode <- if (identical(object$prior$dispersion_mode, "fixed")) {
-      as.numeric(object$prior$dispersion_ranef)
+      as.numeric(object$prior$group.dispersion)
     } else {
       params$E_sigma2
     }
@@ -1097,14 +1097,14 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     return(NULL)
   }
 
-  re_names <- object$model_setup$re_coef_names
+  re_names <- object$model_setup$groupef.names
   prior_tab <- .lmerb_tau2_prior_overview(object)
   if (is.null(prior_tab)) {
     return(NULL)
   }
 
   post_mode <- vapply(re_names, function(k) {
-    as.numeric(object$prior$prior_list[[k]]$dispersion_fixef)
+    as.numeric(object$prior$pop.prior_list[[k]]$dispersion)
   }, numeric(1))
 
   if (!simulated) {
@@ -1177,7 +1177,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     return(NULL)
   }
 
-  re_names <- object$model_setup$re_coef_names
+  re_names <- object$model_setup$groupef.names
   td <- object$fixef.dispersion
   if (is.null(td)) {
     return(NULL)
@@ -1214,7 +1214,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     return(NULL)
   }
 
-  re_names <- object$model_setup$re_coef_names
+  re_names <- object$model_setup$groupef.names
   td <- object$fixef.dispersion
   if (is.null(td)) {
     return(NULL)
@@ -1249,7 +1249,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 #' @keywords internal
 .lmerb_ranef_overview <- function(object, simulated) {
 
-  re_names <- object$model_setup$re_coef_names
+  re_names <- object$model_setup$groupef.names
   b_mode   <- object$ranef.mode
 
   overview <- t(vapply(re_names, function(k) {
@@ -1283,7 +1283,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 #' @keywords internal
 .lmerb_ranef_groups_detail <- function(object, groups, simulated) {
 
-  re_names <- object$model_setup$re_coef_names
+  re_names <- object$model_setup$groupef.names
   grp_col  <- object$model_setup$group_name
   groups   <- as.character(groups)
 

@@ -29,14 +29,14 @@ dat$violent_i <- as.integer(
 form_book <- removed ~ violent + antifamily + language + (1 | state)
 form_glmerb <- removed_i ~ violent_i + (1 + violent_i || state)
 
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   form_glmerb,
   data           = dat,
   family         = binomial(),
   pwt            = 0.01,
   pwt_dispersion = 0.2
 )
-cat("\n=== Prior_Setup_lmebayes (ING calibration) ===\n\n")
+cat("\n=== Prior_Setup_GLMM (ING calibration) ===\n\n")
 print(ps)
 
 pf <- pfamily_list(ps, ptypes = "dIndependent_Normal_Gamma")

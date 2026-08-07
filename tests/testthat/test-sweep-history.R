@@ -11,7 +11,7 @@ test_that("glmerb stores sweep_history and print(sweep_history=TRUE) works", {
   dat$neighborhood <- droplevels(factor(dat$neighborhood))
 
   form <- reviews ~ rating_c + (1 + rating_c || neighborhood)
-  ps <- Prior_Setup_lmebayes(form, data = dat, family = poisson(), pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, family = poisson(), pop.pwt = 0.01)
 
   set.seed(1L)
   fit <- glmerb(

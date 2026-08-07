@@ -7,7 +7,7 @@ dat <- data.frame(
 form <- y ~ (1 | g)
 
 ps <- tryCatch(
-  Prior_Setup_lmebayes(form, data = dat, family = poisson(), pwt = 0.01),
+  Prior_Setup_GLMM(form, data = dat, family = poisson(), pwt = 0.01),
   error = function(e) e
 )
 if (inherits(ps, "error")) {

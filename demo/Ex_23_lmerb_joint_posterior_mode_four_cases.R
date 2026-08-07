@@ -2,7 +2,7 @@
 ##
 ## Same data and model as demo/Ex_12_lmerb_BigWordClub.R.
 ## Workflow matches Ex_12 / Ex_14:
-##   model_setup() -> Prior_Setup_lmebayes() -> pfamily_list(ps) -> lmerb()
+##   model_setup() -> Prior_Setup_GLMM() -> pfamily_list(ps) -> lmerb()
 ##
 ## Here each case uses lmerb(simulate = FALSE) (joint posterior mode when
 ## Block~2 is ING and/or dispersion_ranef is dGamma(), else ICM at plug-ins).
@@ -45,8 +45,8 @@ design <- model_setup(form_lmer, data = dat)
 cat("\n=== model_setup ===\n\n")
 print(design)
 
-ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
-cat("\n=== Prior_Setup_lmebayes ===\n\n")
+ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01)
+cat("\n=== Prior_Setup_GLMM ===\n\n")
 print(ps)
 
 pf <- pfamily_list(ps)

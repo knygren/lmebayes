@@ -29,7 +29,7 @@ ref_fits <- .print_reference_mer_compare(
   dispformula = ~1
 )
 
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   form,
   data            = dat,
   pwt             = 0.01,

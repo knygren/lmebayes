@@ -21,13 +21,13 @@ dat <- subset(dat, !is.na(score_ppvt))
 ## School random intercept; one ING component (same structure as test_ing_sampling.R).
 form <- score_ppvt ~ private_school + (1 | school_id)
 
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   form,
   data             = dat,
   pwt              = 0.01,
   pwt_dispersion   = 0.2
 )
-cat("\n=== Prior_Setup_lmebayes (ING calibration) ===\n\n")
+cat("\n=== Prior_Setup_GLMM (ING calibration) ===\n\n")
 print(ps)
 
 pf <- pfamily_list(ps, ptypes = "dIndependent_Normal_Gamma")

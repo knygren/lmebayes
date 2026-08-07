@@ -35,7 +35,7 @@ dat$violent_i <- as.integer(
 form_book <- removed ~ violent + antifamily + language + (1 | state)
 form_glmerb <- removed_i ~ violent_i + (1 + violent_i || state)
 
-ps <- Prior_Setup_lmebayes(form_glmerb, data = dat, family = binomial(), pwt = 0.01)
+ps <- Prior_Setup_GLMM(form_glmerb, data = dat, family = binomial(), pwt = 0.01)
 
 print(ps)
 

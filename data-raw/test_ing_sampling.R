@@ -33,7 +33,7 @@ dat <- subset(dat, !is.na(score_ppvt))
 
 form <- score_ppvt ~ private_school + (1 | school_id)
 
-ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01,
+ps <- Prior_Setup_GLMM(form, data = dat, pwt = 0.01,
                            pwt_dispersion = 0.2)
 J        <- nlevels(ps$design$group)
 tau2_hat <- unname(ps$prior_list[["(Intercept)"]]$dispersion_fixef)
@@ -119,7 +119,7 @@ eta   <- b0[as.integer(g)]
 datp  <- data.frame(y = rpois(J_p * n_per, exp(eta)), g = g)
 
 form_p <- y ~ 1 + (1 | g)
-ps_p <- Prior_Setup_lmebayes(form_p, data = datp, family = poisson(),
+ps_p <- Prior_Setup_GLMM(form_p, data = datp, family = poisson(),
                              pwt = 0.05, pwt_dispersion = 0.4)
 pf_p <- pfamily_list(ps_p, ptypes = "dIndependent_Normal_Gamma")
 

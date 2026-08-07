@@ -5,7 +5,7 @@ suppressPackageStartupMessages({
 source("tests/manual/_small5_lmerb_fixture.R")
 
 fx <- .prepare_small5_lmerb_manual(n_schools = 5L)
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   fx$form, data = fx$dat, pwt = 0.01, pwt_measurement = 0.49
 )
 pf <- pfamily_list(ps)

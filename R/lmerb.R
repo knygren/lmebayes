@@ -10,14 +10,14 @@
 #' (\code{pfamily_list}, the Block~2 hyperpriors -- one per random-effect
 #' coefficient) plus the observation-level measurement dispersion
 #' (\code{dispersion_ranef}).  Both are typically built from
-#' \code{\link{Prior_Setup_lmebayes}}:
+#' \code{\link{Prior_Setup_GLMM}}:
 #' \code{pfamily_list = pfamily_list(ps)} and either a fixed scalar
 #' \code{dispersion_ranef = ps$dispersion_ranef}, a single pooled
 #' \code{dGamma()} prior, or a named per-group list from
 #' \code{dGamma_list(ps)}.  The Block~1 random-effect
 #' covariance is reconstructed from the Block~2 pfamily dispersions
 #' (\code{Sigma_ranef = diag(tau^2_k)}); \code{lmerb} does not call
-#' \code{Prior_Setup_lmebayes} internally.
+#' \code{Prior_Setup_GLMM} internally.
 #'
 #' Runs a two-block Gibbs sampler for \code{n} iterations. Block 1 draws
 #' group-level random effects \eqn{b_j} given the current hyper means; Block 2
@@ -92,15 +92,15 @@
 #'   for every dispersion in the truncated support).  They must also
 #'   satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
 #'   (\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
-#'   \code{\link[lmebayesCore:pfamily_list.lmebayes_prior_setup]{pfamily_list}} from a
-#'   \code{\link{Prior_Setup_lmebayes}} object.
+#'   \code{\link[lmebayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list}} from a
+#'   \code{\link{Prior_Setup_GLMM}} object.
 #' @param dispersion_ranef Observation-level measurement dispersion
 #'   \eqn{\sigma^2} for Block~1.  One of: a positive scalar (treated as
-#'   known; typically \code{Prior_Setup_lmebayes(...)$dispersion_ranef}), a
+#'   known; typically \code{Prior_Setup_GLMM(...)$dispersion_ranef}), a
 #'   single \code{\link[glmbayesCore]{dGamma}()} \code{pfamily} (pooled
 #'   \eqn{\sigma^2} across groups), a named list of \code{dGamma()}
 #'   objects (one per group level) from
-#'   \code{\link[lmebayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}(Prior_Setup_lmebayes(...))},
+#'   \code{\link[lmebayesCore:dGamma_list.Prior_Setup_GLMM]{dGamma_list}(Prior_Setup_GLMM(...))},
 #'   or a named numeric vector of positive, fixed per-group values (names
 #'   must match the random-effects grouping factor's levels exactly; each
 #'   group's \eqn{\sigma^2_j} is then treated as known, like the pooled
@@ -118,7 +118,7 @@
 #'   fit (\pkg{glmmTMB} must be installed), stored as \code{dispersion_fit};
 #'   \code{~<group_name>} with a fixed numeric vector never fits one, since
 #'   the per-group dispersion is directly user-supplied, not a prior to
-#'   calibrate. When \code{dispersion_ranef = dGamma_list(Prior_Setup_lmebayes(...,
+#'   calibrate. When \code{dispersion_ranef = dGamma_list(Prior_Setup_GLMM(...,
 #'   dispformula = dispformula))}, that call already fit the glmmTMB
 #'   reference model to calibrate the priors, and \code{lmerb()} reuses it
 #'   here rather than fitting \code{glmmTMB} a second time; keep
@@ -288,7 +288,7 @@
 #'       actually ran. \code{NULL} when \code{simulate = FALSE}.}
 #'   }
 #' @example inst/examples/Ex_lmerb.R
-#' @seealso \code{\link{Prior_Setup_lmebayes}}, \code{\link{model_setup}},
+#' @seealso \code{\link{Prior_Setup_GLMM}}, \code{\link{model_setup}},
 #'   \code{\link[lmebayesCore]{build_mu_all}},
 #'   \code{\link[lmebayesCore]{two_block_rNormal_reg}},
 #'   \code{\link[lmebayesCore]{lmerb_posterior_mean}},
@@ -335,14 +335,14 @@ lmerb <- function(
   if (missing(pfamily_list) || is.null(pfamily_list)) {
     stop(
       "'pfamily_list' is required. Build it with ",
-      "pfamily_list(Prior_Setup_lmebayes(...)) and pass the result to lmerb().",
+      "pfamily_list(Prior_Setup_GLMM(...)) and pass the result to lmerb().",
       call. = FALSE
     )
   }
   if (missing(dispersion_ranef)) {
     stop(
       "'dispersion_ranef' is required for lmerb(). Typically ",
-      "Prior_Setup_lmebayes(...)$dispersion_ranef.",
+      "Prior_Setup_GLMM(...)$group.dispersion.",
       call. = FALSE
     )
   }
@@ -400,7 +400,7 @@ lmerb <- function(
 
   prior <- lmebayesCore::priors_from_pfamily_list(
     pfamily_list     = pfamily_list,
-    dispersion_ranef = dispersion_ranef,
+    group.dispersion = dispersion_ranef,
     design           = design,
     family           = gaussian(),
     fn_name          = "lmerb"
@@ -414,7 +414,7 @@ lmerb <- function(
   )
   dispersion_fit <- NULL
   if (identical(prior$dispersion_mode, "gamma_list")) {
-    ## dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))
+    ## dGamma_list(Prior_Setup_GLMM(..., dispformula = dispformula))
     ## already carries its glmmTMB reference fit forward as an attribute;
     ## reuse it instead of re-fitting glmmTMB here. Failing that, the
     ## model_setup() call above already fit and stored the same reference
@@ -422,7 +422,7 @@ lmerb <- function(
     ## dispersion, so only fit a third copy if both are unavailable. A
     ## "fixed_vector" dispersion_ranef is a directly user-supplied constant,
     ## not a prior to calibrate, so it never needs a glmmTMB reference fit.
-    dispersion_fit <- attr(dispersion_ranef, "dispersion_fit")
+    dispersion_fit <- attr(dispersion_ranef, "group.dispersion.fit")
     if (is.null(dispersion_fit)) {
       dispersion_fit <- design$glmmTMB_fit
     }
@@ -445,11 +445,11 @@ lmerb <- function(
     }
   }
 
-  lmer_fit <- design$lmer_fit
+  lmer_fit <- design$lmer
 
   if (is.null(fixef)) {
-    fixef <- lapply(prior$prior_list, `[[`, "mu_fixef")
-    names(fixef) <- design$re_coef_names
+    fixef <- lapply(prior$pop.prior_list, `[[`, "mu")
+    names(fixef) <- design$groupef.names
   }
 
   if (!isTRUE(simulate)) {
@@ -460,7 +460,7 @@ lmerb <- function(
     )
     .lmebayes_print_icm_simulate_false(
       prior    = prior,
-      re_names = design$re_coef_names,
+      re_names = design$groupef.names,
       icm      = icm,
       header   = "--- lmerb: Block 2 fixed effects ---"
     )
@@ -501,7 +501,7 @@ lmerb <- function(
     n               = n,
     design          = design,
     prior           = prior,
-    dispersion_ranef = dispersion_ranef,
+    group.dispersion = dispersion_ranef,
     tv_tol        = tv_tol,
     progbar       = progbar,
     verbose       = TRUE,
@@ -587,7 +587,7 @@ print.lmerb <- function(
     ...
 ) {
 
-  re_names <- x$model_setup$re_coef_names
+  re_names <- x$model_setup$groupef.names
   grp      <- x$model_setup$group_name
   n_obs    <- length(x$model_setup$y)
   n_grp    <- nlevels(x$model_setup$group)

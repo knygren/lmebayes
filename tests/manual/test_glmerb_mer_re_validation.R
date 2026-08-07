@@ -60,7 +60,7 @@ design <- model_setup(form, data = dat, family = poisson())
 stopifnot(isTRUE(design$rank_ok))
 stopifnot(length(design$re_coef_names) == 3L)
 
-ps <- Prior_Setup_lmebayes(form, data = dat, family = poisson(), pwt = 0.01)
+ps <- Prior_Setup_GLMM(form, data = dat, family = poisson(), pwt = 0.01)
 
 cat("\n=== glmerb Poisson known vcov; n =", n_poisson, "===\n\n")
 fit <- glmerb(
@@ -82,7 +82,7 @@ stopifnot(identical(nrow(fit$fixef[[re_names[1L]]]), n_poisson))
 
 ## --- 2. ING estimated vcov (same Poisson airbnb model) -----------------------
 
-ps_ing <- Prior_Setup_lmebayes(
+ps_ing <- Prior_Setup_GLMM(
   form,
   data           = dat,
   family         = poisson(),

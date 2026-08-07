@@ -18,11 +18,11 @@ A named list whose elements are objects of class
 \description{
 Generic for constructing a named list of \code{\link[glmbayesCore]{pfamily}} prior
 objects from a prior-specification object.  Packages that define prior
-setup containers (e.g. \code{\link[lmebayesCore]{Prior_Setup_lmebayes}}) provide methods
+setup containers (e.g. \code{\link[lmebayesCore]{Prior_Setup_GLMM}}) provide methods
 that map each component of the container to a \code{pfamily} constructor such as \code{\link[glmbayesCore]{dNormal}} or
 \code{\link[glmbayesCore]{dIndependent_Normal_Gamma}}.
 }
 \seealso{
 \code{\link[glmbayesCore]{pfamily}}, \code{\link[glmbayesCore]{dNormal}},
-\code{\link[glmbayesCore]{dIndependent_Normal_Gamma}}, \code{\link[lmebayesCore]{Prior_Setup_lmebayes}}
+\code{\link[glmbayesCore]{dIndependent_Normal_Gamma}}, \code{\link[lmebayesCore]{Prior_Setup_GLMM}}
 }

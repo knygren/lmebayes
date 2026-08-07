@@ -7,13 +7,13 @@ test_that("summary.lmerb overview includes glmer reference and Pr(Prior_tail)", 
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
   set.seed(1L)
   fit <- lmerb(
     form,
     data             = dat,
     pfamily_list     = pfamily_list(ps),
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     n                = 50L
   )
 
@@ -56,13 +56,13 @@ test_that("ranef/coef/fixef mirror lme4 layout on lmerb fit", {
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
   set.seed(2L)
   fit <- lmerb(
     form,
     data             = dat,
     pfamily_list     = pfamily_list(ps),
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     n                = 40L
   )
 
@@ -79,7 +79,7 @@ test_that("ranef/coef/fixef mirror lme4 layout on lmerb fit", {
   manual_mean <- tapply(
     seq_len(nrow(fit$coefficients)),
     fit$coefficients$Subject,
-    function(idx) colMeans(fit$coefficients[idx, fit$model_setup$re_coef_names, drop = FALSE]),
+    function(idx) colMeans(fit$coefficients[idx, fit$model_setup$groupef.names, drop = FALSE]),
     simplify = FALSE
   )
   manual_mat <- do.call(rbind, manual_mean[rownames(fit$ranef.mode)])

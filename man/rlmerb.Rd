@@ -8,7 +8,7 @@ rlmerb(
   n,
   design,
   prior,
-  dispersion_ranef,
+  group.dispersion,
   tv_tol = 0.01,
   progbar = TRUE,
   verbose = TRUE,
@@ -25,14 +25,15 @@ rlmerb(
 
 \item{design}{A \code{model_setup} object (from \code{\link[lmebayesCore]{model_setup}})
 supplying \code{y}, \code{D}, \code{group}, \code{W},
-\code{group_name}, and \code{re_coef_names}.}
+\code{group_name}, and \code{groupef.names}.}
 
-\item{prior}{Normalized prior container with \code{Sigma_ranef}, \code{prior_list},
-and related Block~2 fields (typically from \code{pfamily_list} and
-\code{dispersion_ranef} via \code{\link[lmebayesCore]{Prior_Setup_lmebayes}} or an
-\code{lmerb()} workflow in lmebayes).}
+\item{prior}{Normalized prior container with \code{group.Sigma},
+\code{pop.prior_list}, and related Block~2 fields (typically from
+\code{pfamily_list} and \code{group.dispersion} via
+\code{\link[lmebayesCore]{Prior_Setup_GLMM}} or an \code{lmerb()} workflow in
+lmebayes).}
 
-\item{dispersion_ranef}{Required observation-level dispersion: a positive
+\item{group.dispersion}{Required observation-level dispersion: a positive
 scalar \eqn{\sigma^2} (fixed) or a \code{\link[glmbayesCore]{dGamma}()} pfamily with
 \code{Inv_Dispersion = TRUE} for a Gamma prior on \eqn{\sigma^2}.}
 
@@ -65,7 +66,7 @@ the fit. Default \code{FALSE}.}
 \item{sim_method}{Sampling engine: \code{"DEFAULT"} or
 \code{"TWO_BLOCK_GIBBS"}. Only affects the fixed-dispersion,
 known-variance-components route (scalar or per-group fixed
-\code{dispersion_ranef}, all Block~2 \code{dNormal()}): \code{"DEFAULT"}
+\code{group.dispersion}, all Block~2 \code{dNormal()}): \code{"DEFAULT"}
 draws directly from the exact multivariate-normal posterior via
 \code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov_iid}} (no Gibbs sweeps, no
 burn-in); \code{"TWO_BLOCK_GIBBS"} forces the two-block Gibbs engine
@@ -78,7 +79,7 @@ both values behave identically there.}
 An object of class \code{c("rlmerb", "list")} with Block~2 fields in
 the \code{fixef.*} namespace, Block~1 draws in \code{coefficients},
 \code{ranef.mode}, \code{sigma2} (scalar when \eqn{\sigma^2} is fixed,
-length-\code{n} vector when \code{dispersion_ranef} is \code{dGamma()}),
+length-\code{n} vector when \code{group.dispersion} is \code{dGamma()}),
 \code{sigma2.mean}, \code{m_convergence}, \code{convergence},
 \code{sim_method_used} (\code{"DEFAULT"} or \code{"TWO_BLOCK_GIBBS"},
 whichever engine actually ran), \code{Prior}, and \code{design}.
@@ -95,7 +96,7 @@ delegates replicate-chain sampling to
 \code{\link[lmebayesCore]{rLMMNormal_reg_estimated_vcov}},
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_known_vcov}}, or
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}} according to
-\code{dispersion_ranef} and Block~2 \code{pfamily_list}.
+\code{group.dispersion} and Block~2 \code{pfamily_list}.
 
 For formula-level fitting, \code{lmerb()} in the lmebayes package wraps this sampler.
 }
@@ -104,6 +105,6 @@ For formula-level fitting, \code{lmerb()} in the lmebayes package wraps this sam
 \code{\link[lmebayesCore]{rLMMNormal_reg_estimated_vcov}},
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_known_vcov}},
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}},
-\code{\link[lmebayesCore]{Prior_Setup_lmebayes}},
+\code{\link[lmebayesCore]{Prior_Setup_GLMM}},
 \code{\link[glmbayesCore]{rlmb}}
 }

@@ -1,4 +1,4 @@
-test_that("lmerb reuses Prior_Setup_lmebayes()'s glmmTMB fit instead of re-fitting it", {
+test_that("lmerb reuses Prior_Setup_GLMM()'s glmmTMB fit instead of re-fitting it", {
   skip_on_cran()
   skip_if_not_installed("glmmTMB")
 
@@ -7,15 +7,15 @@ test_that("lmerb reuses Prior_Setup_lmebayes()'s glmmTMB fit instead of re-fitti
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(
+  ps <- Prior_Setup_GLMM(
     form,
     data            = dat,
-    pwt             = 0.01,
-    pwt_measurement = 0.1,
+    pop.pwt              = 0.01,
+    group.dispersion.pwt = 0.1,
     dispformula     = ~Subject
   )
   disp_pf <- dGamma_list(ps, warn_asymmetric = FALSE)
-  expect_identical(attr(disp_pf, "dispersion_fit"), ps$dispersion_fit)
+  expect_identical(attr(disp_pf, "group.dispersion.fit"), ps$group.dispersion.fit)
 
   set.seed(1L)
   fit <- lmerb(
@@ -30,7 +30,7 @@ test_that("lmerb reuses Prior_Setup_lmebayes()'s glmmTMB fit instead of re-fitti
   expect_identical(fit$prior$dispersion_mode, "gamma_list")
   expect_s4_class(fit$lmer, "merMod")
   ## Reused ps$dispersion_fit, not a second glmmTMB fit of the same model.
-  expect_identical(fit$dispersion_fit, ps$dispersion_fit)
+  expect_identical(fit$dispersion_fit, ps$group.dispersion.fit)
 })
 
 test_that("dispformula validation rejects mismatched dispersion_ranef shapes", {
@@ -39,14 +39,14 @@ test_that("dispformula validation rejects mismatched dispersion_ranef shapes", {
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
 
   expect_error(
     lmerb(
       form,
       data             = dat,
       pfamily_list     = pfamily_list(ps),
-      dispersion_ranef = ps$dispersion_ranef,
+      dispersion_ranef = ps$group.dispersion,
       dispformula      = ~Subject,
       n                = 2L
     ),
@@ -54,11 +54,11 @@ test_that("dispformula validation rejects mismatched dispersion_ranef shapes", {
   )
 
   skip_if_not_installed("glmmTMB")
-  ps_grp <- Prior_Setup_lmebayes(
+  ps_grp <- Prior_Setup_GLMM(
     form,
     data            = dat,
-    pwt             = 0.01,
-    pwt_measurement = 0.1,
+    pop.pwt              = 0.01,
+    group.dispersion.pwt = 0.1,
     dispformula     = ~Subject
   )
   disp_pf <- dGamma_list(ps_grp, warn_asymmetric = FALSE)
@@ -81,11 +81,11 @@ test_that("lmerb accepts a fixed named numeric vector for dispersion_ranef (fixe
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
   grp_levels <- levels(dat$Subject)
   set.seed(2L)
   disp_vec <- stats::setNames(
-    as.numeric(ps$dispersion_ranef) * stats::runif(length(grp_levels), 0.5, 1.5),
+    as.numeric(ps$group.dispersion) * stats::runif(length(grp_levels), 0.5, 1.5),
     sample(grp_levels)
   )
 
@@ -122,7 +122,7 @@ test_that("dispersion_ranef fixed_vector validation rejects bad shapes and ~1", 
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
   grp_levels <- levels(dat$Subject)
 
   ## Wrong length.
@@ -174,11 +174,11 @@ test_that("glmerb(family = gaussian()) matches lmerb() for fixed_vector dispersi
   dat$Subject <- factor(dat$Subject)
   form <- Reaction ~ Days + (Days || Subject)
 
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
   grp_levels <- levels(dat$Subject)
   set.seed(3L)
   disp_vec <- stats::setNames(
-    as.numeric(ps$dispersion_ranef) * stats::runif(length(grp_levels), 0.5, 1.5),
+    as.numeric(ps$group.dispersion) * stats::runif(length(grp_levels), 0.5, 1.5),
     grp_levels
   )
 

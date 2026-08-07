@@ -74,7 +74,7 @@ stopifnot(identical(
 
 ## --- 1. Random sigma^2, fixed Block~2 tau^2 (parallel to Gaussian §1) -------
 
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   form,
   data            = dat,
   pwt             = 0.01,
@@ -206,7 +206,7 @@ do.call(
 
 
 
-ps2 <- Prior_Setup_lmebayes(
+ps2 <- Prior_Setup_GLMM(
 
   form,
 

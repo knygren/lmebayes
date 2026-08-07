@@ -9,7 +9,7 @@ undocumented helpers).
 
 User-facing export tables also appear in the [README Function overview](../README.md#function-overview).
 
-Mixed-model setup (`model_setup`, `Prior_Setup_lmebayes`, lme4 design utilities,
+Mixed-model setup (`model_setup`, `Prior_Setup_GLMM`, lme4 design utilities,
 `rlmerb` / `rglmerb` engines) live in **glmbayesCore**; see
 [glmbayesCore/inst/R_EXPORTED_AND_DOCUMENTED.md](../../glmbayesCore/inst/R_EXPORTED_AND_DOCUMENTED.md).
 
@@ -45,13 +45,13 @@ Implemented in **glmbayes** / **glmbayesCore**; documented under dependency help
 |----------|----------------|----------------------|
 | `lmb()`, `glmb()`, `directional_tail()` | glmbayes | User workflows; `lmbBlock()` / `glmbBlock()` per block |
 | `Prior_Setup()`, `dNormal()`, `dNormal_Gamma()`, `dIndependent_Normal_Gamma()`, `dGamma()` | glmbayesCore | User workflows; block samplers; `Prior_SetupBlock()` |
-| `pfamily_list()` | glmbayesCore (generic; `lmebayes_prior_setup` method in Core) | `lmerb()`, `glmerb()` (via `.lmebayes_priors_from_pfamily_list()`) |
+| `pfamily_list()` | glmbayesCore (generic; `Prior_Setup_GLMM` method in Core) | `lmerb()`, `glmerb()` (via `.lmebayes_priors_from_pfamily_list()`) |
 | `plot_sweep_history_diag()` | glmbayesCore | User diagnostics on `fit$sweep_history$main` |
-| `model_setup()`, `Prior_Setup_lmebayes()` | glmbayesCore | User workflows; `Prior_SetupBlock()`; `lmerb()` / `glmerb()` |
+| `model_setup()`, `Prior_Setup_GLMM()` | glmbayesCore | User workflows; `Prior_SetupBlock()`; `lmerb()` / `glmerb()` |
 | `rlmerb()`, `rglmerb()` | glmbayesCore | `lmerb()` / `glmerb()` when `simulate = TRUE` |
 
-S3 `print.model_setup`, `print.lmebayes_prior_setup`, and `pfamily_list.lmebayes_prior_setup` register in **glmbayesCore**;
-**lmebayes** dispatches them via `import(glmbayesCore)`. Method help: `?glmbayesCore::pfamily_list.lmebayes_prior_setup`.
+S3 `print.model_setup`, `print.Prior_Setup_GLMM`, and `pfamily_list.Prior_Setup_GLMM` register in **glmbayesCore**;
+**lmebayes** dispatches them via `import(glmbayesCore)`. Method help: `?glmbayesCore::pfamily_list.Prior_Setup_GLMM`.
 
 ---
 

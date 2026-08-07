@@ -12,7 +12,7 @@
 #' or \code{"gamma"} (no dispersion parameter, a fixed scalar, or a single
 #' pooled \code{dGamma()}). `dispformula = ~<group_name>` (per-group) requires
 #' `disp_mode` to be `"gamma_list"` (a named list from
-#' \code{\link[lmebayesCore:dGamma_list.lmebayes_prior_setup]{dGamma_list}()})
+#' \code{\link[lmebayesCore:dGamma_list.Prior_Setup_GLMM]{dGamma_list}()})
 #' or `"fixed_vector"` (a plain named numeric vector, one known fixed
 #' dispersion per group). No other `dispformula` or mode combination is
 #' accepted.
@@ -89,11 +89,11 @@
 #'
 #' Thin wrapper around lmebayesCore's
 #' \code{.lmebayes_fit_glmmtmb_reference()} (the same helper
-#' \code{Prior_Setup_lmebayes()} uses to calibrate priors when
+#' \code{Prior_Setup_GLMM()} uses to calibrate priors when
 #' \code{dispformula} requests per-group dispersion), so \code{lmerb()} only
 #' re-fits glmmTMB here when the caller's \code{dispersion_ranef} was not
 #' already produced by
-#' \code{dGamma_list(Prior_Setup_lmebayes(..., dispformula = dispformula))}
+#' \code{dGamma_list(Prior_Setup_GLMM(..., dispformula = dispformula))}
 #' (which carries the fit forward as an attribute; see \code{lmerb()}).
 #'
 #' @noRd

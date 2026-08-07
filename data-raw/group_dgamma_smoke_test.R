@@ -36,7 +36,7 @@ ref_fits <- .print_reference_mer_compare(
 max_disp_perc <- 0.99
 
 ## --- Prior setup + per-group dGamma_list() --------------------------------
-ps <- Prior_Setup_lmebayes(
+ps <- Prior_Setup_GLMM(
   form,
   data            = dat,
   pwt             = 0.05,

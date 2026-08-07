@@ -30,7 +30,7 @@
 #'   \code{\link[glmbayesCore]{Prior_Setup}} result for one block.
 #' @family prior
 #' @seealso \code{\link{lmbBlock}}, \code{\link[glmbayesCore]{multi_prior_setup}},
-#'   \code{\link{Prior_Setup_lmebayes}}, \code{\link[lmebayesCore]{normalize_block}}
+#'   \code{\link{Prior_Setup_GLMM}}, \code{\link[lmebayesCore]{normalize_block}}
 #' @export
 Prior_SetupBlock <- function(
     formula,

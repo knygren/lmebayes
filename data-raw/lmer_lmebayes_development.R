@@ -12,7 +12,7 @@ if (!requireNamespace("bayesrules", quietly = TRUE)) {
 pkgload::load_all(export_all = FALSE)
 
 ## ===========================================================================
-## Data and formula (same as Prior_Setup_lmebayes_development.R)
+## Data and formula (same as Prior_Setup_GLMM_development.R)
 ## ===========================================================================
 
 data(big_word_club, package = "bayesrules")
@@ -39,8 +39,8 @@ ctrl_bobyqa <- lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2
 ## Step 1: prior setup (required before lmerb)
 ## ===========================================================================
 
-cat("=== Prior_Setup_lmebayes ===\n\n")
-ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
+cat("=== Prior_Setup_GLMM ===\n\n")
+ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01)
 
 ## ===========================================================================
 ## Step 2: lmerb — lmer on formula/data + Block 1 draws

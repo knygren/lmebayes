@@ -112,7 +112,7 @@ stopifnot(identical(n_draws, N_GAUSSIAN))
 
 
 
-ps2 <- Prior_Setup_lmebayes(
+ps2 <- Prior_Setup_GLMM(
 
   form,
 

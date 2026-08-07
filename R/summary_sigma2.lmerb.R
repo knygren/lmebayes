@@ -86,7 +86,7 @@ summary_sigma2.glmerb <- function(
       call. = FALSE
     )
   }
-  re_names  <- object$model_setup$re_coef_names
+  re_names  <- object$model_setup$groupef.names
   simulated <- !is.null(object$coefficients)
   n_draws   <- if (simulated && length(re_names)) {
     nrow(object$fixef[[re_names[1L]]])
@@ -100,7 +100,7 @@ summary_sigma2.glmerb <- function(
     if (is.null(prior) || nrow(prior) == 0L) {
       stop(
         "No per-group fixed sigma^2 values found on ",
-        "object$prior$dispersion_ranef.",
+        "object$prior$group.dispersion.",
         call. = FALSE
       )
     }

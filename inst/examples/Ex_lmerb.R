@@ -25,13 +25,13 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
     (1 + distracted_ppvt || school_id)
 
   ## Default hyperpriors calibrated from a reference lmer fit (weak prior).
-  ps <- Prior_Setup_lmebayes(form, data = dat, pwt = 0.01)
+  ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
 
   fit <- lmerb(
     form,
     data             = dat,
     pfamily_list     = pfamily_list(ps),
-    dispersion_ranef = ps$dispersion_ranef,
+    dispersion_ranef = ps$group.dispersion,
     simulate         = FALSE
   )
   ## lmer MLE vs ICM posterior mean (no MCMC means when simulate = FALSE).

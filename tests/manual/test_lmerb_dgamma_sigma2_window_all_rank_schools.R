@@ -58,7 +58,7 @@ PWT_MEASUREMENT <- 0.49
 
 cat("\n--- Reference: 5-school subset (same as small5 smoke test) ---\n")
 fx5 <- .prepare_small5_lmerb_manual(n_schools = 5L)
-ps5 <- Prior_Setup_lmebayes(
+ps5 <- Prior_Setup_GLMM(
   fx5$form,
   data            = fx5$dat,
   pwt             = 0.01,
@@ -68,7 +68,7 @@ w5 <- .print_sigma2_window(ps5, "5 full-rank schools (small5 subset)")
 
 cat("\n--- All full-rank schools (p_re = 2 model) ---\n")
 fx_all <- .prepare_small5_all_full_rank_manual()
-ps_all <- Prior_Setup_lmebayes(
+ps_all <- Prior_Setup_GLMM(
   fx_all$form,
   data            = fx_all$dat,
   pwt             = 0.01,

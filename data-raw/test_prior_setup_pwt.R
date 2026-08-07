@@ -1,5 +1,5 @@
 # Regression test: flexible pwt and decoupled dispersion-prior arguments in
-# Prior_Setup_lmebayes().
+# Prior_Setup_GLMM().
 #
 # Checks:
 #   - scalar pwt: unchanged behavior; $pwt stays scalar; n_prior_dispersion
@@ -54,7 +54,7 @@ form_lmer <- score_ppvt ~
 
 ## --- 1. scalar pwt baseline --------------------------------------------------
 w0 <- 0.01
-ps0 <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = w0)
+ps0 <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = w0)
 re_names <- names(ps0$prior_list)
 J <- nlevels(ps0$design$group)
 stopifnot(length(re_names) == 3L)
@@ -85,7 +85,7 @@ stopifnot(
 cat("Scalar pwt baseline: OK\n")
 
 ## --- 2. list pwt of all-equal scalars reproduces scalar result ---------------
-ps_eq <- Prior_Setup_lmebayes(
+ps_eq <- Prior_Setup_GLMM(
   form_lmer, data = dat,
   pwt = stats::setNames(as.list(rep(w0, 3L)), re_names)
 )
@@ -112,7 +112,7 @@ cat("List pwt (all equal) == scalar pwt: OK\n")
 
 ## --- 3. per-component scalar weights (named, scrambled order) ----------------
 w_by_comp <- stats::setNames(list(0.05, 0.01, 0.2), re_names[c(2L, 1L, 3L)])
-ps_c <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = w_by_comp)
+ps_c <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = w_by_comp)
 stopifnot(identical(names(ps_c$pwt), re_names))
 s0 <- (1 - w0) / w0
 for (k in re_names) {
@@ -145,7 +145,7 @@ pwt_mixed <- stats::setNames(vector("list", 3L), re_names)
 pwt_mixed[[k1]] <- w_vec_scrambled
 for (k in re_names[-1L]) pwt_mixed[[k]] <- w0
 
-ps_v <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = pwt_mixed)
+ps_v <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = pwt_mixed)
 stopifnot(
   identical(names(ps_v$pwt[[k1]]), cols_1),
   isTRUE(all.equal(ps_v$pwt[[k1]], w_vec))
@@ -170,7 +170,7 @@ cat("Per-predictor vector pwt: OK\n")
 
 ## --- 5. pwt_dispersion argument ----------------------------------------------
 wd <- 0.5
-ps_wd <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = w0,
+ps_wd <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = w0,
                               pwt_dispersion = wd)
 stopifnot(
   isTRUE(all.equal(as.vector(ps_wd$pwt_dispersion), rep(wd, 3L))),
@@ -184,7 +184,7 @@ stopifnot(
 
 ## per-component list, named and scrambled
 wd_list <- stats::setNames(list(0.3, 0.5, 0.7), re_names[c(3L, 1L, 2L)])
-ps_wd2 <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = w0,
+ps_wd2 <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = w0,
                                pwt_dispersion = wd_list)
 for (k in re_names) {
   w_k <- wd_list[[k]]
@@ -198,7 +198,7 @@ cat("pwt_dispersion argument: OK\n")
 
 ## --- 6. n_prior_dispersion argument ------------------------------------------
 nd <- 10
-ps_nd <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = w0,
+ps_nd <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = w0,
                               n_prior_dispersion = nd)
 stopifnot(
   isTRUE(all.equal(as.vector(ps_nd$n_prior_dispersion), rep(nd, 3L))),
@@ -209,7 +209,7 @@ stopifnot(
 
 ## per-component numeric vector, named and scrambled
 nd_vec <- stats::setNames(c(5, 10, 20), re_names[c(2L, 3L, 1L)])
-ps_nd2 <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = w0,
+ps_nd2 <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = w0,
                                n_prior_dispersion = nd_vec)
 for (k in re_names) {
   n_k <- unname(nd_vec[[k]])
@@ -245,22 +245,22 @@ cat("print methods: OK\n")
 
 ## --- 9. validation errors -----------------------------------------------------
 expect_error(
-  Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 1.5),
+  Prior_Setup_GLMM(form_lmer, data = dat, pwt = 1.5),
   "'pwt' must be a scalar in \\(0, 1\\)"
 )
 expect_error(
-  Prior_Setup_lmebayes(form_lmer, data = dat, pwt = list(0.1, 0.2)),
+  Prior_Setup_GLMM(form_lmer, data = dat, pwt = list(0.1, 0.2)),
   "length 2 but there are 3"
 )
 expect_error(
-  Prior_Setup_lmebayes(
+  Prior_Setup_GLMM(
     form_lmer, data = dat,
     pwt = stats::setNames(list(0.1, 0.2, 0.3), c("a", "b", "c"))
   ),
   "Names of 'pwt'"
 )
 expect_error(
-  Prior_Setup_lmebayes(
+  Prior_Setup_GLMM(
     form_lmer, data = dat,
     pwt = stats::setNames(as.list(c(0.1, 1.2, 0.3)), re_names)
   ),
@@ -269,35 +269,35 @@ expect_error(
 bad_len <- stats::setNames(as.list(rep(w0, 3L)), re_names)
 bad_len[[k1]] <- rep(w0, p_1 + 1L)
 expect_error(
-  Prior_Setup_lmebayes(form_lmer, data = dat, pwt = bad_len),
+  Prior_Setup_GLMM(form_lmer, data = dat, pwt = bad_len),
   sprintf("length 1 or %d", p_1)
 )
 bad_nms <- stats::setNames(as.list(rep(w0, 3L)), re_names)
 bad_nms[[k1]] <- stats::setNames(rep(w0, p_1), paste0("z", seq_len(p_1)))
 expect_error(
-  Prior_Setup_lmebayes(form_lmer, data = dat, pwt = bad_nms),
+  Prior_Setup_GLMM(form_lmer, data = dat, pwt = bad_nms),
   "must match the Block 2 predictors"
 )
 expect_error(
-  Prior_Setup_lmebayes(form_lmer, data = dat,
+  Prior_Setup_GLMM(form_lmer, data = dat,
                        pwt_dispersion = 0.5, n_prior_dispersion = 10),
   "at most one of"
 )
 expect_error(
-  Prior_Setup_lmebayes(form_lmer, data = dat, pwt_dispersion = 1.1),
+  Prior_Setup_GLMM(form_lmer, data = dat, pwt_dispersion = 1.1),
   "must be in \\(0, 1\\)"
 )
 expect_error(
-  Prior_Setup_lmebayes(form_lmer, data = dat, n_prior_dispersion = -2),
+  Prior_Setup_GLMM(form_lmer, data = dat, n_prior_dispersion = -2),
   "positive and finite"
 )
 expect_error(
-  Prior_Setup_lmebayes(form_lmer, data = dat,
+  Prior_Setup_GLMM(form_lmer, data = dat,
                        n_prior_dispersion = c(1, 2)),
   "length 1 or 3"
 )
 expect_error(
-  Prior_Setup_lmebayes(
+  Prior_Setup_GLMM(
     form_lmer, data = dat,
     n_prior_dispersion = stats::setNames(c(1, 2, 3), c("a", "b", "c"))
   ),
@@ -305,4 +305,4 @@ expect_error(
 )
 cat("Validation errors: OK\n")
 
-cat("\nAll Prior_Setup_lmebayes pwt/dispersion tests passed.\n")
+cat("\nAll Prior_Setup_GLMM pwt/dispersion tests passed.\n")

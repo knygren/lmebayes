@@ -3,7 +3,7 @@
 ## Full model with cross-level moderation (not the simplified ?lmerb man-page
 ## example).  Preserved as a demo because the run (1000 draws plus factor-level
 ## diagnostics) takes on the order of a minute.  This demo keeps the complete
-## workflow: model_setup(), Prior_Setup_lmebayes(), pfamily_list(), lmerb(),
+## workflow: model_setup(), Prior_Setup_GLMM(), pfamily_list(), lmerb(),
 ## then draws-vs-ICM z-tests and lmer/mu_all/lmerb factor-level comparisons.
 ##
 ## For the lme4-style small model with simulation, see
@@ -27,7 +27,7 @@ for (pkg in c("bayesrules", "coda")) {
 ## random slopes. Cross-level moderation: free_reduced_lunch:distracted_a1
 ## (school lunch status moderates the distracted_a1 random slope).
 ##
-## Workflow: model_setup(), Prior_Setup_lmebayes(), pfamily_list(), then
+## Workflow: model_setup(), Prior_Setup_GLMM(), pfamily_list(), then
 ## lmerb(pfamily_list = , dispersion_ranef = ).
 
 data(big_word_club, package = "bayesrules")
@@ -57,8 +57,8 @@ design <- model_setup(form_lmer, data = dat)
 cat("\n=== model_setup ===\n\n")
 print(design)
 
-ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
-cat("\n=== Prior_Setup_lmebayes ===\n\n")
+ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01)
+cat("\n=== Prior_Setup_GLMM ===\n\n")
 print(ps)
 
 ## Defaults: tv_tol = 0.01 (each stored draw within 0.01 TV of the exact

@@ -1,7 +1,7 @@
-# Regression test: pfamily_list() method for lmebayes_prior_setup objects.
+# Regression test: pfamily_list() method for Prior_Setup_GLMM objects.
 #
 # Builds named lists of glmbayesCore pfamily objects (one per random-effect
-# coefficient) from Prior_Setup_lmebayes() output.  Checks:
+# coefficient) from Prior_Setup_GLMM() output.  Checks:
 #   - dNormal path: mu/Sigma/dispersion match prior_list fields exactly.
 #   - dIndependent_Normal_Gamma path: mu/Sigma match; shape/rate follow the
 #     glmbayesCore default calibration (shape_ING with b_0 = tau2*(shape-1),
@@ -40,7 +40,7 @@ form_lmer <- score_ppvt ~
   free_reduced_lunch:distracted_a1 +
   (1 + distracted_ppvt + distracted_a1 || school_id)
 
-ps <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01)
+ps <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01)
 re_names <- names(ps$prior_list)
 stopifnot(length(re_names) == 3L)
 
@@ -119,7 +119,7 @@ for (k in re_names) {
     pr$disp_upper > tau2_k
   )
   ## Single source of truth: the pfamily must carry exactly the calibration
-  ## stored on the setup object by Prior_Setup_lmebayes() (ing_prior field).
+  ## stored on the setup object by Prior_Setup_GLMM() (ing_prior field).
   ing_k <- ps$ing_prior[[k]]
   stopifnot(
     !is.null(ing_k),
@@ -192,7 +192,7 @@ expect_error(pfamily_list(ps, ptypes = list("dNormal", 2, "dNormal")),
 ## Prior-vs-data guard: pwt_dispersion > 0.5 implies n_prior_dispersion > J,
 ## which the ING dispersion envelope cannot support (sampler caps the
 ## log-tilt at J/2).  Building such a pfamily must fail early.
-ps_heavy <- Prior_Setup_lmebayes(form_lmer, data = dat, pwt = 0.01,
+ps_heavy <- Prior_Setup_GLMM(form_lmer, data = dat, pwt = 0.01,
                                  pwt_dispersion = 0.9)
 expect_error(
   pfamily_list(ps_heavy, ptypes = "dIndependent_Normal_Gamma"),

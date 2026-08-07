@@ -197,14 +197,14 @@ for (k in design$re_coef_names) {
 }
 
 ps <- tryCatch(
-  Prior_Setup_lmebayes(
+  Prior_Setup_GLMM(
     form_glmerb,
     data   = dat,
     family = binomial(),
     pwt    = 0.01
   ),
   error = function(e) {
-    cat("\nPrior_Setup_lmebayes() stopped:\n  ",
+    cat("\nPrior_Setup_GLMM() stopped:\n  ",
         conditionMessage(e), "\n\n", sep = "")
     NULL
   }

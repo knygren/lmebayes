@@ -62,7 +62,7 @@ ranef.glmerb <- function(
   if (!inherits(object, c("lmerb", "glmerb"))) {
     stop("object must be an lmerb or glmerb fit.", call. = FALSE)
   }
-  re_names <- object$model_setup$re_coef_names
+  re_names <- object$model_setup$groupef.names
   grp_col  <- object$model_setup$group_name
   if (!length(re_names)) {
     stop("object has no random-effects components.", call. = FALSE)
@@ -122,7 +122,7 @@ ranef.glmerb <- function(
 #' @keywords internal
 #' @noRd
 .lmerb_ranef_postVar <- function(object) {
-  re_names <- object$model_setup$re_coef_names
+  re_names <- object$model_setup$groupef.names
   grp_col  <- object$model_setup$group_name
   coef_df  <- object$coefficients
   grp_levs <- levels(factor(coef_df[[grp_col]]))

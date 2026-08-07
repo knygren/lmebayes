@@ -9,7 +9,7 @@ source("tests/manual/_bwc_lmerb_fixture.R")
 
 #' Build dGamma dispersion_ranef from Prior_Setup ing_prior_measurement.
 #'
-#' @param ps Output of \code{Prior_Setup_lmebayes()}.
+#' @param ps Output of \code{Prior_Setup_GLMM()}.
 #' @param narrow_window If TRUE, shrink truncation toward the interior (Ex_24).
 #' @keywords internal
 .dgamma_dispersion_ranef <- function(ps, narrow_window = FALSE) {
