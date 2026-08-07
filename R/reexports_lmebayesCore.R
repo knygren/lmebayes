@@ -33,11 +33,21 @@ dGamma <- glmbayesCore::dGamma
 ## Proper re-export (not a copy) so S3 methods register against the
 ## lmebayesCore generic.  The Prior_Setup_GLMM method lives in Core;
 ## see ?lmebayesCore::pfamily_list.Prior_Setup_GLMM.
-#' @inherit lmebayesCore::pfamily_list title description details params return seealso
-#' @name pfamily_list
-#' @importFrom lmebayesCore pfamily_list
+#' @inherit lmebayesCore::pfamily_list title description details return seealso
+#' @param object A prior-specification object (typically from
+#'   [Prior_Setup_GLMM()]).
+#' @param ptypes Character: either a single string applied to every
+#'   group-effect coefficient, or a character vector / list with one
+#'   string per coefficient.  For [Prior_Setup_GLMM()], allowed
+#'   values are `"dNormal"` (default; known \eqn{\tau^2_k}) and
+#'   `"dIndependent_Normal_Gamma"` (Gamma prior on precision
+#'   \eqn{1/\tau^2_k}).  A vector may be named with the group-effect
+#'   coefficient names (any order); unnamed vectors are matched
+#'   positionally against `names(object$pop.prior_list)`.
+#' @param ... Additional arguments passed to methods.
+#' @usage pfamily_list(object, ptypes = "dNormal", ...)
 #' @export
-lmebayesCore::pfamily_list
+pfamily_list <- lmebayesCore::pfamily_list
 
 #' @inherit lmebayesCore::dGamma_list title description details params return seealso
 #' @name dGamma_list

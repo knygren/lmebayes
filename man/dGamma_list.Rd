@@ -10,18 +10,29 @@ dGamma_list(object, ...)
 \item{object}{A prior-specification object.}
 
 \item{...}{Additional arguments passed to methods (e.g.
-\code{max_disp_perc}, \code{disp_upper_anchor}).}
+\code{max_disp_perc_measurement}).}
 }
 \value{
-A named list whose elements are objects of class \code{"pfamily"}.
+An object of class \code{"dGamma_list"} (also inherits from
+\code{"list"}): a named list of \code{"pfamily"} objects (one per
+group).  Attributes such as \code{window_diagnostics} and
+\code{measurement_prior_group} are retained for downstream use but
+are not shown by \code{\link[lmebayesCore]{print.dGamma_list}}.
 }
 \description{
 Generic for constructing a named list of \code{\link[glmbayesCore]{dGamma}} prior
 objects from a prior-specification object.  For mixed models, one
-\code{dGamma()} per group level supplies Block~1 observation-level
+\code{dGamma()} per group level supplies observation-level
 \eqn{\sigma^2_j} priors for \code{lmerb(..., group.dispersion = ...)}.
+}
+\details{
+For \code{\link[lmebayesCore]{Prior_Setup_GLMM}} with a per-group \code{dispformula},
+each group's \code{dGamma()} uses \code{shape_ING}/\code{rate} from
+\code{object$group.ing_prior} (Part VI calibration; see
+\code{inst/DGAMMA_LIST_MARGINAL_AND_BOUNDS.md}). Truncation bounds are
+posterior-shape quantiles at that group's \code{max_disp_perc}.
 }
 \seealso{
 \code{\link[glmbayesCore]{dGamma}}, \code{\link[lmebayesCore]{Prior_Setup_GLMM}},
-\code{\link[lmebayesCore]{pfamily_list}}
+\code{\link[lmebayesCore]{pfamily_list}}, \code{\link[lmebayesCore]{print.dGamma_list}}
 }

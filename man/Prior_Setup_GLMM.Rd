@@ -587,5 +587,6 @@ Fits with \code{lme4} \code{checkConv} failures (e.g.\\ large
 }
 \seealso{
 \code{\link[lmebayesCore]{model_setup}}, \code{\link[glmbayesCore]{Prior_Setup}},
-\code{\link[lmebayesCore]{build_mu_all}}
+\code{\link[lmebayesCore]{build_mu_all}}, \code{\link[lmebayesCore]{pfamily_list}},
+\code{\link[lmebayesCore]{dGamma_list}}
 }

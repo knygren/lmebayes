@@ -4,25 +4,70 @@
 \alias{pfamily_list}
 \title{Build a named list of pfamily objects}
 \usage{
-pfamily_list(object, ...)
+pfamily_list(object, ptypes = "dNormal", ...)
 }
 \arguments{
-\item{object}{A prior-specification object.}
+\item{object}{A prior-specification object (typically from
+\code{\link[=Prior_Setup_GLMM]{Prior_Setup_GLMM()}}).}
 
-\item{...}{Additional arguments passed to methods (e.g. \code{ptypes}).}
+\item{ptypes}{Character: either a single string applied to every
+group-effect coefficient, or a character vector / list with one
+string per coefficient.  For \code{\link[=Prior_Setup_GLMM]{Prior_Setup_GLMM()}}, allowed
+values are \code{"dNormal"} (default; known \eqn{\tau^2_k}) and
+\code{"dIndependent_Normal_Gamma"} (Gamma prior on precision
+\eqn{1/\tau^2_k}).  A vector may be named with the group-effect
+coefficient names (any order); unnamed vectors are matched
+positionally against \code{names(object$pop.prior_list)}.}
+
+\item{...}{Additional arguments passed to methods.}
 }
 \value{
-A named list whose elements are objects of class
-\code{"pfamily"}.
+An object of class \code{"pfamily_list"} (also inherits from
+\code{"list"}): a named list whose elements are objects of class
+\code{"pfamily"}.  Attribute \code{"ptypes"} records the resolved
+prior-family name for each component.  Printing uses
+\code{\link[lmebayesCore]{print.pfamily_list}}.
 }
 \description{
-Generic for constructing a named list of \code{\link[glmbayesCore]{pfamily}} prior
-objects from a prior-specification object.  Packages that define prior
-setup containers (e.g. \code{\link[lmebayesCore]{Prior_Setup_GLMM}}) provide methods
-that map each component of the container to a \code{pfamily} constructor such as \code{\link[glmbayesCore]{dNormal}} or
-\code{\link[glmbayesCore]{dIndependent_Normal_Gamma}}.
+Generic for constructing a named list of \code{\link[glmbayesCore]{pfamily}}
+prior objects from a prior-specification object.  For
+\code{\link[lmebayesCore]{Prior_Setup_GLMM}} objects, each population / group-effect
+coefficient (e.g. \code{"(Intercept)"}, slope names) is mapped to a
+\code{\link[glmbayesCore]{dNormal}} or
+\code{\link[glmbayesCore]{dIndependent_Normal_Gamma}} prior according to
+\code{ptypes}.
+}
+\details{
+For a \code{\link[lmebayesCore]{Prior_Setup_GLMM}} object, each group-effect
+coefficient \eqn{k} uses parameters from
+\code{object$pop.prior_list[[k]]}:
+\itemize{
+\item \code{"dNormal"}: \code{dNormal(mu, Sigma, dispersion)} with
+known group-effect variance \eqn{\tau^2_k}.
+\item \code{"dIndependent_Normal_Gamma"}: the same \code{mu} and
+\code{Sigma}, plus a Gamma prior on precision \eqn{1/\tau^2_k}
+from \code{object$pop.ing_prior[[k]]} (calibrated by
+\code{\link[lmebayesCore]{Prior_Setup_GLMM}} via \code{pop.dispersion.pwt} /
+\code{pop.dispersion.nprior}).  With effective prior sample size
+\eqn{n_0} and \eqn{p_k} population predictors for component
+\eqn{k},
+\deqn{shape = (n_0 + 1 + p_k)/2, \qquad
+          rate = \tau^2_k \, (n_0 + p_k - 1)/2.}
+Requires \eqn{n_0 \le J} (equivalently
+\code{pop.dispersion.pwt} \eqn{\le 0.5}). Truncation bounds
+\code{disp_lower} / \code{disp_upper} come from the limiting
+posterior window stored on \code{pop.ing_prior}; see
+\code{inst/ING_TRUNCATION_WINDOW.md}.
+}
+
+This is separate from observation-level \eqn{\sigma^2} priors: those
+use \code{\link[lmebayesCore]{dGamma_list}} (per-group \code{dispformula}) or a
+single \code{\link[glmbayesCore]{dGamma}} built from
+\code{object$group.ing_prior} when dispersion is pooled.
 }
 \seealso{
+\code{\link[lmebayesCore]{Prior_Setup_GLMM}}, \code{\link[lmebayesCore]{print.pfamily_list}},
 \code{\link[glmbayesCore]{pfamily}}, \code{\link[glmbayesCore]{dNormal}},
-\code{\link[glmbayesCore]{dIndependent_Normal_Gamma}}, \code{\link[lmebayesCore]{Prior_Setup_GLMM}}
+\code{\link[glmbayesCore]{dIndependent_Normal_Gamma}},
+\code{\link[lmebayesCore]{dGamma_list}}
 }

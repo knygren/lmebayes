@@ -252,8 +252,8 @@ retained in the \code{lmer}/\code{glmer} fit;
 and requires \code{popef.rank_ok = TRUE} to derive default hyperpriors
 automatically.
 
-The example uses \code{big_word_club} from the Suggested package
-\pkg{bayesrules} (see \code{?bayesrules::big_word_club}) and the same
+The example uses \code{big_word_club} from \pkg{bayesrules}
+(see \code{?bayesrules::big_word_club}) and the same
 formula as the full \code{lmerb()} demo in lmebayes
 (\code{demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")}).
 }
