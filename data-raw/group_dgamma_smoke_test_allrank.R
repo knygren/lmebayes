@@ -4,7 +4,7 @@
 #
 # Same checks as group_dgamma_smoke_test.R (5-school subset), but every
 # school_id level with full-rank Z_j is kept. Use this for Block~2 convergence
-# diagnostics (plot_sweep_history_diag); 200 chains is a quick sanity pass —
+# diagnostics (plot_var_convergence); 200 chains is a quick sanity pass —
 # raise n for reliable sweep-history plots (Ex_16 uses n = 3000).
 #
 # Per-group dispersion_ranef (dGamma_list()) requires dispformula =
@@ -182,13 +182,13 @@ coef_focus <- list(
   c("(Intercept)", "(Intercept)"),
   c("distracted_ppvt", "(Intercept)")
 )
-cat("\n=== Block~2 convergence (plot_sweep_history_diag) ===\n\n")
+cat("\n=== Block~2 convergence (plot_var_convergence) ===\n\n")
 if (!interactive()) {
   grDevices::pdf(NULL)
 }
 for (st in list(fit$sweep_history$pilot, fit$sweep_history$main)) {
   if (is.null(st)) next
-  plot_sweep_history_diag(st, coef_focus)
+  plot_var_convergence(st, coef_focus)
 }
 if (!interactive() && grDevices::dev.cur() > 1L) {
   grDevices::dev.off()

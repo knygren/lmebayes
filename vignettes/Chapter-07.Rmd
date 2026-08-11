@@ -1,0 +1,243 @@
+---
+title: "Chapter 07: Estimated variance components and the pilot stage"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 07: Estimated variance components and the pilot stage}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+# Chapter 07: Estimated variance components and the pilot stage
+
+Every fit so far has held the variance components \(\tau^2_k\) fixed at the
+`lmer` estimates. That is a real assumption: it says you know exactly how
+much subjects vary, and it makes the posterior for everything else
+narrower than it should be. This chapter relaxes it.
+
+```{r data}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+form <- Reaction ~ Days_c + (1 + Days_c || Subject)
+```
+
+# Fixed versus sampled
+
+The choice is made per random coefficient, through the prior family.
+
+| Family | \(\tau^2_k\) | Consequence |
+|---|---|---|
+| `dNormal` | Fixed at the reference estimate | Joint posterior stays Gaussian; exact iid draws |
+| `dIndependent_Normal_Gamma` | Sampled, Gamma prior on \(1/\tau^2_k\) | Target no longer Gaussian; Gibbs sweeps and a pilot stage |
+
+Calibrate as usual, adding a prior weight for the dispersion:
+
+```{r prior}
+ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01,
+                       pop.dispersion.pwt = 0.2)
+ps$pop.ing_prior
+```
+
+`pop.dispersion.pwt = 0.2` gives the dispersion prior the weight of about
+20 percent of the groups. With only 18 subjects there is genuinely little
+information about a variance component, so this is not a small choice —
+compare it against `0.05` and `0.5` before trusting the width of your
+intervals.
+
+# The truncation window
+
+Each ING component carries `disp_lower` and `disp_upper`, and the sampled
+\(\tau^2_k\) is confined to that interval.
+
+The bounds are quantiles of the *limiting posterior* of the variance
+component, not of the prior. That distinction matters: a Gamma prior on a
+precision has a fat tail toward zero variance, and a \(\tau^2\) driven to
+zero collapses the hierarchy — every group's coefficient is pinned to the
+population mean, and the sampler's coupling becomes total. Truncating away
+that region is what keeps the chain geometrically ergodic.
+
+The lower bound does double duty. The sampler evaluates its convergence
+rate at `disp_lower`, because smaller \(\tau^2\) means tighter coupling and
+a slower chain, so a bound computed there is valid across the entire
+window. That is conservative rather than correct-on-average, which is the
+right direction for a certificate. See
+`vignette("Chapter-B05", package = "lmebayesCore")` and
+`inst/ING_TRUNCATION_WINDOW.md` in the package sources.
+
+# Fitting
+
+```{r pfamily}
+pf_ing <- pfamily_list(ps, ptypes = "dIndependent_Normal_Gamma")
+class(pf_ing[["Days_c"]])
+```
+
+`ptypes` also accepts a named vector when you want to sample some
+components and fix others — for example
+`ptypes = c("(Intercept)" = "dNormal", "Days_c" = "dIndependent_Normal_Gamma")`.
+
+```{r fit, results = "hide"}
+set.seed(1)
+fit <- lmerb(form, data = dat,
+             pfamily_list     = pf_ing,
+             dispersion_ranef = ps$group.dispersion,
+             n = 300L, progbar = FALSE)
+```
+
+```{r fit-print}
+fit
+```
+
+Two things changed in the header. The engine is now `two-block Gibbs`
+rather than `exact iid`, and the random-effects line says the variance
+components are sampled rather than fixed.
+
+# What the variance components look like
+
+```{r tau2-draws}
+head(fit$popef.dispersion)
+round(fit$popef.dispersion.mean, 3)
+```
+
+`fit$popef.dispersion` holds the \(\tau^2_k\) draws — one column per random
+coefficient. Now they have a distribution:
+
+```{r tau2-quantiles}
+round(t(apply(fit$popef.dispersion, 2, quantile,
+              probs = c(0.025, 0.5, 0.975))), 2)
+```
+
+On the standard-deviation scale, which is easier to read against `lmer`:
+
+```{r tau2-sd}
+round(t(apply(sqrt(fit$popef.dispersion), 2, quantile,
+              probs = c(0.025, 0.5, 0.975))), 3)
+```
+
+Compare against the `lmer` point estimates:
+
+```{r lmer-sd}
+print(lme4::VarCorr(fit$lmer), comp = "Std.Dev.")
+```
+
+The `lmer` numbers should sit inside the credible intervals. They are point
+estimates with no uncertainty attached; the intervals here are wide, and
+honestly so — 18 subjects is not much information about how subjects vary.
+
+# The cost of honesty
+
+```{r cost, results = "hide"}
+set.seed(1)
+fit_fixed <- lmerb(form, data = dat,
+                   pfamily_list     = pfamily_list(ps),
+                   dispersion_ranef = ps$group.dispersion,
+                   n = 300L, progbar = FALSE)
+```
+
+```{r cost-table}
+sd_fixed <- vapply(fit_fixed$popef, function(m) sd(m[, 1]), numeric(1))
+sd_ing   <- vapply(fit$popef,       function(m) sd(m[, 1]), numeric(1))
+round(data.frame(
+  fixed_tau2   = sd_fixed,
+  sampled_tau2 = sd_ing,
+  ratio        = sd_ing / sd_fixed
+), 4)
+```
+
+Posterior standard deviations on the population coefficients are wider once
+the variance components are uncertain. That widening is the point: fixing
+\(\tau^2\) at a point estimate and reporting the resulting intervals
+understates what you know.
+
+# The pilot stage
+
+The convergence theory of Chapter 06 assumed chains start at the exact
+posterior mean, making the mean-error term of the bound exactly zero. With
+sampled variance components the joint target is no longer Gaussian, so
+there is no exact mean to start from.
+
+The engine's answer is a **pilot stage**: a batch of short chains whose
+cross-chain mean becomes the start point for the main chains. The pilot
+draws are discarded. Their job is not to estimate anything but to produce a
+starting point whose distance from the truth can be *bounded*.
+
+```{r pilot}
+fit$pilot
+```
+
+If the pilot mean averages `n_pilot` independent chains, its sampling
+distribution has covariance \(\Sigma/n_{\text{pilot}}\), so the squared
+standardized start distance obeys
+\(D_0 = \chi^2_{p,\alpha} / n_{\text{pilot}}\) at confidence level
+\(\alpha\). Bigger pilots give smaller \(D_0\) and therefore fewer
+main-stage sweeps — but the pilot itself costs sweeps. The engine minimizes
+total cost over `n_pilot`; the optimization is worked through in
+`vignette("Chapter-B03", package = "lmebayesCore")`.
+
+Both stages leave a sweep history:
+
+```{r sweep-history}
+names(fit$sweep_history)
+fit$sweep_history$pilot
+```
+
+```{r sweep-history-main}
+fit$sweep_history$main
+```
+
+The pilot history starts at the ICM mode and moves; the main history starts
+at the pilot mean and barely moves. That contrast is the pilot doing its
+job.
+
+# Reading the summary
+
+```{r summary}
+summary(fit)
+```
+
+The Block 2 dispersion section is now informative. `Post.Mode`,
+`Post.Mean`, `Post.Sd`, and the percentile rows are real distributions
+rather than repeated constants, `disp_lower` / `disp_upper` show the
+truncation window, and `Cand/draw` reports how many accept-reject
+candidates the envelope sampler needed per draw — a value near 1 means the
+envelope is tight, larger values mean it is working harder.
+
+# When to sample the variance components
+
+**Sample them** when the number of groups is small (a variance component
+from 18 subjects is barely identified), when the variance component is
+itself of interest, or when you are reporting intervals you want to be
+honest.
+
+**Fix them** when there are many groups and \(\tau^2\) is well determined,
+when you want exact iid draws with no sweeps, or when speed matters and the
+sensitivity check shows it makes no difference.
+
+The cheapest way to decide is to fit both, as above, and look at the ratio
+of posterior standard deviations.
+
+# See also
+
+- **Chapter 08** — the same question for the *observation* dispersion.
+- `vignette("Chapter-B05", package = "lmebayesCore")` — the ING Block 2
+  derivation and the truncation window.
+- `vignette("Chapter-B06", package = "lmebayesCore")` — the local rate
+  diagnostic used when \(\tau^2\) is sampled.
+- `?pfamily_list`, `?dIndependent_Normal_Gamma`

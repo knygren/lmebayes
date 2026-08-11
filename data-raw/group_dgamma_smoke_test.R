@@ -122,13 +122,13 @@ coef_focus <- list(
   c("(Intercept)", "(Intercept)"),
   c("distracted_ppvt", "(Intercept)")
 )
-cat("\n=== Block~2 convergence (plot_sweep_history_diag) ===\n\n")
+cat("\n=== Block~2 convergence (plot_var_convergence) ===\n\n")
 if (!interactive()) {
   grDevices::pdf(NULL)
 }
 for (st in list(fit$sweep_history$pilot, fit$sweep_history$main)) {
   if (is.null(st)) next
-  plot_sweep_history_diag(st, coef_focus)
+  plot_var_convergence(st, coef_focus)
 }
 if (!interactive() && grDevices::dev.cur() > 1L) {
   grDevices::dev.off()

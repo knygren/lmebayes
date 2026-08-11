@@ -51,7 +51,7 @@ demo("Ex_23_lmerb_joint_posterior_mode_four_cases", package = "lmebayes")
 ```
 
 After sampling runs, inspect convergence with `print(fit$sweep_history$main)` and
-`plot_sweep_history_diag()` (see README demos **Ex_16**, **Ex_21**, **Ex_22**).
+`plot_mean_convergence()` / `plot_var_convergence()` (see README demos **Ex_16**, **Ex_21**, **Ex_22**).
 
 ## Official **testthat** suite
 

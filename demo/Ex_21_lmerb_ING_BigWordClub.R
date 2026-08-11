@@ -204,7 +204,8 @@ coef_focus <- list(
 
 for (st in list(fit$sweep_history$pilot, fit$sweep_history$main)) {
   if (is.null(st)) next
-  plot_sweep_history_diag(st, coef_focus)
+  plot_mean_convergence(st, coef_focus = coef_focus)
+  plot_var_convergence(st, coef_focus = coef_focus)
 }
 
 cat("\n=== Random effects: lmer reference vs lmerb chain mean ===\n\n")

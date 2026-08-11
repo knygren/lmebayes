@@ -1,0 +1,263 @@
+---
+title: "Chapter 02: From lm and glm to mixed models"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 02: From lm and glm to mixed models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+# Chapter 02: From `lm`/`glm` to mixed models
+
+Chapter 01 fit a model without saying much about what it means. This
+chapter fills that gap: what partial pooling buys you, how **lmebayes**
+parameterizes a mixed model, and why the two model restrictions
+(one grouping factor, uncorrelated terms) exist.
+
+There is no sampling in this chapter.
+
+# Three ways to handle groups
+
+Take reaction time measured repeatedly on each of \(J\) subjects. You have
+three options.
+
+**Complete pooling.** `lm(Reaction ~ Days_c)`. One intercept, one slope,
+everyone the same. Simple, and wrong whenever subjects genuinely differ:
+the residuals are correlated within subject, so standard errors are too
+small.
+
+**No pooling.** `lm(Reaction ~ Days_c * Subject)`, or 18 separate
+regressions. Each subject gets their own coefficients, estimated from their
+own 10 observations and nothing else. Honest, but noisy — a subject with an
+unlucky run of measurements gets an extreme slope, and nothing pulls it
+back.
+
+**Partial pooling.** The mixed model. Each subject still gets their own
+coefficients, but those coefficients are themselves modeled as draws from a
+population distribution. A subject with little or noisy data is shrunk
+toward the population mean; a subject with lots of clean data is barely
+moved.
+
+The amount of shrinkage is not a tuning choice. It falls out of the ratio
+of within-group information to between-group variance:
+
+\[
+\text{shrinkage for group } j \;\approx\;
+\frac{1/\tau^2}{1/\tau^2 + n_j/\sigma^2}.
+\]
+
+Small groups (small \(n_j\)) and tight population distributions (small
+\(\tau^2\)) shrink more. That expression is not an analogy: it is
+*literally* the convergence rate \(\lambda^*\) of the two-block Gibbs
+sampler for the balanced random-intercept model, derived in
+`vignette("Chapter-B02", package = "lmebayesCore")`. Models that shrink
+hard are exactly the models whose sampler mixes slowly, because in both
+cases the group coefficients and the population mean are tightly coupled.
+
+# The parameterization
+
+Here is where **lmebayes** differs from `lme4` in a way you will notice in
+the output.
+
+**`lme4` writes** the model as a fixed part plus a mean-zero deviation:
+
+\[
+y_j = X_j\beta + Z_j b_j + \varepsilon_j,
+\qquad b_j \sim N(0, G).
+\]
+
+`fixef()` gives \(\beta\), `ranef()` gives \(b_j\) (centered at zero), and
+`coef()` gives \(\beta + b_j\).
+
+**lmebayes writes** the same model in centered, two-stage form
+[@LindleySmith1972]:
+
+\[
+\begin{aligned}
+\text{Stage 1:}\quad & y_j \mid \beta_j \sim N(D_j\beta_j,\; \sigma^2 I) \\
+\text{Stage 2:}\quad & \beta_j \mid \gamma \sim N(\mathcal{W}_j\gamma,\; \Psi)
+\end{aligned}
+\]
+
+The group-level coefficient vector \(\beta_j\) is *not* mean zero. It is
+the full coefficient vector for group \(j\), and it enters the likelihood
+directly. The population coefficients \(\gamma\) appear only in stage 2, as
+the mean of the \(\beta_j\).
+
+Substituting stage 2 into stage 1 recovers `lme4`'s form exactly:
+
+\[
+y_j = D_j(\mathcal{W}_j\gamma + u_j) + \varepsilon_j
+    = \underbrace{(D_j\mathcal{W}_j)}_{X_j}\gamma
+    + \underbrace{D_j}_{Z_j} u_j + \varepsilon_j,
+\qquad u_j := \beta_j - \mathcal{W}_j\gamma .
+\]
+
+So the two are the same model, written differently.
+
+| lmebayes | `lme4` | Note |
+|---|---|---|
+| \(\gamma\) | \(\beta\) | population / fixed effects |
+| \(\beta_j\) | \(\hat\beta + \hat b_j\) | what `lme4::coef()` returns |
+| \(u_j = \beta_j - \mathcal{W}_j\gamma\) | \(b_j\) | mean-zero deviation |
+| \(D_j\) | \(Z_j\) | random-effects design |
+| \(D_j\mathcal{W}_j\) | \(X_j\) | fixed-effects design |
+| \(\Psi\) | per-group block of \(G\) | \(G = I_J \otimes \Psi\) |
+
+**Why it matters in practice.** `ranef()` on an `lmerb` fit returns
+\(\beta_j\), not \(u_j\). In Chapter 01, subject 308's intercept was about
+339 ms — an actual expected reaction time, not a `+40` offset from the
+population mean. If you are used to reading `ranef()` output as deviations
+that should average to zero, this will look wrong until you recognize the
+scale.
+
+**Why the package does it this way.** The centered form is what makes the
+two-block split natural. Given \(\gamma\), the \(\beta_j\) are
+conditionally independent across groups, so Block 1 is \(J\) small
+independent draws. Given all \(\beta_j\), Block 2 is a plain regression of
+the \(\beta\)'s on the group-level designs. Neither block ever forms a
+matrix bigger than it has to, and the convergence theory of @Nygren2020
+applies directly to this two-block structure.
+
+# The level-2 design
+
+\(\mathcal{W}_j\) is the piece with no `lme4` counterpart. It maps the
+population vector \(\gamma\) to group \(j\)'s prior mean.
+
+In the simplest case — no group-level covariates — \(\mathcal{W}_j\) is an
+identity-like map and every group has the same prior mean. That is the
+`sleepstudy` model of Chapter 01, where `model_setup()` reported both
+level-2 rows as `~ 1`.
+
+Add a group-level covariate and it becomes interesting. If schools have a
+`title1` indicator, the level-2 row for the intercept reads
+`~ 1 + title1`, and each school's *prior mean intercept* depends on whether
+it is a Title I school. Shrinkage is then toward a fitted line rather than
+a single grand mean. Chapter 04 does exactly this.
+
+Crucially, each random coefficient may carry its own level-2 predictors:
+
+```
+(Intercept)     ~ 1 + private_school + title1
+distracted_ppvt ~ 1
+distracted_a1   ~ 1 + free_reduced_lunch
+```
+
+An interaction between a group-level variable and an individual-level
+random slope — `free_reduced_lunch:distracted_a1` — is *cross-level
+moderation*, and it lands in the level-2 row of `distracted_a1`.
+`model_setup()` prints this mapping, and it is worth reading before every
+fit: it is the clearest statement of what model you actually specified.
+
+# The two restrictions
+
+## One grouping factor
+
+`(1 | school) + (1 | teacher)` is not supported. Neither is nesting.
+
+With a single grouping factor the parameter vector splits cleanly into
+"the group coefficients" and "everything else", and the group coefficients
+are conditionally independent given the population level. Crossed factors
+destroy that: a given observation belongs to two groups at once, so the
+Block 1 conditional no longer factorizes and the rate matrix of
+`Chapter-B02` is no longer block-diagonal by group.
+
+## Uncorrelated random effects: `||` not `|`
+
+`(1 + Days_c | Subject)` estimates a correlation between each subject's
+intercept and slope. `lmebayes` requires `(1 + Days_c || Subject)`, which
+forces that correlation to zero, so \(\Psi\) is diagonal.
+
+Two things follow from a diagonal \(\Psi\). Block 2 factorizes across
+coefficients: each \(\gamma_k\) is drawn from its own small regression, and
+each variance component \(\tau^2_k\) is handled on its own. That is why
+priors are specified as a `pfamily_list` — one object per coefficient —
+rather than one joint prior over all of \(\gamma\).
+
+If you pass a `|` formula, `model_setup()` stops with an explicit message
+rather than silently ignoring the correlation:
+
+```{r bad-formula, error = TRUE}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+model_setup(Reaction ~ Days_c + (1 + Days_c | Subject), data = dat)
+```
+
+**Does the restriction hurt?** Sometimes. If intercept and slope really are
+correlated, forcing independence changes the shrinkage pattern: a subject
+who is slow at baseline will not be pulled toward also having a steep
+slope. Centering the covariate — as Chapter 01 did with `Days_c` — usually
+removes most of the correlation, because the intercept-slope correlation in
+an uncentered model is largely an artifact of where zero sits. Fit both in
+`lme4`, compare the estimated correlation, and if it is substantial after
+centering, this package is not the right tool. Chapter 13 works through
+such a comparison.
+
+## Every fixed effect must have a home
+
+There is a third restriction, and it is the one that catches people first.
+A fixed effect is only allowed if it can be placed in some group's level-2
+row. Concretely, each fixed-effect term must be one of:
+
+- **constant within group** — a group-level covariate, which goes on the
+  intercept's level-2 row;
+- **the population mean of a random slope** — its name must match a term in
+  the random-effects part;
+- **a cross-level moderator** — `moderator:random_slope`, where the
+  moderator is constant within group.
+
+So `Reaction ~ Days_c + (1 + Days_c || Subject)` is fine, because `Days_c`
+has a matching random slope. But `Reaction ~ Days_c + (1 | Subject)` is
+not:
+
+```{r fixed-effect-rule, error = TRUE}
+model_setup(Reaction ~ Days_c + (1 | Subject), data = dat)
+```
+
+This is not arbitrary. In the centered parameterization there is no place
+to put a coefficient on an individual-level covariate that does not vary by
+group: stage 1 only contains \(D_j\beta_j\), and stage 2 only contains
+\(\mathcal{W}_j\gamma\). An individual-level predictor with a *common*
+slope across groups has no slot in either. `lme4` can express it because it
+writes \(X_j\beta\) as a free-standing term; this package cannot, and stops
+rather than silently reinterpreting your formula.
+
+The practical consequence: **if you want a fixed effect for an
+individual-level covariate, give it a random slope**. If its variance
+component is genuinely near zero, the fit will say so.
+
+## Log-concave likelihoods
+
+Gaussian, Poisson, binomial, and Gamma with the standard links. The
+restriction comes from the envelope accept-reject sampler
+[@Nygren2006]: it builds a tangent-plane envelope over the log-likelihood,
+which requires log-concavity to be a valid bound. Chapters 09 and 10 cover
+the non-Gaussian cases.
+
+# See also
+
+- **Chapter 03** — the prior workflow.
+- **Chapter 04** — group-level covariates and cross-level moderation.
+- `vignette("Chapter-B00", package = "lmebayesCore")` — the same notation,
+  stated formally.
+- `vignette("Chapter-B02", package = "lmebayesCore")` — where the shrinkage
+  ratio reappears as a convergence rate.

@@ -51,10 +51,10 @@ Aligned with existing simfuncs (`rNormal_reg`, `rNormalGamma_reg`,
 
 | Layer | Name | File (planned) |
 |-------|------|----------------|
-| **R (public)** | `rNormalGLM_reg_block()` | **`R/simfunction_block.R`** |
-| **R (docs)** | `@name simfuncs_block` / `@family simfuncs_block` | same file; `@seealso` **`simfuncs`** |
+| **R (public)** | `rNormalGLM_reg_group()` | **`R/simfunction_block.R`** |
+| **R (docs)** | `@name simfuncs_group` / `@family simfuncs_group` | same file; `@seealso` **`simfuncs`** |
 | **R (internal)** | `.rNormalGLMBlocks_cpp()` | `R/rcpp_wrappers.R` |
-| **R helpers** | `normalize_block()`, `normalize_prior_for_blocks()` | **`R/simfunction_block_utils.R`** (or top of `simfunction_block.R` until small) |
+| **R helpers** | `normalize_group()`, `normalize_prior_for_blocks()` | **`R/simfunction_block_utils.R`** (or top of `simfunction_block.R` until small) |
 | **C++ (export)** | `rNormalGLMBlocks_cpp_export()` | `src/export_wrappers.cpp` |
 | **C++ (core)** | `rNormalGLMBlocks()` | `src/rNormalGLMBlocks.cpp` — loops blocks, calls `rNormalGLM()` each time |
 
@@ -62,14 +62,14 @@ Aligned with existing simfuncs (`rNormal_reg`, `rNormalGamma_reg`,
 (`rNormal_reg`, …). **`R/simfunction_block.R`** holds block **full conditionals**
 only — adjacent in the directory and in documentation.
 
-**Note:** The public R name **`rNormalGLM_reg_block`** mirrors `rNormal_reg` /
+**Note:** The public R name **`rNormalGLM_reg_group`** mirrors `rNormal_reg` /
 `rindepNormalGamma_reg` (`*_reg_*` on R only). The C++ names follow **`rNormalGLM*`** without `_reg_`, matching `rNormalGLM` / `rNormalGLM_std`. Plural **`Blocks`** on the C++ multi-block entry only.
 
 ### Future block samplers (same file family)
 
 | R (later) | C++ (later) | Notes |
 |-----------|-------------|--------|
-| `rNormal_reg_block` | `rNormalRegBlock(s)` | Gaussian WLS; optional |
+| `rNormal_reg_group` | `rNormalRegBlock(s)` | Gaussian WLS; optional |
 | `rNormalGamma_reg_block` | `rNormalGammaRegBlock(s)` | Per-block Normal–Gamma |
 | `rindepNormalGamma_reg_block` | `rIndepNormalGammaRegBlock(s)` | Heavy; envelope per block |
 | `rGamma_reg_block` | TBD | Scalar conjugate units |
@@ -114,7 +114,7 @@ When supplied, these share the **same blocking as `y` and `x`**:
 ### Primary function
 
 ```r
-rNormalGLM_reg_block(
+rNormalGLM_reg_group(
   n,
   y,
   x,
@@ -179,7 +179,7 @@ Validation (R): PD checks on `P`, dim match `ncol(x)`, symmetric `P`,
 - **`y`, `x`, `offset`:** full stacked inputs (as `rNormal_reg` does).
 - **`Prior`:** list describing shared or per-block priors.
 - **`blocks`:** optional `list` of per-block summaries.
-- **`attr(block_info)`** or element **`block_info`:** `k`, `l2_blocks`, `ids`.
+- **`attr(group_info)`** or element **`group_info`:** `k`, `l2_blocks`, `ids`.
 - **`Envelope`:** `list` length `k` (or `NULL` / omitted in v1 if size is an issue).
 - Classes: `"rglmb"`, `"glmb"`, etc. (optional; match `rNormal_reg` non-Gaussian branch where helpful for utilities — not required for Gibbs loops).
 
@@ -189,7 +189,7 @@ Validation (R): PD checks on `P`, dim match `ncol(x)`, symmetric `P`,
 
 ### v1: building blocks only
 
-- **Do not** wire **`rNormalGLM_reg_block`** into **`rglmb()`**, **`rlmb()`**, or
+- **Do not** wire **`rNormalGLM_reg_group`** into **`rglmb()`**, **`rlmb()`**, or
   **`pfamily$simfun`** by default. Those paths keep the **`simfunction.R`**
   contract: `simfun(n, y, x, prior_list, offset, weights, family, …)` with no
   `block` argument.
@@ -208,13 +208,13 @@ Validation (R): PD checks on `P`, dim match `ncol(x)`, symmetric `P`,
 | **`rglmb_block()`**, **`rlmb_block()`** | Convenience: formula / `block` / multi-block sweep — only if a clear API is needed; separate from **`rglmb`/`rlmb`**. |
 | **`model_setup()`**, **`glmerb()`** | Bayesian **`lmer`/`glmer`-style** entry points — **deferred** until reliable convergence theory and diagnostics (e.g. geometric ergodicity, computable TV bound to target) are available. |
 
-Until then, document in **`?rNormalGLM_reg_block`**: *one block full conditional, not a complete MCMC scheme.*
+Until then, document in **`?rNormalGLM_reg_group`**: *one block full conditional, not a complete MCMC scheme.*
 
 ---
 
 ## 5. R internal helpers
 
-### `normalize_block(block, l2)`
+### `normalize_group(block, l2)`
 
 Returns:
 
@@ -234,12 +234,12 @@ Rules:
 - `length(block) == k` → treat as `l2_blocks` (contiguous).
 - `is.list(block)` → validate disjoint cover of `1:l2`.
 
-### `normalize_prior_for_blocks(prior_list, prior_lists, block_info, l1, k)`
+### `normalize_prior_for_blocks(prior_list, prior_lists, group_info, l1, k)`
 
 Precedence:
 
 1. `prior_lists` if not `NULL`.
-2. else `prior_list$blocks` matched to `block_info$ids`.
+2. else `prior_list$blocks` matched to `group_info$ids`.
 3. else matrix `prior_list$mu` with `ncol == k`.
 4. else shared single `prior_list`.
 
@@ -316,9 +316,9 @@ Across-block parallelism is intentionally omitted for Gibbs-friendly, reproducib
 | `R/RcppExports.R` | Generated |
 | `R/rcpp_wrappers.R` | `.rNormalGLMBlocks_cpp` |
 | `R/simfunction_block_utils.R` | `normalize_*` (`@keywords internal`) |
-| `R/simfunction_block.R` | `rNormalGLM_reg_block`, `@family simfuncs_block` |
+| `R/simfunction_block.R` | `rNormalGLM_reg_group`, `@family simfuncs_group` |
 | `R/simfunction.R` | **No change** (pfamily simfuns only) |
-| `tests/testthat/test-rNormalGLM_reg_block.R` | New |
+| `tests/testthat/test-rNormalGLM_reg_group.R` | New |
 
 Run **`Rcpp::compileAttributes()`** after adding exports.
 
@@ -329,7 +329,7 @@ Run **`Rcpp::compileAttributes()`** after adding exports.
 | Phase | Deliverable |
 |-------|-------------|
 | **0** | This document (done) |
-| **1** | **Done (R):** `normalize_block`, `normalize_prior_for_blocks`, `rNormalGLM_reg_block` → **`rNormal_reg(n=1)`** per block; return **`k × l1`** matrices |
+| **1** | **Done (R):** `normalize_group`, `normalize_prior_for_blocks`, `rNormalGLM_reg_group` → **`rNormal_reg(n=1)`** per block; return **`k × l1`** matrices |
 | **2** | C++: `rNormalGLMBlocks`, wire `.Call` |
 | **3** | Tests: `k == 1` vs `rNormal_reg`; two-block toy; offset slicing; shared vs per-block prior |
 | **4** | Perf: optional C++ mode finder (`f2_f3_*`) replacing per-block `optim` |
@@ -373,7 +373,7 @@ samplers live in **`simfunction_block.R`** only (Section 4b).
 | Prior setup | `R/prior.R` (`Prior_Setup`) |
 | pfamily checklist style | `inst/ADDING_PFAMILY.md` |
 | Gibbs example | `data-raw/make_Chapter13_Eight_Schools_gibbs_output.R` |
-| BikeSharing Block 2 benchmark | `data-raw/benchmark_BikeSharing_rNormalGLM_reg_block.R` |
+| BikeSharing Block 2 benchmark | `data-raw/benchmark_BikeSharing_rNormalGLM_reg_group.R` |
 
 ---
 
@@ -381,5 +381,5 @@ samplers live in **`simfunction_block.R`** only (Section 4b).
 
 | Date | Note |
 |------|------|
-| 2026-05-28 | Initial design; R: `rNormalGLM_reg_block`; C++: `rNormalGLMBlocks` (loop → `rNormalGLM`). |
+| 2026-05-28 | Initial design; R: `rNormalGLM_reg_group`; C++: `rNormalGLMBlocks` (loop → `rNormalGLM`). |
 | 2026-05-28 | R files: `simfunction_block.R`, `simfunction_block_utils.R`; integration policy (no `rglmb`/`rlmb` v1); future `rglmb_block` / `model_setup` noted. |

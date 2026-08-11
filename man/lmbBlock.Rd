@@ -41,7 +41,7 @@ lmbBlock(
 
 \item{block}{Block partition: \code{factor} or vector of length \code{nrow(data)}
 (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-counts, or a list of row index vectors (see \code{\link[lmebayesCore]{normalize_block}}).}
+counts, or a list of row index vectors (see \code{\link[lmebayesCore]{normalize_group}}).}
 
 \item{pfamily}{A single \code{\link[glmbayes]{pfamily}} recycled to every block, or
 use \code{pfamily_list} of length \code{k} (number of blocks).}
@@ -116,7 +116,7 @@ A named list of class \code{"blmb"} (list of \code{"lmb"} fits).
 Fits one \code{\link[glmbayes]{lmb}} per observation block (SAS \code{BY}-style split on
 rows), sharing the same formula on each subset. Contrast with
 \code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
-\code{\link[lmebayesCore]{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
+\code{\link[lmebayesCore]{rNormalGLM_reg_group}} (Gibbs conditional draws, matrix API).
 }
 \section{Functions}{
 \itemize{
@@ -129,23 +129,17 @@ rows), sharing the same formula on each subset. Contrast with
 set.seed(42)
 data("iris", package = "datasets")
 
-ps_block <- Prior_SetupBlock(
+ps_block <- Prior_SetupGroup(
   Sepal.Length ~ Sepal.Width + Petal.Length,
-  block = "Species",
+  group = "Species",
   data = iris,
   family = gaussian()
 )
 
-pfamily_list <- lapply(ps_block, function(ps) {
-  dNormal_Gamma(
-    mu = ps$mu, Sigma_0 = ps$Sigma_0, shape = ps$shape, rate = ps$rate
-  )
-})
-
 out_blmb <- lmbBlock(
   Sepal.Length ~ Sepal.Width + Petal.Length,
   block = "Species",
-  pfamily_list = pfamily_list,
+  pfamily_list = pfamily_list(ps_block),
   data = iris,
   n = 150L,
   use_parallel = FALSE

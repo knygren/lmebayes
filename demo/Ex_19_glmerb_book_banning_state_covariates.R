@@ -19,7 +19,7 @@
 ## After fitting:
 ##   print(fit, sweep_history = TRUE, max_sweeps = 5)
 ##   unique(fit$sweep_history$main$table[, c("re_component", "covariate")])
-##   plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[1L]])
+##   plot_mean_convergence(fit$sweep_history$main, coef_focus = coef_focus_batches[[1L]])
 ##   (run one batch at a time; see coef_focus_batches below)
 ##
 ##   demo("Ex_19_glmerb_book_banning_state_covariates", package = "lmebayes")
@@ -262,9 +262,12 @@ coef_focus_batches <- list(
 )
 
 ## Main-stage convergence: run one batch at a time (SD figure, then mean figure).
-plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[1L]])
-plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[2L]])
-plot_sweep_history_diag(fit$sweep_history$main, coef_focus_batches[[3L]])
+plot_mean_convergence(fit$sweep_history$main, coef_focus = coef_focus_batches[[1L]])
+plot_var_convergence(fit$sweep_history$main, coef_focus = coef_focus_batches[[1L]])
+plot_mean_convergence(fit$sweep_history$main, coef_focus = coef_focus_batches[[2L]])
+plot_var_convergence(fit$sweep_history$main, coef_focus = coef_focus_batches[[2L]])
+plot_mean_convergence(fit$sweep_history$main, coef_focus = coef_focus_batches[[3L]])
+plot_var_convergence(fit$sweep_history$main, coef_focus = coef_focus_batches[[3L]])
 
 cat("\n=== Random effects: glmer reference vs glmerb chain mean ===\n\n")
 lmebayes:::print_mer_bayes_re_compare(fit)

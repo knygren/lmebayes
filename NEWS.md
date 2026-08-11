@@ -1,5 +1,23 @@
 # lmebayes (development version)
 
+* **Dropped re-export of `plot_sweep_history_diag()`.** Re-export
+  `plot_mean_convergence()` / `plot_var_convergence()` from **lmebayesCore**
+  instead; demos updated.
+
+* **`lmerb()` / `glmerb()` pass `simulate` through to Core.** Both call
+  `rlmerb()` / `rglmerb()` for ICM-only (`simulate = FALSE`) and MCMC
+  paths; they no longer call the prior packer or run a local ICM. Fits use
+  `sampler$prior` from Core. Dispformula / glmmTMB still resolve dispersion
+  *mode* via Core `:::` helpers before the sampler call.
+
+* **lmebayesCore observation-partition rename.** Docs, examples, and
+  links now use **`rNormal_reg_group()`** /
+  **`rNormalGLM_reg_group()`**, **`Prior_SetupGroup()`**, and
+  **`normalize_group()`** (were `*_reg_block` /
+  `Prior_SetupBlock` / `normalize_block`; earlier
+  `block_rNormalReg` / `block_rNormalGLM`). Formal argument is
+  `group=`. Engines remain Core-only; call `lmebayesCore::` as before.
+
 * **Rename: `Prior_Setup_lmebayes()` is now `Prior_Setup_GLMM()`**
   (re-exported from **lmebayesCore**). The S3 class is
   `"Prior_Setup_GLMM"`; update call sites accordingly.
@@ -361,8 +379,10 @@
   and **`block_lmb()`** fit separate **`lmb()`** models per observation block
   (SAS `BY`-style row splits; class **`blmb`**). **`multi_lmb()`** fits several
   response columns with a shared formula (class **`mlmb`**). Gibbs block samplers
-  are **`block_rNormalGLM()`** / **`block_rNormalGLM_update()`** (aliases
-  **`rNormalGLM_reg_block*`** retained).
+  were documented as **`block_rNormalGLM()`** /
+  **`block_rNormalGLM_update()`**; those public names are now
+  **`rNormalGLM_reg_group()`** in **lmebayesCore** (see development
+  NEWS above).
 
 * **Conjugate GLM priors (Poisson, binomial, Gamma):** New closed-form IID
   sampling paths for intercept-only models with identity links. **`dBeta()`**

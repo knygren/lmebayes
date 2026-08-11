@@ -22,7 +22,8 @@
 
 #' lmebayes-aligned MER random effects at each grouping level
 #'
-#' \code{mer_full = mu_all + (coef(mer) - anchor)} using \code{fit$fixef.mu}.
+#' \code{mer_full = mu_all + (coef(mer) - anchor)} using the per-group
+#' population expectation from \code{.lmerb_popef_mu()}.
 #'
 #' @param fit An \code{lmerb} or \code{glmerb} object with \code{$lmer} or \code{$glmer}.
 #' @return Numeric matrix \code{J x p_re} with rownames = group levels.
@@ -40,9 +41,9 @@
   mer_fit   <- .lmerb_reference_fit(fit)
   re_names <- fit$model_setup$groupef.names
   grp_col  <- fit$model_setup$group_name
-  mu_mat   <- as.matrix(fit$fixef.mu)
+  mu_mat   <- .lmerb_popef_mu(fit)
   if (is.null(mu_mat)) {
-    stop("fit$fixef.mu is NULL.", call. = FALSE)
+    stop("Population expectation is unavailable for this fit.", call. = FALSE)
   }
 
   coef_raw <- as.data.frame(
@@ -50,7 +51,7 @@
   )
   grp_levs <- rownames(coef_raw)
   fe_mer   <- lmebayesCore:::.lmebayes_reference_fixef(mer_fit)
-  anchor   <- .mer_coef_anchor(re_names, fe_mer, fit$fixef.mode)
+  anchor   <- .mer_coef_anchor(re_names, fe_mer, .lmerb_popef_mode(fit))
 
   mer_full <- matrix(
     NA_real_,
@@ -70,27 +71,30 @@
 
 #' Chain-mean random effects by grouping level
 #'
-#' @param fit An \code{lmerb} or \code{glmerb} object with stored \code{$coefficients}.
+#' @param fit An \code{lmerb} or \code{glmerb} object with stored \code{$groupef}.
 #' @return Numeric matrix \code{J x p_re}, or \code{NULL} when no draws.
 #' @keywords internal
 #' @noRd
 .bayes_ranef_chain_means <- function(fit) {
-  if (is.null(fit$coefficients)) {
+  draws <- .lmerb_groupef_draws(fit)
+  if (is.null(draws)) {
     return(NULL)
   }
   re_names <- fit$model_setup$groupef.names
   grp_col  <- fit$model_setup$group_name
   re_draws_mean <- tapply(
-    seq_len(nrow(fit$coefficients)),
-    fit$coefficients[[grp_col]],
-    function(idx) colMeans(fit$coefficients[idx, re_names, drop = FALSE]),
+    seq_len(nrow(draws)),
+    draws[[grp_col]],
+    function(idx) colMeans(draws[idx, re_names, drop = FALSE]),
     simplify = FALSE
   )
-  mer_full <- .mer_re_reference_full(fit)
-  grp_levs <- rownames(mer_full)
-  if (!identical(sort(names(re_draws_mean)), sort(grp_levs))) {
+  grp_levs <- rownames(.lmerb_groupef_mode(fit))
+  if (is.null(grp_levs)) {
+    grp_levs <- levels(factor(draws[[grp_col]]))
+  }
+  if (!setequal(names(re_draws_mean), grp_levs)) {
     stop(
-      "Group levels in coefficients do not match coef(mer) levels.",
+      "Group levels in groupef draws do not match the fitted group levels.",
       call. = FALSE
     )
   }
@@ -118,7 +122,7 @@
 #' Print side-by-side MER reference vs Bayesian chain-mean random effects
 #'
 #' Compares \code{mer_full = mu_all + (coef(mer) - anchor)} to the mean of
-#' \code{fit$coefficients} within each grouping level. Requires
+#' \code{fit$groupef} within each grouping level. Requires
 #' \code{simulate = TRUE} (stored draws).
 #'
 #' @param fit An \code{lmerb} or \code{glmerb} object.
@@ -142,8 +146,9 @@ print_mer_bayes_re_compare <- function(
   bayes_label <- if (is_lmerb) "lmerb" else "glmerb"
   re_names   <- fit$model_setup$groupef.names
   grp_col    <- fit$model_setup$group_name
-  n_draws    <- if (!is.null(fit$fixef) && length(re_names)) {
-    nrow(fit$fixef[[re_names[1L]]])
+  popef_draws <- .lmerb_popef_draws(fit)
+  n_draws    <- if (!is.null(popef_draws) && length(re_names)) {
+    nrow(popef_draws[[re_names[1L]]])
   } else {
     NA_integer_
   }
@@ -152,7 +157,7 @@ print_mer_bayes_re_compare <- function(
   if (is.null(bayes)) {
     cat(
       "Random-effects comparison requires simulate = TRUE ",
-      "(stored fit$coefficients).\n",
+      "(stored fit$groupef).\n",
       sep = ""
     )
     return(invisible(NULL))
@@ -161,11 +166,11 @@ print_mer_bayes_re_compare <- function(
   mer_full <- .mer_re_reference_full(fit)
   mer_fit  <- .lmerb_reference_fit(fit)
   fe_mer   <- lmebayesCore:::.lmebayes_reference_fixef(mer_fit)
-  anchor   <- .mer_coef_anchor(re_names, fe_mer, fit$fixef.mode)
+  anchor   <- .mer_coef_anchor(re_names, fe_mer, .lmerb_popef_mode(fit))
   grp_levs <- rownames(mer_full)
 
   cat(sprintf(
-    "  %s: colMeans(fit$coefficients) within each %s (n = %s chains)\n",
+    "  %s: colMeans(fit$groupef) within each %s (n = %s chains)\n",
     bayes_label, grp_col,
     if (is.na(n_draws)) "?" else format(n_draws, big.mark = ",")
   ))
@@ -209,7 +214,7 @@ print_mer_bayes_re_compare <- function(
     coef_raw_df <- as.data.frame(
       lmebayesCore:::.lmebayes_reference_coef(mer_fit)[[grp_col]][, re_names, drop = FALSE]
     )
-    mu_mat      <- as.matrix(fit$fixef.mu)
+    mu_mat      <- .lmerb_popef_mu(fit)
 
     mer_by_level <- coef_raw_df
     mer_by_level[[grp_col]] <- factor(rownames(mer_by_level), levels = grp_levs)
@@ -460,10 +465,10 @@ print_mer_bayes_re_compare <- function(
   if (!inherits(fit, c("lmerb", "glmerb"))) {
     stop("fit must be an lmerb or glmerb object.", call. = FALSE)
   }
-  if (is.null(fit$coefficients)) {
+  if (is.null(.lmerb_groupef_draws(fit))) {
     stop(
       "[", label, "] Block~2 validation requires simulate = TRUE ",
-      "(fit$coefficients is NULL).",
+      "(fit$groupef is NULL).",
       call. = FALSE
     )
   }
@@ -471,16 +476,19 @@ print_mer_bayes_re_compare <- function(
   is_lmerb   <- inherits(fit, "lmerb")
   mer_label  <- if (is_lmerb) "lmer" else "glmer"
   mode_label <- if (is_lmerb) "ICM mean" else "post.mode"
-  re_names   <- fit$model_setup$groupef.names
-  n_draws    <- nrow(fit$fixef[[re_names[1L]]])
-  mer_fit    <- .lmerb_reference_fit(fit)
-  re_mod     <- fit$model_setup$popef.moderation
+  re_names    <- fit$model_setup$groupef.names
+  popef_draws <- .lmerb_popef_draws(fit)
+  popef_means <- .lmerb_popef_means(fit)
+  popef_mode  <- .lmerb_popef_mode(fit)
+  n_draws     <- nrow(popef_draws[[re_names[1L]]])
+  mer_fit     <- .lmerb_reference_fit(fit)
+  re_mod      <- fit$model_setup$popef.moderation
 
   rows <- lapply(re_names, function(k) {
-    dm_k  <- fit$fixef.means[[k]]
-    sd_k  <- apply(fit$fixef[[k]], 2L, stats::sd)
+    dm_k  <- popef_means[[k]]
+    sd_k  <- apply(popef_draws[[k]], 2L, stats::sd)
     se_k  <- sd_k / sqrt(n_draws)
-    icm_k <- fit$fixef.mode[[k]]
+    icm_k <- popef_mode[[k]]
     pl_k <- fit$prior$pop.prior_list[[k]]
     lapply(names(dm_k), function(nm) {
       mer_ref <- .lmerb_lmer_fixef_lookup(
@@ -762,22 +770,23 @@ BLOCK2_FIXEF_SE_ING <- list(
     lmebayesCore:::.lmebayes_reference_coef(.lmerb_reference_fit(fit))[[grp_col]]
   )
   J        <- length(grp_levs)
-  icm_b    <- fit$ranef.mode
-  n_draws  <- nrow(fit$fixef[[re_names[1L]]])
+  icm_b    <- .lmerb_groupef_mode(fit)
+  groupef  <- .lmerb_groupef_draws(fit)
+  n_draws  <- nrow(.lmerb_popef_draws(fit)[[re_names[1L]]])
 
   stopifnot(setequal(rownames(icm_b), grp_levs))
-  stopifnot(setequal(colnames(fit$fixef.mu), grp_levs))
-  stopifnot(setequal(unique(as.character(fit$coefficients[[grp_col]])), grp_levs))
+  stopifnot(setequal(colnames(.lmerb_popef_mu(fit)), grp_levs))
+  stopifnot(setequal(unique(as.character(groupef[[grp_col]])), grp_levs))
   stopifnot(identical(
-    sort(table(as.character(fit$coefficients[[grp_col]]))),
+    sort(table(as.character(groupef[[grp_col]]))),
     sort(table(rep(grp_levs, n_draws)))
   ))
-  cat(sprintf("\n[%s] Ordering OK across ranef.mode / mu_all / coefficients\n", label))
+  cat(sprintf("\n[%s] Ordering OK across groupef.mode / mu_all / groupef\n", label))
 
   re_draws_mean <- tapply(
-    seq_len(nrow(fit$coefficients)),
-    fit$coefficients[[grp_col]],
-    function(idx) colMeans(fit$coefficients[idx, re_names, drop = FALSE]),
+    seq_len(nrow(groupef)),
+    groupef[[grp_col]],
+    function(idx) colMeans(groupef[idx, re_names, drop = FALSE]),
     simplify = FALSE
   )
 
@@ -848,22 +857,23 @@ BLOCK2_FIXEF_SE_ING <- list(
     lmebayesCore:::.lmebayes_reference_coef(.lmerb_reference_fit(fit))[[grp_col]]
   )
   J        <- length(grp_levs)
-  icm_b    <- fit$ranef.mode
-  n_draws  <- nrow(fit$fixef[[re_names[1L]]])
+  icm_b    <- .lmerb_groupef_mode(fit)
+  groupef  <- .lmerb_groupef_draws(fit)
+  n_draws  <- nrow(.lmerb_popef_draws(fit)[[re_names[1L]]])
 
   stopifnot(setequal(rownames(icm_b), grp_levs))
-  stopifnot(setequal(colnames(fit$fixef.mu), grp_levs))
-  stopifnot(setequal(unique(as.character(fit$coefficients[[grp_col]])), grp_levs))
+  stopifnot(setequal(colnames(.lmerb_popef_mu(fit)), grp_levs))
+  stopifnot(setequal(unique(as.character(groupef[[grp_col]])), grp_levs))
   stopifnot(identical(
-    sort(table(as.character(fit$coefficients[[grp_col]]))),
+    sort(table(as.character(groupef[[grp_col]]))),
     sort(table(rep(grp_levs, n_draws)))
   ))
-  cat(sprintf("\n[%s] Ordering OK across ranef.mode / mu_all / coefficients\n", label))
+  cat(sprintf("\n[%s] Ordering OK across groupef.mode / mu_all / groupef\n", label))
 
   re_draws_mean <- tapply(
-    seq_len(nrow(fit$coefficients)),
-    fit$coefficients[[grp_col]],
-    function(idx) colMeans(fit$coefficients[idx, re_names, drop = FALSE]),
+    seq_len(nrow(groupef)),
+    groupef[[grp_col]],
+    function(idx) colMeans(groupef[idx, re_names, drop = FALSE]),
     simplify = FALSE
   )
 

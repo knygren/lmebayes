@@ -158,13 +158,13 @@ variance component) only has the two-block Gibbs engine, so both values
 behave identically there. See
 \code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}}.}
 
-\item{simulate}{Logical (default \code{TRUE}).  When \code{TRUE} the
-two-block Gibbs sampler is run for \code{n} iterations and posterior draws
-are stored.  When \code{FALSE} only the ICM algorithm is run: the exact
-posterior means (\code{fixef.mode}, \code{ranef.mode}) are computed and
-returned immediately without any sampling.  Simulation-only fields
-(\code{coefficients}, \code{fixef.means}, \code{fixef}) are
-\code{NULL} when \code{simulate = FALSE}.}
+\item{simulate}{Logical (default \code{TRUE}). Passed through to
+\code{\link[lmebayesCore]{rlmerb}}. When \code{TRUE} the two-block Gibbs
+sampler is run for \code{n} iterations and posterior draws are stored.
+When \code{FALSE}, \code{rlmerb} returns fixed-VC plug-in point estimates
+only (exact joint Gaussian posterior mean). Simulation-only fields
+(\code{groupef}, \code{popef.means}, \code{popef}) are \code{NULL} when
+\code{simulate = FALSE}.}
 
 \item{REML}{Logical; passed to \code{\link{model_setup}}.}
 
@@ -212,7 +212,14 @@ how many inner sweeps are shown per stage.}
 }
 \value{
 Object of class \code{"lmerb"}: a list with the following
-components (parallel to \code{\link{glmb}} and \code{\link{lmb}}):
+components (parallel to \code{\link{glmb}} and \code{\link{lmb}}).
+
+Every draw slot holds one row per replicate chain, taken at that
+chain's final sweep, so the rows are mutually independent and can be
+averaged directly. Accessors \code{fixef()}, \code{ranef()},
+\code{coef()} and \code{summary()} are usually more convenient than
+reaching into these fields; see
+\code{vignette("Chapter-05", package = "lmebayes")}.
 \describe{
 \item{\code{call}}{The matched call.}
 \item{\code{formula}}{The formula supplied.}
@@ -242,40 +249,42 @@ the per-component \code{prior_list} (\code{mu_fixef},
 \code{glmb$Prior}.}
 \item{\code{model_setup}}{The \code{\link{model_setup}} object built
 inside \code{lmerb} from \code{formula} and \code{data}.}
-\item{\code{fixef.mode}}{Named list of exact posterior mode (= mean,
+\item{\code{popef.mode}}{Named list of exact posterior mode (= mean,
 since the joint posterior is Gaussian) vectors for the level-2 fixed
 effects \eqn{\gamma_k}, computed by
 \code{\link[lmebayesCore]{lmerb_posterior_mean}} (ICM).}
-\item{\code{ranef.mode}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix
+\item{\code{groupef.mode}}{\eqn{J \times p_{\mathrm{re}}} numeric matrix
 of exact posterior mode random effects from ICM.  Rows are group
 levels (\code{levels(design$group)}); columns are
 \code{design$re_coef_names}.}
-\item{\code{fixef.means}}{Named list of posterior mean vectors computed
-as \code{colMeans(fixef[[k]])} — the MCMC estimate of the
-level-2 fixed effects.  \code{NULL} when \code{simulate = FALSE}.}
-\item{\code{fixef}}{Named list of \eqn{n \times q_k} matrices of
-Block 2 draws, one per RE component.  \code{NULL} when
-\code{simulate = FALSE}.}
-\item{\code{coefficients}}{\code{data.frame} with \code{n * J} rows:
-\code{draw}, the grouping-factor column, and one column per RE
-variable.  Average over \code{draw} within each group for posterior
-means (see Examples).  \code{NULL} when \code{simulate = FALSE}.}
-\item{\code{fixef.dispersion}}{\eqn{n \times p_{\mathrm{re}}} matrix of the
-Block~2 dispersion (\eqn{\tau^2_k}) at each stored draw: sampled
-values for \code{dIndependent_Normal_Gamma} components, constant
-columns (the fixed \code{dispersion}) for \code{dNormal} components.
+\item{\code{popef}}{Named list of \eqn{n \times q_k} matrices of
+population draws \eqn{\gamma_k}, one per random-effect coefficient.
 \code{NULL} when \code{simulate = FALSE}.}
-\item{\code{fixef.dispersion.mean}}{Named vector of posterior means of
+\item{\code{popef.means}}{Named list of posterior mean vectors, the
+column means of \code{popef}.  \code{NULL} when
+\code{simulate = FALSE}.}
+\item{\code{groupef}}{\code{data.frame} with \code{n * J} rows:
+\code{draw}, the grouping-factor column, and one column per RE
+variable.  These are full group coefficients \eqn{\beta_j},
+comparable to \code{lme4::coef()}, not mean-zero deviations.
+Average over \code{draw} within each group for posterior
+means (see Examples).  \code{NULL} when \code{simulate = FALSE}.}
+\item{\code{popef.dispersion}}{\eqn{n \times p_{\mathrm{re}}} matrix of
+the between-group variances \eqn{\tau^2_k} at each stored draw:
+sampled values for \code{dIndependent_Normal_Gamma} components,
+constant columns for \code{dNormal} components, where the value was
+treated as known.  \code{NULL} when \code{simulate = FALSE}.}
+\item{\code{popef.dispersion.mean}}{Named vector of posterior means of
 \eqn{\tau^2_k} (\code{colMeans(fixef.dispersion)}).  \code{NULL} when
 \code{simulate = FALSE}.}
-\item{\code{sigma2}}{Observation-level residual variance \eqn{\sigma^2}:
+\item{\code{group.dispersion}}{Observation-level residual variance \eqn{\sigma^2}:
 a scalar when \code{dispersion_ranef} is fixed, a length-\code{n} vector
 of final-sweep draws when \code{dispersion_ranef} is \code{dGamma()};
 \code{NULL} when not applicable.  When \code{simulate = FALSE}, the
 prior plug-in scalar (\code{prior$dispersion_ranef}) is returned for
 Gaussian models.}
-\item{\code{sigma2.mean}}{Posterior mean of \eqn{\sigma^2}; equals
-\code{sigma2} when fixed.  \code{NULL} when \code{sigma2} is
+\item{\code{group.dispersion.mean}}{Posterior mean of \eqn{\sigma^2}; equals
+\code{group.dispersion} when fixed.  \code{NULL} when \code{group.dispersion} is
 \code{NULL}.}
 \item{\code{draw_engine}}{Name of the Block~1 sampling engine used
 (e.g. \code{"rGLMM_sweep_ing_block1_ind"}). \code{NULL} when
@@ -313,63 +322,94 @@ actually ran. \code{NULL} when \code{simulate = FALSE}.}
 Bayesian linear mixed-effects model fit
 }
 \details{
-Entry point for \pkg{lmebayes} models with an \code{lmer}-like interface,
-analogous to \code{\link{lmb}} and \code{\link{glmb}} for fixed-effects models.
+Fits a Bayesian linear mixed model from an \code{lmer}-style formula,
+returning posterior draws. It is the mixed-model counterpart of
+\code{\link{lmb}} for fixed-effects models.
 
-Calls \code{\link{model_setup}} on \code{formula} and \code{data} for design
-matrices (\code{y}, \code{Z}, \code{groups}, \code{X_hyper}, etc.) and embeds
-the resulting \code{\link[lme4]{lmer}} fit as \code{lmer}. Priors are
-supplied as a named list of \code{\link[glmbayesCore]{pfamily}} objects
-(\code{pfamily_list}, the Block~2 hyperpriors -- one per random-effect
-coefficient) plus the observation-level measurement dispersion
-(\code{dispersion_ranef}).  Both are typically built from
-\code{\link{Prior_Setup_GLMM}}:
-\code{pfamily_list = pfamily_list(ps)} and either a fixed scalar
-\code{dispersion_ranef = ps$dispersion_ranef}, a single pooled
-\code{dGamma()} prior, or a named per-group list from
-\code{dGamma_list(ps)}.  The Block~1 random-effect
-covariance is reconstructed from the Block~2 pfamily dispersions
-(\code{Sigma_ranef = diag(tau^2_k)}); \code{lmerb} does not call
-\code{Prior_Setup_GLMM} internally.
+\code{lmerb} builds the design with \code{\link{model_setup}}, embeds the
+companion \code{\link[lme4]{lmer}} fit for reference, and passes both to
+the \pkg{lmebayesCore} sampler. Priors are supplied as
+\code{pfamily_list} (population level) and \code{dispersion_ranef}
+(residual variance), normally built from one
+\code{\link{Prior_Setup_GLMM}} object.
+\subsection{The model being estimated}{
 
-Runs a two-block Gibbs sampler for \code{n} iterations. Block 1 draws
-group-level random effects \eqn{b_j} given the current hyper means; Block 2
-updates the hyper means (level-2 fixed effects \eqn{\boldsymbol{\gamma}_k})
-given the current \eqn{b_j} draw, using
-\code{\link[glmbayesCore]{multi_rNormal_reg}}
-with the hyper design matrices from \code{design$W}.
+For group \eqn{j = 1, \dots, J}, \code{lmerb} estimates
+\deqn{y_j \mid \beta_j, \sigma^2 \sim N(D_j \beta_j,\; \sigma^2 I_{n_j})
+  \qquad \textrm{(within group)}}
+\deqn{\beta_j \mid \gamma, \Psi \sim N(\mathcal{W}_j \gamma,\; \Psi)
+  \qquad \textrm{(across groups)}}
 
-\strong{Exact posterior and convergence characterisation.}
-When variance components are treated as fixed at their \code{lmer} estimates
-(as done here), the joint posterior over the random-effect coefficients and
-the level-2 fixed effects is \emph{exactly} multivariate normal.  In this
-setting the convergence of the two-block Gibbs sampler is fully
-characterised: Corollary 1 of Nygren (2020) shows that the total variation
-(TV) distance between the \eqn{l}-step kernel and the target density is
-bounded above by a geometrically decreasing function of \eqn{l}, with
-contraction rate \eqn{\lambda^* \in [0, 1)}, the maximal eigenvalue of the
-matrix
-\deqn{A \;=\; P_{11}^{-1/2}\,P_{12}\,P_{22}^{-1}\,P_{21}\,P_{11}^{-1/2}}
-where \eqn{P_{11}}, \eqn{P_{22}}, and \eqn{P_{12}} are the corresponding
-blocks of the joint precision matrix.  Because the bound is explicit and
-computable, the required number of iterations to reach a pre-specified TV
-tolerance \eqn{\varepsilon} can be derived analytically once \eqn{\lambda^*}
-is known.
+The second line is the model for how groups differ: each group's own
+coefficient vector \eqn{\beta_j} varies around a population expectation
+\eqn{\mathcal{W}_j\gamma}, and \eqn{\Psi} measures how widely. This is a
+\emph{centered} parameterization --- the full coefficient \eqn{\beta_j}
+enters the likelihood, not a mean-zero deviation --- so \code{coef()} on
+the fit reports \eqn{\beta_j} directly and \code{ranef()} reports the
+deviation \eqn{\beta_j - \mathcal{W}_j\gamma} that \pkg{lme4} calls
+\eqn{b_j}. Marginalizing recovers the usual \pkg{lme4} model, with
+\eqn{\gamma} playing the role of the fixed effects.
 
-\strong{TV-calibrated \code{m_convergence}.}
-The number of inner Gibbs sweeps per stored draw (\code{m_convergence}) is
-derived from \code{tv_tol}: \code{lmerb} computes the Remark 8 eigenvalue
-spectrum with \code{\link[lmebayesCore]{two_block_rate_from_pfamily_list}} and inverts the
-exact Theorem 3 bound with
-\code{\link[lmebayesCore]{two_block_l_for_tv}}.  Because every replicate
-chain is started at the exact joint posterior mean (computed by ICM via
-\code{\link[lmebayesCore]{lmerb_posterior_mean}}), the mean term of the
-bound vanishes and only the variance-convergence sum remains.  One extra
-sweep is added because the bound applies to the block updated second in
-each sweep (the level-2 fixed effects \eqn{\gamma}); the stored
-random-effect draw lags by a half-step.  Each stored draw is therefore
-guaranteed to be within \code{tv_tol} of the exact joint posterior in
-total variation.
+\eqn{\Psi} is diagonal because \code{formula} may only contain
+uncorrelated (\code{||}) random-effect terms and a single grouping
+factor; there is no random-effect correlation to estimate. See
+\code{vignette("Chapter-02", package = "lmebayes")} for the formula rules.
+}
+
+\subsection{What the priors decide}{
+
+The two prior arguments are where you declare which variances are known
+and which are estimated, and that choice determines what comes back.
+
+\describe{
+\item{\code{pfamily_list}}{One component per random-effect coefficient.
+A \code{dNormal} component fixes the between-group variance
+\eqn{\tau^2_k} at the supplied value; a
+\code{dIndependent_Normal_Gamma} component estimates it, under a
+Gamma prior on \eqn{1/\tau^2_k} truncated to
+\code{[disp_lower, disp_upper]}.}
+\item{\code{dispersion_ranef}}{The residual variance \eqn{\sigma^2}:
+a fixed scalar, a pooled \code{dGamma()} prior to estimate one
+common value, a \code{dGamma_list()} to estimate a separate
+\eqn{\sigma^2_j} per group, or a named vector of fixed per-group
+values. \code{dispformula} must agree with the shape supplied.}
+}
+
+When every variance is fixed, the posterior is exactly multivariate
+normal and the draws are exact. Estimating any variance makes the
+posterior non-Gaussian and the draws approximate in the sense described
+next.
+}
+
+\subsection{What the returned draws are}{
+
+\code{lmerb} does not return one long chain. It runs \code{n}
+\strong{independent replicate chains} and keeps \strong{one draw from
+each}, taken at that chain's final sweep. Two things follow:
+
+\enumerate{
+\item \strong{The draws are mutually independent.} They form an iid
+sample, so ordinary Monte Carlo standard errors apply. Nothing needs
+thinning, there is no effective sample size to compute, and trace
+plots or \eqn{\hat{R}}{R-hat} on the returned draws are not
+meaningful.
+\item \strong{Each draw comes from a distribution deliberately made
+close to the posterior.} The sweep count is not a burn-in guess: it
+is calibrated before sampling so that the distribution reached at the
+final sweep is within \code{tv_tol} of the exact posterior in total
+variation. The resulting \code{m_convergence} is reported on the fit.
+}
+
+\code{n} and \code{tv_tol} therefore control different errors --- Monte
+Carlo noise and per-draw bias --- and can be set independently. To
+certify all \code{n} draws jointly at level \eqn{\alpha}, pass
+\code{tv_tol = alpha / n}; cost grows only logarithmically in
+\eqn{1/}\code{tv_tol}, so this usually adds a few sweeps.
+
+The calibration itself, and what to do if a warning reports slow
+convergence, are covered in
+\code{vignette("Chapter-06", package = "lmebayes")}.
+}
 }
 \examples{
 ## lmerb: school random effects on bayesrules::big_word_club
@@ -428,6 +468,6 @@ probability distributions via Markov chain Monte Carlo.
 \code{\link[lmebayesCore]{build_mu_all}},
 \code{\link[lmebayesCore]{two_block_rNormal_reg}},
 \code{\link[lmebayesCore]{lmerb_posterior_mean}},
-\code{\link[lmebayesCore]{block_rNormalReg}},
+\code{\link[lmebayesCore]{rNormal_reg_group}},
 \code{\link{lmb}}, \code{\link{glmb}}
 }

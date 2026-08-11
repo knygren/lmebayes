@@ -1,0 +1,274 @@
+---
+title: "Chapter 05: Reading the output"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 05: Reading the output}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+# Chapter 05: Reading the output
+
+An `lmerb` fit is a list with about thirty elements. This chapter is the
+map: which accessor gives which quantity, what the raw containers hold, and
+where the naming departs from `lme4` in ways that will surprise you.
+
+```{r fit, results = "hide"}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+form <- Reaction ~ Days_c + (1 + Days_c || Subject)
+
+ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
+
+set.seed(1)
+fit <- lmerb(
+  form, data = dat,
+  pfamily_list     = pfamily_list(ps),
+  dispersion_ranef = ps$group.dispersion,
+  n                = 500L,
+  progbar          = FALSE
+)
+```
+
+# Two blocks, two prefixes
+
+Everything in the output is named after which block it belongs to.
+
+| Prefix | Block | Contents |
+|---|---|---|
+| `popef.*` | Block 2 | Population coefficients \(\gamma\) and their variance components |
+| `groupef.*` | Block 1 | Per-group coefficients \(\beta_j\) |
+| `group.dispersion*` | — | Observation dispersion \(\sigma^2\) |
+
+Within each prefix the suffix says what kind of quantity it is.
+
+| Suffix | Meaning |
+|---|---|
+| none | The raw draws |
+| `.mode` | Point estimate before sampling (exact posterior mean for Gaussian, mode otherwise) |
+| `.means` / `.mean` | Average over the stored draws |
+| `.iters` | Accept-reject candidates per draw (sampler efficiency) |
+
+```{r names}
+names(fit)
+```
+
+# `print()`
+
+```{r print}
+fit
+```
+
+The header line carries three facts: how many draws, and which engine
+produced them. `exact iid` means the joint posterior was multivariate
+normal and was sampled directly. `two-block Gibbs` means sweeps were
+needed; Chapter 06 covers that case.
+
+The table's three columns are worth checking every time. `fixef.mode` is
+computed analytically before sampling; `fixef.means` is the Monte Carlo
+average. They should agree to within `draws SD / sqrt(n)`. If they do not,
+something is wrong with the sampler, not with your model.
+
+# `summary()`
+
+```{r summary}
+summary(fit)
+```
+
+Three sections:
+
+1. **Block 2 dispersion** — the variance components \(\tau^2_k\), and the
+   residual variance, each against its `lmer` reference. When a component
+   is `dNormal` its percentiles are constant, because it is fixed rather
+   than sampled.
+2. **Block 2 level-2 fixed effects** — the population parameters, with
+   prior means, `lmer` reference values, posterior SD, Monte Carlo error,
+   and `Pr(Prior_tail)`.
+3. **Block 1 random effects** — a distributional summary across groups
+   rather than a per-group listing.
+
+`summary()` takes a `groups` argument when you want specific levels:
+
+```{r summary-groups, eval = FALSE}
+summary(fit, groups = c("308", "309"))
+```
+
+## `Pr(Prior_tail)`
+
+This is a directional tail probability, not a p-value. It measures how far
+the posterior has moved into the tail of the prior, in the direction of the
+shift. Near 0.5 means the data barely moved that coefficient away from its
+prior mean. Near zero means the posterior sits far out in the prior's tail
+— the data disagrees with the prior, decisively. The theory is in
+`vignette("Chapter-A04", package = "glmbayes")`.
+
+# Accessors
+
+`fixef()`, `ranef()`, and `coef()` are `lme4` generics. **lmebayes** defines
+methods for them but does not re-export the generics, so call them from
+**lme4**.
+
+## `ranef()`
+
+```{r ranef}
+re <- lme4::ranef(fit)
+head(re$Subject)
+```
+
+**These are not `lme4` random effects.** They are the full per-subject
+coefficients \(\beta_j\) — subject 308's intercept is their expected
+reaction time, not an offset from the population mean. See Chapter 02.
+The `lme4` quantity is \(\beta_j\) minus the population mean:
+
+```{r ranef-deviations}
+head(re$Subject) - rep(unlist(fit$popef.means), each = 6)
+```
+
+Two arguments matter. `type` chooses between the chain mean (default) and
+the ICM point estimate, and `condVar` attaches posterior variances:
+
+```{r ranef-args}
+re_mode <- lme4::ranef(fit, type = "mode")
+head(re_mode$Subject, 3)
+
+re_cv <- lme4::ranef(fit, condVar = TRUE)
+head(as.data.frame(re_cv), 4)
+```
+
+The long format has `condsd` filled in when `condVar = TRUE`, which is what
+you want for a caterpillar plot.
+
+## `coef()`
+
+```{r coef}
+head(coef(fit)$Subject)
+```
+
+For `merMod` objects `coef()` adds `fixef` to `ranef`. Here `ranef()`
+already returns full coefficients, so `coef()` returns the same values —
+kept for interface compatibility rather than because it computes anything
+new.
+
+## `fixef()`
+
+```{r fixef}
+lme4::fixef(fit)                        # type = "mer": the reference lmer fit
+lme4::fixef(fit, type = "hyper")        # Block 2 posterior mode
+lme4::fixef(fit, type = "hyper.mean")   # Block 2 posterior mean
+```
+
+The default is the `lmer` reference so that `fixef()` on this object
+behaves the way it does on a `merMod`. The Bayesian quantities are behind
+`type`.
+
+Names differ between the two: the `lmer` version uses model-matrix names
+(`Days_c`), while the hyper versions use `component.parameter`
+(`Days_c.(Intercept)`), reflecting that each population parameter belongs
+to a specific random coefficient's level-2 row.
+
+# The raw draws
+
+Accessors summarize. When you want the draws themselves:
+
+```{r popef-draws}
+str(fit$popef)
+```
+
+`fit$popef` is a list with one matrix per random coefficient: rows are
+draws, columns are that coefficient's level-2 parameters. Because the draws
+are independent, ordinary Monte Carlo standard errors apply directly:
+
+```{r mcse}
+draws_int <- fit$popef[["(Intercept)"]][, 1]
+c(mean = mean(draws_int),
+  sd   = sd(draws_int),
+  mcse = sd(draws_int) / sqrt(length(draws_int)))
+```
+
+No effective-sample-size correction, no thinning. That is the payoff of the
+replicate-chain design described in
+`vignette("Chapter-B01", package = "lmebayesCore")`.
+
+```{r groupef-draws}
+head(fit$groupef)
+nrow(fit$groupef)
+```
+
+`fit$groupef` is long format: `n` draws times `J` groups. Filter it
+directly, or use the printer:
+
+```{r print-groupef}
+lmebayesCore::print_groupef(fit, draws = 1:3, groups = 1:3)
+```
+
+`print_groupef()` lives in **lmebayesCore** and is not re-exported here, so
+it needs the namespace prefix. It takes the fit, not the data frame.
+
+# Credible intervals
+
+Nothing special is required — these are ordinary independent draws.
+
+```{r ci}
+t(apply(fit$popef[["(Intercept)"]], 2, quantile,
+        probs = c(0.025, 0.5, 0.975)))
+t(apply(fit$popef[["Days_c"]], 2, quantile,
+        probs = c(0.025, 0.5, 0.975)))
+```
+
+Per-group intervals come from the long-format container:
+
+```{r ci-groups}
+by_subject <- split(fit$groupef$Days_c, fit$groupef$Subject)
+head(t(sapply(by_subject, quantile, probs = c(0.025, 0.5, 0.975))), 5)
+```
+
+# Dispersion and convergence metadata
+
+```{r dispersion}
+fit$group.dispersion       # sigma^2 (fixed here)
+fit$m_convergence          # inner Gibbs sweeps per stored draw
+fit$sim_method_used        # which route ran
+```
+
+`summary_sigma2()` gives a full report, but only when the observation
+dispersion is per-group — with a single fixed `sigma^2` there is nothing to
+report and it stops with a message. Chapter 08 covers that case.
+
+# Quick reference
+
+| You want | Use |
+|---|---|
+| Population posterior mean | `fit$popef.means` or `fixef(fit, "hyper.mean")` |
+| Population draws | `fit$popef[[k]]` |
+| Per-group coefficients | `lme4::ranef(fit)` or `fit$groupef.mode` |
+| Per-group draws | `fit$groupef` (long format) |
+| Observation variance | `fit$group.dispersion` |
+| Variance components | `summary(fit)`, Block 2 dispersion section |
+| Sweeps per draw | `fit$m_convergence` |
+| Reference `lmer` fit | `fit$lmer` |
+| The parsed design | `fit$model_setup` |
+
+# See also
+
+- **Chapter 06** — `m_convergence` and the sweep history.
+- **Chapter 08** — `summary_sigma2()` and per-group dispersion.
+- `?lmerb`, `?ranef.lmerb`, `?fixef.lmerb`

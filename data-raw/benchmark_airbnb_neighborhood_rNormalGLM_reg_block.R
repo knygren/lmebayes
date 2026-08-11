@@ -5,13 +5,13 @@
 #
 #   Block 1 (hyper mean): rglmb_update on stacked beta (k * l1), design
 #       kronecker(I_l1, 1_k) — samples mu | beta, Sigma_fixed.
-#   Block 2 (data): rNormalGLM_reg_block_update — samples beta | y, mu, Sigma_fixed.
+#   Block 2 (data): rNormalGLM_reg_group_update — samples beta | y, mu, Sigma_fixed.
 #   Sigma is fixed at the Prior_Setup calibration (not updated each iteration).
 #
-#   Rscript data-raw/benchmark_airbnb_neighborhood_rNormalGLM_reg_block.R
-#   Rscript data-raw/benchmark_airbnb_neighborhood_rNormalGLM_reg_block.R quick
-#   Rscript data-raw/benchmark_airbnb_neighborhood_rNormalGLM_reg_block.R legacy
-#   Rscript ... opencl_random          # Block 2: rNormalGLM_reg_block_update
+#   Rscript data-raw/benchmark_airbnb_neighborhood_rNormalGLM_reg_group.R
+#   Rscript data-raw/benchmark_airbnb_neighborhood_rNormalGLM_reg_group.R quick
+#   Rscript data-raw/benchmark_airbnb_neighborhood_rNormalGLM_reg_group.R legacy
+#   Rscript ... opencl_random          # Block 2: rNormalGLM_reg_group_update
 #   Rscript ... opencl_fixed           # Block 1: rglmb_update (hyper); rarely helps
 #   Rscript ... opencl_random opencl_fixed
 #
@@ -19,7 +19,7 @@
 # Append `quick` for airbnb_small + short chain.
 # Append `opencl_random` and/or `opencl_fixed` to turn OpenCL on for that block.
 #
-# See also: benchmark_airbnb_rNormalGLM_reg_block.R (listing-level Ch. 18 style).
+# See also: benchmark_airbnb_rNormalGLM_reg_group.R (listing-level Ch. 18 style).
 
 args <- commandArgs(trailingOnly = TRUE)
 run_legacy <- any(tolower(args) %in% c("legacy", "--legacy", "-l"))
@@ -136,8 +136,8 @@ k <- nlevels(block_full)
 beta_names <- colnames(X_full)
 neighborhood_names <- levels(block_full)
 
-block_info <- glmbayes:::normalize_block(block_full, l2)
-stopifnot(block_info$k == k)
+group_info <- glmbayes:::normalize_group(block_full, l2)
+stopifnot(group_info$k == k)
 
 # --- Identifiability preflight -----------------------------------------------
 # Intercept-only hyper (X_nbhd = NULL): Level 2 requires at least one
@@ -153,9 +153,9 @@ message("Identifiability check passed — proceeding with full model (", k, " ne
 
 message("airbnb (neighborhood RE): n = ", l2, ", k = ", k, ", l1 = ", l1)
 message("  predictors: ", paste(beta_names, collapse = ", "))
-message("listings per neighborhood: min = ", min(block_info$l2_blocks),
-        ", median = ", median(block_info$l2_blocks),
-        ", max = ", max(block_info$l2_blocks))
+message("listings per neighborhood: min = ", min(group_info$l2_blocks),
+        ", median = ", median(group_info$l2_blocks),
+        ", max = ", max(group_info$l2_blocks))
 message("Block Gibbs: n_burn = ", n_burn, ", n_sim = ", n_sim,
         " (", n_gibbs, " iterations)")
 message("Block 2: multivariate coef vector per neighborhood (NOT x_one / listing RE)")
@@ -189,7 +189,7 @@ colnames(X_hyper) <- beta_names
 
 
 
-init_b2 <- rNormalGLM_reg_block_update(
+init_b2 <- rNormalGLM_reg_group_update(
   y = y_full,
   x = X_full,
   block = block_full,
@@ -236,7 +236,7 @@ run_neighborhood_gibbs <- function(store = FALSE,
 
   burn_time <- system.time({
     for (iter in seq_len(n_burn)) {
-      b2 <- rNormalGLM_reg_block_update(
+      b2 <- rNormalGLM_reg_group_update(
         y = y_full,
         x = X_full,
         block = block_full,
@@ -285,7 +285,7 @@ run_neighborhood_gibbs <- function(store = FALSE,
   t_main_start <- Sys.time()
   sim_time <- system.time({
     for (iter in seq_len(n_sim)) {
-      b2 <- rNormalGLM_reg_block_update(
+      b2 <- rNormalGLM_reg_group_update(
         y = y_full,
         x = X_full,
         block = block_full,
@@ -379,12 +379,12 @@ benchmark <- list(
   n = l2,
   k = k,
   l1 = l1,
-  l2_blocks_summary = summary(block_info$l2_blocks),
+  l2_blocks_summary = summary(group_info$l2_blocks),
   quick_mode = run_quick,
   use_opencl_fixed = FALSE,
   use_opencl_random = FALSE,
   block1_method = "rglmb_update (hyper pool on vec(beta), design k*l1 x l1)",
-  block2_method = "rNormalGLM_reg_block_update (k neighborhoods, l1 coefs each)",
+  block2_method = "rNormalGLM_reg_group_update (k neighborhoods, l1 coefs each)",
   timing_seconds = list(
     burn_in = t_burn,
     main = t_sim,
@@ -439,7 +439,7 @@ if (run_legacy) {
       ddef = FALSE
     ),
     prior_lists = NULL,
-    block_info = block_info,
+    group_info = group_info,
     l1 = l1
   )
   n_time <- if (run_quick) 2L else 3L
@@ -447,7 +447,7 @@ if (run_legacy) {
   time_rnr <- numeric(n_time)
   for (t in seq_len(n_time)) {
     time_blk[t] <- system.time({
-      rNormalGLM_reg_block_update(
+      rNormalGLM_reg_group_update(
         y = y_full,
         x = X_full,
         block = block_full,
@@ -469,7 +469,7 @@ if (run_legacy) {
     time_rnr[t] <- system.time({
       coef_rnr <- matrix(NA_real_, nrow = k, ncol = l1)
       for (b in seq_len(k)) {
-        rows_b <- block_info$rows[[b]]
+        rows_b <- group_info$rows[[b]]
         out_b <- rNormal_reg(
           n = 1L,
           y = y_full[rows_b],
@@ -490,13 +490,13 @@ if (run_legacy) {
   }
   s_blk <- summ_time(time_blk)
   s_rnr <- summ_time(time_rnr)
-  message("rNormalGLM_reg_block_update (one step):")
+  message("rNormalGLM_reg_group_update (one step):")
   print(round(s_blk, 3))
   message("rNormal_reg loop:")
   print(round(s_rnr, 3))
   benchmark$legacy <- list(
     timing_seconds = list(
-      rNormalGLM_reg_block = s_blk,
+      rNormalGLM_reg_group = s_blk,
       rNormal_reg_loop = s_rnr
     ),
     speedup_block_vs_loop = s_rnr["mean"] / s_blk["mean"]

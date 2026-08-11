@@ -1,0 +1,187 @@
+---
+title: "Chapter 11: Point estimates without simulation"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 11: Point estimates without simulation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+# Chapter 11: Point estimates without simulation
+
+Both `lmerb()` and `glmerb()` accept `simulate = FALSE`. The fit then stops
+after computing a point estimate and returns without drawing anything.
+
+This is not a degraded mode. For Gaussian models with fixed variance
+components, the point estimate is the **exact posterior mean**, computed in
+closed form. It is also the starting point every replicate chain uses when
+you do simulate, which is why it is worth understanding on its own.
+
+```{r data}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+form <- Reaction ~ Days_c + (1 + Days_c || Subject)
+ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
+```
+
+# Iterated conditional modes
+
+The algorithm is simple. The two blocks each have a closed-form
+conditional mode, so alternate:
+
+```
+repeat:
+  beta_j  <- mode of  p(beta_j | y_j, gamma, Psi)   for every group j
+  gamma   <- mode of  p(gamma | beta_1..J, priors)
+until nothing moves
+```
+
+That is **iterated conditional modes** (ICM) — coordinate ascent on the
+joint posterior, one block at a time. For a Gaussian model with fixed
+\(\tau^2_k\) and \(\sigma^2\), the joint posterior is multivariate normal,
+so its mode is also its mean, and each conditional mode is a linear solve.
+The iteration is then exactly block Gauss–Seidel on the joint precision
+system: it converges to the unique stationary point, and it does so
+quickly.
+
+```{r fit-icm, results = "hide"}
+pt <- lmerb(form, data = dat,
+            pfamily_list     = pfamily_list(ps),
+            dispersion_ranef = ps$group.dispersion,
+            simulate         = FALSE)
+```
+
+```{r fit-icm-print}
+pt
+```
+
+```{r icm-info}
+pt$convergence$icm_info
+```
+
+One iteration, delta zero. With no group-level covariates the two blocks
+decouple after a single pass, so the answer is reached immediately. Models
+with level-2 predictors take a few more.
+
+# It really is the posterior mean
+
+```{r verify, results = "hide"}
+set.seed(1)
+fit <- lmerb(form, data = dat,
+             pfamily_list     = pfamily_list(ps),
+             dispersion_ranef = ps$group.dispersion,
+             n = 2000L, progbar = FALSE)
+```
+
+```{r verify-table}
+n <- nrow(fit$popef[["Days_c"]])
+tab <- data.frame(
+  icm       = unlist(pt$popef.mode),
+  draws     = unlist(fit$popef.means),
+  mcse      = vapply(fit$popef, function(m) sd(m[, 1]) / sqrt(n), numeric(1))
+)
+tab$z <- (tab$draws - tab$icm) / tab$mcse
+round(tab, 4)
+```
+
+The draws' average agrees with the ICM value to within Monte Carlo error.
+This is the package's own regression test, and it is worth running whenever
+you change sampler settings: if the two disagree by more than a few
+standard errors, the sampler is not targeting the posterior you think it
+is.
+
+# What you get and what you do not
+
+```{r contents}
+setdiff(names(fit), names(pt))
+```
+
+```{r contents2}
+c(has_groupef_mode = !is.null(pt$groupef.mode),
+  has_groupef_draws = !is.null(pt$groupef))
+```
+
+Point estimates for both blocks are present; the draw containers are not.
+So `ranef(pt)` works — falling back to the mode with a warning — but
+anything requiring a distribution does not:
+
+```{r accessors}
+head(lme4::ranef(pt, type = "mode")$Subject, 3)
+```
+
+No credible intervals, no posterior standard deviations, no tail
+probabilities. If you need uncertainty, you need draws.
+
+# The non-Gaussian case
+
+For Poisson, binomial, and Gamma responses, ICM still converges — the
+log-likelihoods are log-concave, so each conditional has a unique mode —
+but it converges to the **posterior mode**, and the mode is not the mean.
+The printed column header changes from `fixef.mode` to `ICM mode` to say so.
+
+That gap is why non-Gaussian fits always run a pilot stage (Chapter 09):
+a chain started at the mode begins at an unknown positive distance from the
+target mean, so the mean-error term of the convergence bound is no longer
+zero and has to be bounded empirically instead.
+
+For a skewed posterior the mode can be a poor summary. Treat
+`simulate = FALSE` on a GLMM as a fast diagnostic, not a substitute for
+inference.
+
+# When to use it
+
+**Model development.** Checking that a formula parses, that groups are
+retained, and that estimates are sane costs a fraction of a second instead
+of thirty.
+
+```{r dev-loop, results = "hide"}
+forms <- list(
+  intercept_only = Reaction ~ 1 + (1 | Subject),
+  random_slope   = Reaction ~ Days_c + (1 + Days_c || Subject)
+)
+fits <- lapply(forms, function(f) {
+  p <- Prior_Setup_GLMM(f, data = dat, pop.pwt = 0.01)
+  lmerb(f, data = dat, pfamily_list = pfamily_list(p),
+        dispersion_ranef = p$group.dispersion, simulate = FALSE)
+})
+```
+
+```{r dev-loop-out}
+lapply(fits, function(f) round(unlist(f$popef.mode), 3))
+```
+
+**Prior sensitivity sweeps.** When you only need to see how the point
+estimate moves across prior weights, there is no reason to sample.
+
+**Large problems.** Many groups, a non-Gaussian family, and a tight
+tolerance can make a full fit expensive. Getting the mode first tells you
+whether the model is worth sampling.
+
+**Not for reporting.** A point estimate without a posterior is a maximum
+a posteriori estimate with extra steps. The reason to use this package at
+all is the certified draws.
+
+# See also
+
+- **Chapter 06** — why the ICM value doubles as the chain start point.
+- **Chapter 09** — the pilot stage, which exists because mode is not mean.
+- `?lmerb`, `?glmerb`

@@ -1,0 +1,237 @@
+---
+title: "Chapter 06: Convergence and tv_tol"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 06: Convergence and tv_tol}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+# Chapter 06: Convergence and `tv_tol`
+
+Every fit so far has printed `exact iid` and reported `m_convergence = 1`.
+This chapter is about what happens when the sampler actually has to work,
+and about the claim that makes this package unusual: **you do not diagnose
+convergence, you specify it**.
+
+# The contract
+
+`tv_tol` is a total-variation tolerance. Setting `tv_tol = 0.01` means:
+*each stored draw is within 0.01 in total variation of the exact joint
+posterior*. The sampler computes how many inner Gibbs sweeps that requires
+and runs exactly that many, reporting the number as `m_convergence`.
+
+That is a different contract from the usual MCMC workflow. There is no
+trace plot to eyeball, no R-hat to compare against 1.01, no effective
+sample size. Those tools exist because the number of burn-in iterations is
+unknown; here it is computed, from the model and the data, before sampling
+starts.
+
+The machinery is @Nygren2020: for a two-block Gibbs sampler on a Gaussian
+target, the total-variation distance after \(l\) sweeps has a closed-form
+bound in the eigenvalues of a rate matrix. Inverting that bound gives the
+sweep count. `vignette("Chapter-B02", package = "lmebayesCore")` derives
+the bound and `vignette("Chapter-B03", package = "lmebayesCore")` shows how
+it is inverted.
+
+# When sweeps are needed at all
+
+```{r data}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+form <- Reaction ~ Days_c + (1 + Days_c || Subject)
+ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
+```
+
+With `sigma^2` fixed and every `tau^2_k` known, the joint posterior over
+group and population coefficients is exactly multivariate normal, and
+`sim_method = "DEFAULT"` samples it directly:
+
+```{r default, results = "hide"}
+set.seed(1)
+fit_iid <- lmerb(form, data = dat,
+                 pfamily_list     = pfamily_list(ps),
+                 dispersion_ranef = ps$group.dispersion,
+                 n = 200L, progbar = FALSE)
+```
+
+```{r default-show}
+c(engine = fit_iid$sim_method_used, m = fit_iid$m_convergence)
+```
+
+Gibbs sweeps become necessary when the target stops being jointly normal:
+sampled variance components (Chapter 07), sampled observation dispersion
+(Chapter 08), or a non-Gaussian likelihood (Chapters 09–10). You can also
+force the Gibbs path on a target where the exact answer is known, which is
+how the sampler is validated:
+
+```{r gibbs, results = "hide"}
+set.seed(1)
+fit_gibbs <- lmerb(form, data = dat,
+                   pfamily_list     = pfamily_list(ps),
+                   dispersion_ranef = ps$group.dispersion,
+                   n = 200L, progbar = FALSE,
+                   sim_method = "TWO_BLOCK_GIBBS")
+```
+
+```{r gibbs-show}
+c(engine = fit_gibbs$sim_method_used, m = fit_gibbs$m_convergence)
+```
+
+Three sweeps per stored draw. Both fits target the same posterior, so their
+answers should agree:
+
+```{r compare}
+round(rbind(
+  iid   = unlist(fit_iid$popef.means),
+  gibbs = unlist(fit_gibbs$popef.means),
+  exact = unlist(fit_iid$popef.mode)
+), 3)
+```
+
+# What `m_convergence` responds to
+
+Tightening the tolerance costs sweeps, but only logarithmically:
+
+```{r tv-tol, results = "hide"}
+tols <- c(0.1, 0.01, 1e-4, 1e-6)
+ms <- vapply(tols, function(tol) {
+  f <- lmerb(form, data = dat,
+             pfamily_list     = pfamily_list(ps),
+             dispersion_ranef = ps$group.dispersion,
+             n = 20L, progbar = FALSE,
+             sim_method = "TWO_BLOCK_GIBBS", tv_tol = tol)
+  f$m_convergence
+}, integer(1))
+```
+
+```{r tv-tol-table}
+data.frame(tv_tol = tols, m_convergence = ms)
+```
+
+Four orders of magnitude of extra accuracy for two extra sweeps. That is
+what makes the "certify every draw" contract affordable, and it has a
+practical consequence: **there is rarely a reason to loosen `tv_tol`**. If
+you want the whole `n`-draw sample certified at level \(\alpha\) rather
+than each draw individually, set `tv_tol = alpha / n` — a union bound — and
+pay a handful of sweeps for it.
+
+The other driver is the model itself. Sweeps go up when group coefficients
+and population coefficients are tightly coupled, which happens when groups
+are small relative to the random-effect variance. This is the same quantity
+that governs shrinkage (Chapter 02): heavily shrunk models mix slowly.
+
+# The sweep history
+
+When the Gibbs path runs, the fit stores cross-chain summaries after every
+inner sweep.
+
+```{r sweep-history}
+names(fit_gibbs$sweep_history)
+fit_gibbs$sweep_history$main
+```
+
+Read this as a convergence check you did not have to design. At sweep `m`,
+the sampler has 200 independent chains all at sweep `m`; the `mean` and
+`sd` columns are the cross-chain mean and standard deviation. Because the
+chains are independent, that is a genuine snapshot of the sampler's
+distribution after `m` sweeps — not a running average along one correlated
+chain.
+
+The `mode` row is the exact answer. Every chain starts there, which is why
+the means barely move: starting at the posterior mean sets the mean-error
+term of the convergence bound to exactly zero, leaving only the variance
+term to be certified. That design choice is what keeps `m_convergence` in
+the single digits.
+
+The `pilot` element is populated when a pilot stage runs; see Chapter 07.
+
+# Convergence plots
+
+Two plotting helpers turn the history into pictures.
+
+```{r plot-mean, fig.alt = "Standardized cross-chain mean by inner sweep"}
+plot_mean_convergence(fit_gibbs$sweep_history$main)
+```
+
+This plots \((\text{mean}_m - \text{mean}_{\text{final}}) / \text{SD}\)
+against sweep. Values hugging zero mean the chain distribution's *center*
+was already correct — expected here, since chains start at the exact mean.
+A visible drift would signal that the start point is not where the theory
+assumes it is.
+
+```{r plot-var, fig.alt = "Ratio of cross-chain variance to final variance by inner sweep"}
+plot_var_convergence(fit_gibbs$sweep_history$main)
+```
+
+This plots \(\text{Var}_m / \text{Var}_{\text{final}}\). Chains that all
+start at the same point have zero spread at sweep 0 and *grow* into the
+posterior variance, so the interesting direction is upward approach to 1.
+This is the quantity the Theorem 3 bound actually certifies, which is why
+it is the more informative of the two plots for this sampler.
+
+Both functions take a sweep-history object, not a fit — pass
+`fit$sweep_history$main` or `$pilot`. Details in
+`vignette("Chapter-B10", package = "lmebayesCore")`.
+
+# Verifying the certificate empirically
+
+The sampler's claim is falsifiable on this model, because the exact
+posterior is known. Compare the Gibbs draws against the analytic mean:
+
+```{r verify}
+n_draws <- nrow(fit_gibbs$popef[["Days_c"]])
+draws   <- fit_gibbs$popef[["Days_c"]][, 1]
+exact   <- fit_gibbs$popef.mode[["Days_c"]][[1]]
+z <- (mean(draws) - exact) / (sd(draws) / sqrt(n_draws))
+round(c(draws_mean = mean(draws), exact_mean = exact, z = z), 4)
+```
+
+A \(z\) of moderate size is what independent draws from the right
+distribution look like. This check is cheap and worth running whenever you
+change sampler settings — it is the same test the package's own test suite
+applies.
+
+# What convergence does *not* mean
+
+`m_convergence` certifies distance to the posterior **of the model you
+specified**. It says nothing about whether that model is a good description
+of the data. Prior sensitivity (Chapter 03), the uncorrelated-random-effects
+restriction (Chapter 02), and comparison against `lme4` (Chapter 13) are
+separate questions, and no amount of sampling accuracy answers them.
+
+One warning you may see is `lambda* > 0.95`: the chain is still
+geometrically ergodic, but coupling is strong enough that the model
+deserves a second look. Usual causes are very small groups or a variance
+component being driven toward zero.
+
+# See also
+
+- **Chapter 07** — the pilot stage, which is where the mean-error term of
+  the bound stops being zero.
+- `vignette("Chapter-B02", package = "lmebayesCore")` — the ergodicity
+  theory.
+- `vignette("Chapter-B03", package = "lmebayesCore")` — from the rate to a
+  sweep count.
+- `?plot_mean_convergence`, `?plot_var_convergence`

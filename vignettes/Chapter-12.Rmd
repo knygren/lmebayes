@@ -1,0 +1,199 @@
+---
+title: "Chapter 12: Row-block models"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 12: Row-block models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+# Chapter 12: Row-block models
+
+`lmbBlock()` and `glmbBlock()` sit one level below the mixed-model
+interface. They partition the rows of a dataset into blocks and fit an
+**independent** Bayesian regression within each block — no hierarchy, no
+shared population level, no shrinkage between blocks.
+
+That makes them the "no pooling" corner of Chapter 02, done properly: each
+block gets a full posterior rather than a point estimate, and the fits are
+independent by construction rather than by accident.
+
+# When you want this
+
+**As a baseline.** Fitting the same data with and without a hierarchy is
+the clearest way to see what partial pooling actually did.
+
+**When the blocks are not exchangeable.** The mixed model assumes group
+coefficients are draws from a common population. If your blocks are
+different experiments, different instruments, or different time periods
+with no reason to share information, that assumption is wrong and pooling
+them is worse than not.
+
+**As a conceptual sibling of Block 1.** A Block 1 update in `lmerb()` is
+also a set of independent per-group regressions — the difference is that
+there the per-group priors come from the population level and are refreshed
+every sweep, whereas here they are fixed once. The two are not the same
+code path, though: `lmbBlock()` fits each block with `glmbayes::lmb()`,
+while Block 1 uses the compiled block engines in **lmebayesCore**.
+`vignette("Chapter-B09", package = "lmebayesCore")` traces both.
+
+# A worked example
+
+```{r data}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+
+## Three subjects, to keep the output readable.
+sub <- droplevels(subset(dat, Subject %in% c("308", "309", "310")))
+table(sub$Subject)
+```
+
+Priors come from `Prior_SetupGroup()`, the row-block counterpart of
+`Prior_Setup_GLMM()`. Note the argument is `group`:
+
+```{r prior}
+psb <- Prior_SetupGroup(Reaction ~ Days_c, group = sub$Subject,
+                        data = sub, pwt = 0.05)
+psb
+```
+
+The object is a list of ordinary `Prior_Setup()` results, one per block.
+Each block is calibrated against **its own** data — there is no borrowing,
+which is exactly the point.
+
+```{r pfamily}
+pfb <- pfamily_list(psb)
+length(pfb)
+names(pfb)
+```
+
+```{r fit, results = "hide"}
+set.seed(1)
+fitb <- lmbBlock(Reaction ~ Days_c, block = sub$Subject, data = sub,
+                 pfamily_list = pfb, n = 200L)
+```
+
+```{r fit-class}
+class(fitb)
+names(fitb)
+```
+
+The result is a `blmb` object: a named list of `lmb` fits, one per block,
+with `call`, `formula`, `block`, `group_info`, `k`, `p`, `pred_names`, and
+`pfamily_lists` attached as attributes. Each element is an ordinary
+**glmbayes** `lmb` fit — the block wrapper partitions rows and loops, and
+`lmb()` does the sampling — so everything you know about `lmb()` applies:
+
+```{r one-block}
+summary(fitb[["308"]])
+```
+
+# Comparing blocks
+
+Because the elements are ordinary fits, comparison is a loop:
+
+```{r compare}
+tab <- t(vapply(fitb, function(f) colMeans(f$coefficients), numeric(2)))
+round(tab, 3)
+```
+
+```{r compare-sd}
+round(t(vapply(fitb, function(f) apply(f$coefficients, 2, sd), numeric(2))), 3)
+```
+
+# Versus the hierarchical fit
+
+The same three subjects, fitted hierarchically:
+
+```{r hier, results = "hide"}
+form <- Reaction ~ Days_c + (1 + Days_c || Subject)
+ps <- Prior_Setup_GLMM(form, data = sub, pop.pwt = 0.05)
+set.seed(1)
+fith <- lmerb(form, data = sub,
+              pfamily_list     = pfamily_list(ps),
+              dispersion_ranef = ps$group.dispersion,
+              n = 200L, progbar = FALSE)
+```
+
+```{r hier-compare}
+hier <- as.matrix(lme4::ranef(fith)$Subject)
+round(cbind(
+  block_intercept = tab[, "(Intercept)"],
+  hier_intercept  = hier[rownames(tab), "(Intercept)"],
+  block_slope     = tab[, "Days_c"],
+  hier_slope      = hier[rownames(tab), "Days_c"]
+), 3)
+```
+
+The hierarchical estimates sit between the block estimates and their common
+average — that is shrinkage, visible directly. With only three subjects and
+ten observations each, the pull is substantial. It would be weaker with
+more data per subject and stronger with less, following the ratio in
+Chapter 02.
+
+Which is right depends on a question the data cannot answer: are these
+three subjects draws from a population you care about? If yes, the
+hierarchical estimates are better — they borrow strength. If they are three
+unrelated experiments, the block estimates are the honest ones.
+
+# Generalized responses
+
+`glmbBlock()` is the same idea with a `family` argument:
+
+```{r glmb-block, eval = FALSE}
+psg <- Prior_SetupGroup(y ~ x, group = dat$block, data = dat,
+                        family = poisson(), pwt = 0.05)
+fitg <- glmbBlock(y ~ x, block = dat$block, data = dat,
+                  family = poisson(),
+                  pfamily_list = pfamily_list(psg), n = 200L)
+```
+
+Each block runs `glmbayes::glmb()` independently, so the draws are iid
+within block and independent across blocks. There are no Gibbs sweeps
+anywhere: without a shared population level there is nothing to alternate
+between, and consequently no `m_convergence`, no `tv_tol`, and no pilot
+stage. Convergence is not a question that arises.
+
+# What you give up
+
+| | `lmbBlock()` | `lmerb()` |
+|---|---|---|
+| Blocks share information | No | Yes |
+| Population-level parameters | None | Estimated |
+| Small / noisy blocks | Estimated on their own | Shrunk toward the population |
+| Group-level covariates | Not expressible | Level-2 design |
+| Sampling | iid within block | iid draws via certified sweeps |
+| Blocks with rank-deficient designs | Fail individually | Excluded, others unaffected |
+
+The most consequential row is the third. A block with two observations gets
+a posterior dominated by its prior, and that prior was calibrated from
+those same two observations. The hierarchical model handles this case
+properly by letting the other blocks inform it.
+
+# See also
+
+- **Chapter 02** — pooling, and why shrinkage looks the way it does.
+- `vignette("Chapter-B09", package = "lmebayesCore")` — the row-block
+  engines, and how Block 1 reuses them.
+- `vignette("Chapter-03", package = "glmbayes")` — `lmb()`, the per-block
+  sampler.
+- `?lmbBlock`, `?glmbBlock`, `?Prior_SetupGroup`

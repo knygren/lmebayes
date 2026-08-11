@@ -36,7 +36,7 @@ reference across RE components),
 \code{Pr(Prior_tail)}),
 \code{fixef_percentiles_overview} (stacked distribution percentiles across
 RE components, when simulated),
-\code{fixef} (per-RE-component tables; not printed, available on the
+\code{popef} (per-RE-component tables; not printed, available on the
 returned object),
 \code{ranef_overview}, \code{ranef.iters.mean} (Block~1 envelope candidates
 per inner sweep, averaged over groups; printed separately from the overview

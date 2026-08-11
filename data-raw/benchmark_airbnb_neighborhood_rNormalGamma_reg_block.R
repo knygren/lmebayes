@@ -6,7 +6,7 @@
 # per neighborhood (k blocks).
 #
 # Each Gibbs iteration:
-#   Block 2 — rNormalGLM_reg_block_update (Poisson data, diag Sigma RE prior)
+#   Block 2 — rNormalGLM_reg_group_update (Poisson data, diag Sigma RE prior)
 #   Block 1 — For j = 1..l1: Gaussian intercept-only regression with
 #             y = beta_loc[, j] (k neighborhood coefs), prior_list from
 #             prior_list_vector (slice j), sampler rNormalGamma_reg (n = 1)
@@ -196,7 +196,7 @@ l1 <- ncol(X_full)
 k <- nlevels(block_full)
 beta_names <- colnames(X_full)
 neighborhood_names <- levels(block_full)
-block_info <- glmbayes:::normalize_block(block_full, l2)
+group_info <- glmbayes:::normalize_group(block_full, l2)
 
 ## Neighborhood-level design (not used in Block 1 yet): intercept + centered scores
 nbhd_unique <- airbnb_dat[!duplicated(airbnb_dat$neighborhood), c(
@@ -218,7 +218,7 @@ message("airbnb neighborhood RE: n = ", l2, ", k = ", k, ", l1 = ", l1)
 message("X_nbhd: ", nrow(X_nbhd), " x ", ncol(X_nbhd),
         " (", paste(nbhd_pred_names, collapse = ", "), ") — not passed to Block 1 yet")
 message("Block 1: ", l1, " x rNormalGamma_reg (k x 1 design, column of beta_mat as y)")
-message("Block 2: rNormalGLM_reg_block_update")
+message("Block 2: rNormalGLM_reg_group_update")
 message("Gibbs: n_burn = ", n_burn, ", n_sim = ", n_sim)
 
 # --- Identifiability preflight -----------------------------------------------
@@ -249,7 +249,7 @@ prior_block2 <- list(
 )
 fam <- poisson()
 
-init_b2 <- rNormalGLM_reg_block_update(
+init_b2 <- rNormalGLM_reg_group_update(
   y = y_full, x = X_full, block = block_full,
   prior_list = prior_block2, family = fam,
   Gridtype = 2L, n_envopt = 1L,
@@ -277,7 +277,7 @@ run_gibbs <- function(store = FALSE) {
   burn_time <- system.time({
     for (iter in seq_len(n_burn)) {
       ## Block 2: neighborhood coefficients given data + hyper mean
-      b2 <- rNormalGLM_reg_block_update(
+      b2 <- rNormalGLM_reg_group_update(
         y = y_full, x = X_full, block = block_full,
         prior_list = list(
           mu = hyper_mu_loc, Sigma = hyper_Sigma,
@@ -309,7 +309,7 @@ run_gibbs <- function(store = FALSE) {
 
   sim_time <- system.time({
     for (iter in seq_len(n_sim)) {
-      b2 <- rNormalGLM_reg_block_update(
+      b2 <- rNormalGLM_reg_group_update(
         y = y_full, x = X_full, block = block_full,
         prior_list = list(
           mu = hyper_mu_loc, Sigma = hyper_Sigma,

@@ -4,13 +4,72 @@
 #' @keywords internal
 NULL
 
+## Block 1 / Block 2 containers were renamed coefficients -> groupef,
+## ranef.mode -> groupef.mode, fixef.* -> popef.*.  Fits produced before the
+## rename may still be in a user's workspace, so read either spelling.
+
+#' @keywords internal
+#' @noRd
+.lmerb_groupef_draws <- function(object) {
+  if (!is.null(object$groupef)) object$groupef else object$coefficients
+}
+
+#' @keywords internal
+#' @noRd
+.lmerb_groupef_mode <- function(object) {
+  if (!is.null(object$groupef.mode)) object$groupef.mode else object$ranef.mode
+}
+
+#' @keywords internal
+#' @noRd
+.lmerb_popef_mode <- function(object) {
+  if (!is.null(object$popef.mode)) object$popef.mode else object$fixef.mode
+}
+
+#' @keywords internal
+#' @noRd
+.lmerb_popef_means <- function(object) {
+  if (!is.null(object$popef.means)) object$popef.means else object$fixef.means
+}
+
+#' @keywords internal
+#' @noRd
+.lmerb_popef_draws <- function(object) {
+  if (!is.null(object$popef)) object$popef else object$fixef
+}
+
+## Per-group population expectation W_j %*% gamma, as a p_re x J matrix.
+## Legacy fits stored this directly as fixef.mu; current fits do not, so it is
+## rebuilt from the level-2 design and the population mode.
+#' @keywords internal
+#' @noRd
+.lmerb_popef_mu <- function(object) {
+  if (!is.null(object$fixef.mu)) return(as.matrix(object$fixef.mu))
+
+  design <- object$model_setup
+  gamma  <- .lmerb_popef_mode(object)
+  if (is.null(design) || is.null(gamma)) return(NULL)
+
+  re_names <- design$groupef.names
+  grp_levs <- levels(design$group)
+  mu <- matrix(
+    NA_real_,
+    nrow = length(re_names), ncol = length(grp_levs),
+    dimnames = list(re_names, grp_levs)
+  )
+  for (k in re_names) {
+    mu[k, ] <- as.vector(design$W[[k]] %*% as.numeric(gamma[[k]]))
+  }
+  mu
+}
+
 #' Extract random effects from Bayesian mixed model fits
 #'
 #' @description
 #' Methods mirroring \code{\link[lme4]{ranef}} for \code{\link{lmerb}} and
 #' \code{\link{glmerb}} fits.  Values summarize Block~1 random-effects draws
-#' \eqn{b} stored in \code{fit$coefficients} (posterior chain mean by default,
-#' or the exact ICM \code{fit$ranef.mode}).
+#' \eqn{b} stored in \code{fit$groupef} (posterior chain mean by default,
+#' or the exact ICM \code{fit$groupef.mode}).
 #'
 #' @param object An \code{lmerb} or \code{glmerb} object.
 #' @param condVar Logical; if \code{TRUE}, attach a \code{postVar} attribute
@@ -18,7 +77,7 @@ NULL
 #' @param drop Logical; if \code{TRUE}, convert single-column grouping
 #'   \code{data.frame}s to named vectors (as in \pkg{lme4}).
 #' @param type \code{"mean"} (default when draws are stored) or \code{"mode"}
-#'   (ICM / \code{ranef.mode}).  When \code{simulate = FALSE}, \code{"mean"}
+#'   (ICM / \code{groupef.mode}).  When \code{simulate = FALSE}, \code{"mean"}
 #'   falls back to \code{"mode"} with a warning.
 #' @param \ldots Ignored.
 #' @return An object of class \code{"ranef.lmerb"}: a named list with one
@@ -69,22 +128,23 @@ ranef.glmerb <- function(
   }
 
   n_draws <- NULL
+  draws <- .lmerb_groupef_draws(object)
   if (type == "mean") {
-    if (is.null(object$coefficients)) {
+    if (is.null(draws)) {
       warning(
-        "No stored draws (simulate = FALSE); using ranef.mode instead.",
+        "No stored draws (simulate = FALSE); using groupef.mode instead.",
         call. = FALSE
       )
       type <- "mode"
     } else {
       mat <- .bayes_ranef_chain_means(object)
-      n_draws <- length(unique(object$coefficients[["draw"]]))
+      n_draws <- length(unique(draws[["draw"]]))
     }
   }
   if (type == "mode") {
-    mat <- object$ranef.mode
+    mat <- .lmerb_groupef_mode(object)
     if (is.null(mat)) {
-      stop("object$ranef.mode is NULL.", call. = FALSE)
+      stop("object$groupef.mode is NULL.", call. = FALSE)
     }
   }
 
@@ -96,7 +156,7 @@ ranef.glmerb <- function(
 
   postVar <- NULL
   if (isTRUE(condVar)) {
-    if (is.null(object$coefficients)) {
+    if (is.null(draws)) {
       warning(
         "condVar requested but no stored draws; postVar omitted.",
         call. = FALSE
@@ -124,7 +184,7 @@ ranef.glmerb <- function(
 .lmerb_ranef_postVar <- function(object) {
   re_names <- object$model_setup$groupef.names
   grp_col  <- object$model_setup$group_name
-  coef_df  <- object$coefficients
+  coef_df  <- .lmerb_groupef_draws(object)
   grp_levs <- levels(factor(coef_df[[grp_col]]))
   p_re     <- length(re_names)
   J        <- length(grp_levs)
@@ -202,6 +262,13 @@ as.data.frame.ranef.lmerb <- function(x, ...) {
 #' @export
 #' @method print ranef.lmerb
 print.ranef.lmerb <- function(x, ...) {
+  ## as.data.frame() keeps the class, so the long format lands here too.
+  if (is.data.frame(x)) {
+    y <- x
+    class(y) <- "data.frame"
+    print(y, ...)
+    return(invisible(x))
+  }
   for (gv in names(x)) {
     cat("$", gv, "\n", sep = "")
     print(x[[gv]])
@@ -272,7 +339,7 @@ coef.glmerb <- function(object, type = c("mean", "mode"), ...) {
     rownames(out_df) <- names(re[[1L]])
   }
   re_names <- colnames(out_df)
-  ## Block~1 coefficients stored in fit$coefficients / ranef.mode are
+  ## Block~1 coefficients stored in fit$groupef / groupef.mode are
   ## already full per-group random coefficients (same scale as coef(mer)),
   ## not lme4-style deviations; do not add fixef(mer) again.
   structure(stats::setNames(list(out_df), grp_col), class = "coef.lmerb")
@@ -287,8 +354,8 @@ coef.glmerb <- function(object, type = c("mean", "mode"), ...) {
 #' summaries stored on the Bayesian fit.
 #'
 #' @param object An \code{lmerb} or \code{glmerb} object.
-#' @param type \code{"mer"} (default), \code{"hyper"} (\code{fixef.mode}), or
-#'   \code{"hyper.mean"} (\code{fixef.means}; requires stored draws).
+#' @param type \code{"mer"} (default), \code{"hyper"} (\code{popef.mode}), or
+#'   \code{"hyper.mean"} (\code{popef.means}; requires stored draws).
 #' @param \ldots Ignored.
 #' @return A named numeric vector.
 #' @seealso \code{\link[lme4]{fixef}}, \code{\link{coef.lmerb}}.
@@ -320,19 +387,21 @@ fixef.glmerb <- function(object, type = c("mer", "hyper", "hyper.mean"), ...) {
       lme4::fixef(mer)
     },
     hyper = {
-      if (is.null(object$fixef.mode)) {
-        stop("object$fixef.mode is NULL.", call. = FALSE)
+      out <- .lmerb_popef_mode(object)
+      if (is.null(out)) {
+        stop("object$popef.mode is NULL.", call. = FALSE)
       }
-      unlist(object$fixef.mode, use.names = TRUE)
+      unlist(out, use.names = TRUE)
     },
     hyper.mean = {
-      if (is.null(object$fixef.means)) {
+      out <- .lmerb_popef_means(object)
+      if (is.null(out)) {
         stop(
-          "object$fixef.means is NULL (run with simulate = TRUE).",
+          "object$popef.means is NULL (run with simulate = TRUE).",
           call. = FALSE
         )
       }
-      unlist(object$fixef.means, use.names = TRUE)
+      unlist(out, use.names = TRUE)
     }
   )
 }

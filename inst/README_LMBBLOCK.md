@@ -27,9 +27,9 @@ symmetric treatment of all three entry points.
 
 | Function | Role |
 |----------|------|
-| `Prior_SetupBlock()` | Run `glmbayesCore::Prior_Setup()` independently on each row block (for `lmbBlock()` / `glmbBlock()`). |
+| `Prior_SetupGroup()` | Run `glmbayesCore::Prior_Setup()` independently on each row block (for `lmbBlock()` / `glmbBlock()`). |
 
-All three top-level functions — `lmbBlock()`, `glmbBlock()`, `Prior_SetupBlock()`
+All three top-level functions — `lmbBlock()`, `glmbBlock()`, `Prior_SetupGroup()`
 — follow the exact same shape: *reconcile the `block` argument against
 `model.frame()`, loop over blocks calling one external single-fit function
 per block, then assemble the `k` results into one object.* They differ only
@@ -47,14 +47,14 @@ is `lmb()`'s GLM counterpart in `glmbayes` itself. Concretely:
 
 | Function | Role |
 |----------|------|
-| `.blmb_formula_block_meta()` | `model.frame()`/`model.matrix()` once, reconcile `block` against it, call `normalize_block()`. |
+| `.blmb_formula_block_meta()` | `model.frame()`/`model.matrix()` once, reconcile `block` against it, call `normalize_group()`. |
 | `.blmb_resolve_block()` | Accepts the 5 `block` input shapes (factor / vector / column name / list / `l2_blocks`). |
 | `.blmb_rows_to_data_subset()` | Translates model-frame row indices back to original-`data` row indices/rownames for `subset=`. |
 | `.mrglmb_normalize_pfamily_lists()` (from `glmbayesCore`) | Validate/recycle `pfamily` vs. `pfamily_list` into one-per-block. |
 | `.validate_pfamily_for_rlmb()` (from `glmbayesCore`) | Per-block pfamily validator passed into the above. |
 | `.blmb_coef_means_matrix()` | Stack per-block posterior mean coefficients into one matrix (used by both `print`/`summary` pairs). |
 | `.blmb_dic_table()` | Stack per-block `DIC`/`pD` into one table (used by both `print`/`summary` pairs). |
-| `lmebayesCore::normalize_block()` | Canonicalize the reconciled `block` vector into `list(k, ids, l2_blocks, starts, rows)`. |
+| `lmebayesCore::normalize_group()` | Canonicalize the reconciled `block` vector into `list(k, ids, l2_blocks, starts, rows)`. |
 
 ### Mirrored (parallel, near-identical pairs — one per family)
 
@@ -82,9 +82,9 @@ mirror that precedent rather than diverging from it one layer up.
 
 ---
 
-## `Prior_SetupBlock()`: the third sibling
+## `Prior_SetupGroup()`: the third sibling
 
-`Prior_SetupBlock()` reuses the **same shared plumbing** as `lmbBlock()`/`glmbBlock()`
+`Prior_SetupGroup()` reuses the **same shared plumbing** as `lmbBlock()`/`glmbBlock()`
 (`.blmb_formula_block_meta()`, `.blmb_rows_to_data_subset()`) — this is the
 reason those two helpers are standalone functions rather than being inlined
 into `lmbBlock()`. It loops `glmbayesCore::Prior_Setup()` (re-exported by
@@ -112,7 +112,7 @@ three call graphs above — users invoke these separately, before fitting:
 | Function | Exported | Role |
 |----------|----------|------|
 | `block_check_identifiability()` | No (`lmebayes:::`) | Two-level rank preflight, formula interface: Level 1 = each block's design matrix full column rank; Level 2 = hyper design (`X_nbhd`) full rank across Level-1-identified blocks. |
-| `block_check_identifiability_xy()` | No (`lmebayes:::`) | Same, matrix interface (for use inside a Gibbs-loop setup); also calls `lmebayesCore::normalize_block()` directly. |
+| `block_check_identifiability_xy()` | No (`lmebayes:::`) | Same, matrix interface (for use inside a Gibbs-loop setup); also calls `lmebayesCore::normalize_group()` directly. |
 | `.blmb_blocks_full_rank()` | No | Level-1 rank table, formula interface. |
 | `.blmb_blocks_full_rank_xy()` | No | Level-1 rank table, matrix interface. |
 
@@ -132,7 +132,7 @@ lmbBlock()
 ├── .blmb_formula_block_meta()
 │   ├── stats::model.frame() / model.matrix()
 │   ├── .blmb_resolve_block()
-│   └── lmebayesCore::normalize_block()
+│   └── lmebayesCore::normalize_group()
 ├── .mrglmb_normalize_pfamily_lists()  [from glmbayesCore]
 │   └── .validate_pfamily_for_rlmb()   [from glmbayesCore]
 ├── (loop b = 1..k)
@@ -150,7 +150,7 @@ glmbBlock()
 │   └── .blmb_glmb_display_call()       ← mirrored, not shared
 └── .bglmb_assemble()                   ← mirrored, not shared
 
-Prior_SetupBlock()
+Prior_SetupGroup()
 ├── .blmb_formula_block_meta()          [same as lmbBlock()/glmbBlock()]
 ├── .blmb_resolve_block_calibration_arg()  [× 6 calibration args; unique to this entry point]
 └── (loop b = 1..k)
@@ -173,7 +173,7 @@ print()/summary() on a "bglmb" result
 |----------|------|----------|-------------|------|
 | `lmbBlock()` | `lmbBlock.R` | Yes | — | Main driver, Gaussian (`lmb()` per block). |
 | `glmbBlock()` | `glmbBlock.R` | Yes | — | Main driver, any GLM family (`glmb()` per block). |
-| `Prior_SetupBlock()` | `prior_setup_lmebayes.R` | Yes | — | `Prior_Setup()` per block. |
+| `Prior_SetupGroup()` | `prior_setup_lmebayes.R` | Yes | — | `Prior_Setup()` per block. |
 | `print.blmb()` | `lmbBlock.R` | Yes (S3) | mirrors `print.bglmb()` | Combined print for `lmbBlock()` result. |
 | `print.bglmb()` | `glmbBlock.R` | Yes (S3) | mirrors `print.blmb()` | Combined print for `glmbBlock()` result. |
 | `summary.blmb()` | `summary.blmb.R` | Yes (S3) | mirrors `summary.bglmb()` | Combined summary for `lmbBlock()` result. |
@@ -182,9 +182,9 @@ print()/summary() on a "bglmb" result
 | `print.summary.bglmb()` | `summary.bglmb.R` | Yes (S3) | mirrors `print.summary.blmb()` | Renders `summary.bglmb()` output. |
 | `block_check_identifiability()` | `lmbBlock.R` | No | shared by both families | Optional two-level rank preflight, formula interface. |
 | `block_check_identifiability_xy()` | `lmbBlock.R` | No | shared by both families | Same, matrix interface. |
-| `.blmb_formula_block_meta()` | `lmbBlock.R` | No | `lmbBlock()`, `glmbBlock()`, `Prior_SetupBlock()`, `.blmb_blocks_full_rank()` | Block/formula reconciliation. |
+| `.blmb_formula_block_meta()` | `lmbBlock.R` | No | `lmbBlock()`, `glmbBlock()`, `Prior_SetupGroup()`, `.blmb_blocks_full_rank()` | Block/formula reconciliation. |
 | `.blmb_resolve_block()` | `lmbBlock.R` | No | (called only via the above) | Accepts the 5 `block` shapes. |
-| `.blmb_rows_to_data_subset()` | `lmbBlock.R` | No | `lmbBlock()`, `glmbBlock()`, `Prior_SetupBlock()` | Model-frame rows → `data` rows. |
+| `.blmb_rows_to_data_subset()` | `lmbBlock.R` | No | `lmbBlock()`, `glmbBlock()`, `Prior_SetupGroup()` | Model-frame rows → `data` rows. |
 | `.blmb_lmb_display_call()` | `lmbBlock.R` | No | mirrors `.blmb_glmb_display_call()` | Per-block `$call` for `lmb()`. |
 | `.blmb_glmb_display_call()` | `glmbBlock.R` | No | mirrors `.blmb_lmb_display_call()` | Per-block `$call` for `glmb()`. |
 | `.blmb_assemble()` | `lmbBlock.R` | No | mirrors `.bglmb_assemble()` | Package `k` `lmb()` fits into `"blmb"`. |
@@ -193,10 +193,10 @@ print()/summary() on a "bglmb" result
 | `.blmb_dic_table()` | `lmbBlock.R` | No | `print`/`summary` for both `blmb` and `bglmb` | Stack per-block `DIC`/`pD`. |
 | `.blmb_blocks_full_rank()` | `lmbBlock.R` | No | `block_check_identifiability()` | Level-1 rank table, formula interface. |
 | `.blmb_blocks_full_rank_xy()` | `lmbBlock.R` | No | `block_check_identifiability_xy()` | Level-1 rank table, matrix interface. |
-| `.blmb_resolve_block_calibration_arg()` | `prior_setup_lmebayes.R` | No | `Prior_SetupBlock()` only | Shared-or-per-block resolution for `Prior_Setup()`'s 6 calibration args. |
+| `.blmb_resolve_block_calibration_arg()` | `prior_setup_lmebayes.R` | No | `Prior_SetupGroup()` only | Shared-or-per-block resolution for `Prior_Setup()`'s 6 calibration args. |
 | `.mrglmb_normalize_pfamily_lists` | `block_core_pfamily.R` (alias; defined in `glmbayesCore`) | No | `lmbBlock()`, `glmbBlock()` | Validate/recycle `pfamily`/`pfamily_list`. |
 | `.validate_pfamily_for_rlmb` | `block_core_pfamily.R` (alias; defined in `glmbayesCore`) | No | `lmbBlock()`, `glmbBlock()` | Per-block pfamily validator callback. |
-| `lmebayesCore::normalize_block()` | *(package: `lmebayesCore`)* | Yes, there | `lmbBlock()`, `glmbBlock()`, `Prior_SetupBlock()` (via `.blmb_formula_block_meta()`); `block_check_identifiability_xy()` directly | Canonicalize the block partition. Pure R, no C++ — full trace in `lmebayesCore/inst/LMBBLOCK_LMEBAYESCORE_DEPENDENCIES.md`. |
+| `lmebayesCore::normalize_group()` | *(package: `lmebayesCore`)* | Yes, there | `lmbBlock()`, `glmbBlock()`, `Prior_SetupGroup()` (via `.blmb_formula_block_meta()`); `block_check_identifiability_xy()` directly | Canonicalize the block partition. Pure R, no C++ — full trace in `lmebayesCore/inst/LMBBLOCK_LMEBAYESCORE_DEPENDENCIES.md`. |
 
 ---
 
@@ -207,7 +207,7 @@ print()/summary() on a "bglmb" result
 | Package-level function tables this expands on | `README.md` ("Row-block models" / "Model setup and mixed-model priors") |
 | Exported/internal function inventories | `inst/R_EXPORTED_AND_DOCUMENTED.md`, `inst/R_INTERNAL_HELPERS.md` |
 | `lmbBlock()`/`glmbBlock()` source | `R/lmbBlock.R`, `R/glmbBlock.R` |
-| `Prior_SetupBlock()` source | `R/prior_setup_lmebayes.R` |
+| `Prior_SetupGroup()` source | `R/prior_setup_lmebayes.R` |
 | Shared `pfamily_list` validation source | `R/block_core_pfamily.R` |
 | Single `lmebayesCore` dependency, fully traced | `lmebayesCore/inst/LMBBLOCK_LMEBAYESCORE_DEPENDENCIES.md` |
 | Two-level identifiability derivation | `lmebayesCore/inst/BLOCK_GIBBS_ERGODICITY.md` |
@@ -219,5 +219,5 @@ print()/summary() on a "bglmb" result
 
 | Date | Note |
 |------|------|
-| 2026-07-20 | Revised from a `lmbBlock()`-centric writeup into a symmetric overview covering `lmbBlock()`, `glmbBlock()`, and `Prior_SetupBlock()` together; added the shared-vs-mirrored function classification and `Prior_SetupBlock()`'s own `.blmb_resolve_block_calibration_arg()` helper (previously undocumented in `R_INTERNAL_HELPERS.md`). |
+| 2026-07-20 | Revised from a `lmbBlock()`-centric writeup into a symmetric overview covering `lmbBlock()`, `glmbBlock()`, and `Prior_SetupGroup()` together; added the shared-vs-mirrored function classification and `Prior_SetupGroup()`'s own `.blmb_resolve_block_calibration_arg()` helper (previously undocumented in `R_INTERNAL_HELPERS.md`). |
 | 2026-07-20 | Initial draft (`lmbBlock()`-centric; superseded by the above). |

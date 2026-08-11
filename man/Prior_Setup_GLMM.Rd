@@ -29,7 +29,6 @@ Prior_Setup_GLMM(
   pop.intercept_source = c("null_model", "full_model"),
   pop.effects_source = c("null_effects", "full_model"),
   pop.mu = NULL,
-  group.dispersion = NULL,
   group.dispersion.pwt = NULL,
   group.dispersion.nprior = NULL,
   group.alpha_target = 0.01,
@@ -45,7 +44,7 @@ calibration quantities.}
 
 \item{family}{Model \code{\link[stats]{family}}.  Default \code{gaussian()}.
 Non-Gaussian families use \code{\link[lme4]{glmer}} for calibration;
-\code{group.dispersion} is omitted (analogous to
+Block~1 dispersion Gamma calibration is omitted (analogous to
 \code{\link[glmbayesCore]{Prior_Setup}} for flat GLMs).}
 
 \item{REML}{Logical scalar passed to \code{\link[lmebayesCore]{model_setup}} (and thus
@@ -253,20 +252,6 @@ populated with the values actually used (derived defaults when
 expects -- call once without \code{pop.mu} to inspect the defaults,
 then feed a modified copy of \code{ps$pop.mu} back in to override.}
 
-\item{group.dispersion}{Optional override for Block~1 observation-level
-dispersion \eqn{\sigma^2} (Gaussian models only).  When \code{dispformula =
-  ~1}, a single positive scalar replaces the pooled \code{lmer} estimate.
-When \code{dispformula} requests per-group dispersion, a named length-\eqn{J}
-vector (one positive value per group level) replaces the per-group values
-used for fixed per-group \eqn{\sigma^2_j} and mean-matches each per-group
-\code{dGamma()} \code{group.ing_prior} entry.  The returned
-\code{group.dispersion} field always holds the resolved value actually used
-(override or reference fit), with \code{attr(., "source")} recording
-provenance.  \code{group.dispersion.ref} remains the glmmTMB reference-fit
-diagnostic.  Ignored (must be \code{NULL}) for non-Gaussian families.
-Pass \code{group.dispersion = ps$group.dispersion} to
-\code{rlmerb()}/\code{rglmerb()} for fixed-\eqn{\sigma^2} routes.}
-
 \item{group.dispersion.pwt}{Optional relative prior weight(s) in \eqn{(0, 1)} for
 the Block~1 observation \eqn{\sigma^2} Gamma prior (Gaussian models only),
 decoupled from \code{pop.pwt} (Block~2 fixef) and from
@@ -440,16 +425,28 @@ against \code{group.ing_prior}'s \code{sigma2_hat}.}
 which reference fit produced \code{fit_ref} (and therefore
 \code{pop.prior_list}, \code{pop.ing_prior}, \code{group.tau_sd}, and
 \code{group.ing_prior}).}
-\item{\code{group.dispersion}}{For Gaussian models: always the resolved
-Block~1 observation \eqn{\sigma^2} (scalar when \code{dispformula = ~1},
-or a named length-\eqn{J} vector when a per-group override was supplied).
-Defaults come from the reference fit; overridden by the
-\code{group.dispersion} argument when supplied.
-\code{attr(., "source")} records provenance.  \code{NULL} for
-non-Gaussian families.  Pass to \code{rlmerb()}/\code{rglmerb()} as
-\code{group.dispersion}.}
-\item{\code{group.Sigma}}{Diagonal RE covariance matrix (Block~1).}
-\item{\code{pop.prior_list}}{Named Block~2 prior list per RE coefficient.}
+\item{\code{group.dispersion}}{For Gaussian models: resolved Block~1
+observation \eqn{\sigma^2} used to mean-match the Gamma prior.
+When \code{dispformula = ~1}, the pooled A12 §3.3.4 aggregate
+\eqn{\hat\sigma^2 =
+      (\sum_j S_{\mathrm{marg},j})/(n - J p_{\mathrm{re}})} (Part VI
+\code{Omega_j} included); classical lmer residual in
+\code{attr(., "classical")}. When \code{dispformula} is per-group,
+a named length-\eqn{J} vector of per-group
+\code{group.ing_prior[[j]]$sigma2_hat}. \code{attr(., "source")}
+records provenance.  \code{NULL} for non-Gaussian families.
+Pass to \code{rlmerb()}/\code{rglmerb()} as
+\code{group.dispersion} for fixed-\eqn{\sigma^2} routes.}
+\item{\code{group.Sigma}}{Diagonal RE covariance matrix (Block~1),
+classical reference-fit \eqn{\Psi} diagonals.}
+\item{\code{pop.dispersion.ref}}{Named vector of classical reference-fit
+\eqn{\hat\tau^2_k} (VarCorr / \code{Psi}) before the A12 §3.3.4
+hyper-regression remargin; compare to
+\code{pop.prior_list[[k]]$dispersion}.}
+\item{\code{pop.prior_list}}{Named Block~2 prior list per RE coefficient.
+For Gaussian models \code{dispersion} is the A12 §3.3.4 marginal
+hyper-regression center for \eqn{\tau^2_k} (not the raw VarCorr
+plug-in; see \code{pop.dispersion.ref}).}
 \item{\code{pop.ing_prior}}{Named per-component list of the prospective
 \code{dIndependent_Normal_Gamma} calibration: Gamma precision-prior
 \code{shape} \eqn{= (n_0 + 1 + p_k)/2} and \code{rate}
@@ -457,8 +454,10 @@ non-Gaussian families.  Pass to \code{rlmerb()}/\code{rglmerb()} as
 calibration with \eqn{n_0 =} \code{pop.dispersion.nprior}; since
 \code{rate} \eqn{= \hat\tau^2_k (\code{shape} - 1)}, the implied
 inverse-Gamma prior on \eqn{\tau^2_k} has mean exactly
-\eqn{\hat\tau^2_k}), and the default \eqn{\tau^2_k} truncation
-window \code{disp_lower} / \code{disp_upper}: the
+\eqn{\hat\tau^2_k}), where \eqn{\hat\tau^2_k} is the A12 §3.3.4
+marginal hyper-regression center in
+\code{pop.prior_list[[k]]$dispersion}, and the default \eqn{\tau^2_k}
+truncation window \code{disp_lower} / \code{disp_upper}: the
 \eqn{(1-\mathrm{pop.max\_disp\_perc})} /
 \eqn{\mathrm{pop.max\_disp\_perc}}
 quantiles of the \emph{limiting posterior}
@@ -482,8 +481,10 @@ ING (observation \eqn{\sigma^2} shared across all group
 levels) -- mean-matched \code{shape} / \code{rate} with
 \eqn{n_{\mathrm{prior}} = \mathrm{group.dispersion.pwt}/(1-\mathrm{group.dispersion.pwt})\times n},
 \eqn{p = p_{\mathrm{re}}}, and \eqn{\hat\sigma^2} =
-\code{group.dispersion} (same ING algebra as \code{pop.ing_prior}
-for \eqn{\tau^2_k}; requires \code{group.dispersion.pwt} \eqn{\le 0.5}),
+\code{group.dispersion} (pooled A12 §3.3.4 aggregate of
+per-group \eqn{S_{\mathrm{marg},j}} by default; same ING algebra
+as \code{pop.ing_prior} for \eqn{\tau^2_k}; requires
+\code{group.dispersion.pwt} \eqn{\le 0.5}),
 plus \code{disp_lower} / \code{disp_upper} as the central
 \eqn{2 \times \mathrm{group.max\_disp\_perc} - 1} prior-mass
 interval from the same calibrated \code{shape}/\code{rate}

@@ -4,7 +4,7 @@
 #' Fits one \code{\link[glmbayes]{glmb}} per observation block. Same row partition as
 #' \code{\link{lmbBlock}}, but supports GLM \code{\link{family}} objects.
 #' Counterpart to \code{\link{lmbBlock}}; see \code{\link{summary.bglmb}} for
-#' the summary method and \code{\link[lmebayesCore]{block_rNormalGLM}} for Gibbs sampling.
+#' the summary method and \code{\link[lmebayesCore]{rNormalGLM_reg_group}} for Gibbs sampling.
 #'
 #' @inheritParams lmbBlock
 #' @name glmbBlock
@@ -69,7 +69,7 @@ glmbBlock <- function(
     offset = if (!missing(offset)) offset else NULL,
     contrasts = if (!missing(contrasts)) contrasts else NULL
   )
-  k <- meta$block_info$k
+  k <- meta$group_info$k
   p <- meta$p
 
   if (is.null(pfamily_list)) {
@@ -107,10 +107,10 @@ glmbBlock <- function(
     glmb_args <- c(glmb_args, list(...))
   }
 
-  block_results <- vector("list", k)
+  group_results <- vector("list", k)
   for (b in seq_len(k)) {
     rows_b <- .blmb_rows_to_data_subset(
-      meta$block_info$rows[[b]], meta$mf, data
+      meta$group_info$rows[[b]], meta$mf, data
     )
     fit_b <- do.call(
       glmb,
@@ -124,16 +124,16 @@ glmbBlock <- function(
       )
     )
     fit_b$call <- .blmb_glmb_display_call(mc, formula, rows_b)
-    block_results[[b]] <- fit_b
+    group_results[[b]] <- fit_b
   }
 
   .bglmb_assemble(
-    block_results = block_results,
-    block_ids = meta$block_info$ids,
+    group_results = group_results,
+    block_ids = meta$group_info$ids,
     call = call,
     formula = formula,
     block = block,
-    block_info = meta$block_info,
+    group_info = meta$group_info,
     family = family,
     p = p,
     pred_names = meta$pred_names,
@@ -158,24 +158,24 @@ glmbBlock <- function(
 
 #' @keywords internal
 .bglmb_assemble <- function(
-    block_results,
+    group_results,
     block_ids,
     call,
     formula,
     block,
-    block_info,
+    group_info,
     family,
     p,
     pred_names,
     pfamily_lists = NULL
 ) {
-  outlist <- setNames(block_results, block_ids)
+  outlist <- setNames(group_results, block_ids)
   attr(outlist, "call") <- call
   attr(outlist, "formula") <- formula
   attr(outlist, "block") <- block
-  attr(outlist, "block_info") <- block_info
+  attr(outlist, "group_info") <- group_info
   attr(outlist, "family") <- family
-  attr(outlist, "k") <- block_info$k
+  attr(outlist, "k") <- group_info$k
   attr(outlist, "p") <- p
   attr(outlist, "pred_names") <- pred_names
   if (!is.null(pfamily_lists)) {

@@ -10,14 +10,17 @@ dGamma_list(object, ...)
 \item{object}{A prior-specification object.}
 
 \item{...}{Additional arguments passed to methods (e.g.
-\code{max_disp_perc_measurement}).}
+\code{max_disp_perc_measurement}). For \code{print.dGamma_list()},
+passed to \code{print.pfamily}.}
 }
 \value{
-An object of class \code{"dGamma_list"} (also inherits from
-\code{"list"}): a named list of \code{"pfamily"} objects (one per
-group).  Attributes such as \code{window_diagnostics} and
-\code{measurement_prior_group} are retained for downstream use but
-are not shown by \code{\link[lmebayesCore]{print.dGamma_list}}.
+For \code{dGamma_list()}, an object of class
+\code{"dGamma_list"} (also inherits from \code{"list"}): a named
+list of \code{"pfamily"} objects (one per group).  Attributes such
+as \code{window_diagnostics} and \code{measurement_prior_group}
+are retained for downstream use but are not shown by
+\code{print.dGamma_list()}.  For \code{print.dGamma_list()},
+\code{x} invisibly.
 }
 \description{
 Generic for constructing a named list of \code{\link[glmbayesCore]{dGamma}} prior
@@ -26,6 +29,19 @@ objects from a prior-specification object.  For mixed models, one
 \eqn{\sigma^2_j} priors for \code{lmerb(..., group.dispersion = ...)}.
 }
 \details{
+Where \code{\link[lmebayesCore]{pfamily_list}} configures the \emph{between}-group
+variance components \eqn{\tau^2_k}, \code{dGamma_list()} configures the
+\emph{within}-group observation variance. It returns one
+\code{\link[glmbayesCore]{dGamma}} prior per group level, so each group
+gets its own \eqn{\sigma^2_j} rather than sharing a pooled value.
+
+Each element places a Gamma prior on the \emph{precision}
+\eqn{1/\sigma^2_j} (hence \code{Inv_Dispersion = TRUE}) and carries a
+truncation window \code{disp_lower}/\code{disp_upper} calibrated from
+that group's own data. Because groups differ in size and in residual
+scatter, the windows differ across groups -- often by an order of
+magnitude -- which is the point of the per-group treatment.
+
 For \code{\link[lmebayesCore]{Prior_Setup_GLMM}} with a per-group \code{dispformula},
 each group's \code{dGamma()} uses \code{shape_ING}/\code{rate} from
 \code{object$group.ing_prior} (Part VI calibration; see
@@ -34,5 +50,5 @@ posterior-shape quantiles at that group's \code{max_disp_perc}.
 }
 \seealso{
 \code{\link[glmbayesCore]{dGamma}}, \code{\link[lmebayesCore]{Prior_Setup_GLMM}},
-\code{\link[lmebayesCore]{pfamily_list}}, \code{\link[lmebayesCore]{print.dGamma_list}}
+\code{\link[lmebayesCore]{pfamily_list}}, \code{\link[lmebayesCore]{rLMM_reg}}
 }

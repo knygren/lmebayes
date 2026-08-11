@@ -22,9 +22,9 @@
 #'   (`design$group_name`).
 #' @param family A \code{\link[stats]{family}} object.
 #' @param disp_mode `"none"`, `"fixed"`, `"gamma"`, `"gamma_list"`, or
-#'   `"fixed_vector"` (from `prior$dispersion_mode`, already resolved by
-#'   `lmebayesCore:::.lmebayes_resolve_dispersion_ranef()` inside
-#'   `lmebayesCore::priors_from_pfamily_list()`).
+#'   `"fixed_vector"` (from
+#'   `lmebayesCore:::.lmebayes_resolve_group_dispersion()` on the
+#'   normalized `dispersion_ranef` / `dispprior_list`).
 #' @return `"pooled"` or `"group"`.
 #' @noRd
 .lmebayes_validate_dispformula <- function(dispformula, group_name, family, disp_mode) {

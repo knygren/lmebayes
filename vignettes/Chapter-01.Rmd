@@ -1,0 +1,237 @@
+---
+title: "Chapter 01: Getting started"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 01: Getting started}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+# Chapter 01: Getting started
+
+This chapter fits one model end to end. The data is `lme4::sleepstudy`:
+reaction times for 18 subjects over ten days of restricted sleep. Everyone
+slows down; the interesting question is by how much, and how much that
+varies from person to person.
+
+# The data
+
+```{r data}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+str(dat)
+```
+
+`Days` is centered. Centering is not required, but it makes the intercept
+mean reaction time at the *average* day rather than at day zero, which
+gives the random intercept and random slope a cleaner interpretation and
+reduces their correlation — useful here, because the package assumes they
+are uncorrelated.
+
+# The formula
+
+```{r formula}
+form <- Reaction ~ Days_c + (1 + Days_c || Subject)
+```
+
+Read this as: reaction time depends on days of deprivation, and both the
+baseline level and the per-day effect vary by subject.
+
+The double bar `||` is required. `lme4` would let you write
+`(1 + Days_c | Subject)`, which additionally estimates a correlation
+between each subject's intercept and slope. **lmebayes** does not support
+that; it needs a diagonal random-effect covariance so the Block 2 update
+factorizes across coefficients. Chapter 02 explains why, and Chapter 13
+discusses what you give up.
+
+# Inspecting the design
+
+Before fitting anything, `model_setup()` shows how the formula is turned
+into matrices.
+
+```{r design}
+design <- model_setup(form, data = dat)
+design
+```
+
+Three things to check here.
+
+**Level 1** is the within-group model. Each subject gets their own
+intercept and their own `Days_c` slope, so there are two group-effect
+coefficients per subject.
+
+**Level 2** is the across-group model. Both lines read `~ 1`, meaning
+neither coefficient has group-level predictors: subjects are exchangeable,
+and all we estimate at the population level is the average intercept and
+the average slope. Chapter 04 shows what happens when you add school-level
+covariates.
+
+**Rank** matters. `Full-rank D_j: 18 of 18 groups` says every subject has
+enough distinct `Days_c` values to identify their own slope. Subjects who
+fail this check are flagged rather than removed: they stay in the fit, but
+in the deficient direction they carry no likelihood information and are
+effectively drawn from their prior. What they *are* excluded from is the
+across-group rank check and the prior calibration. Chapter 04 shows a
+dataset where this happens, and
+`vignette("Chapter-B08", package = "lmebayesCore")` gives the conditions in
+full.
+
+# Setting up priors
+
+`Prior_Setup_GLMM()` fits a reference `lmer()` model and uses it to
+calibrate priors on a scale that matches the data.
+
+```{r prior}
+ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
+```
+
+`pop.pwt = 0.01` sets the *prior weight*: the population-level prior should
+carry about as much information as one percent of the observations. Small
+values mean weak priors and results close to `lmer()`; larger values pull
+the population effects toward the prior mean. Chapter 03 unpacks every
+field of this object.
+
+```{r pfamily}
+pf <- pfamily_list(ps)
+pf
+```
+
+`pfamily_list()` converts the calibration into one prior object per
+random-effect coefficient — here, one for the intercept and one for
+`Days_c`. Both are `dNormal`, meaning the corresponding variance component
+`tau^2_k` is held fixed at the `lmer` estimate. Chapter 07 shows how to
+sample it instead.
+
+# Fitting
+
+```{r fit, results = "hide"}
+set.seed(1)
+fit <- lmerb(
+  form,
+  data             = dat,
+  pfamily_list     = pf,
+  dispersion_ranef = ps$group.dispersion,
+  n                = 500L,
+  progbar          = FALSE
+)
+```
+
+`n = 500` is the number of posterior draws. `dispersion_ranef` supplies the
+observation variance `sigma^2`; here it is the fixed `lmer` estimate.
+
+```{r fit-print}
+fit
+```
+
+The header says `500 draws, exact iid`. Because `sigma^2` is fixed and
+both `tau^2_k` are known, the joint posterior over the subject
+coefficients and the population coefficients is exactly multivariate
+normal, so the sampler draws from it directly. There is no burn-in, no
+autocorrelation, and no convergence diagnostic to run — the 500 draws are
+genuinely independent. Chapter 06 covers the case where Gibbs sweeps are
+needed.
+
+The table compares three quantities per parameter:
+
+| Column | Meaning |
+|---|---|
+| `fixef.mode` | Exact posterior mean, computed by iterated conditional modes before any sampling |
+| `fixef.means` | Average of the 500 draws |
+| `draws SD` | Posterior standard deviation from the draws |
+
+The first two should agree to within Monte Carlo error — that is the
+package's own correctness check, and a useful one to glance at. Here the
+average subject reacts about 298 ms at mid-study and slows by roughly 10 ms
+per additional day of deprivation.
+
+# Reading more
+
+`summary()` gives the full report: prior versus reference values, posterior
+percentiles, tail probabilities, and a per-group section.
+
+```{r summary}
+summary(fit)
+```
+
+The `Pr(Prior_tail)` column is a directional tail probability: how far into
+the prior's tail the posterior has moved. A value near 0.5 means the data
+did not move that coefficient much; the near-zero value on `Days_c` says
+the sleep-deprivation effect is strongly supported relative to the prior,
+which centered it at zero.
+
+# Standard accessors
+
+The usual `lme4` extractors work, though `fixef()` and `ranef()` are `lme4`
+generics — load **lme4** or call them namespace-qualified.
+
+```{r accessors}
+head(lme4::ranef(fit)$Subject)   # per-subject coefficients, chain means
+```
+
+`fixef()` has three modes, and the default is not the Bayesian one:
+
+```{r accessors-hyper}
+lme4::fixef(fit)                     # "mer": the reference lmer estimates
+lme4::fixef(fit, type = "hyper")     # Block 2 posterior mode
+lme4::fixef(fit, type = "hyper.mean")# Block 2 posterior mean from the draws
+```
+
+The default returns the reference `lmer()` fit's fixed effects so that
+`fixef()` behaves like it does on a `merMod` object. For posterior
+quantities ask for `"hyper"` or `"hyper.mean"`, or read
+`fit$popef.mode` and `fit$popef.means` directly.
+
+Note a naming subtlety specific to this package. What `ranef()` returns is
+the *full* per-subject coefficient vector, not `lme4`'s mean-zero
+deviation. Subject 308's intercept of roughly 339 is their actual expected
+reaction time, not an offset from the population mean of 298. Chapter 02
+explains the parameterization, and Chapter 05 catalogues every accessor.
+
+# Comparing with lme4
+
+```{r lmer-compare}
+m_lmer <- lme4::lmer(form, data = dat, REML = TRUE)
+round(
+  cbind(
+    lmer  = lme4::fixef(m_lmer),
+    lmerb = unlist(fit$popef.means)
+  ),
+  3
+)
+```
+
+With a prior weight of one percent, the two agree closely — as they should.
+The Bayesian fit adds full posterior uncertainty rather than a point
+estimate with a standard error, and it does so without asymptotic
+approximation. Chapter 13 works through where the two approaches diverge
+and why.
+
+# What to read next
+
+- **Chapter 02** — why `||`, and how the parameterization maps to `lme4`.
+- **Chapter 03** — the prior workflow in detail.
+- **Chapter 04** — a real analysis with group-level covariates.
+
+# See also
+
+- `?lmerb`, `?model_setup`, `?Prior_Setup_GLMM`
+- `vignette("Chapter-B00", package = "lmebayesCore")` — the engine roadmap.

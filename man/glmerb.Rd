@@ -147,13 +147,13 @@ then the \emph{minimum} number of iterations required to converge to
 that hypothetical multivariate normal approximation -- a lower bound
 for the true (non-normal) posterior, not a guarantee.}
 
-\item{simulate}{Logical (default \code{TRUE}).  When \code{TRUE} the
-two-block Gibbs sampler is run for \code{n} iterations and posterior draws
-are stored.  When \code{FALSE} only the ICM algorithm is run: the exact
-posterior means (\code{fixef.mode}, \code{ranef.mode}) are computed and
-returned immediately without any sampling.  Simulation-only fields
-(\code{coefficients}, \code{fixef.means}, \code{fixef}) are
-\code{NULL} when \code{simulate = FALSE}.}
+\item{simulate}{Logical (default \code{TRUE}). Passed through to
+\code{\link[lmebayesCore]{rlmerb}}. When \code{TRUE} the two-block Gibbs
+sampler is run for \code{n} iterations and posterior draws are stored.
+When \code{FALSE}, \code{rlmerb} returns fixed-VC plug-in point estimates
+only (exact joint Gaussian posterior mean). Simulation-only fields
+(\code{groupef}, \code{popef.means}, \code{popef}) are \code{NULL} when
+\code{simulate = FALSE}.}
 
 \item{REML}{Logical; passed to \code{\link{model_setup}}.}
 
@@ -235,11 +235,76 @@ Draft entry point for \pkg{lmebayes} GLMM models with a \code{glmer}-like
 interface, analogous to \code{\link{lmerb}} for Gaussian responses and to
 \code{\link{glmb}} for fixed-effects GLMs.
 
-Currently a copy of \code{\link{lmerb}} with an additional \code{family}
-argument. When \code{family = gaussian()}, behaviour matches
-\code{\link{lmerb}} except that the embedded reference fit is from
-\code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}. Non-Gaussian
-families use \code{\link[lmebayesCore]{block_rNormalGLM}} for Block~1 Gibbs updates.
+It takes the same arguments as \code{\link{lmerb}} plus \code{family}.
+With \code{family = gaussian()} it fits the same model as
+\code{\link{lmerb}}, differing only in that the embedded reference fit
+comes from \code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}.
+
+\strong{The model being estimated.}
+For group \eqn{j = 1, \dots, J} with link \eqn{g},
+\deqn{y_j \mid \beta_j \sim \mathrm{family}\big(g^{-1}(D_j \beta_j)\big),
+      \qquad \beta_j \mid \gamma, \Psi \sim N(\mathcal{W}_j \gamma,\; \Psi),}
+where \eqn{\gamma} collects the level-2 fixed effects, \eqn{\Psi} is
+diagonal with entries \eqn{\tau^2_k} (one per random-effect coefficient),
+and \eqn{\mathcal{W}_j} is built by \code{\link{model_setup}} from the
+level-2 predictors.  As in \code{\link{lmerb}}, only a single grouping
+factor and uncorrelated (\code{||}) random-effect terms are supported.
+Marginalizing recovers the usual \code{\link[lme4]{glmer}} form with
+\eqn{X_j = D_j \mathcal{W}_j}, \eqn{Z_j = D_j}, and mean-zero random
+effects \eqn{b_j = \beta_j - \mathcal{W}_j \gamma}.
+
+Supported families are \code{gaussian()}, \code{poisson()},
+\code{binomial()}, and \code{Gamma()} with the standard links.  What they
+have in common is a \emph{log-concave} likelihood, which is the condition
+the envelope accept-reject sampler requires (Nygren and Nygren 2006).
+
+Because the link is applied within groups, \eqn{\beta_j} and
+\eqn{\gamma} live on the link scale --- log rates for \code{poisson()},
+log-odds for \code{binomial()} --- so any summary on the response scale
+must apply the inverse link to the draws rather than to their averages.
+
+\strong{What the priors decide.}
+\code{pfamily_list} carries one component per random-effect coefficient
+and declares whether the between-group variance \eqn{\tau^2_k} is known
+(\code{dNormal}) or estimated (\code{dIndependent_Normal_Gamma}, under a
+Gamma prior on \eqn{1/\tau^2_k} truncated to
+\code{[disp_lower, disp_upper]}).  \code{dispersion_ranef} is the
+residual variance and applies to \code{gaussian()} only; it must be
+\code{NULL} for \code{poisson()} and \code{binomial()}, which have no
+free dispersion parameter.  Both are normally built from one
+\code{\link{Prior_Setup_GLMM}} object.
+
+\strong{What the returned draws are.}
+As in \code{\link{lmerb}}, \code{glmerb} runs \code{n} independent
+replicate chains and stores one draw from each, taken at that chain's
+final sweep.  The draws are therefore mutually independent --- an iid
+sample, not an autocorrelated trace --- so ordinary Monte Carlo standard
+errors apply and there is nothing to thin or diagnose for
+autocorrelation.
+
+The accompanying guarantee is weaker here than for a Gaussian response,
+and the difference matters.  With \code{family = gaussian()} and fixed
+variances the posterior is exactly normal and the sweep count is
+certified.  A Poisson or binomial posterior is not normal, so the same
+calibration is applied at local curvature near the posterior mode.  The
+resulting \code{m_convergence} is a well-motivated sweep \emph{budget}
+rather than a proof, and \code{tv_tol} should be read that way.
+Tightening it is cheap: cost grows only logarithmically in
+\eqn{1/}\code{tv_tol}.
+
+The same fact --- that the mode of a skewed posterior is not its mean ---
+is why a short \strong{pilot stage} runs first.  Its cross-chain average
+gives the main chains a better starting point than the mode does, which
+shortens the main stage.  Pilot draws are diagnostic only and are never
+part of the returned sample.  \code{gap_tol} and \code{mode_gap_max} are
+legacy controls used when \code{tv_tol} is \code{NULL}.
+
+\strong{Point estimates (simulate = FALSE).}
+\code{simulate = FALSE} returns the joint posterior \emph{mode} by
+iterated conditional modes (the exact Gaussian mean when
+\code{family = gaussian()}), at fixed variance-component plug-ins.  No
+sweeps run and no RNG is consumed, so the result is deterministic ---
+useful while iterating on model specification.
 }
 \examples{
 ## glmerb: neighborhood random effects on bayesrules::airbnb_small (Poisson)
@@ -277,6 +342,19 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
   print(fit)
   lme4::fixef(fit$glmer)
 }
+}
+\references{
+Nygren, K. (2020). \emph{On the total variation distance between multivariate
+normal densities with applications to two-block Gibbs samplers.}
+Unpublished manuscript.
+
+Nygren, K. N. and Nygren, L. M. (2006). Likelihood Subgradient Densities.
+\emph{Journal of the American Statistical Association} \bold{101}(475),
+1144--1156.
+
+Jones, G. L. and Hobert, J. P. (2001). Honest exploration of intractable
+probability distributions via Markov chain Monte Carlo.
+\emph{Statistical Science} \bold{16}, 312--334.
 }
 \seealso{
 \code{\link{lmerb}}, \code{\link[lmebayesCore]{glmerb_posterior_mode}},

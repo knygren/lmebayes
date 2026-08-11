@@ -4,7 +4,7 @@
 \alias{pfamily_list}
 \title{Build a named list of pfamily objects}
 \usage{
-pfamily_list(object, ptypes = "dNormal", ...)
+pfamily_list(object, ptypes = NULL, ...)
 }
 \arguments{
 \item{object}{A prior-specification object (typically from
@@ -12,8 +12,9 @@ pfamily_list(object, ptypes = "dNormal", ...)
 
 \item{ptypes}{Character: either a single string applied to every
 group-effect coefficient, or a character vector / list with one
-string per coefficient.  For \code{\link[=Prior_Setup_GLMM]{Prior_Setup_GLMM()}}, allowed
-values are \code{"dNormal"} (default; known \eqn{\tau^2_k}) and
+string per coefficient.  \code{NULL} (the generic's default) lets the
+method choose; for \code{\link[=Prior_Setup_GLMM]{Prior_Setup_GLMM()}} that resolves to
+\code{"dNormal"} (known \eqn{\tau^2_k}), and the other allowed value is
 \code{"dIndependent_Normal_Gamma"} (Gamma prior on precision
 \eqn{1/\tau^2_k}).  A vector may be named with the group-effect
 coefficient names (any order); unnamed vectors are matched
@@ -22,33 +23,43 @@ positionally against \code{names(object$pop.prior_list)}.}
 \item{...}{Additional arguments passed to methods.}
 }
 \value{
-An object of class \code{"pfamily_list"} (also inherits from
-\code{"list"}): a named list whose elements are objects of class
-\code{"pfamily"}.  Attribute \code{"ptypes"} records the resolved
-prior-family name for each component.  Printing uses
-\code{\link[lmebayesCore]{print.pfamily_list}}.
+For \code{pfamily_list()}, an object of class
+\code{"pfamily_list"} (also inherits from \code{"list"}): a named
+list whose elements are objects of class \code{"pfamily"}.
+Attribute \code{"ptypes"} records the resolved prior-family name
+for each component.  For \code{print.pfamily_list()}, \code{x}
+invisibly.
 }
 \description{
 Generic for constructing a named list of \code{\link[glmbayesCore]{pfamily}}
-prior objects from a prior-specification object.  For
-\code{\link[lmebayesCore]{Prior_Setup_GLMM}} objects, each population / group-effect
-coefficient (e.g. \code{"(Intercept)"}, slope names) is mapped to a
-\code{\link[glmbayesCore]{dNormal}} or
-\code{\link[glmbayesCore]{dIndependent_Normal_Gamma}} prior according to
-\code{ptypes}.
+prior objects from a prior-specification object.  Methods exist for
+\code{\link[lmebayesCore]{Prior_Setup_GLMM}} (one pfamily per population / group-effect
+coefficient) and \code{\link[lmebayesCore]{Prior_SetupGroup}} (one pfamily per row
+block).
 }
 \details{
+A \code{pfamily_list} is the prior argument every mixed-model sampler
+takes. It exists because the model requires a \emph{diagonal}
+random-effect covariance \eqn{\Psi}: with \eqn{\Psi} diagonal, the
+population (Block~2) update factorizes across random-effect
+coefficients, so each coefficient carries its own prior object rather
+than sharing one joint prior over all of \eqn{\gamma}.
+
 For a \code{\link[lmebayesCore]{Prior_Setup_GLMM}} object, each group-effect
 coefficient \eqn{k} uses parameters from
 \code{object$pop.prior_list[[k]]}:
 \itemize{
 \item \code{"dNormal"}: \code{dNormal(mu, Sigma, dispersion)} with
-known group-effect variance \eqn{\tau^2_k}.
+group-effect variance \eqn{\tau^2_k} from
+\code{pop.prior_list[[k]]$dispersion} (A12 §3.3.4 marginal
+hyper-regression center for Gaussian models; classical VarCorr in
+\code{pop.dispersion.ref}).
 \item \code{"dIndependent_Normal_Gamma"}: the same \code{mu} and
 \code{Sigma}, plus a Gamma prior on precision \eqn{1/\tau^2_k}
 from \code{object$pop.ing_prior[[k]]} (calibrated by
 \code{\link[lmebayesCore]{Prior_Setup_GLMM}} via \code{pop.dispersion.pwt} /
-\code{pop.dispersion.nprior}).  With effective prior sample size
+\code{pop.dispersion.nprior}, mean-matched at that same marginal
+\eqn{\tau^2_k}).  With effective prior sample size
 \eqn{n_0} and \eqn{p_k} population predictors for component
 \eqn{k},
 \deqn{shape = (n_0 + 1 + p_k)/2, \qquad
@@ -64,10 +75,30 @@ This is separate from observation-level \eqn{\sigma^2} priors: those
 use \code{\link[lmebayesCore]{dGamma_list}} (per-group \code{dispformula}) or a
 single \code{\link[glmbayesCore]{dGamma}} built from
 \code{object$group.ing_prior} when dispersion is pooled.
+
+For a \code{\link[lmebayesCore]{Prior_SetupGroup}} object, each \strong{row block}
+(named as in \code{names(object)}) is mapped to one
+\code{\link[glmbayesCore]{pfamily}} for use with
+\code{lmbBlock} / \code{glmbBlock} (or any API that takes a per-block
+\code{pfamily_list}):
+\itemize{
+\item \code{"dNormal"} (default): \code{dNormal(mu, Sigma, dispersion)}
+from that block's \code{\link[glmbayesCore]{Prior_Setup}} result.
+Available for all families supported by \code{Prior_SetupGroup}.
+\item \code{"dNormal_Gamma"}: \code{dNormal_Gamma(mu, Sigma_0, shape, rate)}
+(Gaussian only; uses conjugate Normal--Gamma hyperparameters).
+\item \code{"dIndependent_Normal_Gamma"}:
+\code{dIndependent_Normal_Gamma(mu, Sigma, shape_ING, rate)}
+(Gaussian only; uses \code{shape_ING} from \code{Prior_Setup}).
+}
+
+When \code{ptypes} is omitted (\code{NULL}), every block defaults to
+\code{"dNormal"}.
 }
 \seealso{
-\code{\link[lmebayesCore]{Prior_Setup_GLMM}}, \code{\link[lmebayesCore]{print.pfamily_list}},
+\code{\link[lmebayesCore]{Prior_Setup_GLMM}}, \code{\link[lmebayesCore]{Prior_SetupGroup}},
 \code{\link[glmbayesCore]{pfamily}}, \code{\link[glmbayesCore]{dNormal}},
+\code{\link[glmbayesCore]{dNormal_Gamma}},
 \code{\link[glmbayesCore]{dIndependent_Normal_Gamma}},
 \code{\link[lmebayesCore]{dGamma_list}}
 }

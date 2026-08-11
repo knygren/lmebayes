@@ -101,7 +101,7 @@ X_beta_from_beta <- function(beta) {
 }
 
 # --- Initialise --------------------------------------------------------------
-b_mat <- rNormalGLM_reg_block_update(
+b_mat <- rNormalGLM_reg_group_update(
   y = y, x = Z, block = grp,
   prior_list = prior_b_init, family = poisson(),
   Gridtype = 2L, n_envopt = 1L, use_parallel = FALSE
@@ -130,7 +130,7 @@ t0 <- Sys.time()
 one_iter <- function(beta, D) {
   # Block b: b_b ~ N( (X %*% beta)_b, D )
   X_beta <- X_beta_from_beta(beta)
-  b_draw <- rNormalGLM_reg_block_update(
+  b_draw <- rNormalGLM_reg_group_update(
     y = y, x = Z, block = grp,
     prior_list = list(mu = t(X_beta), Sigma = D, dispersion = 1, ddef = FALSE),
     family = poisson(), Gridtype = 2L, n_envopt = 1L,

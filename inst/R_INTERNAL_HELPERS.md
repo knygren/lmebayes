@@ -28,7 +28,7 @@ Mixed-model sampling, prior-setup, and lme4 design helpers were moved to
 
 | Symbol | Core file | Called from (lmebayes) |
 |--------|-----------|------------------------|
-| `.lmebayes_priors_from_pfamily_list()` | `mixed_rmerb_helpers.R` | `lmerb()`, `glmerb()` |
+| `.priors_from_pfamily_list()` | Core `mixed_rmerb_helpers.R` | Core `rlmerb()` / `rglmerb()` only |
 | `.lmebayes_block2_icm_labels()` | `mixed_rmerb_helpers.R` | `lmerb()`, `glmerb()` |
 | `.lmebayes_mer_optional_args()` | `model_setup.R` | `glmerb()` |
 | `extract_mer_variance_components()` | `lme4_design_utilities.R` | `summary.lmerb()` |
@@ -43,9 +43,9 @@ and `rglmerb()` without namespace qualification.
 `glmerb_posterior_mode()` (`importFrom`). See
 [R_EXPORTED_AND_DOCUMENTED.md](R_EXPORTED_AND_DOCUMENTED.md).
 
-**Direct `lmebayesCore` call:** `normalize_block()` (`lmebayesCore::` in
+**Direct `lmebayesCore` call:** `normalize_group()` (`lmebayesCore::` in
 `.blmb_formula_block_meta()`; also called directly by `block_check_identifiability_xy()`).
-This is `lmbBlock()`/`glmbBlock()`/`Prior_SetupBlock()`'s only runtime dependency on
+This is `lmbBlock()`/`glmbBlock()`/`Prior_SetupGroup()`'s only runtime dependency on
 `lmebayesCore` — full trace in
 [lmebayesCore/inst/LMBBLOCK_LMEBAYESCORE_DEPENDENCIES.md](../../lmebayesCore/inst/LMBBLOCK_LMEBAYESCORE_DEPENDENCIES.md).
 
@@ -78,8 +78,8 @@ This is `lmbBlock()`/`glmbBlock()`/`Prior_SetupBlock()`'s only runtime dependenc
 
 | Function | File | Called from |
 |----------|------|-------------|
-| `.blmb_formula_block_meta()` | `lmbBlock.R` | `lmbBlock()`, `glmbBlock()`, `Prior_SetupBlock()`, `.blmb_blocks_full_rank()` |
-| `.blmb_rows_to_data_subset()` | `lmbBlock.R` | `lmbBlock()`, `glmbBlock()`, `Prior_SetupBlock()` |
+| `.blmb_formula_block_meta()` | `lmbBlock.R` | `lmbBlock()`, `glmbBlock()`, `Prior_SetupGroup()`, `.blmb_blocks_full_rank()` |
+| `.blmb_rows_to_data_subset()` | `lmbBlock.R` | `lmbBlock()`, `glmbBlock()`, `Prior_SetupGroup()` |
 | `.blmb_resolve_block()` | `lmbBlock.R` | `.blmb_formula_block_meta()` |
 | `.blmb_lmb_display_call()` | `lmbBlock.R` | `lmbBlock()` |
 | `.blmb_assemble()` | `lmbBlock.R` | `lmbBlock()` |
@@ -89,10 +89,10 @@ This is `lmbBlock()`/`glmbBlock()`/`Prior_SetupBlock()`'s only runtime dependenc
 | `.blmb_dic_table()` | `lmbBlock.R` | `summary.blmb()`, `summary.bglmb()`, `print.blmb()`, `print.bglmb()` |
 | `.blmb_glmb_display_call()` | `glmbBlock.R` | `glmbBlock()` |
 | `.bglmb_assemble()` | `glmbBlock.R` | `glmbBlock()` |
-| `.blmb_resolve_block_calibration_arg()` | `prior_setup_lmebayes.R` | `Prior_SetupBlock()` |
+| `.blmb_resolve_block_calibration_arg()` | `prior_setup_lmebayes.R` | `Prior_SetupGroup()` |
 
 Full inventory and call graphs, including the `lmbBlock()`/`glmbBlock()`
-symmetry and where `Prior_SetupBlock()` fits in:
+symmetry and where `Prior_SetupGroup()` fits in:
 [README_LMBBLOCK.md](README_LMBBLOCK.md).
 
 ---

@@ -1,0 +1,204 @@
+---
+title: "Chapter 00: Introduction and roadmap"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 00: Introduction and roadmap}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+# Chapter 00: Introduction and roadmap
+
+**lmebayes** fits Bayesian mixed-effects models — linear with `lmerb()`,
+generalized with `glmerb()` — using a two-block Gibbs sampler whose burn-in
+length is *derived from theory rather than guessed at*. You give the
+sampler a total-variation tolerance; it computes how many inner sweeps are
+needed to meet that tolerance and runs exactly that many.
+
+That single design decision shapes everything else in this series. There
+is no trace-plot ritual, no R-hat, no effective sample size: the `n` draws
+a fit returns are mutually independent, each within `tv_tol` of the exact
+joint posterior. The convergence theory that makes this possible is due to
+@Nygren2020 and is derived in the **lmebayesCore** appendices.
+
+## What this package covers
+
+`lmerb()` and `glmerb()` accept `lme4`-style formulas and return objects
+with familiar accessors — `fixef()`, `ranef()`, `coef()`, `summary()`.
+The model class is deliberately narrower than `lme4`'s:
+
+| Supported | Not supported |
+|---|---|
+| One grouping factor | Crossed or nested grouping factors |
+| Uncorrelated random-effect terms (`||`) | Correlated terms (`|`) |
+| Gaussian, Poisson, binomial, Gamma | Non-log-concave likelihoods |
+| Group-level covariates on any random coefficient | — |
+| Fixed or sampled variance components | — |
+| Scalar, per-group, or modeled observation dispersion | — |
+
+The restrictions are what buy the convergence certificate. A single
+grouping factor with uncorrelated terms makes the Block 2 update factorize
+across coefficients, and log-concavity is what the envelope accept-reject
+sampler of @Nygren2006 requires.
+
+## The five parts
+
+### Part 1 — Foundations
+
+- **Chapter 00 — Introduction and roadmap.** This chapter.
+- **Chapter 01 — Getting started.** Your first `lmerb()` fit on
+  `lme4::sleepstudy`: install, fit, read the output, compare to `lmer()`.
+- **Chapter 02 — From `lm`/`glm` to mixed models.** Partial pooling, the
+  centered parameterization this package uses, and how it maps onto
+  `lme4`'s fixed-plus-deviation form.
+
+### Part 2 — Specifying a model
+
+- **Chapter 03 — The prior workflow.** `model_setup()` →
+  `Prior_Setup_GLMM()` → `pfamily_list()`, and what every field means.
+- **Chapter 04 — Linear mixed models with `lmerb()`.** A full analysis on
+  `bayesrules::big_word_club`: random intercept and slopes, group-level
+  covariates, cross-level moderation.
+- **Chapter 05 — Reading the output.** `print()`, `summary()`, `fixef()`,
+  `ranef()`, `coef()`, `summary_sigma2()`, and the raw draw containers.
+
+### Part 3 — Convergence and variance components
+
+- **Chapter 06 — Convergence and `tv_tol`.** What `m_convergence` means,
+  how it is derived, and how to check it empirically with
+  `plot_mean_convergence()` and `plot_var_convergence()`.
+- **Chapter 07 — Estimated variance components and the pilot stage.**
+  Moving `tau^2` from fixed to sampled with
+  `dIndependent_Normal_Gamma()`.
+- **Chapter 08 — Observation dispersion.** Scalar `sigma^2`, per-group
+  dispersion with `dGamma_list()`, and `dispformula`.
+
+### Part 4 — Generalized linear mixed models
+
+- **Chapter 09 — Poisson GLMMs.** Counts with a log link, on
+  `bayesrules::airbnb`.
+- **Chapter 10 — Binomial GLMMs.** `bayesrules::book_banning`, logistic
+  random slopes.
+- **Chapter 11 — Point estimates without simulation.** `simulate = FALSE`,
+  iterated conditional modes, and when the mode equals the mean.
+
+### Part 5 — Extensions and comparisons
+
+- **Chapter 12 — Row-block models.** `lmbBlock()` / `glmbBlock()`, where
+  the row partition is user-specified rather than a grouping factor.
+- **Chapter 13 — Comparing with `lme4` and `glmmTMB`.** Where results
+  should agree, where they should not, and why.
+
+## Background reading in the wider ecosystem
+
+**lmebayes** sits on top of two other packages, and each carries its own
+vignette series.
+
+| Series | Package | What it covers |
+|---|---|---|
+| `Chapter-00` … `Chapter-13` | **lmebayes** | This curriculum |
+| `Chapter-B00` … `Chapter-B10` | **lmebayesCore** | Engine internals, ergodicity theory, derivations |
+| `Chapter-00` … `Chapter-18`, `A01`–`A12` | **glmbayes** | The iid GLM stack everything is built from |
+
+If mixed models are new to you, read Chapters 01–04 here and stop. If you
+want to know *why* a fit reports the `m_convergence` it does, read
+`Chapter-B02` and `Chapter-B03` in **lmebayesCore**:
+
+```r
+vignette("Chapter-B02", package = "lmebayesCore")
+vignette("Chapter-B03", package = "lmebayesCore")
+```
+
+If the accept-reject machinery behind every non-Gaussian draw is
+unfamiliar, read **glmbayes** `Chapter-A05` (likelihood subgradient
+densities) and `Chapter-A08` (envelope functions):
+
+- <https://knygren.r-universe.dev/articles/glmbayes/Chapter-A05.html>
+- <https://knygren.r-universe.dev/articles/glmbayes/Chapter-A08.html>
+
+## A first look
+
+The complete workflow is four calls. Formula, design, priors, fit.
+
+```{r first-look}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+
+form <- Reaction ~ Days_c + (1 + Days_c || Subject)
+
+ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
+
+set.seed(1)
+fit <- lmerb(
+  form,
+  data             = dat,
+  pfamily_list     = pfamily_list(ps),
+  dispersion_ranef = ps$group.dispersion,
+  n                = 200L,
+  progbar          = FALSE
+)
+
+fit
+```
+
+`Prior_Setup_GLMM()` calibrates priors from a reference `lmer()` fit —
+`pop.pwt = 0.01` means "give the prior the weight of one percent of the
+data". `pfamily_list()` turns that calibration into one prior object per
+random-effect coefficient. `lmerb()` does the rest.
+
+Note what the header reports: `200 draws, exact iid`. With the observation
+variance and both variance components held fixed, the joint posterior is
+exactly multivariate normal, so the sampler draws from it directly and no
+Gibbs sweeps are needed at all. Chapter 06 covers what happens when they
+are.
+
+## Which chapter answers your question
+
+| Question | Chapter |
+|---|---|
+| How do I fit my first model? | 01 |
+| Why is `(1 + x \|\| g)` required instead of `(1 + x \| g)`? | 02 |
+| What do all these prior fields mean? | 03 |
+| How do I add a group-level covariate? | 04 |
+| Where are the posterior draws stored? | 05 |
+| What is `m_convergence` and can I trust it? | 06 |
+| How do I put a prior on the random-effect variance? | 07 |
+| My groups have different residual variances. | 08 |
+| My response is a count / a proportion. | 09, 10 |
+| I only want point estimates, no draws. | 11 |
+| My "groups" are arbitrary row blocks, not a factor. | 12 |
+| Why does this disagree with `lmer()`? | 13 |
+
+## Companion textbook
+
+Several chapters use datasets from @JohnsonLauEtAl2022 (*Bayes Rules!*),
+available in the suggested package **bayesrules**. Chapter 04 uses
+`big_word_club`, Chapter 09 uses `airbnb`, and Chapter 10 uses
+`book_banning`. Those chapters gate their data-dependent chunks so the
+vignettes still knit without **bayesrules** installed.
+
+# See also
+
+- **Chapter 01** — getting started.
+- `?lmerb`, `?glmerb` — the function references.
+- `vignette("Chapter-B00", package = "lmebayesCore")` — the engine's own
+  roadmap.

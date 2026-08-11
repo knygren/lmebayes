@@ -19,7 +19,7 @@
 \code{data.frame}s to named vectors (as in \pkg{lme4}).}
 
 \item{type}{\code{"mean"} (default when draws are stored) or \code{"mode"}
-(ICM / \code{ranef.mode}).  When \code{simulate = FALSE}, \code{"mean"}
+(ICM / \code{groupef.mode}).  When \code{simulate = FALSE}, \code{"mean"}
 falls back to \code{"mode"} with a warning.}
 
 \item{\ldots}{Ignored.}
@@ -33,8 +33,8 @@ Attributes include \code{type}, \code{n_draws}, and optionally
 \description{
 Methods mirroring \code{\link[lme4]{ranef}} for \code{\link{lmerb}} and
 \code{\link{glmerb}} fits.  Values summarize Block~1 random-effects draws
-\eqn{b} stored in \code{fit$coefficients} (posterior chain mean by default,
-or the exact ICM \code{fit$ranef.mode}).
+\eqn{b} stored in \code{fit$groupef} (posterior chain mean by default,
+or the exact ICM \code{fit$groupef.mode}).
 }
 \seealso{
 \code{\link[lme4]{ranef}}, \code{\link{coef.lmerb}},

@@ -12,8 +12,8 @@
 \arguments{
 \item{object}{An \code{lmerb} or \code{glmerb} object.}
 
-\item{type}{\code{"mer"} (default), \code{"hyper"} (\code{fixef.mode}), or
-\code{"hyper.mean"} (\code{fixef.means}; requires stored draws).}
+\item{type}{\code{"mer"} (default), \code{"hyper"} (\code{popef.mode}), or
+\code{"hyper.mean"} (\code{popef.means}; requires stored draws).}
 
 \item{\ldots}{Ignored.}
 }

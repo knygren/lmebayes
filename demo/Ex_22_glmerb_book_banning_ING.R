@@ -7,7 +7,7 @@
 ##
 ## After fitting:
 ##   print(fit, sweep_history = TRUE, max_sweeps = 5)
-##   plot_sweep_history_diag(fit$sweep_history$main, coef_focus, what = "mean")
+##   plot_mean_convergence(fit$sweep_history$main, coef_focus = coef_focus)
 ##
 ##   demo("Ex_22_glmerb_book_banning_ING", package = "lmebayes")
 
@@ -81,7 +81,8 @@ coef_focus <- list(
 
 for (st in list(fit$sweep_history$pilot, fit$sweep_history$main)) {
   if (is.null(st)) next
-  plot_sweep_history_diag(st, coef_focus)
+  plot_mean_convergence(st, coef_focus = coef_focus)
+  plot_var_convergence(st, coef_focus = coef_focus)
 }
 
 cat("\n=== Random effects: glmer reference vs glmerb chain mean ===\n\n")

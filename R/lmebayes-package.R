@@ -15,6 +15,40 @@
 #'
 #' See the package README at \url{https://github.com/knygren/lmebayes} for examples.
 #'
+#' @section Vignette index:
+#' The vignettes are a curriculum, meant to be read roughly in order. Each
+#' assumes the previous ones.
+#' \describe{
+#'   \item{\code{vignette("Chapter-00")}}{Roadmap: what the package does and
+#'     which chapter answers which question.}
+#'   \item{\code{vignette("Chapter-01")}}{Getting started: one model end to
+#'     end on \code{lme4::sleepstudy}.}
+#'   \item{\code{vignette("Chapter-02")}}{From \code{lm}/\code{glm} to mixed
+#'     models: pooling, the centered parameterization, and the model-class
+#'     restrictions.}
+#'   \item{\code{vignette("Chapter-03")}}{The prior workflow:
+#'     \code{model_setup}, \code{Prior_Setup_GLMM}, \code{pfamily_list}.}
+#'   \item{\code{vignette("Chapter-04")}}{Linear mixed models with
+#'     group-level covariates and cross-level moderation.}
+#'   \item{\code{vignette("Chapter-05")}}{Reading the output: every accessor
+#'     and container.}
+#'   \item{\code{vignette("Chapter-06")}}{Convergence and \code{tv_tol}.}
+#'   \item{\code{vignette("Chapter-07")}}{Estimated variance components and
+#'     the pilot stage.}
+#'   \item{\code{vignette("Chapter-08")}}{Observation dispersion, including
+#'     per-group \eqn{\sigma^2_j}.}
+#'   \item{\code{vignette("Chapter-09")}}{Poisson GLMMs.}
+#'   \item{\code{vignette("Chapter-10")}}{Binomial GLMMs.}
+#'   \item{\code{vignette("Chapter-11")}}{Point estimates without
+#'     simulation.}
+#'   \item{\code{vignette("Chapter-12")}}{Row-block models.}
+#'   \item{\code{vignette("Chapter-13")}}{Comparison with \pkg{lme4} and
+#'     \pkg{glmmTMB}.}
+#' }
+#' Engine internals, derivations, and convergence theory are documented in
+#' the \code{Chapter-B*} vignettes of \pkg{lmebayesCore}; the iid GLM stack
+#' underneath is documented in \pkg{glmbayes}.
+#'
 #' @section OpenCL startup checks:
 #' In interactive sessions, attaching the package with \code{library(lmebayes)}
 #' may emit a short \code{\link{packageStartupMessage}}
@@ -56,7 +90,6 @@
 #' @importFrom glmbayes extractDIC
 #' @importFrom glmbayes has_opencl get_opencl_core_count
 #' @importFrom glmbayesCore Prior_Setup dNormal dNormal_Gamma multi_prior_setup rlmb rglmb
-#' @importFrom lmebayesCore build_mu_all lmerb_posterior_mean glmerb_posterior_mode
 #' @useDynLib lmebayes, .registration = TRUE
 "_PACKAGE"
 

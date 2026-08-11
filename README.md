@@ -9,7 +9,7 @@
 Its primary interfaces, `lmerb()` and `glmerb()`, are Bayesian analogues of **lme4** `lmer()` and
 `glmer()`, supporting Gaussian, Poisson, binomial, and Gamma response families under log-concave
 likelihoods. Row-block BY-style fits use `lmbBlock()` and `glmbBlock()`; matrix-level block samplers
-include `rNormalRegBlock()` and `rNormalGLMBlock()`.
+include `rNormal_reg_group()` and `rNormalGLM_reg_group()`.
 
 Priors, `pfamily` objects, and iid GLM sampling within blocks come from **glmbayes** /
 **glmbayesCore** (re-exported here; `Prior_Setup`, `pfamily` constructors, and default
@@ -64,7 +64,7 @@ Set `simulate = FALSE` on `lmerb()` / `glmerb()` for ICM posterior mean/mode onl
 
 | Function | Role |
 |----------|------|
-| `Prior_SetupBlock()` | Run `Prior_Setup()` independently on each row block (for `lmbBlock()` / `glmbBlock()`). |
+| `Prior_SetupGroup()` | Run `Prior_Setup()` independently on each row block (for `lmbBlock()` / `glmbBlock()`). |
 
 Typical workflow: `model_setup()` → `Prior_Setup_GLMM()` → `pfamily_list(ps)` → `lmerb()` / `glmerb()`.
 (`model_setup`, `Prior_Setup_GLMM`, `pfamily_list`, and their `print` methods are implemented in **lmebayesCore** and re-exported here.)
@@ -103,28 +103,24 @@ Row-block wrappers `lmbBlock()` and `glmbBlock()` call these per block.
 | Function | Role |
 |----------|------|
 | `pfamily_list()` | Generic plus `Prior_Setup_GLMM` method (`?lmebayesCore::pfamily_list.Prior_Setup_GLMM`): build Block~2 `pfamily` objects from `Prior_Setup_GLMM()`. |
-| `plot_sweep_history_diag()` | Cross-chain mean/SD vs inner sweep for `two_block_sweep_history` (e.g. `fit$sweep_history$main` from `lmerb()` / `glmerb()` or `rlmerb()` / `rglmerb()`). |
+| `plot_mean_convergence()`, `plot_var_convergence()` | Claim 1 / Claim 3 sweep-history diagnostics (e.g. on `fit$sweep_history$main`). |
 | `model_setup()` | Parse an `lme4`-style formula into design matrices and variance components (single grouping factor). |
 | `Prior_Setup_GLMM()` | Calibrate Block~2 hyperpriors from a reference `lmer` / `glmer` fit. |
 | `rlmerb()` | Matrix-level Gaussian LMM sampler (two-block Gibbs; replicate chains). |
 | `rglmerb()` | Matrix-level GLMM sampler: Gaussian → `rLMMNormal_reg()` / ING; other families → `rGLMM_reg()` sweep-outer. |
 
-#### Imported from **lmebayesCore** (`importFrom` only) — direct; must stay exported in Core
-
-| Function | **lmebayes** callers | Role |
-|----------|----------------------|------|
-| `build_mu_all()` | `lmerb()`, `glmerb()` | Observation-level prior means when `simulate = FALSE`; sets `fixef.mu` on the fit. |
-| `lmerb_posterior_mean()` | `lmerb()` | Gaussian ICM fixef start when `simulate = FALSE` (prior vs ICM table, `fixef.mode`, `ranef.mode`). |
-| `glmerb_posterior_mode()` | `glmerb()` | GLMM mode fixef start; same `simulate = FALSE` path as `lmerb_posterior_mean()` in `lmerb()`. |
-| `normalize_block()` | `lmbBlock()`, `glmbBlock()`, `Prior_SetupBlock()` | Row-block partition; called directly as `lmebayesCore::normalize_block()` in `.blmb_formula_block_meta()`. |
-
-When `simulate = TRUE`, re-exported `rlmerb()` / `rglmerb()` run ICM/mode and `build_mu_all` prep internally.
+ICM / mode helpers (`lmerb_posterior_mean()`, `glmerb_posterior_mode()`,
+`build_mu_all()`, `normalize_group()`) are documented Core internals,
+called via `lmebayesCore:::` from `lmerb()` / `glmerb()` / `lmbBlock`
+paths (or inside exported Core engines). When `simulate = TRUE`,
+re-exported `rlmerb()` / `rglmerb()` run ICM/mode and `build_mu_all` prep
+internally.
 
 Engines such as `rGLMM_reg()` and `rLMMNormal_reg()` are **indirect only** — listed under
 **lmebayesCore-only exports** in Core `inst/R_EXPORTED_AND_DOCUMENTED.md`.
 
 After a sampling run, inspect inner Gibbs convergence with `print(fit$sweep_history$main)` or
-`plot_sweep_history_diag(fit$sweep_history$main, coef_focus)` (see demos `Ex_16_glmerb_book_banning`,
+`plot_mean_convergence()` / `plot_var_convergence()` (see demos `Ex_16_glmerb_book_banning`,
 `Ex_21_lmerb_ING_BigWordClub`, `Ex_22_glmerb_book_banning_ING`).
 
 See **glmbayes** README sections *Supported families, links, and pfamilies* and *Prior_Setup* for wiring details.
@@ -136,7 +132,7 @@ For the full simulation and envelope map, see **glmbayes** vignettes
 
 ### Internal helpers (**lmebayes** `R/` only)
 
-Undocumented `@noRd` symbols defined in **lmebayes** (summary tables, row-block assembly, attach hooks) are in [inst/R_INTERNAL_HELPERS.md](inst/R_INTERNAL_HELPERS.md). Mixed-model sampling glue (`.lmebayes_priors_from_pfamily_list`, lme4 design utilities, two-block staging) lives in **lmebayesCore** — see [lmebayesCore/inst/R_INTERNAL_HELPERS.md](../lmebayesCore/inst/R_INTERNAL_HELPERS.md).
+Undocumented `@noRd` symbols defined in **lmebayes** (summary tables, row-block assembly, attach hooks) are in [inst/R_INTERNAL_HELPERS.md](inst/R_INTERNAL_HELPERS.md). Mixed-model sampling glue (`.priors_from_pfamily_list`, lme4 design utilities, two-block staging) lives in **lmebayesCore** — see [lmebayesCore/inst/R_INTERNAL_HELPERS.md](../lmebayesCore/inst/R_INTERNAL_HELPERS.md).
 
 ## Installation
 
@@ -203,7 +199,7 @@ the demos listed below.
 
 ## Priors and GLM families
 
-Formula-based iid priors (`Prior_Setup`, `pfamily`, `dNormal`, …) are re-exported from **glmbayesCore**; `glmb()` / `lmb()` are re-exported directly from **glmbayes** (see `R/reexports_glmbayes.R`) and called per block by `lmbBlock()` / `glmbBlock()`. Mixed-model Block~2 setup (`Prior_Setup_GLMM`, `pfamily_list`, `model_setup`) and matrix samplers (`rlmerb`, `rglmerb`) are implemented in **lmebayesCore** and re-exported here. **lmebayes** adds row-block priors via `Prior_SetupBlock()` and formula drivers `lmerb()` / `glmerb()`.
+Formula-based iid priors (`Prior_Setup`, `pfamily`, `dNormal`, …) are re-exported from **glmbayesCore**; `glmb()` / `lmb()` are re-exported directly from **glmbayes** (see `R/reexports_glmbayes.R`) and called per block by `lmbBlock()` / `glmbBlock()`. Mixed-model Block~2 setup (`Prior_Setup_GLMM`, `pfamily_list`, `model_setup`) and matrix samplers (`rlmerb`, `rglmerb`) are implemented in **lmebayesCore** and re-exported here. **lmebayes** adds row-block priors via `Prior_SetupGroup()` and formula drivers `lmerb()` / `glmerb()`.
 
 See `?Prior_Setup`, `?Prior_Setup_GLMM`, `?pfamily_list`, and **glmbayes** `vignette("Chapter-04", package = "glmbayes")`.
 
@@ -330,7 +326,8 @@ helpers). Index: [inst/R_FUNCTION_INVENTORY.md](inst/R_FUNCTION_INVENTORY.md).
   `rGLMM_reg_*` do today) so behaviour and RNG structure are consistent across
   Gaussian, dGamma σ², and ING Block~2 configurations. Every fit with
   `simulate = TRUE` should store **`$sweep_history`** (pilot and main when a pilot
-  runs) for inner-sweep convergence tables and `plot_sweep_history_diag()`. Some
+  runs) for inner-sweep convergence tables and `plot_mean_convergence()` /
+  `plot_var_convergence()`. Some
   routes already do (e.g. ING Block~2, `glmerb()`, dGamma σ² after lmebayesCore
   passthrough); **Gaussian §1-style fixed-τ² LMM** still uses the v2 C++ batch
   driver without history — tracked in **lmebayesCore** README *Future plans*.

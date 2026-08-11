@@ -22,7 +22,7 @@
 #'   \code{Pr(Prior_tail)}),
 #'   \code{fixef_percentiles_overview} (stacked distribution percentiles across
 #'   RE components, when simulated),
-#'   \code{fixef} (per-RE-component tables; not printed, available on the
+#'   \code{popef} (per-RE-component tables; not printed, available on the
 #'   returned object),
 #'   \code{ranef_overview}, \code{ranef.iters.mean} (Block~1 envelope candidates
 #'   per inner sweep, averaged over groups; printed separately from the overview
@@ -54,8 +54,8 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
   }
 
   re_names  <- object$model_setup$groupef.names
-  simulated <- !is.null(object$coefficients)
-  n_draws   <- if (simulated) nrow(object$fixef[[re_names[1L]]]) else NULL
+  simulated <- !is.null(object$groupef)
+  n_draws   <- if (simulated) nrow(object$popef[[re_names[1L]]]) else NULL
   mer_fit   <- .lmerb_reference_fit(object)
   mer_label <- if (inherits(object, "glmerb")) "glmer" else "lmer"
 
@@ -95,7 +95,7 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
     tau2_sd_percentiles_overview = .lmerb_tau2_sd_percentiles_overview(
       object, simulated = simulated
     ),
-    ranef.iters.mean = if (simulated) object$ranef.iters.mean else NULL,
+    ranef.iters.mean = if (simulated) object$groupef.iters.mean else NULL,
     sim_method_used  = object$sim_method_used
   )
 
@@ -220,10 +220,10 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   if (!is.null(x$ranef_overview) && nrow(x$ranef_overview) > 0L) {
     stats::printCoefmat(x$ranef_overview, digits = digits, quote = FALSE)
   }
-  if (isTRUE(x$simulated) && !is.null(x$ranef.iters.mean)) {
+  if (isTRUE(x$simulated) && !is.null(x$groupef.iters.mean)) {
     cat(
       "\nMean Block 1 likelihood subgradient candidates per stored draw:",
-      formatC(x$ranef.iters.mean, digits = digits, format = "f"),
+      formatC(x$groupef.iters.mean, digits = digits, format = "f"),
       "\n  (averaged over groups; same for all RE components in a sweep)\n\n"
     )
   } else {
@@ -236,7 +236,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     cat("\n")
   } else {
     cat(
-      "Per-group random effects: inspect fit$ranef.mode or fit$coefficients,\n",
+      "Per-group random effects: inspect fit$groupef.mode or fit$groupef,\n",
       "  or call summary(fit, groups = <level ids>) for selected groups.\n\n",
       sep = ""
     )
@@ -326,7 +326,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 .lmerb_fixef_component_summary <- function(object, k, n_draws, simulated) {
 
   pl_k   <- object$prior$pop.prior_list[[k]]
-  par    <- names(object$fixef.mode[[k]])
+  par    <- names(object$popef.mode[[k]])
   q_k    <- length(par)
 
   prior_mean <- unname(pl_k$mu)
@@ -353,7 +353,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   colnames(Tab1) <- c("Prior Mean", "Prior.sd", mer_label, paste0(mer_label, ".se"))
   rownames(Tab1) <- par
 
-  post_mode <- unname(object$fixef.mode[[k]])
+  post_mode <- unname(object$popef.mode[[k]])
 
   if (!simulated) {
     TAB <- cbind("Post.Mode" = post_mode)
@@ -365,8 +365,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     ))
   }
 
-  draws <- object$fixef[[k]]
-  post_mean <- unname(object$fixef.means[[k]])
+  draws <- object$popef[[k]]
+  post_mean <- unname(object$popef.means[[k]])
   post_sd   <- apply(draws, 2L, stats::sd)
   mc_err    <- post_sd / sqrt(n_draws)
 
@@ -458,17 +458,17 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   re_names <- object$model_setup$groupef.names
 
   rows_list <- lapply(re_names, function(k) {
-    par <- names(object$fixef.mode[[k]])
+    par <- names(object$popef.mode[[k]])
     n_p <- length(par)
 
     out <- data.frame(
-      fixef.mode = unname(object$fixef.mode[[k]]),
+      fixef.mode = unname(object$popef.mode[[k]]),
       stringsAsFactors = FALSE
     )
 
     if (simulated) {
-      draws      <- object$fixef[[k]]
-      post_mean  <- unname(object$fixef.means[[k]])
+      draws      <- object$popef[[k]]
+      post_mean  <- unname(object$popef.means[[k]])
       post_sd    <- apply(draws, 2L, stats::sd)
       n          <- nrow(draws)
       prior_mean <- unname(object$prior$pop.prior_list[[k]]$mu)
@@ -679,8 +679,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   E_prior <- prior_tab[["E[sigma2]"]]
   n_total <- prior_tab[["n_prior"]] + prior_tab[["n_data"]]
 
-  post_mode <- if (!is.null(object$sigma2.mode)) {
-    sm <- object$sigma2.mode
+  post_mode <- if (!is.null(object$group.dispersion.mode)) {
+    sm <- object$group.dispersion.mode
     if (is.matrix(sm)) {
       vapply(grp, function(g) {
         j <- match(g, colnames(sm))
@@ -706,7 +706,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     return(out)
   }
 
-  sigma2 <- object$sigma2
+  sigma2 <- object$group.dispersion
   if (is.null(sigma2) || !is.matrix(sigma2)) {
     out <- cbind(`n_total` = n_total, `Post.Mode` = post_mode)
     rownames(out) <- grp
@@ -743,15 +743,15 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }))
   rownames(tab) <- grp
 
-  cand <- if (!is.null(object$sigma2.iters.mean)) {
-    v <- object$sigma2.iters.mean[grp]
+  cand <- if (!is.null(object$group.dispersion.iters.mean)) {
+    v <- object$group.dispersion.iters.mean[grp]
     if (is.null(names(v))) {
       stats::setNames(v, grp)
     } else {
       v
     }
-  } else if (!is.null(object$ranef.iters.mean)) {
-    rep(unname(object$ranef.iters.mean), length(grp))
+  } else if (!is.null(object$groupef.iters.mean)) {
+    rep(unname(object$groupef.iters.mean), length(grp))
   } else {
     NULL
   }
@@ -771,7 +771,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   if (!isTRUE(simulated)) {
     return(NULL)
   }
-  sigma2 <- object$sigma2
+  sigma2 <- object$group.dispersion
   if (is.null(sigma2) || !is.matrix(sigma2)) {
     return(NULL)
   }
@@ -985,15 +985,15 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
       return(rbind(tab, out))
     }
 
-    sigma2 <- object$sigma2
+    sigma2 <- object$group.dispersion
     if (is.null(sigma2)) {
       out <- cbind(`Post.Mode` = post_mode)
       rownames(out) <- "Residual"
       return(rbind(tab, out))
     }
     sigma2 <- as.numeric(sigma2)
-    post_mean <- if (!is.null(object$sigma2.mean)) {
-      as.numeric(object$sigma2.mean)
+    post_mean <- if (!is.null(object$group.dispersion.mean)) {
+      as.numeric(object$group.dispersion.mean)
     } else {
       mean(sigma2)
     }
@@ -1024,8 +1024,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
       ## fixef.iters.mean is non-NULL); rbind() requires the sigma2 row to
       ## have it too, even when the Block~1 rate (ranef.iters.mean) is NA
       ## (e.g. dispersion_ranef is fixed/known -- no Block~1 envelope).
-      cand_val <- if (!is.null(object$ranef.iters.mean)) {
-        unname(object$ranef.iters.mean)
+      cand_val <- if (!is.null(object$groupef.iters.mean)) {
+        unname(object$groupef.iters.mean)
       } else {
         NA_real_
       }
@@ -1039,7 +1039,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     if (!simulated) {
       return(tab)
     }
-    sigma2 <- object$sigma2
+    sigma2 <- object$group.dispersion
     if (is.null(sigma2)) {
       return(tab)
     }
@@ -1065,7 +1065,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     if (!simulated) {
       return(tab)
     }
-    sigma2 <- object$sigma2
+    sigma2 <- object$group.dispersion
     if (is.null(sigma2)) {
       return(tab)
     }
@@ -1115,7 +1115,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     ))
   }
 
-  td <- object$fixef.dispersion
+  td <- object$popef.dispersion
   if (is.null(td)) {
     out <- cbind(`Post.Mode` = post_mode)
     rownames(out) <- re_names
@@ -1154,8 +1154,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     `Pr(Prior_tail)` = pval2
   )
 
-  if (!is.null(object$fixef.iters.mean)) {
-    out <- cbind(out, `Cand/draw` = unname(object$fixef.iters.mean[re_names]))
+  if (!is.null(object$popef.iters.mean)) {
+    out <- cbind(out, `Cand/draw` = unname(object$popef.iters.mean[re_names]))
   }
 
   rownames(out) <- re_names
@@ -1178,7 +1178,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
 
   re_names <- object$model_setup$groupef.names
-  td <- object$fixef.dispersion
+  td <- object$popef.dispersion
   if (is.null(td)) {
     return(NULL)
   }
@@ -1215,7 +1215,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
 
   re_names <- object$model_setup$groupef.names
-  td <- object$fixef.dispersion
+  td <- object$popef.dispersion
   if (is.null(td)) {
     return(NULL)
   }
@@ -1250,7 +1250,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
 .lmerb_ranef_overview <- function(object, simulated) {
 
   re_names <- object$model_setup$groupef.names
-  b_mode   <- object$ranef.mode
+  b_mode   <- object$groupef.mode
 
   overview <- t(vapply(re_names, function(k) {
     v <- b_mode[, k]
@@ -1269,8 +1269,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     grp_col <- object$model_setup$group_name
     mcmc_means <- vapply(re_names, function(k) {
       mean(tapply(
-        object$coefficients[[k]],
-        object$coefficients[[grp_col]],
+        object$groupef[[k]],
+        object$groupef[[grp_col]],
         mean
       ))
     }, numeric(1))
@@ -1288,7 +1288,7 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   groups   <- as.character(groups)
 
   rows <- lapply(groups, function(lev) {
-    mode_vals <- object$ranef.mode[lev, re_names, drop = TRUE]
+    mode_vals <- object$groupef.mode[lev, re_names, drop = TRUE]
     out <- data.frame(
       group = lev,
       t(mode_vals),
@@ -1297,10 +1297,10 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
     names(out) <- c("group", re_names)
 
     if (simulated) {
-      idx <- object$coefficients[[grp_col]] == lev
+      idx <- object$groupef[[grp_col]] == lev
       for (k in re_names) {
-        out[[paste0(k, ".mean")]] <- mean(object$coefficients[idx, k])
-        out[[paste0(k, ".sd")]]   <- stats::sd(object$coefficients[idx, k])
+        out[[paste0(k, ".mean")]] <- mean(object$groupef[idx, k])
+        out[[paste0(k, ".sd")]]   <- stats::sd(object$groupef[idx, k])
       }
     }
     out

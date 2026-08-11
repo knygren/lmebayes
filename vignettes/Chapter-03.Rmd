@@ -1,0 +1,293 @@
+---
+title: "Chapter 03: The prior workflow"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 03: The prior workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+# Chapter 03: The prior workflow
+
+Every fit in this package goes through the same three steps.
+
+```
+formula + data
+     |
+     v
+model_setup()          what model am I actually fitting?
+     |
+     v
+Prior_Setup_GLMM()     calibrate priors against a reference lmer fit
+     |
+     v
+pfamily_list()         one prior object per random-effect coefficient
+     |
+     v
+lmerb() / glmerb()
+```
+
+You can skip the first step — `lmerb()` calls it internally — but you
+should not, because `model_setup()` is where you find out whether the model
+you wrote is the model you meant.
+
+```{r data}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+form <- Reaction ~ Days_c + (1 + Days_c || Subject)
+```
+
+# Step 1: `model_setup()`
+
+```{r model-setup}
+design <- model_setup(form, data = dat)
+design
+```
+
+The printed report has three parts.
+
+**Level 1** lists the within-group design: which coefficients vary by
+group, how many observations there are, and how many groups.
+
+**Level 2** lists, for each random coefficient, which group-level
+predictors enter its prior mean. A bare `~ 1` means "shrink toward a single
+common value". Anything more means "shrink toward a fitted line".
+
+**Rank** reports two separate checks. `Full-rank D_j: 18 of 18 groups` is
+the within-group check: does each group have enough distinct covariate
+values to identify its own coefficients? Groups that fail stay in the fit
+but are set aside for the next check. The Level 2 Rank block is the
+across-group check, run on the groups that passed: do they span the level-2
+predictor space? `popef.rank_ok` summarizes it.
+
+The asymmetry matters. A rank-deficient group is survivable — it simply
+learns nothing from its data in that direction. A failed *level-2* check is
+not: the population parameter \(\gamma\) is then unidentified by every
+data-bearing group, and the chain is null recurrent in that direction even
+with a proper prior. Both conditions are derived in
+`vignette("Chapter-B08", package = "lmebayesCore")`.
+
+The object itself carries the matrices:
+
+```{r design-contents}
+names(design)
+dim(design$D)                 # stacked within-group design
+str(design$groupef.names)     # names of the random coefficients
+```
+
+# Step 2: `Prior_Setup_GLMM()`
+
+```{r prior-setup}
+ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
+ps
+```
+
+This is the calibration step. It fits a reference `lmer()` model and uses
+its estimates to place priors on a scale that is commensurate with the
+data, so you specify *how much* prior information you want rather than
+guessing at numeric hyperparameters.
+
+## The prior-weight idea
+
+The central argument is `pop.pwt`, the **population prior weight**. Setting
+`pop.pwt = 0.01` means: give the population-level prior about as much
+weight as one percent of the effective sample. The prior covariance is
+scaled accordingly.
+
+| Setting | Effect |
+|---|---|
+| `pop.pwt = 0.01` (default-ish) | Weak prior; posterior close to `lmer()` |
+| `pop.pwt = 0.05` | Noticeably regularizing |
+| `pop.pwt = 0.25` | Strong shrinkage toward the prior mean |
+
+The equivalent alternative is `pop.nprior`, which states the prior weight
+as a number of observations rather than a fraction, or `pop.sd`, which
+sets prior standard deviations directly.
+
+## What gets centered where
+
+Two arguments control the prior *mean*.
+
+- `pop.intercept_source` — `"null_model"` (default) centers the intercept
+  at the intercept-only fit, so the prior says "I know roughly the overall
+  level" without pre-judging any effect.
+- `pop.effects_source` — `"null_effects"` (default) centers every
+  non-intercept coefficient at **zero**. This is the conservative choice:
+  the prior expresses no opinion about direction, and any signal in the
+  posterior comes from the data.
+
+Setting either to `"full_model"` centers the prior on the reference `lmer`
+estimates. That is legitimate for sensitivity analysis but is not a prior
+in the usual sense — it uses the data twice. Use `pop.mu` to supply your
+own means when you have real external information.
+
+## The fields
+
+```{r prior-fields}
+names(ps)
+```
+
+The names are prefixed by which part of the model they configure.
+
+| Prefix | Configures |
+|---|---|
+| `pop.*` | Block 2: the population coefficients \(\gamma\) and the variance components \(\tau^2_k\) |
+| `group.*` | The observation-level dispersion \(\sigma^2\) |
+
+The two you pass on to the sampler are:
+
+```{r prior-key-fields}
+ps$group.dispersion     # sigma^2: observation variance
+str(ps$pop.prior_list, max.level = 2)
+```
+
+`ps$group.dispersion` is the fixed observation variance, taken from the
+reference fit. `ps$pop.prior_list` holds, for each random coefficient, the
+prior mean vector `mu`, prior covariance `Sigma`, and the dispersion
+`tau^2_k` that governs how tightly group coefficients cluster around
+\(\mathcal{W}_j\gamma\).
+
+## The ING window
+
+When you ask for sampled variance components (Chapter 07),
+`Prior_Setup_GLMM()` also computes a truncation window:
+
+```{r ing-window}
+ps_ing <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01,
+                           pop.dispersion.pwt = 0.2)
+ps_ing$pop.ing_prior
+```
+
+`disp_lower` and `disp_upper` bound the support of each \(\tau^2_k\). They
+are quantiles of the *limiting posterior* for the variance component, not
+of the prior — the reasoning is in `inst/ING_TRUNCATION_WINDOW.md` in the
+package sources. The lower bound matters for more than propriety: the
+sampler evaluates its convergence rate at `disp_lower`, because smaller
+\(\tau^2\) means tighter coupling between blocks and therefore a slower
+chain. A bound computed there is valid across the whole window. See
+`vignette("Chapter-B03", package = "lmebayesCore")`.
+
+# Step 3: `pfamily_list()`
+
+```{r pfamily}
+pf <- pfamily_list(ps)
+pf
+```
+
+One `pfamily` object per random-effect coefficient. The prior family
+determines what happens to that coefficient's variance component.
+
+| Family | \(\tau^2_k\) | Chapter |
+|---|---|---|
+| `dNormal` | Fixed at the reference estimate | 01, 04 |
+| `dIndependent_Normal_Gamma` | Sampled, with a Gamma prior on the precision | 07 |
+
+Ask for the second with `ptypes`:
+
+```{r pfamily-ing}
+pf_ing <- pfamily_list(ps_ing, ptypes = "dIndependent_Normal_Gamma")
+class(pf_ing[["Days_c"]])
+```
+
+`ptypes` accepts one value applied to all coefficients, or a named vector
+if you want to sample some variance components and fix others.
+
+# Overriding a prior by hand
+
+Nothing forces you to use the calibrated object. A `pfamily_list` is a
+plain named list, so you can replace an element:
+
+```{r manual-prior}
+pf_manual <- pf
+pf_manual[["Days_c"]] <- dNormal(
+  mu         = matrix(5, 1, 1),      # prior mean slope: 5 ms per day
+  Sigma      = matrix(4, 1, 1),      # prior SD 2 on that mean
+  dispersion = 25                    # tau^2: subject slopes vary with SD 5
+)
+pf_manual[["Days_c"]]$prior_list[c("mu", "Sigma", "dispersion")]
+```
+
+Three numbers, three different jobs, and they are easy to confuse:
+
+- **`mu`** — the prior mean of the *population* slope \(\gamma_k\).
+- **`Sigma`** — how uncertain you are about that population slope.
+- **`dispersion`** — \(\tau^2_k\), how much *individual subjects* scatter
+  around it. This is the variance component, not prior uncertainty.
+
+Setting `Sigma` small says "I know the average slope". Setting `dispersion`
+small says "everyone's slope is nearly the same". They are independent
+statements.
+
+# Putting it together
+
+```{r fit, results = "hide"}
+set.seed(1)
+fit <- lmerb(
+  form,
+  data             = dat,
+  pfamily_list     = pf,
+  dispersion_ranef = ps$group.dispersion,
+  n                = 200L,
+  progbar          = FALSE
+)
+```
+
+```{r fit-print}
+fit
+```
+
+## Checking prior sensitivity
+
+Because the whole prior is one argument, sensitivity analysis is a loop
+over `pop.pwt`:
+
+```{r sensitivity, results = "hide"}
+pwts <- c(0.01, 0.10, 0.50)
+res <- lapply(pwts, function(w) {
+  ps_w <- Prior_Setup_GLMM(form, data = dat, pop.pwt = w)
+  f <- lmerb(form, data = dat,
+             pfamily_list     = pfamily_list(ps_w),
+             dispersion_ranef = ps_w$group.dispersion,
+             n = 200L, progbar = FALSE)
+  unlist(f$popef.means)
+})
+```
+
+```{r sensitivity-table}
+tab <- do.call(rbind, res)
+rownames(tab) <- paste0("pop.pwt = ", pwts)
+round(tab, 3)
+```
+
+The intercept barely moves — it is centered at the null-model intercept, so
+prior and data already agree. The `Days_c` slope is centered at zero, so
+heavier prior weight pulls it toward zero. That contrast is the whole point
+of `pop.effects_source = "null_effects"`: the prior is deliberately
+skeptical about effects, and you can see exactly how much skepticism costs.
+
+# See also
+
+- **Chapter 04** — group-level covariates, where Level 2 stops being `~ 1`.
+- **Chapter 07** — sampling the variance components.
+- `?Prior_Setup_GLMM`, `?pfamily_list`, `?model_setup`
+- `vignette("Chapter-A12", package = "glmbayes")` — the derivations behind
+  the Gaussian prior calibration this inherits.

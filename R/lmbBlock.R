@@ -4,11 +4,11 @@
 #' Fits one \code{\link[glmbayes]{lmb}} per observation block (SAS \code{BY}-style split on
 #' rows), sharing the same formula on each subset. Contrast with
 #' \code{\link[glmbayes]{lmb}} on a \code{cbind(...)} response (several response columns) and
-#' \code{\link[lmebayesCore]{block_rNormalGLM}} (Gibbs conditional draws, matrix API).
+#' \code{\link[lmebayesCore]{rNormalGLM_reg_group}} (Gibbs conditional draws, matrix API).
 #'
 #' @param block Block partition: \code{factor} or vector of length \code{nrow(data)}
 #'   (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-#'   counts, or a list of row index vectors (see \code{\link[lmebayesCore]{normalize_block}}).
+#'   counts, or a list of row index vectors (see \code{\link[lmebayesCore]{normalize_group}}).
 #' @name lmbBlock
 #' @family modelfuns
 NULL
@@ -74,7 +74,7 @@ lmbBlock <- function(
     offset = if (!missing(offset)) offset else NULL,
     contrasts = if (!missing(contrasts)) contrasts else NULL
   )
-  k <- meta$block_info$k
+  k <- meta$group_info$k
   p <- meta$p
 
   if (is.null(pfamily_list)) {
@@ -119,10 +119,10 @@ lmbBlock <- function(
     lmb_args <- c(lmb_args, list(...))
   }
 
-  block_results <- vector("list", k)
+  group_results <- vector("list", k)
   for (b in seq_len(k)) {
     rows_b <- .blmb_rows_to_data_subset(
-      meta$block_info$rows[[b]], meta$mf, data
+      meta$group_info$rows[[b]], meta$mf, data
     )
     fit_b <- do.call(
       lmb,
@@ -136,16 +136,16 @@ lmbBlock <- function(
       )
     )
     fit_b$call <- .blmb_lmb_display_call(mc, formula, rows_b)
-    block_results[[b]] <- fit_b
+    group_results[[b]] <- fit_b
   }
 
   .blmb_assemble(
-    block_results = block_results,
-    block_ids = meta$block_info$ids,
+    group_results = group_results,
+    block_ids = meta$group_info$ids,
     call = call,
     formula = formula,
     block = block,
-    block_info = meta$block_info,
+    group_info = meta$group_info,
     p = p,
     pred_names = meta$pred_names,
     pfamily_lists = pfamily_lists
@@ -177,7 +177,7 @@ lmbBlock <- function(
 
   l2 <- nrow(mf)
   block_vec <- .blmb_resolve_block(block, data, mf, l2)
-  block_info <- lmebayesCore::normalize_block(block_vec, l2)
+  group_info <- lmebayesCore:::normalize_group(block_vec, l2)
 
   mt <- attr(mf, "terms")
   x_mat <- stats::model.matrix(mt, mf, contrasts)
@@ -189,7 +189,7 @@ lmbBlock <- function(
 
   list(
     mf = mf,
-    block_info = block_info,
+    group_info = group_info,
     p = p,
     pred_names = pred_names
   )
@@ -257,22 +257,22 @@ lmbBlock <- function(
 
 #' @keywords internal
 .blmb_assemble <- function(
-    block_results,
+    group_results,
     block_ids,
     call,
     formula,
     block,
-    block_info,
+    group_info,
     p,
     pred_names,
     pfamily_lists = NULL
 ) {
-  outlist <- setNames(block_results, block_ids)
+  outlist <- setNames(group_results, block_ids)
   attr(outlist, "call") <- call
   attr(outlist, "formula") <- formula
   attr(outlist, "block") <- block
-  attr(outlist, "block_info") <- block_info
-  attr(outlist, "k") <- block_info$k
+  attr(outlist, "group_info") <- group_info
+  attr(outlist, "k") <- group_info$k
   attr(outlist, "p") <- p
   attr(outlist, "pred_names") <- pred_names
   if (!is.null(pfamily_lists)) {
@@ -304,7 +304,7 @@ lmbBlock <- function(
     contrasts = contrasts
   )
   mt <- attr(meta$mf, "terms")
-  k <- meta$block_info$k
+  k <- meta$group_info$k
   tab <- data.frame(
     id = character(k),
     n = integer(k),
@@ -314,14 +314,14 @@ lmbBlock <- function(
     stringsAsFactors = FALSE
   )
   for (b in seq_len(k)) {
-    rows <- meta$block_info$rows[[b]]
+    rows <- meta$group_info$rows[[b]]
     mf_b <- meta$mf[rows, , drop = FALSE]
     x <- stats::model.matrix(mt, mf_b, contrasts)
     p <- ncol(x)
     rk <- qr(x)$rank
     n_b <- nrow(x)
     tab[b, ] <- list(
-      id = meta$block_info$ids[b],
+      id = meta$group_info$ids[b],
       n = n_b,
       rank = rk,
       p = p,
@@ -330,12 +330,12 @@ lmbBlock <- function(
   }
   keep <- tab$id[tab$full_rank]
   drop <- tab$id[!tab$full_rank]
-  list(keep = keep, drop = drop, table = tab, block_info = meta$block_info)
+  list(keep = keep, drop = drop, table = tab, group_info = meta$group_info)
 }
 
 #' @noRd
-.blmb_blocks_full_rank_xy <- function(x, block_info) {
-  k  <- block_info$k
+.blmb_blocks_full_rank_xy <- function(x, group_info) {
+  k  <- group_info$k
   l1 <- ncol(x)
   tab <- data.frame(
     id        = character(k),
@@ -346,12 +346,12 @@ lmbBlock <- function(
     stringsAsFactors = FALSE
   )
   for (b in seq_len(k)) {
-    rows <- block_info$rows[[b]]
+    rows <- group_info$rows[[b]]
     x_b  <- x[rows, , drop = FALSE]
     rk   <- qr(x_b)$rank
     n_b  <- nrow(x_b)
     tab[b, ] <- list(
-      id        = block_info$ids[b],
+      id        = group_info$ids[b],
       n         = n_b,
       rank      = rk,
       p         = l1,
@@ -381,7 +381,7 @@ lmbBlock <- function(
 #'
 #' @param x Numeric design matrix \code{(l2 x l1)}.
 #' @param block Block specification: factor, integer/character vector, or list
-#'   of row-index vectors.  Passed to \code{\link[lmebayesCore]{normalize_block}()}.
+#'   of row-index vectors.  Passed to \code{\link[lmebayesCore]{normalize_group}()}.
 #' @param X_nbhd Optional \code{(k x q)} numeric matrix of group-level
 #'   covariates (one row per block, in block-id order or with matching
 #'   \code{rownames}).  \code{NULL} assumes an intercept-only hyper design.
@@ -389,7 +389,7 @@ lmbBlock <- function(
 #' @return Invisibly, the same list structure as
 #'   \code{block_check_identifiability()}.
 #' @seealso \code{block_check_identifiability()},
-#'   \code{\link[lmebayesCore]{block_rNormalGLM}}
+#'   \code{\link[lmebayesCore]{rNormalGLM_reg_group}}
 #' @keywords internal
 block_check_identifiability_xy <- function(
     x,
@@ -400,10 +400,10 @@ block_check_identifiability_xy <- function(
   on_failure <- match.arg(on_failure)
   x <- as.matrix(x)
   l2 <- nrow(x)
-  block_info <- lmebayesCore::normalize_block(block, l2)
-  k  <- block_info$k
+  group_info <- lmebayesCore:::normalize_group(block, l2)
+  k  <- group_info$k
 
-  ri   <- .blmb_blocks_full_rank_xy(x, block_info)
+  ri   <- .blmb_blocks_full_rank_xy(x, group_info)
   keep <- ri$keep
   drop <- ri$drop
   tab  <- ri$table
@@ -522,7 +522,7 @@ block_check_identifiability_xy <- function(
 #'     \item{level2_ok}{Logical: Level 2 satisfied?}
 #'     \item{action}{\code{"proceed"} or \code{"warn"} or \code{"stop"}.}
 #'   }
-#' @seealso \code{\link{lmbBlock}}, \code{\link{Prior_SetupBlock}},
+#' @seealso \code{\link{lmbBlock}}, \code{\link{Prior_SetupGroup}},
 #'   \code{\link{glmbBlock}}
 #' @keywords internal
 block_check_identifiability <- function(

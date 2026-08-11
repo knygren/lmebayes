@@ -1,0 +1,195 @@
+---
+title: "Chapter 13: Comparison with lme4 and glmmTMB"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 13: Comparison with lme4 and glmmTMB}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+```{r load-stored}
+ch13 <- readRDS(system.file(
+  "extdata", "Chapter13_mer_comparison.rds", package = "lmebayes"
+))
+```
+
+# Chapter 13: Comparison with `lme4` and `glmmTMB`
+
+This chapter is about scope. **lmebayes** does a narrower set of models than
+`lme4` [@Bates2015] or `glmmTMB` [@Brooks2017], and does something
+different with them. Knowing where the line falls is the difference between
+using it well and fighting it.
+
+Because **glmmTMB** is only suggested, the comparison is precomputed by
+`data-raw/make_vignette_outputs.R`.
+
+# Same model, three packages
+
+```{r code, eval = FALSE}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+form <- Reaction ~ Days_c + (1 + Days_c || Subject)
+
+m_lmer <- lme4::lmer(form, data = dat, REML = TRUE)
+m_tmb  <- glmmTMB::glmmTMB(form, data = dat, family = gaussian())
+
+ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
+set.seed(2024)
+fit <- lmerb(form, data = dat,
+             pfamily_list     = pfamily_list(ps),
+             dispersion_ranef = ps$group.dispersion,
+             n = 1000L, progbar = FALSE)
+```
+
+```{r compare-fixef, echo = FALSE}
+knitr::kable(ch13$fixef_compare, digits = 4)
+```
+
+All three agree to two decimal places. With a prior weight of one percent
+they should: the prior is nearly flat, so the posterior mean lands on the
+maximum-likelihood estimate.
+
+The agreement is worth stating precisely, because it is easy to
+over-interpret. It shows that the Bayesian machinery reproduces the right
+answer in the case where a right answer is agreed on. It does not show the
+three approaches are interchangeable.
+
+# What is actually different
+
+`lmer()` and `glmmTMB()` report a point estimate and a standard error
+derived from the curvature of the likelihood at the optimum. That standard
+error is asymptotic: it is exact as the number of groups goes to infinity,
+and approximate otherwise. With 18 subjects, "otherwise" is where you are.
+
+**lmebayes** reports draws from the posterior. Uncertainty comes from the
+spread of those draws, with no asymptotic step:
+
+```{r lmerb-print, echo = FALSE}
+cat(ch13$lmerb_print, sep = "\n")
+```
+
+For this model the two happen to agree closely, because the posterior is
+Gaussian and the sample is large enough. Where they diverge is small
+numbers of groups, variance components near zero, and non-Gaussian
+likelihoods — precisely the situations where the asymptotic approximation
+is weakest.
+
+The second difference is the one that has no counterpart at all. When the
+header says `exact iid`, the 1000 draws are independent samples from the
+exact posterior. When it says `two-block Gibbs`, each draw is certified
+within `tv_tol` in total variation. Neither `lme4` nor `glmmTMB` makes a
+distributional claim of that kind, because they are not sampling. Compared
+against other *Bayesian* packages the claim is still unusual: Stan and JAGS
+give correlated draws with diagnostics that are heuristic
+(@GelmanRubin1992), not certificates.
+
+# The feature matrix
+
+| | `lme4` | `glmmTMB` | **lmebayes** |
+|---|---|---|---|
+| Crossed random effects | Yes | Yes | **No** |
+| Nested random effects | Yes | Yes | **No** |
+| Correlated random effects (`\|`) | Yes | Yes | **No** — `\|\|` only |
+| Fixed effect without matching random slope | Yes | Yes | **No** |
+| Families | Many | Many + zero-inflation | Gaussian, Poisson, binomial, Gamma |
+| Dispersion models | No | Yes (`dispformula`) | Yes, per group |
+| Priors | None | None | Calibrated, required |
+| Output | Point estimate + SE | Point estimate + SE | Posterior draws |
+| Uncertainty | Asymptotic | Asymptotic | Exact, finite-sample |
+| Convergence | Optimizer | Optimizer | Certified per draw |
+
+The three "No" rows in the middle are the cost of the two-block structure.
+Crossed and nested factors break the conditional independence that makes
+Block 1 factorize; correlated random effects break the coefficient-wise
+factorization of Block 2; and the fixed-effect rule follows from the
+centered parameterization (Chapter 02).
+
+# Variance components
+
+```{r varcomp, echo = FALSE}
+knitr::kable(ch13$varcomp, digits = 4)
+```
+
+`lmer()` gives one number per component. In Chapter 07 those same
+components got full posteriors, with credible intervals that were
+noticeably wide — 18 subjects is little information about how subjects
+vary. A REML point estimate does not carry that uncertainty forward into
+the fixed-effect standard errors; the Bayesian fit does, which is the main
+practical reason to prefer it here.
+
+# Choosing
+
+**Use `lme4`** for exploration, for crossed or nested designs, and for any
+model with correlated random effects. It is fast, well understood, and the
+reference implementation.
+
+**Use `glmmTMB`** for zero-inflation, for families outside the log-concave
+class, and for complex dispersion models.
+
+**Use lmebayes** when the model fits its class — one grouping factor,
+uncorrelated random effects, a log-concave family — and you want exact
+finite-sample uncertainty rather than an asymptotic approximation. It is
+strongest exactly where the alternatives are weakest: few groups, small
+groups, variance components near the boundary.
+
+A reasonable workflow uses both. Fit in `lme4` first: it is fast, it tells
+you whether the random-effect correlation you are about to discard is
+large, and its estimates are what `Prior_Setup_GLMM()` calibrates against
+anyway. Then refit in **lmebayes** for inference.
+
+```{r workflow, eval = FALSE}
+m <- lme4::lmer(Reaction ~ Days_c + (1 + Days_c | Subject), data = dat)
+print(lme4::VarCorr(m), comp = "Std.Dev.")   # is the correlation large?
+```
+
+If the correlation is near zero, the `||` restriction costs nothing. If it
+is large, that is a substantive finding and this package cannot represent
+it.
+
+# Interface differences to remember
+
+```{r interface, eval = FALSE}
+## lme4
+m <- lmer(y ~ x + (1 + x | g), data = d)
+fixef(m); ranef(m); coef(m)
+
+## lmebayes
+ps  <- Prior_Setup_GLMM(y ~ x + (1 + x || g), data = d, pop.pwt = 0.01)
+fit <- lmerb(y ~ x + (1 + x || g), data = d,
+             pfamily_list     = pfamily_list(ps),
+             dispersion_ranef = ps$group.dispersion,
+             n = 1000)
+fixef(fit, type = "hyper.mean")   # fixef(fit) returns the lmer reference
+ranef(fit)                        # full coefficients, not deviations
+```
+
+Three traps, all covered earlier: `ranef()` returns full coefficients
+rather than mean-zero deviations (Chapter 02); `fixef()` defaults to the
+reference `lmer` fit rather than the posterior (Chapter 05); and the prior
+is a required argument, not an option (Chapter 03).
+
+# See also
+
+- **Chapter 02** — why the restrictions exist.
+- **Chapter 07** — variance components with real uncertainty.
+- `vignette("Chapter-B02", package = "lmebayesCore")` — the convergence
+  theory behind the certified-draw claim.

@@ -50,11 +50,11 @@ fit <- lmerb(
 
 stopifnot(identical(fit$prior$dispersion_mode, "fixed_vector"))
 stopifnot(is.null(fit$dispersion_fit))
-stopifnot(identical(names(fit$sigma2), grp_levels))
-stopifnot(isTRUE(all.equal(as.numeric(fit$sigma2), as.numeric(disp_vec[grp_levels]))))
-stopifnot(identical(fit$sigma2, fit$sigma2.mean))
+stopifnot(identical(names(fit$group.dispersion), grp_levels))
+stopifnot(isTRUE(all.equal(as.numeric(fit$group.dispersion), as.numeric(disp_vec[grp_levels]))))
+stopifnot(identical(fit$group.dispersion, fit$group.dispersion.mean))
 
-cat("\nfit$sigma2 (reordered to group_levels, matches input exactly): OK\n")
+cat("\nfit$group.dispersion (reordered to group_levels, matches input exactly): OK\n")
 cat("fit$prior$dispersion_mode:", fit$prior$dispersion_mode, "\n")
 cat("fit$dispersion_fit (should be NULL, no glmmTMB fit needed):",
     if (is.null(fit$dispersion_fit)) "NULL" else "NOT NULL -- FAIL", "\n")
@@ -140,8 +140,8 @@ fit_glm <- glmerb(
 
 stopifnot(identical(fit_glm$prior$dispersion_mode, "fixed_vector"))
 stopifnot(is.null(fit_glm$dispersion_fit))
-stopifnot(identical(names(fit_glm$sigma2), grp_levels))
-stopifnot(isTRUE(all.equal(as.numeric(fit_glm$sigma2), as.numeric(disp_vec[grp_levels]))))
+stopifnot(identical(names(fit_glm$group.dispersion), grp_levels))
+stopifnot(isTRUE(all.equal(as.numeric(fit_glm$group.dispersion), as.numeric(disp_vec[grp_levels]))))
 
 cat("glmerb(family = gaussian()) matches lmerb(): OK\n")
 

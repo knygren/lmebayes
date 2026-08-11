@@ -4,11 +4,77 @@
 #' interface, analogous to \code{\link{lmerb}} for Gaussian responses and to
 #' \code{\link{glmb}} for fixed-effects GLMs.
 #'
-#' Currently a copy of \code{\link{lmerb}} with an additional \code{family}
-#' argument. When \code{family = gaussian()}, behaviour matches
-#' \code{\link{lmerb}} except that the embedded reference fit is from
-#' \code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}. Non-Gaussian
-#' families use \code{\link[lmebayesCore]{block_rNormalGLM}} for Block~1 Gibbs updates.
+#' It takes the same arguments as \code{\link{lmerb}} plus \code{family}.
+#' With \code{family = gaussian()} it fits the same model as
+#' \code{\link{lmerb}}, differing only in that the embedded reference fit
+#' comes from \code{\link[lme4]{glmer}} rather than \code{\link[lme4]{lmer}}.
+#'
+#' @details
+#' \strong{The model being estimated.}
+#' For group \eqn{j = 1, \dots, J} with link \eqn{g},
+#' \deqn{y_j \mid \beta_j \sim \mathrm{family}\big(g^{-1}(D_j \beta_j)\big),
+#'       \qquad \beta_j \mid \gamma, \Psi \sim N(\mathcal{W}_j \gamma,\; \Psi),}
+#' where \eqn{\gamma} collects the level-2 fixed effects, \eqn{\Psi} is
+#' diagonal with entries \eqn{\tau^2_k} (one per random-effect coefficient),
+#' and \eqn{\mathcal{W}_j} is built by \code{\link{model_setup}} from the
+#' level-2 predictors.  As in \code{\link{lmerb}}, only a single grouping
+#' factor and uncorrelated (\code{||}) random-effect terms are supported.
+#' Marginalizing recovers the usual \code{\link[lme4]{glmer}} form with
+#' \eqn{X_j = D_j \mathcal{W}_j}, \eqn{Z_j = D_j}, and mean-zero random
+#' effects \eqn{b_j = \beta_j - \mathcal{W}_j \gamma}.
+#'
+#' Supported families are \code{gaussian()}, \code{poisson()},
+#' \code{binomial()}, and \code{Gamma()} with the standard links.  What they
+#' have in common is a \emph{log-concave} likelihood, which is the condition
+#' the envelope accept-reject sampler requires (Nygren and Nygren 2006).
+#'
+#' Because the link is applied within groups, \eqn{\beta_j} and
+#' \eqn{\gamma} live on the link scale --- log rates for \code{poisson()},
+#' log-odds for \code{binomial()} --- so any summary on the response scale
+#' must apply the inverse link to the draws rather than to their averages.
+#'
+#' \strong{What the priors decide.}
+#' \code{pfamily_list} carries one component per random-effect coefficient
+#' and declares whether the between-group variance \eqn{\tau^2_k} is known
+#' (\code{dNormal}) or estimated (\code{dIndependent_Normal_Gamma}, under a
+#' Gamma prior on \eqn{1/\tau^2_k} truncated to
+#' \code{[disp_lower, disp_upper]}).  \code{dispersion_ranef} is the
+#' residual variance and applies to \code{gaussian()} only; it must be
+#' \code{NULL} for \code{poisson()} and \code{binomial()}, which have no
+#' free dispersion parameter.  Both are normally built from one
+#' \code{\link{Prior_Setup_GLMM}} object.
+#'
+#' \strong{What the returned draws are.}
+#' As in \code{\link{lmerb}}, \code{glmerb} runs \code{n} independent
+#' replicate chains and stores one draw from each, taken at that chain's
+#' final sweep.  The draws are therefore mutually independent --- an iid
+#' sample, not an autocorrelated trace --- so ordinary Monte Carlo standard
+#' errors apply and there is nothing to thin or diagnose for
+#' autocorrelation.
+#'
+#' The accompanying guarantee is weaker here than for a Gaussian response,
+#' and the difference matters.  With \code{family = gaussian()} and fixed
+#' variances the posterior is exactly normal and the sweep count is
+#' certified.  A Poisson or binomial posterior is not normal, so the same
+#' calibration is applied at local curvature near the posterior mode.  The
+#' resulting \code{m_convergence} is a well-motivated sweep \emph{budget}
+#' rather than a proof, and \code{tv_tol} should be read that way.
+#' Tightening it is cheap: cost grows only logarithmically in
+#' \eqn{1/}\code{tv_tol}.
+#'
+#' The same fact --- that the mode of a skewed posterior is not its mean ---
+#' is why a short \strong{pilot stage} runs first.  Its cross-chain average
+#' gives the main chains a better starting point than the mode does, which
+#' shortens the main stage.  Pilot draws are diagnostic only and are never
+#' part of the returned sample.  \code{gap_tol} and \code{mode_gap_max} are
+#' legacy controls used when \code{tv_tol} is \code{NULL}.
+#'
+#' \strong{Point estimates (simulate = FALSE).}
+#' \code{simulate = FALSE} returns the joint posterior \emph{mode} by
+#' iterated conditional modes (the exact Gaussian mean when
+#' \code{family = gaussian()}), at fixed variance-component plug-ins.  No
+#' sweeps run and no RNG is consumed, so the result is deterministic ---
+#' useful while iterating on model specification.
 #'
 #' @inheritParams lmerb
 #' @param family A \code{\link[stats]{family}} object describing the response
@@ -108,6 +174,18 @@
 #'   pilot colMeans when a pilot runs; \code{NULL} when no pilot runs),
 #'   \code{pilot_chisq} (Hotelling chi-squared test of
 #'   pilot mean vs ICM mode), \code{gap_tol}, and \code{mode_gap_max}.
+#' @references
+#' Nygren, K. (2020). \emph{On the total variation distance between multivariate
+#' normal densities with applications to two-block Gibbs samplers.}
+#' Unpublished manuscript.
+#'
+#' Nygren, K. N. and Nygren, L. M. (2006). Likelihood Subgradient Densities.
+#' \emph{Journal of the American Statistical Association} \bold{101}(475),
+#' 1144--1156.
+#'
+#' Jones, G. L. and Hobert, J. P. (2001). Honest exploration of intractable
+#' probability distributions via Markov chain Monte Carlo.
+#' \emph{Statistical Science} \bold{16}, 312--334.
 #' @seealso \code{\link{lmerb}}, \code{\link[lmebayesCore]{glmerb_posterior_mode}},
 #'   \code{\link{glmb}}; \code{\link[utils]{demo}} for the full sampling workflow
 #'   (\code{demo("Ex_14_glmerb_airbnb_small", package = "lmebayes")}).
@@ -193,19 +271,23 @@ glmerb <- function(
     stop("model_setup() must return a model_setup object.", call. = FALSE)
   }
 
-  prior <- lmebayesCore::priors_from_pfamily_list(
-    pfamily_list     = pfamily_list,
-    group.dispersion = dispersion_ranef,
-    design           = design,
-    family           = family,
-    fn_name          = "glmerb"
+  ## Dispersion mode only (for dispformula / glmmTMB). Full prior unpacking
+  ## lives inside rglmerb().
+  gd <- lmebayesCore:::.lmebayes_dispprior_list_as_group_dispersion(
+    dispersion_ranef
   )
+  disp_mode <- lmebayesCore:::.lmebayes_resolve_group_dispersion(
+    group.dispersion = gd,
+    family           = family,
+    design           = design,
+    fn_name          = "glmerb"
+  )$mode
 
   dispformula_kind <- .lmebayes_validate_dispformula(
     dispformula = dispformula,
     group_name  = design$group_name,
     family      = family,
-    disp_mode   = prior$dispersion_mode
+    disp_mode   = disp_mode
   )
 
   mer_optional_args <- lmebayesCore:::.lmebayes_mer_optional_args(
@@ -218,7 +300,7 @@ glmerb <- function(
   )
 
   dispersion_fit <- NULL
-  if (identical(prior$dispersion_mode, "gamma_list")) {
+  if (identical(disp_mode, "gamma_list")) {
     ## dGamma_list(Prior_Setup_GLMM(..., dispformula = dispformula))
     ## already carries its glmmTMB reference fit forward as an attribute;
     ## reuse it instead of re-fitting glmmTMB here. A "fixed_vector"
@@ -250,113 +332,80 @@ glmerb <- function(
   )
   glmer_fit <- do.call(lme4::glmer, glmer_args)
 
-  if (is.null(fixef)) {
-    fixef <- lapply(prior$pop.prior_list, `[[`, "mu")
-    names(fixef) <- design$groupef.names
-  }
-
-  if (!isTRUE(simulate)) {
-    icm <- .lmebayes_icm_at_fixed_vc(
-      design = design,
-      prior  = prior,
-      family = family
-    )
-    .lmebayes_print_icm_simulate_false(
-      prior    = prior,
-      re_names = design$groupef.names,
-      icm      = icm,
-      header   = "--- glmerb: Block 2 fixed effects ---"
-    )
-    return(structure(
-      list(
-        call         = cl,
-        formula      = formula,
-        family       = family,
-        glmer        = glmer_fit,
-        dispformula    = dispformula,
-        dispersion_fit = dispersion_fit,
-        prior        = prior,
-        model_setup  = design,
-        fixef.mode   = icm$fixef,
-        fixef.init   = icm$fixef_init,
-        ranef.mode   = icm$b_mean,
-        fixef.means  = NULL,
-        fixef        = NULL,
-        coefficients = NULL,
-        joint_mode   = icm$joint_mode,
-        sigma2       = icm$sigma2,
-        sigma2.mean  = icm$sigma2,
-        sigma2.mode  = icm$sigma2,
-        tau2.mode    = icm$tau2,
-        fixef.mu     = as.matrix(
-          lmebayesCore::build_mu_all(design, icm$fixef)$mu_all
-        ),
-        draw_engine  = NULL,
-        sim_method_used = NULL
-      ),
-      class = c("glmerb", "list")
-    ))
-  }
-
-  # ICM and sampling: rglmerb routes Gaussian to rLMMNormal_reg, non-Gaussian to rGLMM.
   sampler <- lmebayesCore::rglmerb(
-    n                   = n,
-    design              = design,
-    prior               = prior,
-    family              = family,
-    group.dispersion    = dispersion_ranef,
-    gap_tol             = gap_tol,
-    tv_tol              = tv_tol,
-    mode_gap_max        = mode_gap_max,
-    collect_block1      = TRUE,
-    verbose             = TRUE,
-    progbar             = progbar,
-    sim_method          = sim_method
+    n              = n,
+    design         = design,
+    pfamily_list   = pfamily_list,
+    family         = family,
+    dispprior_list = dispersion_ranef,
+    gap_tol        = gap_tol,
+    tv_tol         = tv_tol,
+    mode_gap_max   = mode_gap_max,
+    collect_block1 = TRUE,
+    verbose        = TRUE,
+    progbar        = progbar,
+    sim_method     = sim_method,
+    simulate       = simulate
   )
 
-  run_pilot <- !is.null(sampler$n_pilot) && sampler$n_pilot > 0L
+  prior <- sampler$prior
+  run_pilot <- !is.null(sampler$pilot$n) && sampler$pilot$n > 0L
 
-  structure(
-    list(
-      call                  = cl,
-      formula               = formula,
-      family                = family,
-      glmer                 = glmer_fit,
-      dispformula           = dispformula,
-      dispersion_fit        = dispersion_fit,
-      prior                 = prior,
-      model_setup           = design,
-      fixef.mode            = sampler$fixef.mode,
-      fixef.init            = if (run_pilot) sampler$fixef.init else NULL,
-      ranef.mode            = sampler$ranef.mode,
-      fixef.means           = sampler$fixef.means,
-      fixef                 = sampler$fixef,
-      coefficients          = sampler$coefficients,
-      fixef.dispersion      = sampler$fixef.dispersion,
-      fixef.dispersion.mean = sampler$fixef.dispersion.mean,
-      fixef.iters           = sampler$fixef.iters,
-      fixef.iters.mean      = sampler$fixef.iters.mean,
-      ranef.iters           = sampler$ranef.iters,
-      ranef.iters.mean      = sampler$ranef.iters.mean,
-      sigma2                = sampler$sigma2,
-      sigma2.mean           = sampler$sigma2.mean,
-      sigma2.iters          = sampler$sigma2.iters,
-      sigma2.iters.mean     = sampler$sigma2.iters.mean,
-      fixef.mu              = sampler$fixef.mu,
-      draw_engine           = sampler$draw_engine,
-      sim_method_used       = sampler$sim_method_used,
-      m_convergence         = sampler$m_convergence,
-      pilot_chisq           = sampler$pilot_chisq,
-      gap_tol               = gap_tol,
-      mode_gap_max          = mode_gap_max,
-      convergence           = sampler$convergence,
-      sweep_history         = list(
-        pilot = if (run_pilot) sampler$pilot$sweep_history else NULL,
-        main  = sampler$sweep_history
-      )
-    ),
-    class = c("glmerb", "list")
+  out <- list(
+    call                  = cl,
+    formula               = formula,
+    family                = family,
+    glmer                 = glmer_fit,
+    dispformula           = dispformula,
+    dispersion_fit        = dispersion_fit,
+    prior                 = prior,
+    model_setup           = design,
+    popef.mode            = sampler$popef.mode,
+    popef.init            = if (!isTRUE(simulate) || run_pilot) {
+      sampler$popef.init
+    } else {
+      NULL
+    },
+    groupef.mode          = sampler$groupef.mode,
+    popef.means           = sampler$popef.means,
+    popef                 = sampler$popef,
+    groupef               = sampler$groupef,
+    popef.dispersion      = sampler$popef.dispersion,
+    popef.dispersion.mean = sampler$popef.dispersion.mean,
+    popef.iters           = sampler$popef.iters,
+    popef.iters.mean      = sampler$popef.iters.mean,
+    groupef.iters         = sampler$groupef.iters,
+    groupef.iters.mean    = sampler$groupef.iters.mean,
+    group.dispersion      = sampler$group.dispersion,
+    group.dispersion.mean = sampler$group.dispersion.mean,
+    group.dispersion.iters = sampler$group.dispersion.iters,
+    group.dispersion.iters.mean = sampler$group.dispersion.iters.mean,
+    draw_engine           = if (!is.null(sampler$convergence_info)) {
+      sampler$convergence_info$draw_engine
+    } else {
+      NULL
+    },
+    sim_method_used       = if (!is.null(sampler$convergence_info)) {
+      sampler$convergence_info$sim_method_used
+    } else {
+      NULL
+    },
+    m_convergence         = sampler$m_convergence,
+    pilot                 = sampler$pilot,
+    gap_tol               = gap_tol,
+    mode_gap_max          = mode_gap_max,
+    convergence           = sampler$convergence,
+    sweep_history         = list(
+      pilot = if (run_pilot) sampler$pilot$draws$sweep_history else NULL,
+      main  = sampler$sweep_history
+    )
   )
+  if (!isTRUE(simulate)) {
+    out$joint_mode <- sampler$joint_mode
+    out$tau2.mode <- sampler$tau2.mode
+    out$group.dispersion.mode <- sampler$group.dispersion.mode
+  }
+  structure(out, class = c("glmerb", "list"))
 }
 
 #' Print posterior estimates by RE component for a glmerb / lmerb fit
@@ -382,9 +431,9 @@ glmerb <- function(
 print_coef_means <- function(x, digits = 4L, ...) {
   is_fit    <- inherits(x, c("glmerb", "lmerb"))
   is_lmerb  <- inherits(x, "lmerb")
-  cm        <- if (is_fit) x$fixef.means else x
+  cm        <- if (is_fit) .lmerb_popef_means(x) else x
   if (is.null(cm)) {
-    cat("fixef.means: NULL (simulation not yet run)\n")
+    cat("popef.means: NULL (simulation not yet run)\n")
     return(invisible(x))
   }
 
@@ -422,11 +471,12 @@ print_coef_means <- function(x, digits = 4L, ...) {
 
   # fixef.mode column: "ICM.mean" for lmerb (exact posterior mean), "post.mode"
   # for glmerb (posterior mode from ICM optimisation).
-  has_mode   <- is_fit && !is.null(x$fixef.mode)
+  popef_mode <- if (is_fit) .lmerb_popef_mode(x) else NULL
+  has_mode   <- !is.null(popef_mode)
   mode_label <- if (is_lmerb) "ICM.mean" else "post.mode"
   if (has_mode) {
-    rows[[mode_label]] <- unlist(lapply(names(x$fixef.mode), function(k) {
-      unname(x$fixef.mode[[k]])
+    rows[[mode_label]] <- unlist(lapply(names(popef_mode), function(k) {
+      unname(popef_mode[[k]])
     }))
   }
 
@@ -483,7 +533,10 @@ print.glmerb <- function(
   grp      <- x$model_setup$group_name
   n_obs    <- length(x$model_setup$y)
   n_grp    <- nlevels(x$model_setup$group)
-  simulated <- !is.null(x$coefficients)
+  popef_draws <- if (!is.null(x$popef)) x$popef else x$fixef
+  popef_mode  <- .lmerb_popef_mode(x)
+  popef_means <- .lmerb_popef_means(x)
+  simulated <- !is.null(.lmerb_groupef_draws(x))
   fam      <- if (!is.null(x$family)) x$family$family else "gaussian"
 
   cat("Call:\n  ")
@@ -491,7 +544,7 @@ print.glmerb <- function(
   cat("\n\n")
 
   if (simulated) {
-    n_draws <- nrow(x$fixef[[re_names[1L]]])
+    n_draws <- nrow(popef_draws[[re_names[1L]]])
     cat(sprintf(
       "Bayesian generalized linear mixed model  [%s; %d draws, %s]\n",
       fam, n_draws, .lmerb_engine_label(x$sim_method_used)))
@@ -509,10 +562,14 @@ print.glmerb <- function(
   }
   print(lme4::VarCorr(x$glmer), comp = "Std.Dev.", digits = digits)
   cat(sprintf("Number of obs: %d,  groups: %s, %d\n\n", n_obs, grp, n_grp))
-  if (any_non_normal && !is.null(x$fixef.dispersion.mean)) {
+  disp_mean <- if (!is.null(x$popef.dispersion.mean)) {
+    x$popef.dispersion.mean
+  } else {
+    x$fixef.dispersion.mean
+  }
+  if (any_non_normal && !is.null(disp_mean)) {
     cat("Posterior mean tau^2_k: ",
-        paste(sprintf("%s = %.4g", names(x$fixef.dispersion.mean),
-                      x$fixef.dispersion.mean),
+        paste(sprintf("%s = %.4g", names(disp_mean), disp_mean),
               collapse = ", "),
         "\n\n", sep = "")
   }
@@ -522,18 +579,18 @@ print.glmerb <- function(
     "gamma @ lmer tau2"
   } else if (identical(fam, "gaussian")) {
     cat("--- Posterior means (ICM exact, under fixed variance components) ---\n\n")
-    "fixef.mode"
+    "popef.mode"
   } else {
     cat("--- Block 2 hyperparameters (ICM posterior mode; MCMC means when simulated) ---\n\n")
     "ICM mode"
   }
 
   rows <- do.call(rbind, lapply(re_names, function(k) {
-    nms <- names(x$fixef.mode[[k]])
+    nms <- names(popef_mode[[k]])
     data.frame(
       re  = k,
       par = nms,
-      mode = unname(x$fixef.mode[[k]]),
+      mode = unname(popef_mode[[k]]),
       stringsAsFactors = FALSE
     )
   }))
@@ -553,14 +610,14 @@ print.glmerb <- function(
     }
     cat("\n")
   } else {
-    rows$means <- unlist(lapply(re_names, function(k) unname(x$fixef.means[[k]])))
+    rows$means <- unlist(lapply(re_names, function(k) unname(popef_means[[k]])))
     rows$sd    <- unlist(lapply(re_names, function(k) {
-      apply(x$fixef[[k]], 2L, sd)
+      apply(popef_draws[[k]], 2L, sd)
     }))
 
     cat(sprintf("  %-*s  %-*s  %12s  %12s  %10s\n",
                 w_re, "RE component", w_par, "parameter",
-                mode_col, "fixef.means", "draws SD"))
+                mode_col, "popef.means", "draws SD"))
     cat(sprintf("  %s  %s  %s  %s  %s\n",
                 strrep("-", w_re), strrep("-", w_par),
                 strrep("-", 12L), strrep("-", 12L), strrep("-", 10L)))

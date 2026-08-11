@@ -70,19 +70,19 @@ test_that("ranef/coef/fixef mirror lme4 layout on lmerb fit", {
   expect_s3_class(re_mode, "ranef.lmerb")
   expect_equal(
     as.matrix(re_mode$Subject),
-    fit$ranef.mode,
+    fit$groupef.mode,
     tolerance = 1e-10
   )
 
   re_mean <- lme4::ranef(fit, type = "mean", condVar = TRUE)
   expect_true(!is.null(attr(re_mean, "postVar")))
   manual_mean <- tapply(
-    seq_len(nrow(fit$coefficients)),
-    fit$coefficients$Subject,
-    function(idx) colMeans(fit$coefficients[idx, fit$model_setup$groupef.names, drop = FALSE]),
+    seq_len(nrow(fit$groupef)),
+    fit$groupef$Subject,
+    function(idx) colMeans(fit$groupef[idx, fit$model_setup$groupef.names, drop = FALSE]),
     simplify = FALSE
   )
-  manual_mat <- do.call(rbind, manual_mean[rownames(fit$ranef.mode)])
+  manual_mat <- do.call(rbind, manual_mean[rownames(fit$groupef.mode)])
   expect_equal(as.matrix(re_mean$Subject), manual_mat, tolerance = 1e-10)
 
   long <- as.data.frame(re_mean)

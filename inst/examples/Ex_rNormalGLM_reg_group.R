@@ -13,11 +13,11 @@ y <- ps$y
 x <- ps$x
 block <- outcome
 
-out <- lmebayesCore::block_rNormalGLM(
+out <- lmebayesCore::rNormalGLM_reg_group(
   n = 1L,
   y = y,
   x = x,
-  block = block,
+  group = block,
   prior_list = list(mu = ps$mu, Sigma = ps$Sigma),
   family = poisson(),
   use_parallel = FALSE

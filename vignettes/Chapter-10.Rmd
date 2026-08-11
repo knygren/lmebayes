@@ -1,0 +1,226 @@
+---
+title: "Chapter 10: Binomial GLMMs"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 10: Binomial GLMMs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+```{r load-stored}
+ch10 <- readRDS(system.file(
+  "extdata", "Chapter10_book_banning_binom.rds", package = "lmebayes"
+))
+```
+
+# Chapter 10: Binomial GLMMs
+
+Binary outcomes with group structure. The data is `book_banning` from
+**bayesrules** [@JohnsonLauEtAl2022]: challenges to books in US libraries,
+with an indicator for whether the book was removed, grouped by state.
+
+The mechanics are the same as Chapter 09 — `glmerb()` with
+`family = binomial()` — so this chapter concentrates on what is different
+about binary data: separation, estimability, and why the sweep count is
+larger.
+
+# Setting up
+
+```{r data-code, eval = FALSE}
+data(book_banning, package = "bayesrules")
+bb <- book_banning[, c("state", "removed", "violent")]
+bb <- bb[complete.cases(bb), ]
+bb$removed_i <- as.integer(bb$removed == 1L | bb$removed == "1")
+bb$violent_i <- as.integer(
+  bb$violent == TRUE | bb$violent == 1L | bb$violent == "TRUE"
+)
+bb$state <- factor(bb$state)
+
+## Twelve largest states, to keep the stored fit small.
+keep <- names(sort(table(bb$state), decreasing = TRUE))[seq_len(12L)]
+bb <- droplevels(subset(bb, state %in% keep))
+
+form <- removed_i ~ violent_i + (1 + violent_i || state)
+model_setup(form, data = bb, family = binomial())
+```
+
+```{r design-out, echo = FALSE}
+cat(ch10$design, sep = "\n")
+```
+
+Note the explicit conversion to integers. Logical and factor predictors get
+expanded by `model.matrix()` in ways that can produce correlated
+random-effect terms, which this package rejects; converting to 0/1 integers
+keeps the `||` structure intact. If you hit
+`Correlated random effects are not supported`, check for logical or factor
+variables inside the random-effects term first.
+
+# Full rank is not the same as estimable
+
+The rank report shows something that did not appear in earlier chapters:
+
+```
+Full-rank D_j: 12 of 12 groups
+Full-rank & estimable: 11 of 12 full-rank (11 of 12 total state)
+  full-rank but not estimable: MI
+```
+
+Michigan's design matrix has full column rank — it contains both violent
+and non-violent challenges — but the model is still not estimable there.
+That is **separation**: within Michigan, the outcome is perfectly predicted
+by `violent_i`, so the maximum-likelihood coefficient runs off to infinity.
+The likelihood is log-concave but has no interior maximum in that
+direction.
+
+Separation is a binary-data problem specifically; it cannot happen with
+Gaussian or (in this form) Poisson responses. `model_setup()` runs a
+separate estimability check for exactly this reason, and it is the reason
+the check is reported on its own line rather than folded into the rank
+test.
+
+Michigan is not thrown away. It keeps its coefficients, drawn from the
+prior in the direction the likelihood cannot pin down — which is exactly
+what a proper prior is for. What it loses is standing in the *level-2*
+checks: an infinite-in-the-limit estimate carries no usable information
+about the population parameters, so `model_setup()` restricts the
+across-group rank condition to the 11 estimable states, and
+`Prior_Setup_GLMM()` calibrates from those. Details in
+`vignette("Chapter-B08", package = "lmebayesCore")`.
+
+# Fitting
+
+```{r fit-code, eval = FALSE}
+ps <- Prior_Setup_GLMM(form, data = bb, family = binomial(), pop.pwt = 0.01)
+
+set.seed(2024)
+fit <- glmerb(
+  form,
+  data         = bb,
+  family       = binomial(),
+  pfamily_list = pfamily_list(ps),
+  n            = 200L,
+  progbar      = FALSE
+)
+fit
+```
+
+```{r fit-out, echo = FALSE}
+cat(ch10$fit_print, sep = "\n")
+```
+
+# Reading it on the probability scale
+
+Coefficients are log-odds. Two useful transformations:
+
+```{r interpret}
+pm <- unlist(ch10$popef_means)
+round(rbind(log_odds = pm, odds_ratio = exp(pm)), 3)
+
+plogis(pm[[1]])            # P(removed), non-violent
+plogis(pm[[1]] + pm[[2]])  # P(removed), violent
+```
+
+In an average state, a challenged non-violent book has roughly a
+`r round(100 * stats::plogis(unlist(ch10$popef_means)[[1]]))` percent chance
+of removal, rising modestly for books challenged as violent. The posterior SD
+on the `violent_i` effect is larger than the effect itself, so this is weak
+evidence of any population-level difference.
+
+Note that `plogis()` of the *mean* log-odds is not the mean probability —
+the transformation is nonlinear. For a proper posterior on the probability
+scale, transform the draws and then summarize:
+
+```{r prob-draws, eval = FALSE}
+p_draws <- plogis(fit$popef[["(Intercept)"]][, 1])
+quantile(p_draws, c(0.025, 0.5, 0.975))
+```
+
+# Per-state effects
+
+```{r ranef-out, echo = FALSE}
+cat(ch10$ranef_head, sep = "\n")
+```
+
+These are log-odds intercepts per state, and they are full coefficients
+rather than deviations (Chapter 02). Oregon at about -2.87 and Virginia at
+about -0.09 correspond to removal probabilities of roughly 5 percent and 48
+percent — a large practical difference that a state-level fixed effect
+would have estimated far more noisily, and that complete pooling would have
+erased entirely.
+
+# Why the sweep count is higher
+
+```{r convergence}
+c(m_convergence = ch10$m_convergence)
+```
+
+`r ch10$m_convergence` sweeps, against 3 for the Poisson model of Chapter
+09 and 1 for the Gaussian fits.
+
+The reason is information per observation. A binary response carries at
+most about 0.25 units of Fisher information per observation, and much less
+when the probability is near 0 or 1 — which it is here, since most
+challenges do not result in removal. With only 12 states and weak
+per-observation information, the group coefficients and the population
+coefficients are tightly coupled, the rate \(\lambda^*\) is close to one,
+and more sweeps are needed.
+
+This is the same relationship as in Chapter 02: **models that shrink hard
+mix slowly**. Binary outcomes with few groups and rare events sit at the
+difficult end of that spectrum, and the sweep count reports it honestly
+rather than hiding it.
+
+# The full summary
+
+```{r summary-code, eval = FALSE}
+summary(fit)
+```
+
+```{r summary-out, echo = FALSE}
+cat(ch10$fit_summary, sep = "\n")
+```
+
+Both random-effect standard deviations are near 0.85 on the log-odds scale,
+which is substantial: a one-standard-deviation state differs from average
+by a factor of about `r round(exp(0.86), 1)` in odds. As in Chapter 09, the
+between-group variation exceeds the population-level effect, which is the
+signature of a model that needed random slopes.
+
+# Practical notes for binary data
+
+- **Convert to integers** before fitting; logical and factor variables in
+  the random-effects term commonly trigger the correlated-effects error.
+- **Check the estimability line**, not just the rank line. Separation is
+  silent otherwise.
+- **Expect more sweeps.** If `m_convergence` climbs into the tens, the
+  cause is usually too few groups or too rare an outcome, not a sampler
+  problem.
+- **Watch for a `lambda* > 0.95` warning.** The chain is still valid, but
+  the model is close to the boundary where the group and population levels
+  cannot be separated.
+
+# See also
+
+- **Chapter 09** — the Poisson case and the shared GLMM machinery.
+- **Chapter 11** — mode-only fits, which avoid the sampling cost entirely.
+- `vignette("Chapter-B08", package = "lmebayesCore")` — the rank and
+  estimability conditions.
+- `?glmerb`, `?model_setup`

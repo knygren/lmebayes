@@ -26,7 +26,7 @@ Mixed-model setup (`model_setup`, `Prior_Setup_GLMM`, lme4 design utilities,
 | `summary.lmerb()` | `summary.lmerb.R` | Detailed posterior / prior / ranef summary. |
 | `summary.glmerb()` | `summary.lmerb.R` | Alias of `summary.lmerb`. |
 | `print.summary.lmerb()` | `summary.lmerb.R` | Print method for summary object. |
-| `Prior_SetupBlock()` | `prior_setup_lmebayes.R` | Per-row-block prior setup. |
+| `Prior_SetupGroup()` | `prior_setup_lmebayes.R` | Per-row-block prior setup. |
 | `lmbBlock()` | `lmbBlock.R` | Row-block Bayesian LM fits. |
 | `glmbBlock()` | `glmbBlock.R` | Row-block Bayesian GLM fits. |
 | `print.blmb()` | `lmbBlock.R` | Print block LM list. |
@@ -44,11 +44,11 @@ Implemented in **glmbayes** / **glmbayesCore**; documented under dependency help
 | Function | Source package | **lmebayes** callers |
 |----------|----------------|----------------------|
 | `lmb()`, `glmb()`, `directional_tail()` | glmbayes | User workflows; `lmbBlock()` / `glmbBlock()` per block |
-| `Prior_Setup()`, `dNormal()`, `dNormal_Gamma()`, `dIndependent_Normal_Gamma()`, `dGamma()` | glmbayesCore | User workflows; block samplers; `Prior_SetupBlock()` |
-| `pfamily_list()` | glmbayesCore (generic; `Prior_Setup_GLMM` method in Core) | `lmerb()`, `glmerb()` (via `.lmebayes_priors_from_pfamily_list()`) |
-| `plot_sweep_history_diag()` | glmbayesCore | User diagnostics on `fit$sweep_history$main` |
-| `model_setup()`, `Prior_Setup_GLMM()` | glmbayesCore | User workflows; `Prior_SetupBlock()`; `lmerb()` / `glmerb()` |
-| `rlmerb()`, `rglmerb()` | glmbayesCore | `lmerb()` / `glmerb()` when `simulate = TRUE` |
+| `Prior_Setup()`, `dNormal()`, `dNormal_Gamma()`, `dIndependent_Normal_Gamma()`, `dGamma()` | glmbayesCore | User workflows; block samplers; `Prior_SetupGroup()` |
+| `pfamily_list()` | glmbayesCore (generic; `Prior_Setup_GLMM` method in Core) | `lmerb()`, `glmerb()` |
+| `plot_mean_convergence()`, `plot_var_convergence()` | glmbayesCore | User diagnostics on `fit$sweep_history$main` |
+| `model_setup()`, `Prior_Setup_GLMM()` | glmbayesCore | User workflows; `Prior_SetupGroup()`; `lmerb()` / `glmerb()` |
+| `rlmerb()`, `rglmerb()` | glmbayesCore | `lmerb()` / `glmerb()` |
 
 S3 `print.model_setup`, `print.Prior_Setup_GLMM`, and `pfamily_list.Prior_Setup_GLMM` register in **glmbayesCore**;
 **lmebayes** dispatches them via `import(glmbayesCore)`. Method help: `?glmbayesCore::pfamily_list.Prior_Setup_GLMM`.
@@ -71,11 +71,11 @@ When `simulate = TRUE`, re-exported `rlmerb()` / `rglmerb()` handle these intern
 
 ## Direct **glmbayesCore** calls (not re-exported)
 
-Qualified `glmbayesCore::normalize_block()` from block helpers — must stay exported in Core.
+Qualified `glmbayesCore::normalize_group()` from block helpers — must stay exported in Core.
 
 | Function | **lmebayes** callers | Role |
 |----------|----------------------|------|
-| `normalize_block()` | `lmbBlock()`, `glmbBlock()`, `Prior_SetupBlock()` (via `.blmb_formula_block_meta()`); `block_check_identifiability_xy()` | Row-block partition normalization. |
+| `normalize_group()` | `lmbBlock()`, `glmbBlock()`, `Prior_SetupGroup()` (via `.blmb_formula_block_meta()`); `block_check_identifiability_xy()` | Row-block partition normalization. |
 
 ---
 
@@ -122,8 +122,7 @@ lme4 design utilities (`get_lme4_components`, `extract_re_hyper_matrices`, …) 
 ## Gaps (not in **lmebayes** `R/` yet)
 
 Ex. 16 demo logic (proxy \(\hat D_\ell\), variance ratios) is **not** exported from **lmebayes**.
-`plot_sweep_history_diag()` lives in **glmbayesCore** (re-exported here); extend that function or add
-`sweep_history_diag_*()` helpers in Core when Ex. 16 probes stabilize.
+`plot_mean_convergence()` / `plot_var_convergence()` are re-exported from **lmebayesCore**.
 
 ---
 

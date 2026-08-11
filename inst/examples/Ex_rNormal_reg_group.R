@@ -21,11 +21,11 @@ prior_list <- list(
   ddef       = FALSE
 )
 
-out <- lmebayesCore::block_rNormalReg(
+out <- lmebayesCore::rNormal_reg_group(
   n          = 1L,
   y          = y,
   x          = x,
-  block      = school,
+  group      = school,
   prior_list = prior_list
 )
 

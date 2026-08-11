@@ -87,9 +87,10 @@ summary_sigma2.glmerb <- function(
     )
   }
   re_names  <- object$model_setup$groupef.names
-  simulated <- !is.null(object$coefficients)
+  popef_draws <- if (!is.null(object$popef)) object$popef else object$fixef
+  simulated <- !is.null(.lmerb_groupef_draws(object))
   n_draws   <- if (simulated && length(re_names)) {
-    nrow(object$fixef[[re_names[1L]]])
+    nrow(popef_draws[[re_names[1L]]])
   } else {
     NULL
   }

@@ -1,0 +1,293 @@
+---
+title: "Chapter 04: Linear mixed models with lmerb()"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 04: Linear mixed models with lmerb()}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+```{r load-stored}
+ch04 <- readRDS(system.file(
+  "extdata", "Chapter04_big_word_club.rds", package = "lmebayes"
+))
+```
+
+# Chapter 04: Linear mixed models with `lmerb()`
+
+Chapter 01 fit a model with no group-level structure: every subject shrank
+toward the same grand mean. This chapter uses a dataset where the groups
+themselves differ in known ways, which is where the level-2 design earns
+its keep.
+
+The data is `big_word_club` from the **bayesrules** package
+[@JohnsonLauEtAl2022] — a vocabulary intervention study in
+`r ch04$n_schools` schools. Because **bayesrules** is only suggested and a
+1000-draw fit takes a few seconds, the model is fitted ahead of time by
+`data-raw/make_vignette_outputs.R` and the results are loaded from
+`inst/extdata/`. Every code chunk that fits is shown but not evaluated.
+
+# The data and the question
+
+```{r data-code, eval = FALSE}
+data(big_word_club, package = "bayesrules")
+dat <- big_word_club
+dat$school_id <- factor(dat$school_id)
+keep <- c("score_ppvt", "distracted_a1", "distracted_ppvt",
+          "private_school", "title1", "free_reduced_lunch", "school_id")
+dat <- subset(
+  dat,
+  !is.na(score_ppvt) & !is.na(invalid_ppvt) & invalid_ppvt == 0L &
+    complete.cases(dat[, keep])
+)
+dat$school_id <- droplevels(dat$school_id)
+```
+
+That leaves `r ch04$n_obs` students in `r ch04$n_schools` schools. The
+outcome `score_ppvt` is a vocabulary score. Two student-level covariates
+record whether the child was distracted — during the vocabulary assessment
+(`distracted_ppvt`) and during an earlier assessment (`distracted_a1`).
+Three school-level covariates describe the school: `private_school`,
+`title1`, and `free_reduced_lunch` (the percentage of students on subsidized
+meals).
+
+The distinction between the two kinds of covariate is the whole chapter.
+Student-level variables can have random slopes; school-level variables
+cannot, because they do not vary within a school.
+
+# A first model: random slopes only
+
+```{r form-simple, eval = FALSE}
+form_simple <- score_ppvt ~ private_school + title1 +
+  distracted_ppvt + distracted_a1 +
+  (1 + distracted_ppvt + distracted_a1 || school_id)
+
+model_setup(form_simple, data = dat)
+```
+
+```{r design-simple, echo = FALSE}
+cat(ch04$design_simple, sep = "\n")
+```
+
+Look at the Level 2 block. `model_setup()` has taken the two school-level
+fixed effects and attached them to the **intercept**'s level-2 row:
+
+```
+(Intercept)     ~ 1 + private_school + title1
+distracted_ppvt ~ 1
+distracted_a1   ~ 1
+```
+
+That is the right thing to do, and it is worth being explicit about why.
+`private_school` does not vary within a school, so a "fixed effect of
+`private_school`" is a statement about how school *intercepts* differ. In
+the centered parameterization of Chapter 02, it belongs in
+\(\mathcal{W}_j\), shifting each school's prior mean intercept. The two
+distraction slopes keep bare `~ 1` rows: their prior means are common
+across schools.
+
+Also note the rank report. Only 34 of the 47 schools have a full-rank
+within-group design — the rest lack the variation in `distracted_ppvt` or
+`distracted_a1` needed to identify their own slopes.
+
+They are **not** removed. All 47 schools remain in the fit and all 47 get
+coefficients; a rank-deficient school simply contributes no likelihood
+information in the deficient direction, so there it is drawn from its
+prior — shrunk all the way to \(\mathcal{W}_j\gamma\). That is the
+statistically sensible outcome, and it is why the model tolerates schools
+that a no-pooling analysis could not fit at all.
+
+What the 34 are used for is the *level-2* rank check, which runs on the
+estimable subset. That is the correct order: a school-level covariate that
+happens to be constant across the estimable schools would leave \(\gamma\)
+unidentified even though it varied in the raw data, and no amount of
+information from the other 13 would fix it.
+
+# Adding cross-level moderation
+
+Now the interesting specification. Does the effect of being distracted
+during the earlier assessment depend on the school's poverty level?
+
+```{r form-full, eval = FALSE}
+form_full <- score_ppvt ~ private_school + title1 + free_reduced_lunch +
+  distracted_ppvt + distracted_a1 +
+  free_reduced_lunch:distracted_a1 +
+  (1 + distracted_ppvt + distracted_a1 || school_id)
+
+design <- model_setup(form_full, data = dat)
+design
+```
+
+```{r design-full, echo = FALSE}
+cat(ch04$design_full, sep = "\n")
+```
+
+The interaction has landed in the level-2 row of `distracted_a1`:
+
+```
+(Intercept)     ~ 1 + private_school + title1 + free_reduced_lunch
+distracted_ppvt ~ 1
+distracted_a1   ~ 1 + free_reduced_lunch
+```
+
+This is **cross-level moderation**. A school-level variable is modifying an
+individual-level random slope. In `lme4` you would write the same
+interaction and get a single fixed-effect coefficient; here you can see
+structurally what it does — each school's *prior mean* `distracted_a1`
+slope now sits on a line in `free_reduced_lunch` instead of at a common
+value. Schools still shrink toward that line, just not toward the same
+point.
+
+Reading the Level 2 block before fitting is the fastest way to confirm you
+specified the model you intended. If an interaction shows up on the
+intercept row when you meant it on a slope row, the formula is wrong.
+
+# Priors
+
+```{r prior-code, eval = FALSE}
+ps <- Prior_Setup_GLMM(form_full, data = dat, pop.pwt = 0.01)
+ps
+```
+
+```{r prior-out, echo = FALSE}
+cat(ch04$prior_setup, sep = "\n")
+```
+
+Three prior blocks, one per random coefficient, and their dimensions follow
+the level-2 rows exactly: the intercept block has a 4-by-4 `Sigma`
+(intercept plus three school covariates), `distracted_ppvt` has a scalar,
+and `distracted_a1` has 2-by-2. Every non-intercept `mu` is zero, per the
+default `pop.effects_source = "null_effects"` described in Chapter 03.
+
+Each block also reports `dispersion`, which is \(\tau^2_k\) — how much
+individual school coefficients scatter around their level-2 fitted value —
+alongside `pop.dispersion.ref`, the classical `VarCorr` estimate. The gap
+between them (168.7 versus 199.3 for the intercept) is the marginal
+correction described in `vignette("Chapter-A12", package = "glmbayes")`.
+
+# Fitting
+
+```{r fit-code, eval = FALSE}
+set.seed(2024)
+fit <- lmerb(
+  form_full,
+  data             = dat,
+  pfamily_list     = pfamily_list(ps),
+  dispersion_ranef = ps$group.dispersion,
+  n                = 1000L,
+  progbar          = FALSE
+)
+fit
+```
+
+```{r fit-out, echo = FALSE}
+cat(ch04$fit_print, sep = "\n")
+```
+
+`exact iid` again: the observation variance is fixed and all three
+\(\tau^2_k\) are `dNormal`, so the joint posterior is multivariate normal
+and the 1000 draws are independent. `m_convergence` is
+`r ch04$m_convergence` — no Gibbs sweeps at all.
+
+# Reading the result
+
+The population table has seven rows, one per level-2 parameter, and they
+group by which random coefficient they modify.
+
+**Intercept block.** `title1` is large and positive (about 17.8 points)
+with a posterior SD near 7.8, so Title I schools score higher after
+adjustment. `private_school` is around -3.5 with an SD of 7.8 — the data
+does not distinguish it from zero. `free_reduced_lunch` is small and
+negative, but its scale is per percentage point, so a 40-point difference
+in subsidized-meal rate moves the intercept by about 14 points.
+
+**Slope blocks.** `distracted_ppvt` has a population mean near -1.3:
+children distracted during the vocabulary assessment score slightly lower,
+though the posterior SD of 1.4 makes that weak evidence.
+
+**The moderation.** The `distracted_a1 / free_reduced_lunch` row is about
+-0.09 with an SD of 0.05. The main `distracted_a1` effect is near zero
+(0.34, SD 3.7), so the story is not "distraction hurts" but "distraction
+hurts more in higher-poverty schools" — and even that is modest evidence.
+This is exactly the kind of claim that a single point estimate plus a
+p-value tends to overstate and a posterior distribution does not.
+
+# The full summary
+
+```{r summary-code, eval = FALSE}
+summary(fit)
+```
+
+```{r summary-out, echo = FALSE}
+cat(ch04$fit_summary, sep = "\n")
+```
+
+Three sections, and each answers a different question.
+
+**Block 2 dispersion** compares each \(\tau^2_k\) against the `lmer`
+reference. All three read `dNormal` in the Prior column and show identical
+percentiles, because they are fixed rather than sampled. Chapter 07 is
+what makes those rows interesting.
+
+**Block 2 level-2 fixed effects** is the population table again, with prior
+means and `lmer` reference values alongside, plus `Pr(Prior_tail)`. That
+last column is a directional tail probability: how far the posterior has
+moved into the prior's tail. Values near 0.5 mean the data barely moved the
+coefficient; small values mean it moved decisively.
+
+**Block 1 random effects** summarizes the per-school coefficients across
+schools rather than listing all 34. Use `summary(fit, groups = ...)` for
+specific schools, or go to the draws directly.
+
+# Per-school coefficients
+
+```{r ranef-code, eval = FALSE}
+head(as.data.frame(lme4::ranef(fit)), 12)
+```
+
+```{r ranef-out, echo = FALSE}
+cat(ch04$ranef_head, sep = "\n")
+```
+
+Remember from Chapter 02 that these are full coefficients, not deviations:
+school 1's intercept of about 97 is its expected score, not an offset. The
+long format has one row per school and term, which makes it convenient for
+plotting or joining back to school-level metadata.
+
+# What changed relative to Chapter 01
+
+| | Chapter 01 (`sleepstudy`) | Chapter 04 (`big_word_club`) |
+|---|---|---|
+| Level-2 rows | all `~ 1` | intercept and one slope carry covariates |
+| Shrinkage target | one grand mean per coefficient | a fitted line per coefficient |
+| Groups retained | 18 of 18 | 34 of 47 |
+| Cross-level terms | none | `free_reduced_lunch:distracted_a1` |
+
+The sampler did not change at all. Both fits are exact iid draws from a
+multivariate normal posterior. What changed is the model, and
+`model_setup()` is where you see it.
+
+# See also
+
+- **Chapter 05** — every accessor on a fitted object.
+- **Chapter 07** — letting the variance components be sampled.
+- **Chapter 13** — comparing this fit against `lme4` and `glmmTMB`.
+- `?lmerb`, `?model_setup`

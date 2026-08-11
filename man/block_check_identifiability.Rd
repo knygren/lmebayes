@@ -75,7 +75,7 @@ For BY-style independent fits (\code{\link{lmbBlock}}, \code{\link{glmbBlock}})
 only Level 1 applies; non-identified blocks should be dropped before fitting.
 }
 \seealso{
-\code{\link{lmbBlock}}, \code{\link{Prior_SetupBlock}},
+\code{\link{lmbBlock}}, \code{\link{Prior_SetupGroup}},
 \code{\link{glmbBlock}}
 }
 \keyword{internal}

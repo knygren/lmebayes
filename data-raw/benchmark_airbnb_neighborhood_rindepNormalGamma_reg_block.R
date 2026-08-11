@@ -77,7 +77,7 @@ prior_b <- list(mu = as.numeric(ps$mu), Sigma = diag(diag(ps$Sigma)),
 
 # --- Initialise --------------------------------------------------------------
 # Initial draw of b (k x p matrix of neighborhood random effects)
-b_mat <- rNormalGLM_reg_block_update(
+b_mat <- rNormalGLM_reg_group_update(
   y = y, x = Z, block = grp,
   prior_list = prior_b, family = poisson(),
   Gridtype = 2L, n_envopt = 1L, use_parallel = FALSE
@@ -103,7 +103,7 @@ t0 <- Sys.time()
 
 one_iter <- function(beta, D) {
   # Block b: draw neighborhood random effects given current beta, D
-  b_draw <- rNormalGLM_reg_block_update(
+  b_draw <- rNormalGLM_reg_group_update(
     y = y, x = Z, block = grp,
     prior_list = list(mu = beta, Sigma = D, dispersion = 1, ddef = FALSE),
     family = poisson(), Gridtype = 2L, n_envopt = 1L,

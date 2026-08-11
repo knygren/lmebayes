@@ -7,89 +7,214 @@
 rglmerb(
   n,
   design,
-  prior,
+  pfamily_list,
   family = poisson(),
-  group.dispersion = NULL,
+  dispprior_list = NULL,
+  offset = NULL,
+  weights = 1,
   gap_tol = 0.0196,
   tv_tol = 0.01,
   mode_gap_max = 1,
   collect_block1 = TRUE,
   verbose = TRUE,
   progbar = FALSE,
-  sim_method = "DEFAULT"
+  sim_method = "DEFAULT",
+  simulate = TRUE
 )
 }
 \arguments{
-\item{n}{Integer. Number of independent chains in the main stage.}
+\item{n}{Integer. Number of independent chains in the main stage.
+Required when \code{simulate = TRUE}; ignored when \code{simulate = FALSE}.}
 
 \item{design}{A \code{model_setup} object (from \code{\link[lmebayesCore]{model_setup}}).}
 
-\item{prior}{A normalized prior container with \code{group.Sigma},
-\code{pop.prior_list}, and \code{pfamily_list}.}
+\item{pfamily_list}{Named list of Block~2 \code{pfamily} objects, one per
+random-effect coefficient in \code{design$groupef.names} (same as
+\code{\link[lmebayesCore]{rGLMM_reg}} / \code{\link[lmebayesCore]{rLMMNormal_reg}}).}
 
 \item{family}{A \code{\link[stats]{family}} object. Default \code{poisson()}.}
 
-\item{group.dispersion}{Observation-level measurement dispersion \eqn{\sigma^2}:
-required positive scalar for \code{family = gaussian()}, or a
-\code{\link[glmbayesCore]{dGamma}()} pfamily with \code{Inv_Dispersion = TRUE}; must be
-\code{NULL} (default) for \code{poisson()} and \code{binomial()}.}
+\item{dispprior_list}{Block~1 observation-dispersion prior, in the same
+shapes as the \code{rLMM*} / \code{rGLMM*} engines. Required for
+\code{family = gaussian()} (\code{list(dispersion = )} or
+\code{dGamma()} / \code{dGamma_list()}); must be \code{NULL} (default)
+for \code{poisson()} and \code{binomial()}.}
+
+\item{offset, weights}{Observation offset and prior weights, as in
+\code{\link[lmebayesCore]{rGLMM_reg}} / \code{\link[lmebayesCore]{rLMMNormal_reg}}
+(\code{offset = NULL}, \code{weights = 1}). When omitted, inherit
+\code{design$offset} / \code{design$weights} if present. Explicit values
+always override the design. Echoed on the fit; not yet used in Gibbs
+sweeps.}
 
 \item{gap_tol}{Legacy mode--mean gap for deriving the pilot chain count when
-\code{tv_tol} is \code{NULL}. Ignored for Gaussian without ING Block~2
-components.}
+\code{tv_tol} is \code{NULL}. Ignored for Gaussian without ING population
+components. Ignored when \code{simulate = FALSE}.}
 
 \item{tv_tol}{Total variation tolerance for convergence calibration.
-Inner Gibbs sweeps and pilot chain counts are derived internally.}
+Inner Gibbs sweeps and pilot chain counts are derived internally.
+Ignored when \code{simulate = FALSE}.}
 
 \item{mode_gap_max}{Pilot inner-sweep calibration (non-Gaussian and
-Gaussian+ING only).}
+Gaussian+ING only). Ignored when \code{simulate = FALSE}.}
 
-\item{collect_block1}{Collect Block~1 \code{coefficients} from main chains
-(non-Gaussian only).}
+\item{collect_block1}{Collect \code{groupef} draws from main chains
+(non-Gaussian only). Ignored when \code{simulate = FALSE}.}
 
 \item{verbose}{Print stage headers and diagnostics.}
 
-\item{progbar}{Progress bars when \code{verbose} is \code{FALSE}.}
+\item{progbar}{Progress bars when \code{verbose} is \code{FALSE}.
+Ignored when \code{simulate = FALSE}.}
 
-\item{sim_method}{Sampling engine for \code{family = gaussian()}:
+\item{sim_method}{Simulation method for \code{family = gaussian()}:
 \code{"DEFAULT"} or \code{"TWO_BLOCK_GIBBS"}; see \code{\link[lmebayesCore]{rlmerb}}.
-Ignored (two-block Gibbs is the only engine) for non-Gaussian families.}
+Ignored (two-block Gibbs only) for non-Gaussian families.
+Ignored when \code{simulate = FALSE}.}
+
+\item{simulate}{Logical (default \code{TRUE}). When \code{TRUE}, draw
+posterior samples. When \code{FALSE}, return point estimates only via
+\code{\link[lmebayesCore]{rglmerb_point}} (no MCMC).}
 }
 \value{
-Object of class \code{c("rglmerb", "list")} with Block~2 fields in
-the \code{fixef.*} namespace, plus \code{ranef.mode}, \code{sigma2}
-(Gaussian only: scalar or length-\code{n} vector as for \code{\link[lmebayesCore]{rlmerb}}),
-\code{sigma2.mean}, \code{Prior}, \code{design}, and \code{family}. When a
-pilot stage runs (ING Block~2 and/or dGamma measurement dispersion),
-\code{n_pilot}, \code{pilot}, and \code{pilot_chisq} are included;
-otherwise \code{n_pilot} is \code{0L}.
-}
-\description{
-Bayesian generalized linear mixed-effects model sampler
-}
-\details{
-Matrix-level sampler for \code{model_setup} design objects and normalized
-prior containers. Routes by response family:
-\itemize{
-\item \code{family = gaussian()} delegates to
-\code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}},
-\code{\link[lmebayesCore]{rLMMNormal_reg_estimated_vcov}},
-\code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_known_vcov}}, or
-\code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}} according to
-\code{group.dispersion} and Block~2 \code{pfamily_list}.
-\item Non-Gaussian families delegate via \code{\link[lmebayesCore]{rGLMM_reg}} routes
-(through internal \code{.lmebayes_run_glmm_engine()} and
-\code{REG_ROUTE_TABLE}; pilot stage always unless \code{n_pilot = 0L};
-routes differ in eigenvalue-bound complexity). Inner sweeps use
-\code{\link[lmebayesCore]{rGLMM_sweep}}.
+An object of class \code{c("rglmerb", "list")}, with the same
+layout as \code{\link[lmebayesCore]{rlmerb}}. Each draw slot holds one row per
+replicate chain, taken at that chain's final sweep.
+
+\describe{
+\item{\code{popef}}{Named list of population draws \eqn{\gamma}, one
+\code{n} \eqn{\times q_k} matrix per random-effect coefficient, on
+the link scale. \code{popef.means} and \code{popef.mode} are the
+draw mean and the posterior mode.}
+\item{\code{groupef}}{Long-format data frame of group coefficients
+\eqn{\beta_j} (\code{n} \eqn{\times J} rows: \code{draw}, the
+grouping factor, then one column per coefficient), also on the link
+scale. \code{groupef.mode} is the \eqn{J \times p_{re}} mode matrix.
+Collected only when \code{collect_block1 = TRUE}.}
+\item{\code{popef.dispersion}}{Draws of the between-group variances
+\eqn{\tau^2_k}; constant for \code{dNormal} components, varying for
+estimated ones. \code{popef.dispersion.mean} is the column mean.}
+\item{\code{group.dispersion}}{Residual variance, Gaussian responses
+only; absent for \code{poisson()} and \code{binomial()}.}
+\item{\code{m_convergence}, \code{convergence_info}}{Sweeps run per
+chain and the calibration behind that count (\code{method},
+\code{lambda_star}, \code{draw_engine},
+\code{sim_method_used}, \code{icm_info}).}
+\item{\code{pilot}}{Present when a pilot stage ran, holding its size
+\code{n}, the \code{chisq} calibration constant, and its
+\code{draws}. Diagnostic only --- these are not posterior draws.}
 }
 
-For formula-level fitting, \code{glmerb()} in the lmebayes package wraps this sampler.
-Design matrices are built with \code{\link[lmebayesCore]{model_setup}} and priors with
-\code{\link[lmebayesCore]{Prior_Setup_GLMM}}.
+Inputs are echoed back in \code{design}, \code{family}, \code{n},
+\code{call}, \code{pfamily_list}, \code{dispprior_list},
+\code{prior.weights} and \code{offset}, alongside the packed
+\code{prior} and thin \code{Prior} summaries.
+
+When \code{simulate = FALSE}, every draw, pilot and convergence slot is
+\code{NULL} and only the mode fields are populated.
+}
+\description{
+\code{rglmerb} draws from the posterior of a Bayesian generalized linear
+mixed model --- Poisson, binomial, Gamma, or Gaussian --- with a single
+grouping factor and uncorrelated random effects, given a design from
+\code{\link[lmebayesCore]{model_setup}} and priors for the population level
+(\code{pfamily_list}) and, for Gaussian responses only, the residual
+variance (\code{dispprior_list}).
+}
+\details{
+The returned sample is \code{n} mutually independent draws, one per
+replicate chain, taken at that chain's final sweep. It is analyzed like an
+iid sample rather than like an MCMC trace.
+
+This is the matrix-level interface; for a formula interface use
+\code{glmerb()} in \pkg{lmebayes}. \code{\link[lmebayesCore]{rlmerb}} is the
+Gaussian-only counterpart.
+\subsection{The model being estimated}{
+
+\code{rglmerb} estimates the same two-stage structure as
+\code{\link[lmebayesCore]{rlmerb}}, with a link function between the linear predictor
+and the response mean. For group \eqn{j} with link \eqn{g}:
+\deqn{y_j \mid \beta_j \sim \mathrm{family}\big(g^{-1}(D_j \beta_j)\big)
+      \qquad \textrm{(within group)}}
+\deqn{\beta_j \mid \gamma, \Psi \sim N(\mathcal{W}_j \gamma,\; \Psi)
+      \qquad \textrm{(across groups)}}
+
+The across-group stage is unchanged and remains Gaussian: group
+coefficients scatter around a population expectation
+\eqn{\mathcal{W}_j\gamma} with diagonal covariance
+\eqn{\Psi = \mathrm{diag}(\tau^2_k)}. What changes is the within-group
+stage and, with it, the interpretation of \eqn{\beta_j}, which now lives
+on the link scale --- log rates for \code{poisson()}, log-odds for
+\code{binomial()}. Summaries that are meaningful on the response scale
+need the inverse link applied to the draws.
+
+Supported families are \code{gaussian()}, \code{poisson()},
+\code{binomial()}, and \code{Gamma()} with their standard links. The
+restriction is log-concavity of the likelihood, which the sampler
+requires (Nygren and Nygren 2006).
+}
+
+\subsection{What you supply}{
+
+\describe{
+\item{\code{design}}{A \code{\link[lmebayesCore]{model_setup}} object built with the
+matching \code{family}. For non-Gaussian responses its estimability
+report matters more than usual: a group with no variation in the
+response (all-zero counts, a single binomial outcome level) has no
+finite maximum likelihood estimate, and is reported separately from
+the rank check. See
+\code{vignette("Chapter-B08", package = "lmebayesCore")}.}
+\item{\code{pfamily_list}}{The population-level prior, one component per
+random-effect coefficient, declaring whether each between-group
+variance \eqn{\tau^2_k} is known (\code{dNormal}) or estimated
+(\code{dIndependent_Normal_Gamma}).}
+\item{\code{dispprior_list}}{Only meaningful for \code{gaussian()},
+where it gives the residual variance. \code{poisson()} and
+\code{binomial()} have no free dispersion parameter, so it must be
+\code{NULL}.}
+}
+}
+
+\subsection{What the returned draws are}{
+
+As in \code{\link[lmebayesCore]{rlmerb}}, \code{rglmerb} runs \code{n} independent
+replicate chains and stores one draw from each, taken at the final sweep,
+so the \code{n} draws are mutually independent and ordinary Monte Carlo
+standard errors apply. There is nothing to thin and no autocorrelation to
+diagnose.
+
+The strength of the accompanying guarantee is weaker here than in the
+Gaussian case, and the difference is worth understanding rather than
+glossing over. The calibration behind \code{m_convergence} is derived for
+Gaussian targets. A Poisson or binomial posterior is not Gaussian, so the
+engine applies the same calibration at curvature evaluated near the
+posterior mode. The sweep count is therefore a well-motivated
+\strong{budget} rather than a certificate, and \code{tv_tol} should be
+read in that spirit. Only \code{family = gaussian()} with fixed
+\eqn{\sigma^2} and all-\code{dNormal} components yields exact draws.
+
+A second difference follows from the same fact. Because the posterior mode
+is not the posterior mean when the target is skewed, chains started at the
+mode begin at an unknown distance from the target. \code{rglmerb}
+therefore runs a short \strong{pilot stage} first and uses its cross-chain
+mean as the starting point for the main chains, which shortens the main
+stage. Pilot draws are diagnostic only and are discarded --- they are
+never part of the returned sample.
+\code{vignette("Chapter-B03", package = "lmebayesCore")} covers the
+trade-off between pilot size and main-stage length.
+}
+
+\subsection{Point estimates without sampling}{
+
+\code{simulate = FALSE} returns the joint posterior mode by iterated
+conditional modes (or the exact mean for \code{gaussian()}), at fixed
+variance-component plug-ins. No sweeps run and no RNG is consumed, so the
+result is deterministic --- useful while iterating on model
+specification. All draw, pilot, and convergence slots are \code{NULL}.
+}
 }
 \seealso{
-\code{\link[lmebayesCore]{rlmerb}}, \code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}},
+\code{\link[lmebayesCore]{rlmerb}}, \code{\link[lmebayesCore]{rglmerb_point}},
+\code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}},
 \code{\link[lmebayesCore]{rLMMNormal_reg_estimated_vcov}},
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_known_vcov}},
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}}, \code{\link[lmebayesCore]{rGLMM_reg}},

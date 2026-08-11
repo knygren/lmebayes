@@ -13,7 +13,7 @@
 \item{object}{An \code{lmerb} or \code{glmerb} object.}
 
 \item{type}{\code{"mean"} (default when draws are stored) or \code{"mode"}
-(ICM / \code{ranef.mode}).  When \code{simulate = FALSE}, \code{"mean"}
+(ICM / \code{groupef.mode}).  When \code{simulate = FALSE}, \code{"mean"}
 falls back to \code{"mode"} with a warning.}
 
 \item{\ldots}{Ignored.}

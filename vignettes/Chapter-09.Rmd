@@ -1,0 +1,208 @@
+---
+title: "Chapter 09: Poisson GLMMs"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 09: Poisson GLMMs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+```{r load-stored}
+ch09 <- readRDS(system.file(
+  "extdata", "Chapter09_airbnb_poisson.rds", package = "lmebayes"
+))
+```
+
+# Chapter 09: Poisson GLMMs
+
+Everything so far has been Gaussian. This chapter switches to counts, which
+changes the sampler substantially even though the interface barely moves:
+replace `lmerb()` with `glmerb()` and add `family = poisson()`.
+
+The data is `airbnb` from **bayesrules** [@JohnsonLauEtAl2022]: listings in
+Chicago neighborhoods, with the number of reviews as the count outcome. The
+fit takes about half a minute because every Block 1 draw runs an envelope
+accept-reject sampler, so it is precomputed by
+`data-raw/make_vignette_outputs.R`.
+
+# What changes for non-Gaussian responses
+
+| | Gaussian | Poisson |
+|---|---|---|
+| Block 1 draw | Conjugate normal, closed form | Envelope accept-reject |
+| Joint posterior | Multivariate normal (when \(\tau^2\) fixed) | Never normal |
+| Exact iid route | Available | Not available |
+| Convergence rate | Certified by theorem | Local-Gaussian heuristic |
+| Pilot stage | Only when \(\tau^2\) sampled | Always |
+
+The last three rows matter. For a Gaussian target the rate \(\lambda^*\)
+of Chapter 06 is a theorem; for a Poisson likelihood it is evaluated at
+IRLS-style curvature weights taken at the posterior mode, which makes it a
+good practical guide rather than a certificate. The engine compensates by
+always running a pilot stage. The distinction is spelled out in
+`vignette("Chapter-B02", package = "lmebayesCore")`, under "Beyond the
+Gaussian case".
+
+Log-concavity is what makes the Block 1 draw possible at all. The Poisson
+log-likelihood with a log link is log-concave in the linear predictor, so
+the likelihood-subgradient envelope of @Nygren2006 is a valid bound and
+accept-reject sampling is exact — not a Metropolis approximation.
+
+# The model
+
+```{r data-code, eval = FALSE}
+data(airbnb, package = "bayesrules")
+ab <- airbnb[, c("neighborhood", "reviews", "rating", "room_type")]
+ab <- ab[complete.cases(ab), ]
+ab$neighborhood <- droplevels(factor(ab$neighborhood))
+ab$rating_c <- ab$rating - mean(ab$rating)
+
+form <- reviews ~ rating_c + (1 + rating_c || neighborhood)
+model_setup(form, data = ab, family = poisson())
+```
+
+```{r design-out, echo = FALSE}
+cat(ch09$design, sep = "\n")
+```
+
+`r ch09$n_obs` listings across `r ch09$n_groups` neighborhoods. Each
+neighborhood gets its own baseline review rate and its own rating effect.
+Rating is centered so the intercept means "log expected reviews for an
+average-rated listing".
+
+Eight neighborhoods are rank-deficient. For a count model that usually
+means too few listings, or no variation in rating among them. They stay in
+the fit and still receive coefficients — with nothing to learn from in the
+deficient direction, they are shrunk to the population value — but they are
+set aside when the level-2 rank condition is checked and when priors are
+calibrated.
+
+# Priors and fitting
+
+```{r fit-code, eval = FALSE}
+ps <- Prior_Setup_GLMM(form, data = ab, family = poisson(), pop.pwt = 0.01)
+
+set.seed(2024)
+fit <- glmerb(
+  form,
+  data         = ab,
+  family       = poisson(),
+  pfamily_list = pfamily_list(ps),
+  n            = 200L,
+  progbar      = FALSE
+)
+fit
+```
+
+```{r fit-out, echo = FALSE}
+cat(ch09$fit_print, sep = "\n")
+```
+
+Two interface differences from `lmerb()`. There is no `dispersion_ranef`
+argument — the Poisson family fixes the dispersion at one, so there is no
+\(\sigma^2\) to specify. And the reference fit is `glmer()` rather than
+`lmer()`, which is what `Prior_Setup_GLMM()` calibrates against.
+
+The column header reads `ICM mode` rather than `fixef.mode`: for a
+non-Gaussian likelihood the pre-sampling point estimate is the posterior
+*mode*, found by iterated conditional modes, and the mode is not the mean.
+That is precisely why a pilot stage is needed — a chain started at the mode
+begins at an unknown positive distance from the target mean, so the
+mean-error term of the convergence bound is no longer zero.
+
+# Interpreting on the count scale
+
+Coefficients are on the log scale, so exponentiate to get rate ratios.
+
+```{r interpret}
+pm <- unlist(ch09$popef_means)
+round(rbind(log_scale = pm, rate_ratio = exp(pm)), 3)
+```
+
+The intercept exponentiates to the expected number of reviews for an
+average-rated listing in an average neighborhood — about
+`r round(exp(unlist(ch09$popef_means)[1]), 0)`. The `rating_c` coefficient
+is a multiplicative effect per unit of rating: each additional rating point
+multiplies expected reviews by roughly
+`r round(exp(unlist(ch09$popef_means)[2]), 2)`.
+
+But look at the posterior standard deviation on that slope — it is nearly
+as large as the coefficient. The population-average rating effect is not
+well determined, and the summary explains why.
+
+# The full summary
+
+```{r summary-code, eval = FALSE}
+summary(fit)
+```
+
+```{r summary-out, echo = FALSE}
+cat(ch09$fit_summary, sep = "\n")
+```
+
+The random-effects standard deviation for `rating_c` is larger than the
+population mean effect itself. Neighborhoods genuinely differ in how rating
+relates to review volume — in some, better-rated listings get many more
+reviews; in others the relationship is flat or reversed. Reporting only the
+population coefficient would describe none of them well. This is the case
+for a random slope rather than a fixed one, and it is visible directly in
+the variance components.
+
+There is no `Residual` row in the dispersion table. Poisson has no free
+dispersion parameter; the variance is determined by the mean. If your
+counts are overdispersed relative to that, the random intercept absorbs
+some of it, but a genuine overdispersion model is outside this package's
+model class.
+
+# Convergence
+
+```{r convergence}
+c(m_convergence = ch09$m_convergence)
+```
+
+`r ch09$m_convergence` sweeps per stored draw, and a pilot stage ran before
+the main chains. Because the rate is heuristic here rather than certified,
+the sensible check is empirical: the sweep history should show the
+cross-chain mean flat and the cross-chain variance settled by the last
+sweep, exactly as in Chapter 06. `fit$sweep_history$main` carries it.
+
+# Cost
+
+The Gaussian fits in earlier chapters took a second or two. This one takes
+about thirty. The difference is entirely Block 1: every group, on every
+sweep, on every chain, runs an envelope construction and an accept-reject
+loop. `fit$groupef.iters` reports how many candidates were needed per
+accepted draw — around eight here, which is normal for a Poisson model and
+means the envelope is doing real work.
+
+Practical consequences: develop with small `n` and raise it for the final
+run; prefer `tv_tol` at its default rather than tightening it (each extra
+sweep is a full pass over all groups and chains); and remember that
+`glmbayes` `Chapter-A10` documents optional OpenCL offload for envelope
+construction, which this package inherits.
+
+# See also
+
+- **Chapter 10** — the binomial case, where the same machinery applies.
+- **Chapter 11** — `simulate = FALSE`, when you only want the mode.
+- `vignette("Chapter-A05", package = "glmbayes")` — likelihood subgradient
+  densities, the basis of the Block 1 draw.
+- `?glmerb`

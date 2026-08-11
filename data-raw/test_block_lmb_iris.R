@@ -8,13 +8,13 @@ data("iris", package = "datasets")
 set.seed(42)
 n_draw <- 50L
 
-ps_block <- Prior_SetupBlock(
+ps_block <- Prior_SetupGroup(
   Sepal.Length ~ Sepal.Width + Petal.Length,
   block = "Species",
   data = iris,
   family = gaussian()
 )
-stopifnot(inherits(ps_block, "block_PriorSetup"), length(ps_block) == 3L)
+stopifnot(inherits(ps_block, "Prior_SetupGroup"), length(ps_block) == 3L)
 
 pfamily_list <- lapply(ps_block, function(ps) {
   dNormal_Gamma(
@@ -40,7 +40,7 @@ stopifnot(nrow(cm) == 3L, ncol(cm) == 3L)
 
 print(out)
 
-# block_rNormalGLM is glmbayesCore-only (not re-exported from lmebayes)
-stopifnot(exists("block_rNormalGLM", where = asNamespace("glmbayesCore")))
+# rNormalGLM_reg_group is glmbayesCore-only (not re-exported from lmebayes)
+stopifnot(exists("rNormalGLM_reg_group", where = asNamespace("glmbayesCore")))
 
 cat("lmbBlock (iris): OK\n")

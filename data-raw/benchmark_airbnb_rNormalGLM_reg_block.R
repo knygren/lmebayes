@@ -1,9 +1,9 @@
-# Benchmark rNormalGLM_reg_block on bayesrules::airbnb (Bayes Rules Ch. 18 style).
+# Benchmark rNormalGLM_reg_group on bayesrules::airbnb (Bayes Rules Ch. 18 style).
 # Listing-level scalar random effects (x_one intercept per listing).
 # For neighborhood-level multivariate coef vectors, see:
-#   benchmark_airbnb_neighborhood_rNormalGLM_reg_block.R
+#   benchmark_airbnb_neighborhood_rNormalGLM_reg_group.R
 #
-# Default: Block 2 uses rNormalGLM_reg_block() (C++ block path). No per-observation
+# Default: Block 2 uses rNormalGLM_reg_group() (C++ block path). No per-observation
 # R loops unless you append `legacy` for cross-checks afterward.
 #
 #   (1) Listing-level two-block Gibbs (population theta ~ rating + room_type).
@@ -11,9 +11,9 @@
 #   (3) LEGACY only with `legacy`: rglmb loop (listing Gibbs) and/or
 #       rNormal_reg loop per neighborhood (grouped check).
 #
-#   Rscript data-raw/benchmark_airbnb_rNormalGLM_reg_block.R
-#   Rscript data-raw/benchmark_airbnb_rNormalGLM_reg_block.R quick
-#   Rscript data-raw/benchmark_airbnb_rNormalGLM_reg_block.R legacy
+#   Rscript data-raw/benchmark_airbnb_rNormalGLM_reg_group.R
+#   Rscript data-raw/benchmark_airbnb_rNormalGLM_reg_group.R quick
+#   Rscript data-raw/benchmark_airbnb_rNormalGLM_reg_group.R legacy
 #
 # Default: n_burn = 200, n_sim = 1000. Append `quick` for smoke test only.
 #
@@ -102,16 +102,16 @@ l2 <- length(y_full)
 l1 <- ncol(X_full)
 k <- nlevels(block_full)
 
-block_info <- glmbayes:::normalize_block(block_full, l2)
-stopifnot(block_info$k == k)
+group_info <- glmbayes:::normalize_group(block_full, l2)
+stopifnot(group_info$k == k)
 
 message("airbnb: n = ", l2, ", neighborhoods k = ", k,
         ", l1 = ", l1, " (", paste(colnames(X_full), collapse = ", "), ")")
-message("listings per neighborhood: min = ", min(block_info$l2_blocks),
-        ", median = ", median(block_info$l2_blocks),
-        ", max = ", max(block_info$l2_blocks))
+message("listings per neighborhood: min = ", min(group_info$l2_blocks),
+        ", median = ", median(group_info$l2_blocks),
+        ", max = ", max(group_info$l2_blocks))
 message("Block Gibbs: n_burn = ", n_burn, ", n_sim = ", n_sim,
-        " (", n_gibbs, " full iterations); Block 2 = rNormalGLM_reg_block")
+        " (", n_gibbs, " full iterations); Block 2 = rNormalGLM_reg_group")
 if (run_quick) {
   message("Quick mode: listing subset pct = ", pct_listings_gibbs)
 }
@@ -135,10 +135,10 @@ prior_template <- list(
 fam <- poisson()
 
 # =============================================================================
-# (1) Listing-level two-block Gibbs — Block 2: rNormalGLM_reg_block
+# (1) Listing-level two-block Gibbs — Block 2: rNormalGLM_reg_group
 # =============================================================================
 
-message("\n========== (1) Listing-level Gibbs (Block 2: rNormalGLM_reg_block) ==========")
+message("\n========== (1) Listing-level Gibbs (Block 2: rNormalGLM_reg_group) ==========")
 
 set.seed(42)
 n_gibbs_idx <- max(50L, round(pct_listings_gibbs * l2))
@@ -213,7 +213,7 @@ run_block_gibbs <- function(store = FALSE, label = "") {
         use_parallel = FALSE,
         verbose = FALSE
       )
-      theta_loc <- rNormalGLM_reg_block_update(
+      theta_loc <- rNormalGLM_reg_group_update(
         mu_all = b1$mu_all,
         sigma_theta_sq = b1$sigma_theta_sq,
         y = y_train,
@@ -254,7 +254,7 @@ run_block_gibbs <- function(store = FALSE, label = "") {
         use_parallel = FALSE,
         verbose = FALSE
       )
-      theta_loc <- rNormalGLM_reg_block_update(
+      theta_loc <- rNormalGLM_reg_group_update(
         mu_all = b1$mu_all,
         sigma_theta_sq = b1$sigma_theta_sq,
         y = y_train,
@@ -327,7 +327,7 @@ benchmark <- list(
   k_neighborhoods = k,
   l1_grouped = l1,
   quick_mode = run_quick,
-  block2_method = "rNormalGLM_reg_block",
+  block2_method = "rNormalGLM_reg_group",
   listing_gibbs = list(
     n_train = n_train,
     p = p,
@@ -359,7 +359,7 @@ if (requireNamespace("coda", quietly = TRUE) && n_sim >= 20L) {
 # (2) Grouped neighborhoods — one Block-2 update (multivariate blocks)
 # =============================================================================
 
-message("\n========== (2) Grouped blocks: one rNormalGLM_reg_block update ==========")
+message("\n========== (2) Grouped blocks: one rNormalGLM_reg_group update ==========")
 message("Started: ", format(Sys.time(), usetz = TRUE))
 
 set.seed(2026)
@@ -367,7 +367,7 @@ n_time_grp <- if (run_quick) 2L else 3L
 time_blk_grp <- numeric(n_time_grp)
 for (t in seq_len(n_time_grp)) {
   time_blk_grp[t] <- system.time({
-    out_grp <- rNormalGLM_reg_block(
+    out_grp <- rNormalGLM_reg_group(
       n = 1L,
       y = y_full,
       x = X_full,
@@ -384,11 +384,11 @@ for (t in seq_len(n_time_grp)) {
   })["elapsed"]
 }
 s_blk_grp <- summ_time(time_blk_grp)
-message("rNormalGLM_reg_block (k = ", k, ", l1 = ", l1, "):")
+message("rNormalGLM_reg_group (k = ", k, ", l1 = ", l1, "):")
 print(round(s_blk_grp, 3))
 
 benchmark$grouped_one_update <- list(
-  timing_seconds = list(rNormalGLM_reg_block = s_blk_grp),
+  timing_seconds = list(rNormalGLM_reg_group = s_blk_grp),
   coef_mode = out_grp$coef.mode
 )
 
@@ -462,7 +462,7 @@ if (run_legacy) {
   time_rglmb2 <- numeric(n_time_b2)
   for (t in seq_len(n_time_b2)) {
     time_blk2[t] <- system.time({
-      rNormalGLM_reg_block_update(
+      rNormalGLM_reg_group_update(
         mu_all = b1_ref$mu_all,
         sigma_theta_sq = b1_ref$sigma_theta_sq,
         y = y_train,
@@ -483,7 +483,7 @@ if (run_legacy) {
   }
   s_blk2 <- summ_time(time_blk2)
   s_rglmb2 <- summ_time(time_rglmb2)
-  message("rNormalGLM_reg_block (one Block-2 step):")
+  message("rNormalGLM_reg_group (one Block-2 step):")
   print(round(s_blk2, 3))
   message("rglmb loop (one Block-2 step):")
   print(round(s_rglmb2, 3))
@@ -495,7 +495,7 @@ if (run_legacy) {
       main = t_sim_l,
       total = t_total_l,
       per_iteration_mean = t_total_l / n_gibbs,
-      block2_only_rNormalGLM_reg_block = s_blk2,
+      block2_only_rNormalGLM_reg_group = s_blk2,
       block2_only_rglmb_loop = s_rglmb2
     ),
     speedup_total_block_vs_legacy = t_total_l / t_total
@@ -505,7 +505,7 @@ if (run_legacy) {
   prior_block <- glmbayes:::normalize_prior_for_blocks(
     prior_list = prior_template,
     prior_lists = NULL,
-    block_info = block_info,
+    group_info = group_info,
     l1 = l1
   )
   time_rnr_grp <- numeric(n_time_grp)
@@ -513,7 +513,7 @@ if (run_legacy) {
     time_rnr_grp[t] <- system.time({
       coef_rnr <- matrix(NA_real_, nrow = k, ncol = l1)
       for (b in seq_len(k)) {
-        rows_b <- block_info$rows[[b]]
+        rows_b <- group_info$rows[[b]]
         out_b <- rNormal_reg(
           n = 1L,
           y = y_full[rows_b],

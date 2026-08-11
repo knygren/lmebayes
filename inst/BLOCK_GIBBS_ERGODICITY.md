@@ -1,7 +1,7 @@
 # Block Gibbs Ergodicity and the Full-Rank Condition
 
 Maintainer note on why `block_prior_setup()`, `block_lmb()`, and
-`block_rNormalGLM()` require each block's design matrix to be **full column
+`rNormalGLM_reg_group()` require each block's design matrix to be **full column
 rank**, and what happens to geometric ergodicity of a coupled block Gibbs chain
 when that condition fails.
 
@@ -256,7 +256,7 @@ X_nbhd <- cbind(
 )
 ```
 
-The simpler `benchmark_airbnb_neighborhood_rNormalGLM_reg_block.R` uses:
+The simpler `benchmark_airbnb_neighborhood_rNormalGLM_reg_group.R` uses:
 
 ```r
 X_hyper <- kronecker(diag(l1), matrix(1, k, 1))

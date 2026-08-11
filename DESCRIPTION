@@ -2,7 +2,7 @@ Package: lmebayes
 Type: Package
 Title: Bayesian Linear Mixed-Effects Models via Two-Block Gibbs Sampling
 Version: 0.1.0
-Date: 2026-06-01
+Date: 2026-08-10
 Authors@R: c(
     person("Kjell", "Nygren", role = c("aut", "cre"),
            email = "kjell.a.nygren@gmail.com"),
@@ -23,7 +23,7 @@ Authors@R: c(
     )
 Description: Provides Bayesian linear and generalized linear mixed-effects
     model fitting with near-independent posterior samples. The main functions
-    mirror lme4's lmer() and glmer() interfaces (X/beta for fixed effects,
+    mirror the 'lme4' lmer() and glmer() interfaces (X/beta for fixed effects,
     Z/b for random effects, D for the random-effects covariance) while adding
     prior family specifications for Gaussian, Poisson, binomial, and Gamma
     models with log-concave likelihoods. Sampling uses efficient two-block
@@ -54,7 +54,10 @@ Suggests:
     glmmTMB,
     LearnBayes,
     testthat (>= 3.0.0),
-    spelling
+    spelling,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
 SystemRequirements: Optional OpenCL support. If available, GPU acceleration will be used; otherwise, computation runs on CPU. 
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

@@ -71,13 +71,13 @@ set.seed(42)
 n_draw <- if (run_quick) 50L else 1000L
 message("Posterior draws per block: n = ", n_draw)
 
-ps_block <- Prior_SetupBlock(
+ps_block <- Prior_SetupGroup(
   form,
   block = "neighborhood",
   data = airbnb_dat,
   family = poisson()
 )
-stopifnot(inherits(ps_block, "block_PriorSetup"), length(ps_block) == k_expected)
+stopifnot(inherits(ps_block, "Prior_SetupGroup"), length(ps_block) == k_expected)
 
 pfamily_list <- lapply(ps_block, function(ps) {
   dNormal(mu = ps$mu, Sigma = ps$Sigma)

@@ -1,0 +1,215 @@
+---
+title: "Chapter 08: Observation dispersion"
+author: "Kjell Nygren"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+bibliography: REFERENCES.bib
+reference-section-title: References
+vignette: >
+  %\VignetteIndexEntry{Chapter 08: Observation dispersion}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(lmebayes)
+```
+
+```{r load-stored}
+ch08 <- readRDS(system.file(
+  "extdata", "Chapter08_group_dispersion.rds", package = "lmebayes"
+))
+```
+
+# Chapter 08: Observation dispersion
+
+Chapter 07 relaxed the assumption that the *between-group* variances
+\(\tau^2_k\) are known. This chapter does the same for the *within-group*
+variance \(\sigma^2\) — the residual scatter of individual observations
+around their group's fitted line.
+
+Three levels of ambition:
+
+| Specification | \(\sigma^2\) | Argument |
+|---|---|---|
+| Fixed scalar | One number, held at the `lmer` estimate | `dispersion_ranef = ps$group.dispersion` |
+| Sampled scalar | One number with a posterior | `dispersion_ranef = dGamma(...)` |
+| Per-group | One \(\sigma^2_j\) per group, each sampled | `dispformula = ~group`, `dGamma_list()` |
+
+The per-group case is the interesting one, and it is what this chapter
+demonstrates. Because it runs an accept-reject dispersion draw for every
+group on every sweep, the fit takes about a minute, so it is precomputed by
+`data-raw/make_vignette_outputs.R` and loaded here.
+
+# The default: one fixed variance
+
+```{r default}
+data(sleepstudy, package = "lme4")
+dat <- sleepstudy
+dat$Days_c <- dat$Days - mean(dat$Days)
+form <- Reaction ~ Days_c + (1 + Days_c || Subject)
+
+ps <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01)
+ps$group.dispersion
+```
+
+One number, `r round(ch08$scalar_dispersion, 1)`, applied to all 180
+observations. It assumes every subject's reaction times scatter by the same
+amount around their own line — which, for a sleep-deprivation study, is
+implausible on its face. Some people get erratic when tired and some do
+not, and that heterogeneity *is* a finding, not a nuisance.
+
+# Per-group dispersion
+
+Ask `Prior_Setup_GLMM()` for a per-group calibration with `dispformula`:
+
+```{r prior-group, eval = FALSE}
+ps_group <- Prior_Setup_GLMM(form, data = dat, pop.pwt = 0.01,
+                             dispformula = ~Subject)
+dl <- dGamma_list(ps_group)
+length(dl)
+dl[[1]]
+```
+
+```{r prior-group-out, echo = FALSE}
+cat(length(ch08$dGamma_list_names), "\n")
+cat(ch08$dGamma_list_first, sep = "\n")
+```
+
+`dGamma_list()` returns one `dGamma` prior per group. Each carries a
+`shape` and `rate` for a Gamma prior on the *precision* \(1/\sigma^2_j\)
+(hence `Inv_Dispersion = TRUE`), plus a truncation window `disp_lower` /
+`disp_upper` calibrated from that group's own data.
+
+The windows differ across groups by more than an order of magnitude,
+because they are quantiles of each group's limiting posterior and the
+subjects genuinely differ. Calling `dGamma_list()` on a `dispformula = ~1`
+setup is an error rather than a silent fallback:
+
+```{r dgamma-error, error = TRUE}
+dGamma_list(ps)
+```
+
+# Fitting
+
+```{r fit-code, eval = FALSE}
+set.seed(2024)
+fit <- lmerb(
+  form, data = dat,
+  pfamily_list     = pfamily_list(ps_group),
+  dispersion_ranef = dl,
+  dispformula      = ~Subject,
+  n                = 200L,
+  progbar          = FALSE
+)
+fit
+```
+
+```{r fit-out, echo = FALSE}
+cat(ch08$fit_print, sep = "\n")
+```
+
+The engine is `two-block Gibbs` with `m_convergence` = `r ch08$m_convergence`.
+Sampling \(\sigma^2\) breaks the joint normality that made the earlier fits
+exact, so sweeps are required — the same mechanism as Chapter 07, applied
+at the observation level instead of the group level.
+
+Note the `Residual` line now reads `NA`: there is no single residual
+standard deviation to report, because there are 18 of them.
+
+# Reading the dispersion
+
+`summary_sigma2()` exists for exactly this case. On a scalar-dispersion fit
+it stops with a message; here it produces a full report.
+
+```{r sigma2-code, eval = FALSE}
+summary_sigma2(fit)
+```
+
+```{r sigma2-out, echo = FALSE}
+cat(ch08$sigma2_summary, sep = "\n")
+```
+
+Three blocks, one per question.
+
+**Prior and reference** lists, per subject, the Gamma prior in use, the
+prior mean, the truncation window, the number of observations, and the
+pooled `lmer` residual variance for comparison. `n_data = 10` everywhere —
+ten observations is very little information about a variance, which is why
+the prior weight matters here more than anywhere else in the package.
+
+**Overview** gives the posterior mean and standard deviation of each
+\(\sigma^2_j\), Monte Carlo error, and `Cand/draw`. That last column is
+accept-reject efficiency: values in the tens or hundreds mean the envelope
+is loose for that group, usually because its posterior sits near a
+truncation boundary.
+
+**Percentiles** shows the spread directly, and the spread is the finding.
+The posterior means run from roughly 80 to 3600 — subject 308's reaction
+times scatter more than an order of magnitude more than subject 309's. A
+single pooled \(\sigma^2\) of `r round(ch08$scalar_dispersion, 0)` splits
+the difference and describes neither.
+
+That heterogeneity also propagates: groups with large \(\sigma^2_j\) carry
+less weight in the population estimate and get shrunk harder toward it,
+which is the statistically correct behaviour and is not something a pooled
+model can express.
+
+# Sampling a single scalar
+
+Between the two extremes there is a middle option: one \(\sigma^2\) shared
+by all groups, but sampled rather than fixed. Pass a single `dGamma()`
+object instead of a list:
+
+```{r scalar-gamma, eval = FALSE}
+fit_scalar_sampled <- lmerb(
+  form, data = dat,
+  pfamily_list     = pfamily_list(ps),
+  dispersion_ranef = dGamma(shape = 2, rate = 2 * ps$group.dispersion,
+                            Inv_Dispersion = TRUE),
+  n = 200L, progbar = FALSE
+)
+```
+
+This is the usual Bayesian treatment of a residual variance, and it is what
+you want when you believe the groups share a scatter but do not want to
+pretend you know its value. It costs sweeps, like any non-Gaussian target,
+but far less than the per-group version.
+
+# Choosing
+
+| Situation | Use |
+|---|---|
+| Many observations per group, homogeneous scatter | Fixed scalar |
+| Few groups, homogeneous scatter, honest intervals wanted | Sampled scalar |
+| Groups visibly differ in residual spread | `dispformula = ~group` with `dGamma_list()` |
+
+Diagnosing which you are in is easy before fitting: compute the residual
+variance per group from an `lmer` fit and look at the ratio of largest to
+smallest. Anything beyond a factor of three or four is worth modeling.
+
+```{r diagnose}
+m <- lme4::lmer(form, data = dat, REML = TRUE)
+v <- tapply(residuals(m), dat$Subject, var)
+round(c(min = min(v), median = median(v), max = max(v),
+        ratio = max(v) / min(v)), 1)
+```
+
+A ratio of that size is not something a single pooled variance can absorb.
+
+# See also
+
+- **Chapter 07** — the same relaxation applied to \(\tau^2_k\).
+- `vignette("Chapter-B07", package = "lmebayesCore")` — the per-group
+  dispersion algebra and the marginal precision blocks.
+- `?dGamma_list`, `?summary_sigma2`

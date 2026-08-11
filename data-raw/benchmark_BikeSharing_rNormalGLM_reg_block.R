@@ -1,11 +1,11 @@
 # Benchmark the BikeSharing two-block Gibbs sampler (Chapter 18 / Ex_09).
 # Block 1: rglmb on population (theta ~ X_train).
-# Block 2: rNormalGLM_reg_block() (new) or per-observation rglmb loop (legacy).
+# Block 2: rNormalGLM_reg_group() (new) or per-observation rglmb loop (legacy).
 #
-#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_block.R
-#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_block.R quick
-#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_block.R legacy
-#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_block.R quick legacy
+#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_group.R
+#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_group.R quick
+#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_group.R legacy
+#   Rscript data-raw/benchmark_BikeSharing_rNormalGLM_reg_group.R quick legacy
 #
 # Default: n_burn = 200, n_sim = 1000 (same as demo("Ex_09_BikeSharingPoisson")).
 # Append `quick` for n_burn = 5, n_sim = 10 (smoke test only).
@@ -236,7 +236,7 @@ run_block_gibbs <- function(store = FALSE, label = "") {
         use_parallel = FALSE,
         verbose = FALSE
       )
-      theta_loc <- rNormalGLM_reg_block_update(
+      theta_loc <- rNormalGLM_reg_group_update(
         mu_all = b1$mu_all,
         sigma_theta_sq = b1$sigma_theta_sq,
         y = y_train,
@@ -316,10 +316,10 @@ run_block_gibbs <- function(store = FALSE, label = "") {
 }
 
 # =============================================================================
-# (1) Full two-block Gibbs — Block 2 via rNormalGLM_reg_block
+# (1) Full two-block Gibbs — Block 2 via rNormalGLM_reg_group
 # =============================================================================
 
-message("\n========== two-block Gibbs (Block 2: rNormalGLM_reg_block) ==========")
+message("\n========== two-block Gibbs (Block 2: rNormalGLM_reg_group) ==========")
 message("Started: ", format(Sys.time(), usetz = TRUE))
 
 set.seed(123)
@@ -350,7 +350,7 @@ mcmc_blk <- summarize_gibbs_coefficients(
   gibbs_blk$beta_out,
   gibbs_blk$sigma_out,
   beta_names,
-  label = "Block 2: rNormalGLM_reg_block"
+  label = "Block 2: rNormalGLM_reg_group"
 )
 cmp_vig <- compare_coefficients_to_vignette(
   gibbs_blk$beta_out,
@@ -371,7 +371,7 @@ benchmark <- list(
     total = t_total,
     per_iteration_mean = t_per_iter
   ),
-  block2_method = "rNormalGLM_reg_block",
+  block2_method = "rNormalGLM_reg_group",
   beta_names = beta_names,
   posterior_mean = colMeans(as.matrix(mcmc_blk)),
   compare_vignette_max_abs_mean_diff = if (!is.null(cmp_vig)) {
@@ -455,7 +455,7 @@ if (run_legacy) {
   time_rglmb <- numeric(n_time)
   for (t in seq_len(n_time)) {
     time_blk[t] <- system.time({
-      rNormalGLM_reg_block_update(
+      rNormalGLM_reg_group_update(
         mu_all = b1_ref$mu_all,
         sigma_theta_sq = b1_ref$sigma_theta_sq,
         y = y_train,
@@ -476,7 +476,7 @@ if (run_legacy) {
   }
   s_blk2 <- summ_time(time_blk)
   s_rglmb2 <- summ_time(time_rglmb)
-  message("rNormalGLM_reg_block (one Block-2 step):")
+  message("rNormalGLM_reg_group (one Block-2 step):")
   print(round(s_blk2, 3))
   message("rglmb loop (one Block-2 step):")
   print(round(s_rglmb2, 3))
@@ -488,7 +488,7 @@ if (run_legacy) {
       main = t_sim_l,
       total = t_total_l,
       per_iteration_mean = t_total_l / n_gibbs,
-      block2_only_rNormalGLM_reg_block = s_blk2,
+      block2_only_rNormalGLM_reg_group = s_blk2,
       block2_only_rglmb_loop = s_rglmb2
     ),
     speedup_total_block_vs_legacy = t_total_l / t_total

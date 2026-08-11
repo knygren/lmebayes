@@ -102,9 +102,9 @@ test_that("lmerb accepts a fixed named numeric vector for dispersion_ranef (fixe
 
   expect_identical(fit$prior$dispersion_mode, "fixed_vector")
   expect_null(fit$dispersion_fit)
-  expect_named(fit$sigma2, grp_levels)
-  expect_equal(as.numeric(fit$sigma2), as.numeric(disp_vec[grp_levels]))
-  expect_identical(fit$sigma2, fit$sigma2.mean)
+  expect_named(fit$group.dispersion, grp_levels)
+  expect_equal(as.numeric(fit$group.dispersion), as.numeric(disp_vec[grp_levels]))
+  expect_identical(fit$group.dispersion, fit$group.dispersion.mean)
 
   summ <- summary_sigma2(fit)
   expect_s3_class(summ, "summary.sigma2.lmerb")
@@ -196,6 +196,6 @@ test_that("glmerb(family = gaussian()) matches lmerb() for fixed_vector dispersi
 
   expect_identical(fit_glm$prior$dispersion_mode, "fixed_vector")
   expect_null(fit_glm$dispersion_fit)
-  expect_named(fit_glm$sigma2, grp_levels)
-  expect_equal(as.numeric(fit_glm$sigma2), as.numeric(disp_vec[grp_levels]))
+  expect_named(fit_glm$group.dispersion, grp_levels)
+  expect_equal(as.numeric(fit_glm$group.dispersion), as.numeric(disp_vec[grp_levels]))
 })

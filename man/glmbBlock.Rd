@@ -39,7 +39,7 @@ glmbBlock(
 
 \item{block}{Block partition: \code{factor} or vector of length \code{nrow(data)}
 (after \code{model.frame}), a column name in \code{data}, \code{l2_blocks}
-counts, or a list of row index vectors (see \code{\link[lmebayesCore]{normalize_block}}).}
+counts, or a list of row index vectors (see \code{\link[lmebayesCore]{normalize_group}}).}
 
 \item{family}{a description of the error distribution and link
     function to be used in the model.  For \code{glm} this can be a
@@ -112,7 +112,7 @@ A named list of class \code{"bglmb"} (list of \code{"glmb"} fits from \strong{gl
 Fits one \code{\link[glmbayes]{glmb}} per observation block. Same row partition as
 \code{\link{lmbBlock}}, but supports GLM \code{\link{family}} objects.
 Counterpart to \code{\link{lmbBlock}}; see \code{\link{summary.bglmb}} for
-the summary method and \code{\link[lmebayesCore]{block_rNormalGLM}} for Gibbs sampling.
+the summary method and \code{\link[lmebayesCore]{rNormalGLM_reg_group}} for Gibbs sampling.
 }
 \section{Functions}{
 \itemize{

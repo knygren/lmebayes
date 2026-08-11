@@ -7,8 +7,10 @@
 rlmerb(
   n,
   design,
-  prior,
-  group.dispersion,
+  pfamily_list,
+  dispprior_list,
+  offset = NULL,
+  weights = 1,
   tv_tol = 0.01,
   progbar = TRUE,
   verbose = TRUE,
@@ -16,92 +18,284 @@ rlmerb(
   gap_tol = 0.0196,
   mode_gap_max = 1,
   diag_sweeps = FALSE,
-  sim_method = "DEFAULT"
+  sim_method = "DEFAULT",
+  simulate = TRUE
 )
 }
 \arguments{
 \item{n}{Integer. Number of stored draws (each draw is one full pass through
-\code{m_convergence} inner Gibbs sweeps).}
+\code{m_convergence} inner Gibbs sweeps). Required when
+\code{simulate = TRUE}; ignored when \code{simulate = FALSE}.}
 
 \item{design}{A \code{model_setup} object (from \code{\link[lmebayesCore]{model_setup}})
 supplying \code{y}, \code{D}, \code{group}, \code{W},
 \code{group_name}, and \code{groupef.names}.}
 
-\item{prior}{Normalized prior container with \code{group.Sigma},
-\code{pop.prior_list}, and related Block~2 fields (typically from
-\code{pfamily_list} and \code{group.dispersion} via
-\code{\link[lmebayesCore]{Prior_Setup_GLMM}} or an \code{lmerb()} workflow in
-lmebayes).}
+\item{pfamily_list}{Named list of Block~2 \code{pfamily} objects, one per
+random-effect coefficient in \code{design$groupef.names} (same as
+\code{\link[lmebayesCore]{rLMMNormal_reg}}).}
 
-\item{group.dispersion}{Required observation-level dispersion: a positive
-scalar \eqn{\sigma^2} (fixed) or a \code{\link[glmbayesCore]{dGamma}()} pfamily with
-\code{Inv_Dispersion = TRUE} for a Gamma prior on \eqn{\sigma^2}.}
+\item{dispprior_list}{Block~1 observation-dispersion prior, in the same
+shapes accepted by the \code{rLMM*} engines: \code{list(dispersion = )}
+for fixed \eqn{\sigma^2} (scalar or per-group vector); a
+\code{\link[glmbayesCore]{dGamma}()} pfamily (pooled ING); or a named
+list of \code{dGamma()} pfamilies (per-group ING). A bare positive
+numeric scalar/vector is also accepted (treated as fixed dispersion).}
+
+\item{offset, weights}{Observation offset and prior weights, as in
+\code{\link[lmebayesCore]{rLMMNormal_reg}} (\code{offset = NULL}, \code{weights = 1}).
+When omitted, inherit \code{design$offset} / \code{design$weights} from
+\code{\link[lmebayesCore]{model_setup}} if present. Explicit values always override
+the design. Echoed on the fit as \code{prior.weights} / \code{offset} /
+\code{offset2}; not yet used in Gibbs sweeps.}
 
 \item{tv_tol}{Single numeric in \code{(0, 1)}. Total variation tolerance
 used for convergence calibration. Default \code{0.01}.
-Inner Gibbs sweeps per stored draw are derived from Theorem~3.}
+Inner Gibbs sweeps per stored draw are derived from Theorem~3.
+Ignored when \code{simulate = FALSE}.}
 
 \item{progbar}{Logical. Show a text progress bar during sampling.
-Default \code{TRUE}.}
+Default \code{TRUE}. Ignored when \code{simulate = FALSE}.}
 
 \item{verbose}{Logical. Print the reference-vs-ICM table and the convergence
 calibration line. Default \code{TRUE}.}
 
 \item{print_icm_table}{Logical. When \code{FALSE}, skip the reference-vs-ICM
-table. The convergence calibration line from the Core engine still follows
+table. The convergence calibration line from the Core sampler still follows
 \code{verbose}. Default \code{TRUE}.}
 
 \item{gap_tol}{Legacy mode--mean gap tolerance for the pilot stage when
-any Block~2 component uses \code{dIndependent_Normal_Gamma} and
-\code{tv_tol} is \code{NULL}. Ignored for all-\code{dNormal} models.}
+any population component uses \code{dIndependent_Normal_Gamma} and
+\code{tv_tol} is \code{NULL}. Ignored for all-\code{dNormal} models.
+Ignored when \code{simulate = FALSE}.}
 
-\item{mode_gap_max}{Pilot inner-sweep calibration for ING Block~2 models
-(default \code{1.0}). Ignored for all-\code{dNormal} models.}
+\item{mode_gap_max}{Pilot inner-sweep calibration for ING population models
+(default \code{1.0}). Ignored for all-\code{dNormal} models.
+Ignored when \code{simulate = FALSE}.}
 
-\item{diag_sweeps}{Diagnostic flag for ING Block~2 models with a pilot stage.
-When \code{TRUE}, auto-print one combined Block~2 chain-mean table per
+\item{diag_sweeps}{Diagnostic flag for ING population models with a pilot stage.
+When \code{TRUE}, auto-print one combined population chain-mean table per
 stage when each stage finishes; \code{sweep_history} is always stored on
-the fit. Default \code{FALSE}.}
+the fit. Default \code{FALSE}. Ignored when \code{simulate = FALSE}.}
 
-\item{sim_method}{Sampling engine: \code{"DEFAULT"} or
+\item{sim_method}{Simulation method: \code{"DEFAULT"} or
 \code{"TWO_BLOCK_GIBBS"}. Only affects the fixed-dispersion,
 known-variance-components route (scalar or per-group fixed
-\code{group.dispersion}, all Block~2 \code{dNormal()}): \code{"DEFAULT"}
+\code{dispprior_list}, all population \code{dNormal()}): \code{"DEFAULT"}
 draws directly from the exact multivariate-normal posterior via
 \code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov_iid}} (no Gibbs sweeps, no
-burn-in); \code{"TWO_BLOCK_GIBBS"} forces the two-block Gibbs engine
+burn-in); \code{"TWO_BLOCK_GIBBS"} forces two-block Gibbs sampling
 (\code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov_two_bg}}) instead. Every other
 route (\code{dGamma()}/\code{dIndependent_Normal_Gamma} components,
-variance components estimated) only has a two-block Gibbs engine, so
-both values behave identically there.}
+variance components estimated) only supports two-block Gibbs, so both
+values behave identically there. Ignored when \code{simulate = FALSE}.}
+
+\item{simulate}{Logical (default \code{TRUE}). When \code{TRUE}, draw
+posterior samples. When \code{FALSE}, return point estimates only via
+\code{\link[lmebayesCore]{rlmerb_point}} (no MCMC).}
 }
 \value{
-An object of class \code{c("rlmerb", "list")} with Block~2 fields in
-the \code{fixef.*} namespace, Block~1 draws in \code{coefficients},
-\code{ranef.mode}, \code{sigma2} (scalar when \eqn{\sigma^2} is fixed,
-length-\code{n} vector when \code{group.dispersion} is \code{dGamma()}),
-\code{sigma2.mean}, \code{m_convergence}, \code{convergence},
-\code{sim_method_used} (\code{"DEFAULT"} or \code{"TWO_BLOCK_GIBBS"},
-whichever engine actually ran), \code{Prior}, and \code{design}.
+An object of class \code{c("rlmerb", "list")}. Each draw slot holds
+one row (or one value) per replicate chain, taken at that chain's final
+sweep; see the "What the returned draws are" section above.
+
+\strong{Population level} (\eqn{\gamma}, the analogue of \pkg{lme4}
+fixed effects):
+\describe{
+\item{\code{popef}}{Named list, one entry per random-effect
+coefficient. Entry \eqn{k} is an \code{n} \eqn{\times q_k} matrix of
+draws, columns named by \code{colnames(design$W[[k]])}.}
+\item{\code{popef.means}, \code{popef.mode}}{Named lists in the same
+shape: the mean of the draws, and the posterior mode used to start
+every chain. \code{popef.init} records the starting values.}
+}
+
+\strong{Group level} (\eqn{\beta_j}, one vector per group):
+\describe{
+\item{\code{groupef}}{Data frame in long format with
+\code{n} \eqn{\times J} rows: a \code{draw} index, a column named
+for the grouping factor, then one column per random-effect
+coefficient. These are full coefficients, comparable to
+\code{lme4::coef()}, not mean-zero deviations.}
+\item{\code{groupef.mode}}{\eqn{J \times p_{re}} matrix of posterior
+modes, rows named by group level.}
+}
+
+\strong{Variance components}:
+\describe{
+\item{\code{popef.dispersion}}{\code{n} \eqn{\times p_{re}} matrix of
+between-group variance draws \eqn{\tau^2_k}. Constant down a column
+for a \code{dNormal} component (the value was treated as known);
+varying for an \code{dIndependent_Normal_Gamma} component.
+\code{popef.dispersion.mean} is the column mean.}
+\item{\code{group.dispersion}}{Residual variance \eqn{\sigma^2}: a
+fixed scalar or per-group vector, or draws when a \code{dGamma}
+measurement prior was used. \code{group.dispersion.mean} is the
+corresponding mean.}
+}
+
+\strong{Convergence reporting}:
+\describe{
+\item{\code{m_convergence}}{Integer sweeps run per chain; \code{1} on
+the exact route.}
+\item{\code{convergence_info}}{List with \code{method}
+(\code{"exact_iid"} when the draws are exact), \code{lambda_star}
+and \code{eigenvalues} (the contraction rate behind the sweep
+count), \code{draw_engine}, \code{sim_method_used}, and
+\code{icm_info} for the mode solve. \code{convergence} is the same
+list.}
+}
+
+\strong{Inputs echoed back}: \code{design}, \code{family}, \code{n},
+\code{call}, \code{pfamily_list}, \code{dispprior_list},
+\code{prior.weights}, \code{offset}, plus the packed \code{prior} and
+thin \code{Prior} summaries.
+
+When \code{simulate = FALSE}, every draw and convergence slot is
+\code{NULL} and only the mode fields are populated.
 }
 \description{
-Bayesian linear mixed-effects model sampler (two-block Gibbs engine)
+\code{rlmerb} draws from the posterior of a Bayesian linear mixed model
+with a single grouping factor and uncorrelated random effects, given a
+design from \code{\link[lmebayesCore]{model_setup}} and priors for the population level
+(\code{pfamily_list}) and the residual variance (\code{dispprior_list}).
 }
 \details{
-Matrix-level sampling engine for Gaussian linear mixed models, parallel to
-\code{\link[glmbayesCore]{rlmb}} and \code{\link[lmebayesCore]{rglmerb}}. Takes structured \code{design}
-and \code{prior} objects, computes the ICM posterior mean internally, and
-delegates replicate-chain sampling to
-\code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}},
-\code{\link[lmebayesCore]{rLMMNormal_reg_estimated_vcov}},
-\code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_known_vcov}}, or
-\code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}} according to
-\code{group.dispersion} and Block~2 \code{pfamily_list}.
+The returned sample is \code{n} mutually independent draws --- one per
+replicate chain, taken at that chain's final sweep, where the number of
+sweeps is calibrated in advance so the final sweep is within
+\code{tv_tol} of the target posterior. It is therefore analyzed like an
+iid sample rather than like an MCMC trace.
 
-For formula-level fitting, \code{lmerb()} in the lmebayes package wraps this sampler.
+This is the matrix-level interface. For a formula interface, use
+\code{lmerb()} in \pkg{lmebayes}. The Poisson/binomial/Gamma counterpart
+is \code{\link[lmebayesCore]{rglmerb}}, and the non-hierarchical analogue is
+\code{\link[glmbayesCore]{rlmb}}.
+\subsection{The model being estimated}{
+
+\code{rlmerb} estimates the two-stage Gaussian mixed model in a
+\emph{centered} (Lindley--Smith) parameterization
+(Lindley and Smith 1972). For group
+\eqn{j = 1, \dots, J}:
+\deqn{y_j \mid \beta_j, \sigma^2_j \sim N(D_j \beta_j,\; \sigma^2_j I_{n_j})
+  \qquad \textrm{(within group)}}
+\deqn{\beta_j \mid \gamma, \Psi \sim N(\mathcal{W}_j \gamma,\; \Psi)
+  \qquad \textrm{(across groups)}}
+
+Read the second line as the model for how groups differ: each group's own
+coefficient vector \eqn{\beta_j} is drawn around a population expectation
+\eqn{\mathcal{W}_j\gamma}, with \eqn{\Psi} measuring how far groups
+scatter from it. The estimand is therefore the pair
+\eqn{(\gamma, \Psi)} at the population level together with all \eqn{J}
+group vectors \eqn{\beta_j}, and \eqn{\sigma^2} for the residual scale.
+
+What distinguishes this from the \pkg{lme4} presentation is that the
+\emph{full} coefficient \eqn{\beta_j} appears in the likelihood, not a
+mean-zero deviation. Marginalizing recovers the familiar form with
+\eqn{X_j = D_j\mathcal{W}_j}, \eqn{Z_j = D_j}, and
+\eqn{b_j = \beta_j - \mathcal{W}_j\gamma}, so \eqn{\gamma} corresponds to
+\pkg{lme4}'s fixed effects and \eqn{b_j} to its random effects. The
+practical consequence is that \code{groupef} holds \eqn{\beta_j} directly
+(comparable to \code{lme4::coef()}), not \eqn{b_j}.
+
+\eqn{\Psi} is diagonal, \eqn{\Psi = \mathrm{diag}(\tau^2_1, \ldots,
+\tau^2_{p_{re}})}, because \code{\link[lmebayesCore]{model_setup}} accepts only
+uncorrelated (\code{||}) random-effect terms and a single grouping factor.
+There is no random-effect correlation parameter to estimate.
+}
+
+\subsection{What you supply}{
+
+Three arguments carry the statistical content; the rest are controls.
+
+\describe{
+\item{\code{design}}{A \code{\link[lmebayesCore]{model_setup}} object, which fixes
+\eqn{y}, \eqn{D_j}, the grouping factor, and the level-2 design
+\eqn{\mathcal{W}_j}. It also reports whether the data can identify
+the model at all; see
+\code{vignette("Chapter-B08", package = "lmebayesCore")}.}
+\item{\code{pfamily_list}}{The prior on the population level, one
+component per random-effect coefficient. This is where you declare
+whether the between-group variance \eqn{\tau^2_k} is
+\strong{known} (\code{dNormal}, treating the supplied dispersion as
+fixed) or \strong{estimated} (\code{dIndependent_Normal_Gamma},
+placing a Gamma prior on the precision \eqn{1/\tau^2_k}).}
+\item{\code{dispprior_list}}{The prior on the residual variance
+\eqn{\sigma^2}: a fixed value (scalar, or one per group), a single
+\code{\link[glmbayesCore]{dGamma}()} to estimate one pooled
+\eqn{\sigma^2}, or a named list of \code{dGamma()} objects to estimate
+a separate \eqn{\sigma^2_j} per group.}
+}
+
+Both priors are normally produced from one
+\code{\link[lmebayesCore]{Prior_Setup_GLMM}} object, via \code{\link[lmebayesCore]{pfamily_list}()}
+and either \code{ps$group.dispersion} or \code{\link[lmebayesCore]{dGamma_list}(ps)}.
+
+Those two choices are also what determine which internal engine runs.
+You never name an engine; it follows from the priors. The statistically
+meaningful consequence is that when \eqn{\sigma^2} is fixed and every
+component is \code{dNormal}, the posterior is exactly multivariate
+normal and can be sampled directly; every other combination requires
+iterative sampling. See
+\code{vignette("Chapter-B01", package = "lmebayesCore")} for the full
+mapping and \code{vignette("Chapter-B04", package = "lmebayesCore")}
+for the exact route.
+}
+
+\subsection{What the returned draws are}{
+
+This is the part most likely to differ from other samplers, and it
+governs how the output should be analyzed.
+
+\code{rlmerb} runs \code{n} \strong{independent replicate chains} and
+keeps \strong{one draw from each} --- the state after that chain's final
+sweep. It does not run one long chain and thin it. Two consequences:
+
+\enumerate{
+\item \strong{The \code{n} draws are mutually independent.} They are a
+genuine iid sample, not an autocorrelated series. Ordinary Monte Carlo
+standard errors apply directly; there is no effective sample size to
+compute, nothing to thin, and no trace plot or \eqn{\hat R} to
+inspect on the returned sample.
+\item \strong{Each draw comes from a distribution deliberately made
+close to the target.} The sweep count \code{m_convergence} is not a
+burn-in guess. It is calibrated \emph{before} sampling so that the
+distribution reached at the final sweep is within \code{tv_tol} of the
+exact posterior in total variation. \code{tv_tol} is a per-draw
+guarantee, and it is reported on the fit.
+}
+
+So \code{n} and \code{tv_tol} control different errors and can be set
+independently: \code{n} controls Monte Carlo noise, \code{tv_tol} controls
+the residual bias of each draw. To certify the whole \code{n}-draw sample
+jointly at level \eqn{\alpha}, pass \code{tv_tol = alpha / n}; because
+cost grows only logarithmically in \eqn{1/}\code{tv_tol}, this typically
+adds a few sweeps.
+
+In the exactly-Gaussian case (fixed \eqn{\sigma^2}, all \code{dNormal})
+the draws are exact rather than approximate: \code{m_convergence} is
+\code{1} and no approximation is involved.
+
+How \code{m_convergence} is derived, and what to do when a warning
+reports strong cross-block coupling, is covered in
+\code{vignette("Chapter-B02", package = "lmebayesCore")} and
+\code{vignette("Chapter-B03", package = "lmebayesCore")}.
+}
+
+\subsection{Point estimates without sampling}{
+
+\code{simulate = FALSE} returns only the posterior mean of
+\eqn{(\gamma, \beta)} at fixed variance-component plug-ins, computed by
+iterated conditional modes. No sweeps run and no RNG is consumed, so the
+result is deterministic and fast --- useful when iterating on model
+specification. All draw and convergence slots are \code{NULL}. This same
+quantity is where the replicate chains start when \code{simulate = TRUE},
+which is why it is always computed.
+}
 }
 \seealso{
-\code{\link[lmebayesCore]{rglmerb}}, \code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}},
+\code{\link[lmebayesCore]{rglmerb}}, \code{\link[lmebayesCore]{rlmerb_point}},
+\code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}},
 \code{\link[lmebayesCore]{rLMMNormal_reg_estimated_vcov}},
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_known_vcov}},
 \code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}},
