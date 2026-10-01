@@ -1,4 +1,5 @@
 ## Conditionally independent block Gaussian draw (3 school groups)
+## Sampler: glmbayesCore::rNormal_reg_group (same API as row-block Gibbs helpers)
 
 set.seed(42)
 
@@ -21,7 +22,7 @@ prior_list <- list(
   ddef       = FALSE
 )
 
-out <- lmebayesCore::rNormal_reg_group(
+out <- glmbayesCore::rNormal_reg_group(
   n          = 1L,
   y          = y,
   x          = x,

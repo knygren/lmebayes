@@ -255,7 +255,7 @@ sweep. It does not run one long chain and thin it. Two consequences:
 \item \strong{The \code{n} draws are mutually independent.} They are a
 genuine iid sample, not an autocorrelated series. Ordinary Monte Carlo
 standard errors apply directly; there is no effective sample size to
-compute, nothing to thin, and no trace plot or \eqn{\hat R} to
+compute, nothing to thin, and no trace plot or \eqn{\hat{R}}{R-hat} to
 inspect on the returned sample.
 \item \strong{Each draw comes from a distribution deliberately made
 close to the target.} The sweep count \code{m_convergence} is not a

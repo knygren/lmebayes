@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Kjell Nygren" />
+
+<meta name="date" content="2026-09-05" />
+
+<title>Chapter 09: Poisson GLMMs</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Chapter 09: Poisson GLMMs</h1>
+<h4 class="author">Kjell Nygren</h4>
+<h4 class="date">2026-09-05</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#chapter-09-poisson-glmms" id="toc-chapter-09-poisson-glmms"><span class="toc-section-number">1</span> Chapter 09: Poisson GLMMs</a></li>
+<li><a href="#what-changes-for-non-gaussian-responses" id="toc-what-changes-for-non-gaussian-responses"><span class="toc-section-number">2</span> What changes for non-Gaussian
+responses</a></li>
+<li><a href="#the-model" id="toc-the-model"><span class="toc-section-number">3</span> The model</a></li>
+<li><a href="#priors-and-fitting" id="toc-priors-and-fitting"><span class="toc-section-number">4</span> Priors and fitting</a></li>
+<li><a href="#interpreting-on-the-count-scale" id="toc-interpreting-on-the-count-scale"><span class="toc-section-number">5</span> Interpreting on the count
+scale</a></li>
+<li><a href="#the-full-summary" id="toc-the-full-summary"><span class="toc-section-number">6</span> The full summary</a></li>
+<li><a href="#convergence" id="toc-convergence"><span class="toc-section-number">7</span> Convergence</a></li>
+<li><a href="#cost" id="toc-cost"><span class="toc-section-number">8</span> Cost</a></li>
+<li><a href="#see-also" id="toc-see-also"><span class="toc-section-number">9</span> See also</a></li>
+<li><a href="#bibliography" id="toc-bibliography">References</a></li>
+</ul>
+</div>
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(lmebayes)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="co">#&gt; Loading required package: MASS</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt; Registered S3 methods overwritten by &#39;glmbayes&#39;:</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt;   method                   from        </span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt;   formula.summary.rglmb    glmbayesCore</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt;   print.PriorSetup         glmbayesCore</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt;   print.diagnose_glmbayes  glmbayesCore</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt;   print.glmbfamfunc        glmbayesCore</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt;   print.pfamily            glmbayesCore</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co">#&gt;   print.rGamma_reg         glmbayesCore</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="co">#&gt;   print.rglmb              glmbayesCore</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="co">#&gt;   print.rlmb               glmbayesCore</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="co">#&gt;   print.simfunction        glmbayesCore</span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="co">#&gt;   print.summary.rGamma_reg glmbayesCore</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="co">#&gt;   print.summary.rglmb      glmbayesCore</span></span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a><span class="co">#&gt;   residuals.rglmb          glmbayesCore</span></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="co">#&gt;   residuals.rlmb           glmbayesCore</span></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="co">#&gt;   residuals.summary.rglmb  glmbayesCore</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="co">#&gt;   summary.rGamma_reg       glmbayesCore</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="co">#&gt;   summary.rglmb            glmbayesCore</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="co">#&gt;   summary.rlmb             glmbayesCore</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>ch09 <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">system.file</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;Chapter09_airbnb_poisson.rds&quot;</span>, <span class="at">package =</span> <span class="st">&quot;lmebayes&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>))</span></code></pre></div>
+<div id="chapter-09-poisson-glmms" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Chapter 09: Poisson
+GLMMs</h1>
+<p>Everything so far has been Gaussian. This chapter switches to counts,
+which changes the sampler substantially even though the interface barely
+moves: replace <code>lmerb()</code> with <code>glmerb()</code> and add
+<code>family = poisson()</code>.</p>
+<p>The data is <code>airbnb</code> from <strong>bayesrules</strong>
+<span class="citation">(Johnson et al. 2022)</span>: listings in Chicago
+neighborhoods, with the number of reviews as the count outcome. The fit
+takes about half a minute because every Block 1 draw runs an envelope
+accept-reject sampler, so it is precomputed by
+<code>data-raw/make_vignette_outputs.R</code>.</p>
+</div>
+<div id="what-changes-for-non-gaussian-responses" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> What changes for
+non-Gaussian responses</h1>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Gaussian</th>
+<th>Poisson</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Block 1 draw</td>
+<td>Conjugate normal, closed form</td>
+<td>Envelope accept-reject</td>
+</tr>
+<tr class="even">
+<td>Joint posterior</td>
+<td>Multivariate normal (when <span class="math inline">\(\tau^2\)</span> fixed)</td>
+<td>Never normal</td>
+</tr>
+<tr class="odd">
+<td>Exact iid route</td>
+<td>Available</td>
+<td>Not available</td>
+</tr>
+<tr class="even">
+<td>Convergence rate</td>
+<td>Certified by theorem</td>
+<td>Local-Gaussian heuristic</td>
+</tr>
+<tr class="odd">
+<td>Pilot stage</td>
+<td>Only when <span class="math inline">\(\tau^2\)</span> sampled</td>
+<td>Always</td>
+</tr>
+</tbody>
+</table>
+<p>The last three rows matter. For a Gaussian target the rate <span class="math inline">\(\lambda^*\)</span> of Chapter 06 is a theorem; for
+a Poisson likelihood it is evaluated at IRLS-style curvature weights
+taken at the posterior mode, which makes it a good practical guide
+rather than a certificate. The engine compensates by always running a
+pilot stage. The distinction is spelled out in
+<code>vignette(&quot;Chapter-B02&quot;, package = &quot;lmebayesCore&quot;)</code>, under
+“Beyond the Gaussian case”.</p>
+<p>Log-concavity is what makes the Block 1 draw possible at all. The
+Poisson log-likelihood with a log link is log-concave in the linear
+predictor, so the likelihood-subgradient envelope of <span class="citation">Nygren and Nygren (2006)</span> is a valid bound and
+accept-reject sampling is exact — not a Metropolis approximation.</p>
+</div>
+<div id="the-model" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> The model</h1>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">data</span>(airbnb, <span class="at">package =</span> <span class="st">&quot;bayesrules&quot;</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>ab <span class="ot">&lt;-</span> airbnb[, <span class="fu">c</span>(<span class="st">&quot;neighborhood&quot;</span>, <span class="st">&quot;reviews&quot;</span>, <span class="st">&quot;rating&quot;</span>, <span class="st">&quot;room_type&quot;</span>)]</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>ab <span class="ot">&lt;-</span> ab[<span class="fu">complete.cases</span>(ab), ]</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>ab<span class="sc">$</span>neighborhood <span class="ot">&lt;-</span> <span class="fu">droplevels</span>(<span class="fu">factor</span>(ab<span class="sc">$</span>neighborhood))</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>ab<span class="sc">$</span>rating_c <span class="ot">&lt;-</span> ab<span class="sc">$</span>rating <span class="sc">-</span> <span class="fu">mean</span>(ab<span class="sc">$</span>rating)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>form <span class="ot">&lt;-</span> reviews <span class="sc">~</span> rating_c <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">+</span> rating_c <span class="sc">||</span> neighborhood)</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">model_setup</span>(form, <span class="at">data =</span> ab, <span class="at">family =</span> <span class="fu">poisson</span>())</span></code></pre></div>
+<pre><code>#&gt; Call:
+#&gt;   model_setup(formula = form, data = ab, family = poisson())
+#&gt; --- Level 1 (Within-Group) ---
+#&gt;   reviews ~ (Intercept) + rating_c
+#&gt;   Observations             : 1561
+#&gt;   Group-effect coefficients: 2
+#&gt;   Group                    : neighborhood  [43 levels]
+#&gt;   Full-rank D_j: 35 of 43 groups
+#&gt;     rank-deficient: Beverly, Brighton Park, Burnside, Edison Park, Englewood, O&#39;Hare, West Englewood, West Lawn
+#&gt;   Full-rank &amp; estimable: 35 of 35 full-rank (35 of 43 total neighborhood)
+#&gt; --- Level 2 (Across-Group) ---
+#&gt;   (Intercept) ~ 1
+#&gt;   rating_c    ~ 1
+#&gt; --- Level 2 Rank ---
+#&gt;   (Restricted to 35 estimable neighborhood)
+#&gt;   (Intercept)  groups=35   predictors=1   full-rank
+#&gt;   rating_c     groups=35   predictors=1   full-rank
+#&gt;   Rank-deficient flags:
+#&gt;     (Intercept)  FALSE
+#&gt;     rating_c     FALSE
+#&gt;   popef.rank_ok: TRUE  -- model rank looks OK</code></pre>
+<p>1561 listings across 43 neighborhoods. Each neighborhood gets its own
+baseline review rate and its own rating effect. Rating is centered so
+the intercept means “log expected reviews for an average-rated
+listing”.</p>
+<p>Eight neighborhoods are rank-deficient. For a count model that
+usually means too few listings, or no variation in rating among them.
+They stay in the fit and still receive coefficients — with nothing to
+learn from in the deficient direction, they are shrunk to the population
+value — but they are set aside when the level-2 rank condition is
+checked and when priors are calibrated.</p>
+</div>
+<div id="priors-and-fitting" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Priors and fitting</h1>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>ps <span class="ot">&lt;-</span> <span class="fu">Prior_Setup_GLMM</span>(form, <span class="at">data =</span> ab, <span class="at">family =</span> <span class="fu">poisson</span>(), <span class="at">pop.pwt =</span> <span class="fl">0.01</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2024</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">glmerb</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  form,</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="at">data         =</span> ab,</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">family       =</span> <span class="fu">poisson</span>(),</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>  <span class="at">pfamily_list =</span> <span class="fu">pfamily_list</span>(ps),</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  <span class="at">n            =</span> <span class="dv">200</span><span class="dt">L</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  <span class="at">progbar      =</span> <span class="cn">FALSE</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>)</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>fit</span></code></pre></div>
+<pre><code>#&gt; Call:
+#&gt;   glmerb(formula = form, data = ab, family = poisson(), pfamily_list = pfamily_list(ps), 
+#&gt;     n = 200L, progbar = FALSE)
+#&gt; Bayesian generalized linear mixed model  [poisson; 200 draws, two-block Gibbs]
+#&gt; Formula: reviews ~ rating_c + (1 + rating_c || neighborhood) 
+#&gt; Random effects (variance components fixed at glmer estimates):
+#&gt;  Groups         Name        Std.Dev.
+#&gt;  neighborhood   (Intercept) 0.5135  
+#&gt;  neighborhood.1 rating_c    1.2326  
+#&gt; Number of obs: 1561,  groups: neighborhood, 43
+#&gt; --- Block 2 hyperparameters (ICM posterior mode; MCMC means when simulated) ---
+#&gt;   RE component  parameter        ICM mode   popef.means    draws SD
+#&gt;   ------------  -----------  ------------  ------------  ----------
+#&gt;   (Intercept)   (Intercept)        3.1713        3.1595      0.0864
+#&gt;   rating_c      (Intercept)        0.2312        0.2597      0.1927</code></pre>
+<p>Two interface differences from <code>lmerb()</code>. There is no
+<code>dispersion_ranef</code> argument — the Poisson family fixes the
+dispersion at one, so there is no <span class="math inline">\(\sigma^2\)</span> to specify. And the reference
+fit is <code>glmer()</code> rather than <code>lmer()</code>, which is
+what <code>Prior_Setup_GLMM()</code> calibrates against.</p>
+<p>The column header reads <code>ICM mode</code> rather than
+<code>fixef.mode</code>: for a non-Gaussian likelihood the pre-sampling
+point estimate is the posterior <em>mode</em>, found by iterated
+conditional modes, and the mode is not the mean. That is precisely why a
+pilot stage is needed — a chain started at the mode begins at an unknown
+positive distance from the target mean, so the mean-error term of the
+convergence bound is no longer zero.</p>
+</div>
+<div id="interpreting-on-the-count-scale" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Interpreting on the
+count scale</h1>
+<p>Coefficients are on the log scale, so exponentiate to get rate
+ratios.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>pm <span class="ot">&lt;-</span> <span class="fu">unlist</span>(ch09<span class="sc">$</span>popef_means)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">round</span>(<span class="fu">rbind</span>(<span class="at">log_scale =</span> pm, <span class="at">rate_ratio =</span> <span class="fu">exp</span>(pm)), <span class="dv">3</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt;            (Intercept).(Intercept) rating_c.(Intercept)</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; log_scale                     3.16                0.260</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; rate_ratio                   23.56                1.297</span></span></code></pre></div>
+<p>The intercept exponentiates to the expected number of reviews for an
+average-rated listing in an average neighborhood — about 24. The
+<code>rating_c</code> coefficient is a multiplicative effect per unit of
+rating: each additional rating point multiplies expected reviews by
+roughly 1.3.</p>
+<p>But look at the posterior standard deviation on that slope — it is
+nearly as large as the coefficient. The population-average rating effect
+is not well determined, and the summary explains why.</p>
+</div>
+<div id="the-full-summary" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> The full summary</h1>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">summary</span>(fit)</span></code></pre></div>
+<pre><code>#&gt; Call:
+#&gt;   glmerb(formula = form, data = ab, family = poisson(), pfamily_list = pfamily_list(ps), 
+#&gt;     n = 200L, progbar = FALSE)
+#&gt; Bayesian linear mixed model fit  [200 draws, two-block Gibbs]
+#&gt; Formula: reviews ~ rating_c + (1 + rating_c || neighborhood) 
+#&gt; Random effects (variance components fixed at glmer estimates):
+#&gt;  Groups         Name        Std.Dev.
+#&gt;  neighborhood   (Intercept) 0.5135  
+#&gt;  neighborhood.1 rating_c    1.2326  
+#&gt; Number of obs: 1561,  groups: neighborhood, 43
+#&gt; === Block 2 dispersion (RE variance tau^2_k) ===
+#&gt; Prior and glmer reference:
+#&gt;               Prior 1/E[1/tau2] E[tau2] sqrt(E[tau2]) disp_lower disp_upper
+#&gt; (Intercept) dNormal      0.2637  0.2637        0.5135         NA         NA
+#&gt; rating_c    dNormal      1.5194  1.5194        1.2326         NA         NA
+#&gt;              glmer glmer SD
+#&gt; (Intercept) 0.2637   0.5135
+#&gt; rating_c    1.5194   1.2326
+#&gt; Overview:
+#&gt;             Post.Mode Post.Mean Post.Sd MC Error Mean SD Pr(Prior_tail)
+#&gt; (Intercept)    0.2637    0.2637  0.0000   0.0000  0.5135             NA
+#&gt; rating_c       1.5194    1.5194  0.0000   0.0000  1.2326             NA
+#&gt;             Cand/draw
+#&gt; (Intercept)         1
+#&gt; rating_c            1
+#&gt; Distribution percentiles (tau^2):
+#&gt;               1.0%   2.5%   5.0% Median  95.0%  97.5% 99.0%
+#&gt; (Intercept) 0.2637 0.2637 0.2637 0.2637 0.2637 0.2637 0.264
+#&gt; rating_c    1.5194 1.5194 1.5194 1.5194 1.5194 1.5194 1.519
+#&gt; SD credible interval (sqrt(tau^2) draws; glmer SD for reference):
+#&gt;               2.5% Median  97.5% glmer SD
+#&gt; (Intercept) 0.5135 0.5135 0.5135    0.513
+#&gt; rating_c    1.2326 1.2326 1.2326    1.233
+#&gt; === Block 2: Level-2 fixed effects (hyperparameters) ===
+#&gt; Prior and glmer reference:
+#&gt;                          Prior Mean Prior.sd  glmer glmer.se
+#&gt; (Intercept)::(Intercept)     3.1946   0.8256 3.1645    0.083
+#&gt; rating_c::(Intercept)        0.0000   2.0697 0.2394    0.208
+#&gt; Overview:
+#&gt;                          fixef.mode fixef.means Post.Sd MC.Error Pr(Prior_tail)
+#&gt; (Intercept)::(Intercept)    3.17126     3.15954 0.08644    0.006          0.320
+#&gt; rating_c::(Intercept)       0.23124     0.25969 0.19266    0.014          0.085
+#&gt;                           
+#&gt; (Intercept)::(Intercept)  
+#&gt; rating_c::(Intercept)    .
+#&gt; ---
+#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+#&gt; Distribution percentiles:
+#&gt;                              1.0%     2.5%     5.0%   Median    95.0%    97.5%
+#&gt; (Intercept)::(Intercept)  2.99686  3.00845  3.02642  3.15813  3.30024  3.33337
+#&gt; rating_c::(Intercept)    -0.15794 -0.09201 -0.03112  0.26369  0.58579  0.68493
+#&gt;                          99.0%
+#&gt; (Intercept)::(Intercept) 3.379
+#&gt; rating_c::(Intercept)    0.736
+#&gt; === Block 1: Random effects (group-level) ===
+#&gt; Summary of posterior mode (ranef.mode) across groups:
+#&gt;                Mean      SD     Min      Q1  Median      Q3     Max MCMC.mean
+#&gt; (Intercept)  3.1711  0.4874  2.1303  2.8718  3.2571  3.3901  4.2406     3.164
+#&gt; rating_c     0.2331  1.1223 -1.8120 -0.6153  0.2560  0.9860  2.2906     0.243
+#&gt; Per-group random effects: inspect fit$groupef.mode or fit$groupef,
+#&gt;   or call summary(fit, groups = &lt;level ids&gt;) for selected groups.</code></pre>
+<p>The random-effects standard deviation for <code>rating_c</code> is
+larger than the population mean effect itself. Neighborhoods genuinely
+differ in how rating relates to review volume — in some, better-rated
+listings get many more reviews; in others the relationship is flat or
+reversed. Reporting only the population coefficient would describe none
+of them well. This is the case for a random slope rather than a fixed
+one, and it is visible directly in the variance components.</p>
+<p>There is no <code>Residual</code> row in the dispersion table.
+Poisson has no free dispersion parameter; the variance is determined by
+the mean. If your counts are overdispersed relative to that, the random
+intercept absorbs some of it, but a genuine overdispersion model is
+outside this package’s model class.</p>
+</div>
+<div id="convergence" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Convergence</h1>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">c</span>(<span class="at">m_convergence =</span> ch09<span class="sc">$</span>m_convergence)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; m_convergence </span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt;             3</span></span></code></pre></div>
+<p>3 sweeps per stored draw, and a pilot stage ran before the main
+chains. Because the rate is heuristic here rather than certified, the
+sensible check is empirical: the sweep history should show the
+cross-chain mean flat and the cross-chain variance settled by the last
+sweep, exactly as in Chapter 06. <code>fit$sweep_history$main</code>
+carries it.</p>
+</div>
+<div id="cost" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Cost</h1>
+<p>The Gaussian fits in earlier chapters took a second or two. This one
+takes about thirty. The difference is entirely Block 1: every group, on
+every sweep, on every chain, runs an envelope construction and an
+accept-reject loop. <code>fit$groupef.iters</code> reports how many
+candidates were needed per accepted draw — around eight here, which is
+normal for a Poisson model and means the envelope is doing real
+work.</p>
+<p>Practical consequences: develop with small <code>n</code> and raise
+it for the final run; prefer <code>tv_tol</code> at its default rather
+than tightening it (each extra sweep is a full pass over all groups and
+chains); and remember that <code>glmbayes</code>
+<code>Chapter-A10</code> documents optional OpenCL offload for envelope
+construction, which this package inherits.</p>
+</div>
+<div id="see-also" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> See also</h1>
+<ul>
+<li><strong>Chapter 10</strong> — the binomial case, where the same
+machinery applies.</li>
+<li><strong>Chapter 11</strong> — <code>simulate = FALSE</code>, when
+you only want the mode.</li>
+<li><code>vignette(&quot;Chapter-A05&quot;, package = &quot;glmbayes&quot;)</code> —
+likelihood subgradient densities, the basis of the Block 1 draw.</li>
+<li><code>?glmerb</code></li>
+</ul>
+</div>
+<div id="bibliography" class="section level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-JohnsonLauEtAl2022" class="csl-entry">
+Johnson, Alicia A., Miles Q. Ott, and Mine Dogucu. 2022. <em>Bayes
+Rules! An Introduction to Applied Bayesian Modeling</em>. CRC Press. <a href="https://www.bayesrulesbook.com">https://www.bayesrulesbook.com</a>.
+</div>
+<div id="ref-Nygren2006" class="csl-entry">
+Nygren, K. N., and L. M. Nygren. 2006. <span>“<span>Likelihood
+Subgradient Densities</span>.”</span> <em>Journal of the American
+Statistical Association</em> 101 (475): 1144–56. <a href="https://doi.org/10.1198/016214506000000357">https://doi.org/10.1198/016214506000000357</a>.
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

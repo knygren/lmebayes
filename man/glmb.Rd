@@ -382,7 +382,7 @@ for classical modeling functions, family objects, and formula syntax
 
 \code{\link[glmbayes]{Prior_Setup}}, \code{\link[glmbayes]{Prior_Check}} for functions used to initialize and to check priors,
 
-\code{\link[glmbayes]{EnvelopeBuild}} for envelope construction  methods.
+\code{\link[glmbayesCore]{EnvelopeBuild}} for envelope construction methods.
 
 Further reading: (Nygren and Nygren 2006);
 (Nygren 2025, 2025);
@@ -393,7 +393,5 @@ OpenCL/GPU: (Nygren 2025, 2025).
 and the methods and generic functions for classes \code{glm} and \code{lm} from which class \code{glmb} inherits.
 
 glmbayes Modeling Functions
-\code{\link[glmbayes]{lmb}()},
-\code{\link[glmbayes]{rglmb}()},
-\code{\link[glmbayes]{rlmb}()}
+\code{\link[glmbayes]{lmb}()}
 }

@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Kjell Nygren" />
+
+<meta name="date" content="2026-09-05" />
+
+<title>Chapter 02: From lm and glm to mixed models</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Chapter 02: From lm and glm to mixed
+models</h1>
+<h4 class="author">Kjell Nygren</h4>
+<h4 class="date">2026-09-05</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#chapter-02-from-lmglm-to-mixed-models" id="toc-chapter-02-from-lmglm-to-mixed-models"><span class="toc-section-number">1</span> Chapter 02: From
+<code>lm</code>/<code>glm</code> to mixed models</a></li>
+<li><a href="#three-ways-to-handle-groups" id="toc-three-ways-to-handle-groups"><span class="toc-section-number">2</span> Three ways to handle groups</a></li>
+<li><a href="#the-parameterization" id="toc-the-parameterization"><span class="toc-section-number">3</span> The parameterization</a></li>
+<li><a href="#the-level-2-design" id="toc-the-level-2-design"><span class="toc-section-number">4</span> The level-2 design</a></li>
+<li><a href="#the-two-restrictions" id="toc-the-two-restrictions"><span class="toc-section-number">5</span> The two restrictions</a>
+<ul>
+<li><a href="#one-grouping-factor" id="toc-one-grouping-factor"><span class="toc-section-number">5.1</span> One grouping factor</a></li>
+<li><a href="#uncorrelated-random-effects-not" id="toc-uncorrelated-random-effects-not"><span class="toc-section-number">5.2</span> Uncorrelated random effects:
+<code>||</code> not <code>|</code></a></li>
+<li><a href="#every-fixed-effect-must-have-a-home" id="toc-every-fixed-effect-must-have-a-home"><span class="toc-section-number">5.3</span> Every fixed effect must have a
+home</a></li>
+<li><a href="#log-concave-likelihoods" id="toc-log-concave-likelihoods"><span class="toc-section-number">5.4</span> Log-concave likelihoods</a></li>
+</ul></li>
+<li><a href="#see-also" id="toc-see-also"><span class="toc-section-number">6</span> See also</a></li>
+<li><a href="#bibliography" id="toc-bibliography">References</a></li>
+</ul>
+</div>
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(lmebayes)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="co">#&gt; Loading required package: MASS</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt; Registered S3 methods overwritten by &#39;glmbayes&#39;:</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt;   method                   from        </span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt;   formula.summary.rglmb    glmbayesCore</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt;   print.PriorSetup         glmbayesCore</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt;   print.diagnose_glmbayes  glmbayesCore</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt;   print.glmbfamfunc        glmbayesCore</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt;   print.pfamily            glmbayesCore</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co">#&gt;   print.rGamma_reg         glmbayesCore</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="co">#&gt;   print.rglmb              glmbayesCore</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="co">#&gt;   print.rlmb               glmbayesCore</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="co">#&gt;   print.simfunction        glmbayesCore</span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="co">#&gt;   print.summary.rGamma_reg glmbayesCore</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="co">#&gt;   print.summary.rglmb      glmbayesCore</span></span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a><span class="co">#&gt;   residuals.rglmb          glmbayesCore</span></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="co">#&gt;   residuals.rlmb           glmbayesCore</span></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="co">#&gt;   residuals.summary.rglmb  glmbayesCore</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="co">#&gt;   summary.rGamma_reg       glmbayesCore</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="co">#&gt;   summary.rglmb            glmbayesCore</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="co">#&gt;   summary.rlmb             glmbayesCore</span></span></code></pre></div>
+<div id="chapter-02-from-lmglm-to-mixed-models" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Chapter 02: From
+<code>lm</code>/<code>glm</code> to mixed models</h1>
+<p>Chapter 01 fit a model without saying much about what it means. This
+chapter fills that gap: what partial pooling buys you, how
+<strong>lmebayes</strong> parameterizes a mixed model, and why the two
+model restrictions (one grouping factor, uncorrelated terms) exist.</p>
+<p>There is no sampling in this chapter.</p>
+</div>
+<div id="three-ways-to-handle-groups" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Three ways to handle
+groups</h1>
+<p>Take reaction time measured repeatedly on each of <span class="math inline">\(J\)</span> subjects. You have three options.</p>
+<p><strong>Complete pooling.</strong>
+<code>lm(Reaction ~ Days_c)</code>. One intercept, one slope, everyone
+the same. Simple, and wrong whenever subjects genuinely differ: the
+residuals are correlated within subject, so standard errors are too
+small.</p>
+<p><strong>No pooling.</strong>
+<code>lm(Reaction ~ Days_c * Subject)</code>, or 18 separate
+regressions. Each subject gets their own coefficients, estimated from
+their own 10 observations and nothing else. Honest, but noisy — a
+subject with an unlucky run of measurements gets an extreme slope, and
+nothing pulls it back.</p>
+<p><strong>Partial pooling.</strong> The mixed model. Each subject still
+gets their own coefficients, but those coefficients are themselves
+modeled as draws from a population distribution. A subject with little
+or noisy data is shrunk toward the population mean; a subject with lots
+of clean data is barely moved.</p>
+<p>The amount of shrinkage is not a tuning choice. It falls out of the
+ratio of within-group information to between-group variance:</p>
+<p><span class="math display">\[
+\text{shrinkage for group } j \;\approx\;
+\frac{1/\tau^2}{1/\tau^2 + n_j/\sigma^2}.
+\]</span></p>
+<p>Small groups (small <span class="math inline">\(n_j\)</span>) and
+tight population distributions (small <span class="math inline">\(\tau^2\)</span>) shrink more. That expression is
+not an analogy: it is <em>literally</em> the convergence rate <span class="math inline">\(\lambda^*\)</span> of the two-block Gibbs sampler
+for the balanced random-intercept model, derived in
+<code>vignette(&quot;Chapter-B02&quot;, package = &quot;lmebayesCore&quot;)</code>. Models
+that shrink hard are exactly the models whose sampler mixes slowly,
+because in both cases the group coefficients and the population mean are
+tightly coupled.</p>
+</div>
+<div id="the-parameterization" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> The
+parameterization</h1>
+<p>Here is where <strong>lmebayes</strong> differs from
+<code>lme4</code> in a way you will notice in the output.</p>
+<p><strong><code>lme4</code> writes</strong> the model as a fixed part
+plus a mean-zero deviation:</p>
+<p><span class="math display">\[
+y_j = X_j\beta + Z_j b_j + \varepsilon_j,
+\qquad b_j \sim N(0, G).
+\]</span></p>
+<p><code>fixef()</code> gives <span class="math inline">\(\beta\)</span>, <code>ranef()</code> gives <span class="math inline">\(b_j\)</span> (centered at zero), and
+<code>coef()</code> gives <span class="math inline">\(\beta +
+b_j\)</span>.</p>
+<p><strong>lmebayes writes</strong> the same model in centered,
+two-stage form <span class="citation">(Lindley and Smith
+1972)</span>:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{Stage 1:}\quad &amp; y_j \mid \beta_j \sim N(D_j\beta_j,\;
+\sigma^2 I) \\
+\text{Stage 2:}\quad &amp; \beta_j \mid \gamma \sim
+N(\mathcal{W}_j\gamma,\; \Psi)
+\end{aligned}
+\]</span></p>
+<p>The group-level coefficient vector <span class="math inline">\(\beta_j\)</span> is <em>not</em> mean zero. It is
+the full coefficient vector for group <span class="math inline">\(j\)</span>, and it enters the likelihood directly.
+The population coefficients <span class="math inline">\(\gamma\)</span>
+appear only in stage 2, as the mean of the <span class="math inline">\(\beta_j\)</span>.</p>
+<p>Substituting stage 2 into stage 1 recovers <code>lme4</code>’s form
+exactly:</p>
+<p><span class="math display">\[
+y_j = D_j(\mathcal{W}_j\gamma + u_j) + \varepsilon_j
+    = \underbrace{(D_j\mathcal{W}_j)}_{X_j}\gamma
+    + \underbrace{D_j}_{Z_j} u_j + \varepsilon_j,
+\qquad u_j := \beta_j - \mathcal{W}_j\gamma .
+\]</span></p>
+<p>So the two are the same model, written differently.</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>lmebayes</th>
+<th><code>lme4</code></th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(\gamma\)</span></td>
+<td><span class="math inline">\(\beta\)</span></td>
+<td>population / fixed effects</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\beta_j\)</span></td>
+<td><span class="math inline">\(\hat\beta + \hat b_j\)</span></td>
+<td>what <code>lme4::coef()</code> returns</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(u_j = \beta_j -
+\mathcal{W}_j\gamma\)</span></td>
+<td><span class="math inline">\(b_j\)</span></td>
+<td>mean-zero deviation</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(D_j\)</span></td>
+<td><span class="math inline">\(Z_j\)</span></td>
+<td>random-effects design</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(D_j\mathcal{W}_j\)</span></td>
+<td><span class="math inline">\(X_j\)</span></td>
+<td>fixed-effects design</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\Psi\)</span></td>
+<td>per-group block of <span class="math inline">\(G\)</span></td>
+<td><span class="math inline">\(G = I_J \otimes \Psi\)</span></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why it matters in practice.</strong> <code>ranef()</code> on
+an <code>lmerb</code> fit returns <span class="math inline">\(\beta_j\)</span>, not <span class="math inline">\(u_j\)</span>. In Chapter 01, subject 308’s
+intercept was about 339 ms — an actual expected reaction time, not a
+<code>+40</code> offset from the population mean. If you are used to
+reading <code>ranef()</code> output as deviations that should average to
+zero, this will look wrong until you recognize the scale.</p>
+<p><strong>Why the package does it this way.</strong> The centered form
+is what makes the two-block split natural. Given <span class="math inline">\(\gamma\)</span>, the <span class="math inline">\(\beta_j\)</span> are conditionally independent
+across groups, so Block 1 is <span class="math inline">\(J\)</span>
+small independent draws. Given all <span class="math inline">\(\beta_j\)</span>, Block 2 is a plain regression of
+the <span class="math inline">\(\beta\)</span>’s on the group-level
+designs. Neither block ever forms a matrix bigger than it has to, and
+the convergence theory of <span class="citation">Nygren (2020)</span>
+applies directly to this two-block structure.</p>
+</div>
+<div id="the-level-2-design" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> The level-2 design</h1>
+<p><span class="math inline">\(\mathcal{W}_j\)</span> is the piece with
+no <code>lme4</code> counterpart. It maps the population vector <span class="math inline">\(\gamma\)</span> to group <span class="math inline">\(j\)</span>’s prior mean.</p>
+<p>In the simplest case — no group-level covariates — <span class="math inline">\(\mathcal{W}_j\)</span> is an identity-like map and
+every group has the same prior mean. That is the <code>sleepstudy</code>
+model of Chapter 01, where <code>model_setup()</code> reported both
+level-2 rows as <code>~ 1</code>.</p>
+<p>Add a group-level covariate and it becomes interesting. If schools
+have a <code>title1</code> indicator, the level-2 row for the intercept
+reads <code>~ 1 + title1</code>, and each school’s <em>prior mean
+intercept</em> depends on whether it is a Title I school. Shrinkage is
+then toward a fitted line rather than a single grand mean. Chapter 04
+does exactly this.</p>
+<p>Crucially, each random coefficient may carry its own level-2
+predictors:</p>
+<pre><code>(Intercept)     ~ 1 + private_school + title1
+distracted_ppvt ~ 1
+distracted_a1   ~ 1 + free_reduced_lunch</code></pre>
+<p>An interaction between a group-level variable and an individual-level
+random slope — <code>free_reduced_lunch:distracted_a1</code> — is
+<em>cross-level moderation</em>, and it lands in the level-2 row of
+<code>distracted_a1</code>. <code>model_setup()</code> prints this
+mapping, and it is worth reading before every fit: it is the clearest
+statement of what model you actually specified.</p>
+</div>
+<div id="the-two-restrictions" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> The two
+restrictions</h1>
+<div id="one-grouping-factor" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> One grouping
+factor</h2>
+<p><code>(1 | school) + (1 | teacher)</code> is not supported. Neither
+is nesting.</p>
+<p>With a single grouping factor the parameter vector splits cleanly
+into “the group coefficients” and “everything else”, and the group
+coefficients are conditionally independent given the population level.
+Crossed factors destroy that: a given observation belongs to two groups
+at once, so the Block 1 conditional no longer factorizes and the rate
+matrix of <code>Chapter-B02</code> is no longer block-diagonal by
+group.</p>
+</div>
+<div id="uncorrelated-random-effects-not" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> Uncorrelated random
+effects: <code>||</code> not <code>|</code></h2>
+<p><code>(1 + Days_c | Subject)</code> estimates a correlation between
+each subject’s intercept and slope. <code>lmebayes</code> requires
+<code>(1 + Days_c || Subject)</code>, which forces that correlation to
+zero, so <span class="math inline">\(\Psi\)</span> is diagonal.</p>
+<p>Two things follow from a diagonal <span class="math inline">\(\Psi\)</span>. Block 2 factorizes across
+coefficients: each <span class="math inline">\(\gamma_k\)</span> is
+drawn from its own small regression, and each variance component <span class="math inline">\(\tau^2_k\)</span> is handled on its own. That is
+why priors are specified as a <code>pfamily_list</code> — one object per
+coefficient — rather than one joint prior over all of <span class="math inline">\(\gamma\)</span>.</p>
+<p>If you pass a <code>|</code> formula, <code>model_setup()</code>
+stops with an explicit message rather than silently ignoring the
+correlation:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">data</span>(sleepstudy, <span class="at">package =</span> <span class="st">&quot;lme4&quot;</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>dat <span class="ot">&lt;-</span> sleepstudy</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>dat<span class="sc">$</span>Days_c <span class="ot">&lt;-</span> dat<span class="sc">$</span>Days <span class="sc">-</span> <span class="fu">mean</span>(dat<span class="sc">$</span>Days)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">model_setup</span>(Reaction <span class="sc">~</span> Days_c <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">+</span> Days_c <span class="sc">|</span> Subject), <span class="at">data =</span> dat)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; Error:</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; ! Correlated random effects are not supported (off-diagonal RE covariance). Use &#39;||&#39; for uncorrelated terms, e.g. (1 + x || group) instead of (1 + x | group).</span></span></code></pre></div>
+<p><strong>Does the restriction hurt?</strong> Sometimes. If intercept
+and slope really are correlated, forcing independence changes the
+shrinkage pattern: a subject who is slow at baseline will not be pulled
+toward also having a steep slope. Centering the covariate — as Chapter
+01 did with <code>Days_c</code> — usually removes most of the
+correlation, because the intercept-slope correlation in an uncentered
+model is largely an artifact of where zero sits. Fit both in
+<code>lme4</code>, compare the estimated correlation, and if it is
+substantial after centering, this package is not the right tool. Chapter
+13 works through such a comparison.</p>
+</div>
+<div id="every-fixed-effect-must-have-a-home" class="section level2" number="5.3">
+<h2><span class="header-section-number">5.3</span> Every fixed effect
+must have a home</h2>
+<p>There is a third restriction, and it is the one that catches people
+first. A fixed effect is only allowed if it can be placed in some
+group’s level-2 row. Concretely, each fixed-effect term must be one
+of:</p>
+<ul>
+<li><strong>constant within group</strong> — a group-level covariate,
+which goes on the intercept’s level-2 row;</li>
+<li><strong>the population mean of a random slope</strong> — its name
+must match a term in the random-effects part;</li>
+<li><strong>a cross-level moderator</strong> —
+<code>moderator:random_slope</code>, where the moderator is constant
+within group.</li>
+</ul>
+<p>So <code>Reaction ~ Days_c + (1 + Days_c || Subject)</code> is fine,
+because <code>Days_c</code> has a matching random slope. But
+<code>Reaction ~ Days_c + (1 | Subject)</code> is not:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">model_setup</span>(Reaction <span class="sc">~</span> Days_c <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> Subject), <span class="at">data =</span> dat)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; Error:</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; ! Fixed effects must be constant within Subject (level-2), a population mean slope (matching a random slope name), or cross-level RE moderation (moderator:random_slope); not allowed: Days_c</span></span></code></pre></div>
+<p>This is not arbitrary. In the centered parameterization there is no
+place to put a coefficient on an individual-level covariate that does
+not vary by group: stage 1 only contains <span class="math inline">\(D_j\beta_j\)</span>, and stage 2 only contains
+<span class="math inline">\(\mathcal{W}_j\gamma\)</span>. An
+individual-level predictor with a <em>common</em> slope across groups
+has no slot in either. <code>lme4</code> can express it because it
+writes <span class="math inline">\(X_j\beta\)</span> as a free-standing
+term; this package cannot, and stops rather than silently reinterpreting
+your formula.</p>
+<p>The practical consequence: <strong>if you want a fixed effect for an
+individual-level covariate, give it a random slope</strong>. If its
+variance component is genuinely near zero, the fit will say so.</p>
+</div>
+<div id="log-concave-likelihoods" class="section level2" number="5.4">
+<h2><span class="header-section-number">5.4</span> Log-concave
+likelihoods</h2>
+<p>Gaussian, Poisson, binomial, and Gamma with the standard links. The
+restriction comes from the envelope accept-reject sampler <span class="citation">(Nygren and Nygren 2006)</span>: it builds a
+tangent-plane envelope over the log-likelihood, which requires
+log-concavity to be a valid bound. Chapters 09 and 10 cover the
+non-Gaussian cases.</p>
+</div>
+</div>
+<div id="see-also" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> See also</h1>
+<ul>
+<li><strong>Chapter 03</strong> — the prior workflow.</li>
+<li><strong>Chapter 04</strong> — group-level covariates and cross-level
+moderation.</li>
+<li><code>vignette(&quot;Chapter-B00&quot;, package = &quot;lmebayesCore&quot;)</code> — the
+same notation, stated formally.</li>
+<li><code>vignette(&quot;Chapter-B02&quot;, package = &quot;lmebayesCore&quot;)</code> —
+where the shrinkage ratio reappears as a convergence rate.</li>
+</ul>
+</div>
+<div id="bibliography" class="section level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-LindleySmith1972" class="csl-entry">
+Lindley, D. V., and A. F. M. Smith. 1972. <span>“Bayes Estimates for the
+Linear Model.”</span> <em>Journal of the Royal Statistical Society.
+Series B (Methodological)</em> 34 (1): 1–41. <a href="https://doi.org/10.1111/j.2517-6161.1972.tb00899.x">https://doi.org/10.1111/j.2517-6161.1972.tb00899.x</a>.
+</div>
+<div id="ref-Nygren2006" class="csl-entry">
+Nygren, K. N., and L. M. Nygren. 2006. <span>“<span>Likelihood
+Subgradient Densities</span>.”</span> <em>Journal of the American
+Statistical Association</em> 101 (475): 1144–56. <a href="https://doi.org/10.1198/016214506000000357">https://doi.org/10.1198/016214506000000357</a>.
+</div>
+<div id="ref-Nygren2020" class="csl-entry">
+Nygren, Kjell N. 2020. <span>“<span class="nocase">On the Total
+Variation Distance Between Multivariate Normal Densities with
+Applications to Two-Block Gibbs Samplers</span>.”</span> Unpublished
+manuscript.
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

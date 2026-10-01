@@ -43,11 +43,11 @@ and `rglmerb()` without namespace qualification.
 `glmerb_posterior_mode()` (`importFrom`). See
 [R_EXPORTED_AND_DOCUMENTED.md](R_EXPORTED_AND_DOCUMENTED.md).
 
-**Direct `lmebayesCore` call:** `normalize_group()` (`lmebayesCore::` in
-`.blmb_formula_block_meta()`; also called directly by `block_check_identifiability_xy()`).
-This is `lmbBlock()`/`glmbBlock()`/`Prior_SetupGroup()`'s only runtime dependency on
-`lmebayesCore` — full trace in
-[lmebayesCore/inst/LMBBLOCK_LMEBAYESCORE_DEPENDENCIES.md](../../lmebayesCore/inst/LMBBLOCK_LMEBAYESCORE_DEPENDENCIES.md).
+**Direct `glmbayesCore` call (row blocks):** `normalize_group()` (`glmbayesCore::` in
+`.blmb_formula_block_meta()` and `block_check_identifiability_xy()`).
+Row-block drivers do **not** call **lmebayesCore** for partition setup; see
+[README_LMBBLOCK.md](README_LMBBLOCK.md) and
+[R_EXPORTED_AND_DOCUMENTED.md](R_EXPORTED_AND_DOCUMENTED.md).
 
 **Indirect only (export optional for lmebayes):** `rGLMM()`, `rLMMNormal_reg()`,
 `rLMMNormal_reg_estimated_vcov()`, `rLMMindepNormalGamma_reg()` — listed under
@@ -78,8 +78,8 @@ This is `lmbBlock()`/`glmbBlock()`/`Prior_SetupGroup()`'s only runtime dependenc
 
 | Function | File | Called from |
 |----------|------|-------------|
-| `.blmb_formula_block_meta()` | `lmbBlock.R` | `lmbBlock()`, `glmbBlock()`, `Prior_SetupGroup()`, `.blmb_blocks_full_rank()` |
-| `.blmb_rows_to_data_subset()` | `lmbBlock.R` | `lmbBlock()`, `glmbBlock()`, `Prior_SetupGroup()` |
+| `.blmb_formula_block_meta()` | `lmbBlock.R` | `lmbBlock()`, `glmbBlock()`, `.blmb_blocks_full_rank()` |
+| `.blmb_rows_to_data_subset()` | `lmbBlock.R` | `lmbBlock()`, `glmbBlock()` |
 | `.blmb_resolve_block()` | `lmbBlock.R` | `.blmb_formula_block_meta()` |
 | `.blmb_lmb_display_call()` | `lmbBlock.R` | `lmbBlock()` |
 | `.blmb_assemble()` | `lmbBlock.R` | `lmbBlock()` |
@@ -89,10 +89,8 @@ This is `lmbBlock()`/`glmbBlock()`/`Prior_SetupGroup()`'s only runtime dependenc
 | `.blmb_dic_table()` | `lmbBlock.R` | `summary.blmb()`, `summary.bglmb()`, `print.blmb()`, `print.bglmb()` |
 | `.blmb_glmb_display_call()` | `glmbBlock.R` | `glmbBlock()` |
 | `.bglmb_assemble()` | `glmbBlock.R` | `glmbBlock()` |
-| `.blmb_resolve_block_calibration_arg()` | `prior_setup_lmebayes.R` | `Prior_SetupGroup()` |
-
 Full inventory and call graphs, including the `lmbBlock()`/`glmbBlock()`
-symmetry and where `Prior_SetupGroup()` fits in:
+symmetry and **`Prior_SetupGroup()` in `glmbayesCore`**:
 [README_LMBBLOCK.md](README_LMBBLOCK.md).
 
 ---

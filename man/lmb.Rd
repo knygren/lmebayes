@@ -278,7 +278,7 @@ The classical modeling functions \code{\link[stats]{lm}} and \code{\link[stats]{
 
 \code{\link[glmbayes]{glmb}}, \code{\link[glmbayes]{rglmb}}, \code{\link[glmbayes]{rlmb}}
 for related Bayesian GLM/linear interfaces;
-\code{\link[glmbayes]{EnvelopeBuild}} for envelope construction when accept--reject sampling is used.
+\code{\link[glmbayesCore]{EnvelopeBuild}} for envelope construction when accept--reject sampling is used.
 
 \code{\link[glmbayes]{pfamily}} for documentation of pfamily functions used to specify priors.
 
@@ -294,7 +294,5 @@ inherited from class \code{glmb} and the methods and generic functions for class
 \code{lm} from which class \code{lmb} also inherits.
 
 glmbayes Modeling Functions
-\code{\link[glmbayes]{glmb}()},
-\code{\link[glmbayes]{rglmb}()},
-\code{\link[glmbayes]{rlmb}()}
+\code{\link[glmbayes]{glmb}()}
 }
