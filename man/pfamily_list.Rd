@@ -7,15 +7,13 @@
 pfamily_list(object, ptypes = NULL, ...)
 }
 \arguments{
-\item{object}{A prior-specification object (from \code{\link{Prior_SetupGroup}()}
-or \code{\link{Prior_Setup_GLMM}()}).}
+\item{object}{A prior-setup object. Dispatch is method-specific; see
+\strong{Methods} and linked help pages for required classes and arguments.}
 
-\item{ptypes}{For \code{\link{Prior_Setup_GLMM}()}: one string recycled to every
-group-effect coefficient, or a named vector / list per coefficient.
-\code{NULL} resolves to \code{"dNormal"} for GLMM setup. For row blocks,
-see \code{\link{Prior_SetupGroup}()}.}
+\item{ptypes}{Prior-family name(s) per component; meaning depends on the
+active method (for row-block setup see \code{\link[glmbayesCore]{Prior_SetupGroup}}).}
 
-\item{...}{Passed to methods.}
+\item{...}{Passed to methods (unused for \code{Prior_SetupGroup}).}
 }
 \value{
 For \code{pfamily_list()}, an object of class \code{"pfamily_list"}
@@ -29,14 +27,41 @@ Generic for converting a prior-setup object into a named list of
 \code{\link[glmbayesCore]{pfamily}} objects (class \code{"pfamily_list"}) for block or
 mixed-model samplers.
 }
-\section{Mixed-model method}{
-
-Objects from \code{\link{Prior_Setup_GLMM}()} dispatch via \pkg{lmebayesCore}; see
-\code{\link[lmebayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list.Prior_Setup_GLMM}}.
+\details{
+For a \code{\link[glmbayesCore]{Prior_Setup_GLMM}} object, each group-effect
+coefficient \eqn{k} uses parameters from
+\code{object$pop.prior_list[[k]]}:
+\itemize{
+\item \code{"dNormal"}: \code{dNormal(mu, Sigma, dispersion)} with
+group-effect variance \eqn{\tau^2_k} from
+\code{pop.prior_list[[k]]$dispersion} (A12 §3.3.4 marginal
+hyper-regression center for Gaussian models; classical VarCorr in
+\code{pop.dispersion.ref}).
+\item \code{"dIndependent_Normal_Gamma"}: the same \code{mu} and
+\code{Sigma}, plus a Gamma prior on precision \eqn{1/\tau^2_k}
+from \code{object$pop.ing_prior[[k]]} (calibrated by
+\code{\link[glmbayesCore]{Prior_Setup_GLMM}} via \code{pop.dispersion.pwt} /
+\code{pop.dispersion.nprior}, mean-matched at that same marginal
+\eqn{\tau^2_k}).  With effective prior sample size
+\eqn{n_0} and \eqn{p_k} population predictors for component
+\eqn{k},
+\deqn{shape = (n_0 + 1 + p_k)/2, \qquad
+          rate = \tau^2_k \, (n_0 + p_k - 1)/2.}
+Requires \eqn{n_0 \le J} (equivalently
+\code{pop.dispersion.pwt} \eqn{\le 0.5}). Truncation bounds
+\code{disp_lower} / \code{disp_upper} come from the limiting
+posterior window stored on \code{pop.ing_prior}; see
+\code{inst/ING_TRUNCATION_WINDOW.md}.
 }
 
+This is separate from observation-level \eqn{\sigma^2} priors: those
+use \code{\link[glmbayesCore]{dGamma_list}} (per-group \code{dispformula}) or a
+single \code{\link[glmbayesCore]{dGamma}} built from
+\code{object$group.ing_prior} when dispersion is pooled.
+}
 \seealso{
-\code{\link[glmbayesCore]{Prior_SetupGroup}}, \code{\link[glmbayesCore]{pfamily}},
+\code{\link[glmbayesCore]{Prior_SetupGroup}}, \code{\link[glmbayesCore]{Prior_Setup_GLMM}},
+\code{\link[glmbayesCore]{pfamily}},
 \code{\link[glmbayesCore]{dNormal}}, \code{\link[glmbayesCore]{dNormal_Gamma}},
 \code{\link[glmbayesCore]{dIndependent_Normal_Gamma}}
 }

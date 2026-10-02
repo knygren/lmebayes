@@ -34,24 +34,6 @@ dGamma <- glmbayesCore::dGamma
 #' @export
 Prior_SetupGroup <- glmbayesCore::Prior_SetupGroup
 
-## Row-block dispatch uses glmbayesCore's generic; GLMM uses lmebayesCore's
-## (separate S3 generic objects — do not assign glmbayesCore::pfamily_list alone).
-#' @inherit glmbayesCore::pfamily_list title description details return seealso
-#' @section Mixed-model method:
-#' Objects from \code{\link{Prior_Setup_GLMM}()} dispatch via \pkg{lmebayesCore}; see
-#' \code{\link[lmebayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list.Prior_Setup_GLMM}}.
-#' @param object A prior-specification object (from \code{\link{Prior_SetupGroup}()}
-#'   or \code{\link{Prior_Setup_GLMM}()}).
-#' @param ptypes For \code{\link{Prior_Setup_GLMM}()}: one string recycled to every
-#'   group-effect coefficient, or a named vector / list per coefficient.
-#'   \code{NULL} resolves to \code{"dNormal"} for GLMM setup. For row blocks,
-#'   see \code{\link{Prior_SetupGroup}()}.
-#' @param ... Passed to methods.
-#' @usage pfamily_list(object, ptypes = NULL, ...)
+#' @inherit glmbayesCore::pfamily_list title description details params return seealso examples
 #' @export
-pfamily_list <- function(object, ptypes = NULL, ...) {
-  if (inherits(object, "Prior_Setup_GLMM")) {
-    return(lmebayesCore::pfamily_list(object, ptypes = ptypes, ...))
-  }
-  glmbayesCore::pfamily_list(object, ptypes = ptypes, ...)
-}
+pfamily_list <- glmbayesCore::pfamily_list

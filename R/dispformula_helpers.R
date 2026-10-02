@@ -12,7 +12,7 @@
 #' or \code{"gamma"} (no dispersion parameter, a fixed scalar, or a single
 #' pooled \code{dGamma()}). `dispformula = ~<group_name>` (per-group) requires
 #' `disp_mode` to be `"gamma_list"` (a named list from
-#' \code{\link[lmebayesCore:dGamma_list.Prior_Setup_GLMM]{dGamma_list}()})
+#' \code{\link[glmbayesCore:dGamma_list.Prior_Setup_GLMM]{dGamma_list}()})
 #' or `"fixed_vector"` (a plain named numeric vector, one known fixed
 #' dispersion per group). No other `dispformula` or mode combination is
 #' accepted.

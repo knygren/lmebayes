@@ -36,7 +36,7 @@ Prior_Setup_GLMM(
 )
 }
 \arguments{
-\item{formula}{Mixed-model formula passed to \code{\link[lmebayesCore]{model_setup}},
+\item{formula}{Mixed-model formula passed to \code{\link[glmbayesCore]{model_setup}},
 whose reference \code{lmer}/\code{glmer} fits (all groups) supply the
 calibration quantities.}
 
@@ -47,7 +47,7 @@ Non-Gaussian families use \code{\link[lme4]{glmer}} for calibration;
 Block~1 dispersion Gamma calibration is omitted (analogous to
 \code{\link[glmbayesCore]{Prior_Setup}} for flat GLMs).}
 
-\item{REML}{Logical scalar passed to \code{\link[lmebayesCore]{model_setup}} (and thus
+\item{REML}{Logical scalar passed to \code{\link[glmbayesCore]{model_setup}} (and thus
 to the Gaussian reference \code{lmer} / \code{glmmTMB} fits).  Default
 \code{TRUE}.  Ignored for non-Gaussian families (\code{glmer} has no
 REML criterion).  Affects the classical estimates used for prior
@@ -55,18 +55,18 @@ calibration only.}
 
 \item{control}{Optional \code{\link[lme4]{lmerControl}} /
 \code{\link[lme4]{glmerControl}} object passed to
-\code{\link[lmebayesCore]{model_setup}}.  When \code{NULL} (default), Gaussian models
+\code{\link[glmbayesCore]{model_setup}}.  When \code{NULL} (default), Gaussian models
 use \code{lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))}
 and non-Gaussian models leave \code{glmer}'s own control default.}
 
-\item{start}{Optional starting values passed to \code{\link[lmebayesCore]{model_setup}}
+\item{start}{Optional starting values passed to \code{\link[glmbayesCore]{model_setup}}
 for the reference \code{lmer}/\code{glmer} fit.  Default \code{NULL}.}
 
-\item{verbose}{Integer scalar passed to \code{\link[lmebayesCore]{model_setup}} for the
+\item{verbose}{Integer scalar passed to \code{\link[glmbayesCore]{model_setup}} for the
 reference \code{lmer}/\code{glmer} optimizer.  Default \code{0L}.}
 
 \item{subset, na.action}{Optional arguments passed through to
-\code{\link[lmebayesCore]{model_setup}} (same meanings as in \code{\link[lme4]{lmer}} /
+\code{\link[glmbayesCore]{model_setup}} (same meanings as in \code{\link[lme4]{lmer}} /
 \code{\link[lme4]{glmer}}).  \code{model_setup()} applies them to both
 design extraction (\code{\link[lme4]{lFormula}}) and the reference
 \code{lmer}/\code{glmer}/\code{glmmTMB} fits, so sampler matrices
@@ -74,14 +74,14 @@ design extraction (\code{\link[lme4]{lFormula}}) and the reference
 same rows.}
 
 \item{weights, offset}{Optional arguments passed through to
-\code{\link[lmebayesCore]{model_setup}} (same meanings as in \code{lmer}/\code{glmer}).
+\code{\link[glmbayesCore]{model_setup}} (same meanings as in \code{lmer}/\code{glmer}).
 Stored on \code{design$weights} / \code{design$offset} as length-\code{n}
 vectors aligned with \code{design$y} (after \code{subset}/
 \code{na.action}), for Phase~1 availability to samplers.
 
 \strong{Not fully active for mixed-model sampling yet.} They affect the
 classical reference fit used for prior calibration. Low-level
-\code{\link[lmebayesCore]{two_block_rNormal_reg}} already accepts and echoes
+\code{\link[lmebayesCore:two_block_rNormal_reg]{two_block_rNormal_reg}} already accepts and echoes
 \code{prior.weights}/\code{offset2} when passed explicitly; high-level
 mixed routes that still hard-code unit weights / zero offset (and ICM /
 prior-weight algebra that assume unit weights) do not consume
@@ -90,19 +90,19 @@ offset in the formula or waiting until those paths are wired before
 relying on these for the Bayesian sampler.}
 
 \item{contrasts}{Optional contrast list passed to
-\code{\link[lmebayesCore]{model_setup}} (as in \code{lmer}).  Applied to both design
+\code{\link[glmbayesCore]{model_setup}} (as in \code{lmer}).  Applied to both design
 extraction and the reference fit so factor coding in \code{W} matches
 \code{fixef}/\code{vcov}.}
 
 \item{dispformula}{One-sided formula selecting the Block~1 measurement-
 dispersion structure: \code{~1} (default, pooled) or \code{~<group_name>}
 (matching the random-effects grouping factor exactly, requesting
-per-group dispersion).  Passed through to \code{\link[lmebayesCore]{model_setup}},
+per-group dispersion).  Passed through to \code{\link[glmbayesCore]{model_setup}},
 which fits and stores the \code{glmmTMB} reference
 (\code{design$glmmTMB_fit}) reused below as \code{fit_ref}.  Gaussian
 models only compute the per-group \code{group.ing_prior}
 calibration (a within-group regression fit for every group level, used
-only by \code{\link[lmebayesCore]{dGamma_list}()}) when \code{dispformula} is the
+only by \code{\link[glmbayesCore]{dGamma_list}()}) when \code{dispformula} is the
 group formula; \code{dispformula = ~1} skips it entirely, so
 \code{group.dispersion.pwt} / \code{group.dispersion.nprior} must then be scalar
 (pooled).  Mirrors the \code{dispformula} argument on
@@ -357,7 +357,7 @@ dispersion prior weights (always present; consistent with
 \item{\code{pop.dispersion.nprior}}{Named per-component vector of
 effective prior sample sizes for the Block~2 dispersion prior
 (always present; used by
-\code{\link[lmebayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list}()} to
+\code{\link[glmbayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list}()} to
 calibrate \code{dIndependent_Normal_Gamma} components).}
 \item{\code{group.dispersion.pwt}}{Gaussian models only: scalar or length-\eqn{J}
 vector of relative prior weights for Block~1 \eqn{\sigma^2} -- a
@@ -399,11 +399,11 @@ Used by \code{dGamma_list()}.}
 fit; shared population RE standard deviations for per-group calibration.}
 \item{\code{data}}{Data frame passed to \code{Prior_Setup_GLMM()}
 (reference for \code{dGamma_list()} diagnostics).}
-\item{\code{design}}{Full \code{\link[lmebayesCore]{model_setup}} object (all groups),
+\item{\code{design}}{Full \code{\link[glmbayesCore]{model_setup}} object (all groups),
 including length-\code{n} \code{weights} and \code{offset} vectors
 aligned with \code{design$y}.}
 \item{\code{mer_fit}}{Reference \code{lmer}/\code{glmer} fit on all
-groups (the full-formula fit from \code{\link[lmebayesCore]{model_setup}}), always
+groups (the full-formula fit from \code{\link[glmbayesCore]{model_setup}}), always
 present regardless of \code{dispformula} (backs
 \code{group.dispersion} and \code{x$lmer}/\code{x$glmer} in
 \code{lmerb()}/\code{glmerb()}).}
@@ -469,7 +469,7 @@ precision (lmebayesCore Chapter A12, Theorem 2; inverted to a
 of the exact posterior for every prior strength, and keeps the
 envelope sampler's cost stable as priors weaken; see
 \code{inst/ING_TRUNCATION_WINDOW.md}.  Used by
-\code{\link[lmebayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list}()} when
+\code{\link[glmbayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list}()} when
 \code{ptypes = "dIndependent_Normal_Gamma"}; ignored for
 \code{dNormal} priors.}
 \item{\code{group.ing_prior}}{Gaussian models only; \code{NULL}
@@ -517,10 +517,10 @@ values actually fed to the sampler as the Gamma prior, are
 unchanged); \eqn{w_j} is this group's own resolved
 \code{group.max_disp_perc} value (stored per-group as
 \code{max_disp_perc}). Used directly by
-\code{\link[lmebayesCore]{dGamma_list}()}.}
+\code{\link[glmbayesCore]{dGamma_list}()}.}
 }
 Which shape is returned is fully determined by \code{dispformula};
-see \code{\link[lmebayesCore]{dGamma_list}()} for how consumers tell the two
+see \code{\link[glmbayesCore]{dGamma_list}()} for how consumers tell the two
 apart.}
 \item{\code{dispformula}}{The \code{dispformula} supplied.}
 }
@@ -530,12 +530,12 @@ apart.}
 \description{
 Calibrates priors for the level-2 fixed effects (\code{fixef}) of a
 hierarchical mixed model using the reference \code{lmer}/\code{glmer} fits
-on \strong{all} groups (from \code{\link[lmebayesCore]{model_setup}}).  Per-group design
+on \strong{all} groups (from \code{\link[glmbayesCore]{model_setup}}).  Per-group design
 rank (\code{groupef.rank}) and estimability (\code{groupef.estimable} --
 classical-\code{glm} MLE existence for \code{family =
 binomial()}/\code{poisson()}/\code{Gamma()}, residual degrees of freedom
 for \code{family = gaussian()}) are diagnostic checks computed by
-\code{\link[lmebayesCore]{model_setup}} and do not subset the data or the reference
+\code{\link[glmbayesCore]{model_setup}} and do not subset the data or the reference
 \code{glmer} fit.  Random-effect variances are
 treated as fixed at their mixed-model estimates.  The returned object
 organizes calibrated priors as two independent blocks:
@@ -578,7 +578,7 @@ prior mean comes from a random-intercept-only null fit; all other prior
 means are zero (\code{pop.effects_source = "null_effects"}).  This requires:
 \enumerate{
 \item Converged reference \code{lmer}/\code{glmer} fit from
-\code{\link[lmebayesCore]{model_setup}} on the full formula (and a random-intercept-only
+\code{\link[glmbayesCore]{model_setup}} on the full formula (and a random-intercept-only
 null fit when \code{pop.intercept_source = "null_model"}).
 Fits with \code{lme4} \code{checkConv} failures (e.g.\\ large
 \code{max|grad|}) are rejected.
@@ -586,8 +586,67 @@ Fits with \code{lme4} \code{checkConv} failures (e.g.\\ large
 \item Each RE variance \eqn{\tau^2_k} from the reference fit is strictly positive.
 }
 }
+\examples{
+## Prior_Setup_GLMM() — Block~1 / Block~2 prior calibration (Ex_13b data)
+##
+## Same formula and cleaning as
+## demo("Ex_13b_rLMM_estimated_dispersion_known_vcov_BigWordClub_PartVI").
+## Requires suggested package bayesrules.
+
+if (requireNamespace("bayesrules", quietly = TRUE)) {
+  data(big_word_club, package = "bayesrules")
+
+  dat <- big_word_club
+  dat$school_id <- factor(dat$school_id)
+  dat <- subset(
+    dat,
+    !is.na(score_ppvt) &
+      !is.na(invalid_ppvt) & invalid_ppvt == 0L &
+      complete.cases(dat[, c(
+        "score_ppvt", "distracted_a1", "distracted_ppvt",
+        "private_school", "title1", "free_reduced_lunch", "school_id"
+      )])
+  )
+
+  form_lmer <- score_ppvt ~
+    private_school + title1 + free_reduced_lunch +
+    distracted_ppvt + distracted_a1 +
+    free_reduced_lunch:distracted_a1 +
+    (1 + distracted_ppvt + distracted_a1 || school_id)
+
+  ## Keep full-rank schools (sampler / per-group ING path)
+  design0 <- model_setup(form_lmer, data = dat)
+  dat <- subset(dat, school_id \%in\% names(design0$groupef.rank)[design0$groupef.rank])
+  dat$school_id <- droplevels(dat$school_id)
+
+  ## Pooled measurement dispersion (dispformula = ~1, default)
+  ps_pooled <- Prior_Setup_GLMM(
+    form_lmer,
+    data = dat,
+    pop.pwt = 0.01
+  )
+  print(ps_pooled)
+  names(ps_pooled$pop.prior_list)
+
+  ## Per-group Block~1 calibration (Ex_13b-style dispformula).
+  ## group.alpha_target = NULL skips the ellipsoid pwt search (faster for examples);
+  ## Ex_13b uses group.alpha_target = 0.01 with group.dispersion.pwt = 0.1 as floor.
+  ps_group <- Prior_Setup_GLMM(
+    form_lmer,
+    data = dat,
+    pop.pwt = 0.01,
+    dispformula = ~school_id,
+    group.max_disp_perc = 0.8,
+    group.dispersion.pwt = 0.1,
+    group.alpha_target = NULL
+  )
+  print(ps_group)
+  stopifnot(is.list(ps_group$group.ing_prior[[1L]]))
+  length(ps_group$group.ing_prior)
+}
+}
 \seealso{
-\code{\link[lmebayesCore]{model_setup}}, \code{\link[glmbayesCore]{Prior_Setup}},
-\code{\link[lmebayesCore]{build_mu_all}}, \code{\link[lmebayesCore]{pfamily_list}},
-\code{\link[lmebayesCore]{dGamma_list}}
+\code{\link[glmbayesCore]{model_setup}}, \code{\link[glmbayesCore]{Prior_Setup}},
+\code{\link[lmebayesCore:build_mu_all]{build_mu_all}},
+\code{\link[glmbayesCore]{pfamily_list}}, \code{\link[glmbayesCore]{dGamma_list}}
 }

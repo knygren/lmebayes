@@ -121,7 +121,7 @@
 #'   for every dispersion in the truncated support).  They must also
 #'   satisfy the prior-vs-data guard \eqn{n_{\mathrm{prior}} \le J}
 #'   (\code{pwt_dispersion} \eqn{\le 0.5}).  Typically built with
-#'   \code{\link[lmebayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list}} from a
+#'   \code{\link[glmbayesCore:pfamily_list.Prior_Setup_GLMM]{pfamily_list}} from a
 #'   \code{\link{Prior_Setup_GLMM}} object.
 #' @param dispersion_ranef Observation-level measurement dispersion
 #'   \eqn{\sigma^2} for Block~1.  One of: a positive scalar (treated as
@@ -129,7 +129,7 @@
 #'   single \code{\link[glmbayesCore]{dGamma}()} \code{pfamily} (pooled
 #'   \eqn{\sigma^2} across groups), a named list of \code{dGamma()}
 #'   objects (one per group level) from
-#'   \code{\link[lmebayesCore:dGamma_list.Prior_Setup_GLMM]{dGamma_list}(Prior_Setup_GLMM(...))},
+#'   \code{\link[glmbayesCore:dGamma_list.Prior_Setup_GLMM]{dGamma_list}(Prior_Setup_GLMM(...))},
 #'   or a named numeric vector of positive, fixed per-group values (names
 #'   must match the random-effects grouping factor's levels exactly; each
 #'   group's \eqn{\sigma^2_j} is then treated as known, like the pooled

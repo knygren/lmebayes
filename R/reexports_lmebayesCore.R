@@ -1,10 +1,8 @@
 ## Re-export symbols from lmebayesCore (mixed-model setup and matrix samplers).
 
-#' @inherit lmebayesCore::dGamma_list title description details params return seealso
-#' @name dGamma_list
-#' @importFrom lmebayesCore dGamma_list
+#' @inherit glmbayesCore::dGamma_list title description details params return seealso examples
 #' @export
-lmebayesCore::dGamma_list
+dGamma_list <- glmbayesCore::dGamma_list
 
 #' @inherit lmebayesCore::plot_mean_convergence title description details params return seealso
 #' @param hist Object of class \code{"two_block_sweep_history"}, as carried
@@ -32,10 +30,10 @@ rlmerb <- lmebayesCore::rlmerb
 #' @export
 rglmerb <- lmebayesCore::rglmerb
 
-#' @inherit lmebayesCore::model_setup title description details params return seealso
+#' @inherit glmbayesCore::model_setup title description details params return seealso examples
 #' @export
-model_setup <- lmebayesCore::model_setup
+model_setup <- glmbayesCore::model_setup
 
-#' @inherit lmebayesCore::Prior_Setup_GLMM title description details params return seealso
+#' @inherit glmbayesCore::Prior_Setup_GLMM title description details params return seealso examples
 #' @export
-Prior_Setup_GLMM <- lmebayesCore::Prior_Setup_GLMM
+Prior_Setup_GLMM <- glmbayesCore::Prior_Setup_GLMM

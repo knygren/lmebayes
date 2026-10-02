@@ -67,7 +67,7 @@ inner PIRLS steps).}
 
 \item{subset}{An optional expression indicating the subset of rows of
 \code{data} to use, as in \code{lmer}'s \code{subset} argument.  Passed
-to both \code{\link[lmebayesCore]{extract_re_hyper_matrices}} (via
+to both \code{\link[glmbayesCore]{extract_re_hyper_matrices}} (via
 \code{\link[lme4]{lFormula}}) and the reference \code{lmer}/\code{glmer}
 (and \code{glmmTMB} when used) so the sampler design matrices and the
 classical reference fit share the same rows.}
@@ -79,7 +79,7 @@ classical reference fit share the same rows.}
 \code{na.action}.  Stored on the returned design as length-\code{n}
 \code{weights} (default all ones).  Mixed-model sampler engines that
 still hard-code unit weights do not consume this vector yet; see
-\code{\link[lmebayesCore]{Prior_Setup_GLMM}}.}
+\code{\link[lmebayesCore:Prior_Setup_GLMM]{Prior_Setup_GLMM}}.}
 
 \item{na.action}{A function indicating what should happen when \code{data}
 contain \code{NA}s (default \code{na.omit}, as in \code{lmer}).  Passed
@@ -119,7 +119,7 @@ pooled-dispersion \code{lmer}/\code{glmer} fit, regardless of
 \code{dispformula}. \code{~<group_name>} additionally requires
 \code{family = gaussian()} (no observation-level dispersion parameter
 to model per group otherwise). Mirrors the \code{dispformula} argument
-on \code{\link[lmebayesCore]{Prior_Setup_GLMM}} and on
+on \code{\link[lmebayesCore:Prior_Setup_GLMM]{Prior_Setup_GLMM}} and on
 \code{lmerb()}/\code{glmerb()} in \pkg{lmebayes}; all three are
 independent arguments that must be kept consistent by the caller.}
 
@@ -150,7 +150,7 @@ engine functions without a separate \code{group_name} argument.}
 \item{\code{W}}{Named list of group-level hyper-design matrices (one
 per \code{groupef.names} entry, one row per group level).}
 \item{\code{popef.moderation}}{Cross-level moderation metadata; see
-\code{\link[lmebayesCore]{extract_re_hyper_matrices}}.}
+\code{\link[glmbayesCore]{extract_re_hyper_matrices}}.}
 \item{\code{formula}}{The \code{formula} argument, as supplied.}
 \item{\code{family}}{The normalized \code{\link[stats]{family}}
 object.}
@@ -179,19 +179,19 @@ fit on \code{formula} with the same \code{dispformula} (Gaussian
 models only), fit via the same \code{data}/\code{REML}/
 \code{control}-derived arguments as \code{lmer}. This is
 \strong{additive}: \code{lmer}/\code{glmer} are never replaced by a
-\code{glmmTMB} fit. \code{\link[lmebayesCore]{Prior_Setup_GLMM}} and
+\code{glmmTMB} fit. \code{\link[lmebayesCore:Prior_Setup_GLMM]{Prior_Setup_GLMM}} and
 \code{lmerb()} (in \pkg{lmebayes}) reuse \code{glmmTMB_fit} as their
 per-group-dispersion calibration reference instead of fitting
 \code{glmmTMB} a second time.}
 \item{\code{groupef.rank}}{Named logical (names \code{levels(group)}):
 \code{TRUE} if that group's \eqn{D_j} is full column rank; see
-\code{\link[lmebayesCore]{check_identifiability}}.}
+\code{\link[glmbayesCore]{check_identifiability}}.}
 \item{\code{groupef.estimable}}{Named logical, same names as
 \code{groupef.rank}: \code{TRUE} if the group is additionally
 estimable (family-specific MLE/dispersion check); see
-\code{\link[lmebayesCore]{check_identifiability}}.}
+\code{\link[glmbayesCore]{check_identifiability}}.}
 \item{\code{groupef.glm_check}}{Per-group diagnostic data frame from
-\code{\link[lmebayesCore]{check_identifiability}} (family-dependent; may be
+\code{\link[glmbayesCore]{check_identifiability}} (family-dependent; may be
 \code{NULL}).}
 \item{\code{popef.rank}}{Named logical (names \code{groupef.names}):
 \code{TRUE} if \code{W[[k]]} is full column rank when restricted to
@@ -199,7 +199,7 @@ estimable (family-specific MLE/dispersion check); see
 \item{\code{popef.deficient}}{Negation of \code{popef.rank}.}
 \item{\code{popef.rank_ok}}{Scalar \code{TRUE} only when every
 \code{popef.rank} entry is \code{TRUE}; required by
-\code{\link[lmebayesCore]{Prior_Setup_GLMM}} to derive default hyperpriors
+\code{\link[lmebayesCore:Prior_Setup_GLMM]{Prior_Setup_GLMM}} to derive default hyperpriors
 automatically.}
 }
 }
@@ -233,22 +233,22 @@ represent the population mean slope \eqn{\gamma_{10}}, e.g.,
 \code{level2_var:random_slope} (e.g.,
 \code{free_reduced_lunch:distracted_a1}) are additionally permitted; they
 moderate the prior mean of the corresponding random slope across groups (see
-\code{\link[lmebayesCore]{extract_re_hyper_matrices}}).  Fixed terms that are none of
+\code{\link[glmbayesCore]{extract_re_hyper_matrices}}).  Fixed terms that are none of
 these three types---level-2 covariate, population mean slope, or cross-level
 moderation interaction---are rejected with an informative error.
 
 \strong{Two-step identifiability assessment.}
 After fitting \code{lmer}/\code{glmer}, \code{model_setup} calls
-\code{\link[lmebayesCore]{check_identifiability}} to assess whether the model is
+\code{\link[glmbayesCore]{check_identifiability}} to assess whether the model is
 empirically identified at both the within-group (\code{groupef.rank},
 \code{groupef.estimable}, \code{groupef.glm_check}) and across-group
 (\code{popef.rank}, \code{popef.deficient}, \code{popef.rank_ok}) levels,
 and copies its fields onto the returned design object -- see
-\code{\link[lmebayesCore]{check_identifiability}} for the full algorithm description
+\code{\link[glmbayesCore]{check_identifiability}} for the full algorithm description
 (including the family-specific estimability checks and how
 \code{popef.rank_ok} is derived). Non-estimable groups are flagged but
 retained in the \code{lmer}/\code{glmer} fit;
-\code{\link[lmebayesCore]{Prior_Setup_GLMM}} excludes them when calibrating priors,
+\code{\link[lmebayesCore:Prior_Setup_GLMM]{Prior_Setup_GLMM}} excludes them when calibrating priors,
 and requires \code{popef.rank_ok = TRUE} to derive default hyperpriors
 automatically.
 
@@ -257,9 +257,53 @@ The example uses \code{big_word_club} from \pkg{bayesrules}
 formula as the full \code{lmerb()} demo in lmebayes
 (\code{demo("Ex_12_lmerb_BigWordClub", package = "lmebayes")}).
 }
+\examples{
+## model_setup() — design + reference lmer (Ex_13b / big_word_club)
+##
+## Same formula and data cleaning as
+## demo("Ex_13b_rLMM_estimated_dispersion_known_vcov_BigWordClub_PartVI").
+## Requires suggested package bayesrules.
+
+if (requireNamespace("bayesrules", quietly = TRUE)) {
+  data(big_word_club, package = "bayesrules")
+
+  dat <- big_word_club
+  dat$school_id <- factor(dat$school_id)
+  dat <- subset(
+    dat,
+    !is.na(score_ppvt) &
+      !is.na(invalid_ppvt) & invalid_ppvt == 0L &
+      complete.cases(dat[, c(
+        "score_ppvt", "distracted_a1", "distracted_ppvt",
+        "private_school", "title1", "free_reduced_lunch", "school_id"
+      )])
+  )
+
+  form_lmer <- score_ppvt ~
+    private_school + title1 + free_reduced_lunch +
+    distracted_ppvt + distracted_a1 +
+    free_reduced_lunch:distracted_a1 +
+    (1 + distracted_ppvt + distracted_a1 || school_id)
+
+  ## Default: design matrices + reference lmer + identifiability
+  design <- model_setup(form_lmer, data = dat)
+  print(design)
+
+  ## Full-rank filter (same as Ex_13b before prior setup / sampling)
+  full_rank <- names(design$groupef.rank)[design$groupef.rank]
+  dat_fr <- subset(dat, school_id \%in\% full_rank)
+  dat_fr$school_id <- droplevels(dat_fr$school_id)
+  design_fr <- model_setup(form_lmer, data = dat_fr)
+  stopifnot(all(design_fr$groupef.rank))
+  print(design_fr)
+
+  ## Variation: design only (no reference merMod fit)
+  design_only <- model_setup(form_lmer, data = dat_fr, fit_mer = FALSE)
+  stopifnot(is.null(design_only$lmer))
+  names(design_only$W)
+}
+}
 \seealso{
-\code{\link[lmebayesCore]{check_identifiability}},
-\code{\link[lmebayesCore]{extract_re_hyper_matrices}},
-\code{\link[lmebayesCore]{lmerb_default_vcov_formula}},
-\code{\link[lmebayesCore]{extract_lmer_variance_components}}
+\code{\link[glmbayesCore]{check_identifiability}},
+\code{\link[glmbayesCore]{extract_re_hyper_matrices}}
 }
