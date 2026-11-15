@@ -131,6 +131,10 @@
 #'   then the \emph{minimum} number of iterations required to converge to
 #'   that hypothetical multivariate normal approximation -- a lower bound
 #'   for the true (non-normal) posterior, not a guarantee.
+#' @param rwt Ridge weight in \code{(0, 1]}, default \code{0.01}. Passed to
+#'   \code{\link[lmebayesCore]{rglmerb}} and stored on the returned object.
+#'   For a non-Gaussian family it sets the main-stage sweep count. The
+#'   likelihood draw is unchanged.
 #' @param mode_gap_max Maximum per-coordinate mode--mean gap (in posterior
 #'   standard deviation units) used to calibrate pilot inner sweeps
 #'   (default \code{1.0}).  Applies only to non-Gaussian families
@@ -173,7 +177,10 @@
 #'   \code{\link[glmmTMB]{glmmTMB}} fit), \code{fixef.init} (main-chain start from
 #'   pilot colMeans when a pilot runs; \code{NULL} when no pilot runs),
 #'   \code{pilot_chisq} (Hotelling chi-squared test of
-#'   pilot mean vs ICM mode), \code{gap_tol}, and \code{mode_gap_max}.
+#'   pilot mean vs ICM mode), \code{gap_tol}, \code{mode_gap_max}, and
+#'   \code{rwt} (the ridge weight passed to \code{\link[lmebayesCore]{rglmerb}};
+#'   for a non-Gaussian family it sets the main-stage sweep count and is
+#'   not applied to the likelihood).
 #' @references
 #' Nygren, K. (2020). \emph{On the total variation distance between multivariate
 #' normal densities with applications to two-block Gibbs samplers.}
@@ -205,6 +212,7 @@ glmerb <- function(
     gap_tol = 0.0196,
     mode_gap_max = 1.0,
     tv_tol = 0.01,
+    rwt = 0.01,
     simulate = TRUE,
     REML = TRUE,
     control = NULL,
@@ -340,6 +348,7 @@ glmerb <- function(
     dispprior_list = dispersion_ranef,
     gap_tol        = gap_tol,
     tv_tol         = tv_tol,
+    rwt            = rwt,
     mode_gap_max   = mode_gap_max,
     collect_block1 = TRUE,
     verbose        = TRUE,
@@ -394,6 +403,7 @@ glmerb <- function(
     pilot                 = sampler$pilot,
     gap_tol               = gap_tol,
     mode_gap_max          = mode_gap_max,
+    rwt                   = sampler$rwt,
     convergence           = sampler$convergence,
     sweep_history         = list(
       pilot = if (run_pilot) sampler$pilot$draws$sweep_history else NULL,

@@ -27,13 +27,13 @@ rlmerb(
 \code{m_convergence} inner Gibbs sweeps). Required when
 \code{simulate = TRUE}; ignored when \code{simulate = FALSE}.}
 
-\item{design}{A \code{model_setup} object (from \code{\link[lmebayesCore]{model_setup}})
+\item{design}{A \code{model_setup} object (from \code{\link[glmbayesCore]{model_setup}})
 supplying \code{y}, \code{D}, \code{group}, \code{W},
 \code{group_name}, and \code{groupef.names}.}
 
 \item{pfamily_list}{Named list of Block~2 \code{pfamily} objects, one per
 random-effect coefficient in \code{design$groupef.names} (same as
-\code{\link[lmebayesCore]{rLMMNormal_reg}}).}
+\code{\link[glmbayesCore]{rLMMNormal_reg}}).}
 
 \item{dispprior_list}{Block~1 observation-dispersion prior, in the same
 shapes accepted by the \code{rLMM*} engines: \code{list(dispersion = )}
@@ -43,9 +43,9 @@ list of \code{dGamma()} pfamilies (per-group ING). A bare positive
 numeric scalar/vector is also accepted (treated as fixed dispersion).}
 
 \item{offset, weights}{Observation offset and prior weights, as in
-\code{\link[lmebayesCore]{rLMMNormal_reg}} (\code{offset = NULL}, \code{weights = 1}).
+\code{\link[glmbayesCore]{rLMMNormal_reg}} (\code{offset = NULL}, \code{weights = 1}).
 When omitted, inherit \code{design$offset} / \code{design$weights} from
-\code{\link[lmebayesCore]{model_setup}} if present. Explicit values always override
+\code{\link[glmbayesCore]{model_setup}} if present. Explicit values always override
 the design. Echoed on the fit as \code{prior.weights} / \code{offset} /
 \code{offset2}; not yet used in Gibbs sweeps.}
 
@@ -83,16 +83,16 @@ the fit. Default \code{FALSE}. Ignored when \code{simulate = FALSE}.}
 known-variance-components route (scalar or per-group fixed
 \code{dispprior_list}, all population \code{dNormal()}): \code{"DEFAULT"}
 draws directly from the exact multivariate-normal posterior via
-\code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov_iid}} (no Gibbs sweeps, no
+\code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov_iid}} (no Gibbs sweeps, no
 burn-in); \code{"TWO_BLOCK_GIBBS"} forces two-block Gibbs sampling
-(\code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov_two_bg}}) instead. Every other
+(\code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov_two_bg}}) instead. Every other
 route (\code{dGamma()}/\code{dIndependent_Normal_Gamma} components,
 variance components estimated) only supports two-block Gibbs, so both
 values behave identically there. Ignored when \code{simulate = FALSE}.}
 
 \item{simulate}{Logical (default \code{TRUE}). When \code{TRUE}, draw
 posterior samples. When \code{FALSE}, return point estimates only via
-\code{\link[lmebayesCore]{rlmerb_point}} (no MCMC).}
+\code{\link[glmbayesCore]{rlmerb_point}} (no MCMC).}
 }
 \value{
 An object of class \code{c("rlmerb", "list")}. Each draw slot holds
@@ -157,7 +157,7 @@ When \code{simulate = FALSE}, every draw and convergence slot is
 \description{
 \code{rlmerb} draws from the posterior of a Bayesian linear mixed model
 with a single grouping factor and uncorrelated random effects, given a
-design from \code{\link[lmebayesCore]{model_setup}} and priors for the population level
+design from \code{\link[glmbayesCore]{model_setup}} and priors for the population level
 (\code{pfamily_list}) and the residual variance (\code{dispprior_list}).
 }
 \details{
@@ -169,7 +169,7 @@ iid sample rather than like an MCMC trace.
 
 This is the matrix-level interface. For a formula interface, use
 \code{lmerb()} in \pkg{lmebayes}. The Poisson/binomial/Gamma counterpart
-is \code{\link[lmebayesCore]{rglmerb}}, and the non-hierarchical analogue is
+is \code{rglmerb()} in \pkg{lmebayesCore}, and the non-hierarchical analogue is
 \code{\link[glmbayesCore]{rlmb}}.
 \subsection{The model being estimated}{
 
@@ -199,7 +199,7 @@ practical consequence is that \code{groupef} holds \eqn{\beta_j} directly
 (comparable to \code{lme4::coef()}), not \eqn{b_j}.
 
 \eqn{\Psi} is diagonal, \eqn{\Psi = \mathrm{diag}(\tau^2_1, \ldots,
-\tau^2_{p_{re}})}, because \code{\link[lmebayesCore]{model_setup}} accepts only
+\tau^2_{p_{re}})}, because \code{\link[glmbayesCore]{model_setup}} accepts only
 uncorrelated (\code{||}) random-effect terms and a single grouping factor.
 There is no random-effect correlation parameter to estimate.
 }
@@ -209,11 +209,10 @@ There is no random-effect correlation parameter to estimate.
 Three arguments carry the statistical content; the rest are controls.
 
 \describe{
-\item{\code{design}}{A \code{\link[lmebayesCore]{model_setup}} object, which fixes
+\item{\code{design}}{A \code{\link[glmbayesCore]{model_setup}} object, which fixes
 \eqn{y}, \eqn{D_j}, the grouping factor, and the level-2 design
 \eqn{\mathcal{W}_j}. It also reports whether the data can identify
-the model at all; see
-\code{vignette("Chapter-B08", package = "lmebayesCore")}.}
+the model at all (lmebayesCore vignette Chapter-B08).}
 \item{\code{pfamily_list}}{The prior on the population level, one
 component per random-effect coefficient. This is where you declare
 whether the between-group variance \eqn{\tau^2_k} is
@@ -228,18 +227,16 @@ a separate \eqn{\sigma^2_j} per group.}
 }
 
 Both priors are normally produced from one
-\code{\link[lmebayesCore]{Prior_Setup_GLMM}} object, via \code{\link[lmebayesCore]{pfamily_list}()}
-and either \code{ps$group.dispersion} or \code{\link[lmebayesCore]{dGamma_list}(ps)}.
+\code{\link[glmbayesCore]{Prior_Setup_GLMM}} object, via \code{\link[glmbayesCore]{pfamily_list}()}
+and either \code{ps$group.dispersion} or \code{\link[glmbayesCore]{dGamma_list}(ps)}.
 
 Those two choices are also what determine which internal engine runs.
 You never name an engine; it follows from the priors. The statistically
 meaningful consequence is that when \eqn{\sigma^2} is fixed and every
 component is \code{dNormal}, the posterior is exactly multivariate
 normal and can be sampled directly; every other combination requires
-iterative sampling. See
-\code{vignette("Chapter-B01", package = "lmebayesCore")} for the full
-mapping and \code{vignette("Chapter-B04", package = "lmebayesCore")}
-for the exact route.
+iterative sampling. The lmebayesCore vignettes Chapter-B01 and
+Chapter-B04 map those prior choices onto the exact route.
 }
 
 \subsection{What the returned draws are}{
@@ -277,9 +274,8 @@ the draws are exact rather than approximate: \code{m_convergence} is
 \code{1} and no approximation is involved.
 
 How \code{m_convergence} is derived, and what to do when a warning
-reports strong cross-block coupling, is covered in
-\code{vignette("Chapter-B02", package = "lmebayesCore")} and
-\code{vignette("Chapter-B03", package = "lmebayesCore")}.
+reports strong cross-block coupling, is covered in the lmebayesCore
+vignettes Chapter-B02 and Chapter-B03.
 }
 
 \subsection{Point estimates without sampling}{
@@ -294,11 +290,11 @@ which is why it is always computed.
 }
 }
 \seealso{
-\code{\link[lmebayesCore]{rglmerb}}, \code{\link[lmebayesCore]{rlmerb_point}},
-\code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}},
-\code{\link[lmebayesCore]{rLMMNormal_reg_estimated_vcov}},
-\code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_known_vcov}},
-\code{\link[lmebayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}},
-\code{\link[lmebayesCore]{Prior_Setup_GLMM}},
+\code{rglmerb()} in \pkg{lmebayesCore}, \code{\link[glmbayesCore]{rlmerb_point}},
+\code{\link[glmbayesCore]{rLMMNormal_reg_known_vcov}},
+\code{\link[glmbayesCore]{rLMMNormal_reg_estimated_vcov}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg_known_vcov}},
+\code{\link[glmbayesCore]{rLMMindepNormalGamma_reg_estimated_vcov}},
+\code{\link[glmbayesCore]{Prior_Setup_GLMM}},
 \code{\link[glmbayesCore]{rlmb}}
 }

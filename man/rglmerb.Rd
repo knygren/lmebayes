@@ -19,7 +19,8 @@ rglmerb(
   verbose = TRUE,
   progbar = FALSE,
   sim_method = "DEFAULT",
-  simulate = TRUE
+  simulate = TRUE,
+  rwt = 0.01
 )
 }
 \arguments{
@@ -74,6 +75,11 @@ Ignored when \code{simulate = FALSE}.}
 \item{simulate}{Logical (default \code{TRUE}). When \code{TRUE}, draw
 posterior samples. When \code{FALSE}, return point estimates only via
 \code{\link[lmebayesCore]{rglmerb_point}} (no MCMC).}
+
+\item{rwt}{Ridge weight in \code{(0, 1]}, default \code{0.01}. Stored on
+the returned object. For a non-Gaussian family it sets the main-stage
+sweep count through Corollary 5.1. The likelihood draw is unchanged.
+The Gaussian branch checks it and does not forward it.}
 }
 \value{
 An object of class \code{c("rglmerb", "list")}, with the same
@@ -98,7 +104,14 @@ only; absent for \code{poisson()} and \code{binomial()}.}
 \item{\code{m_convergence}, \code{convergence_info}}{Sweeps run per
 chain and the calibration behind that count (\code{method},
 \code{lambda_star}, \code{draw_engine},
-\code{sim_method_used}, \code{icm_info}).}
+\code{sim_method_used}, \code{icm_info}). A non-Gaussian model
+whose population priors are all \code{dNormal} reports
+\code{draw_engine = "rGLMM_sweep_cpp"} (compiled sweep). For a
+non-Gaussian family, \code{convergence_info$ridge} holds the Corollary 5.1
+count at curvature weights scaled by \code{rwt}, and that count
+is the main-stage length.}
+\item{\code{rwt}}{Ridge weight supplied to the call. Not yet applied
+to the likelihood or the sweep count.}
 \item{\code{pilot}}{Present when a pilot stage ran, holding its size
 \code{n}, the \code{chisq} calibration constant, and its
 \code{draws}. Diagnostic only --- these are not posterior draws.}

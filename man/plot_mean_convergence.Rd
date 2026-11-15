@@ -9,9 +9,9 @@ plot_mean_convergence(hist, ...)
 \arguments{
 \item{hist}{Object of class \code{"two_block_sweep_history"}, as carried
 by a fitted object's \code{sweep_history} (see
-\code{\link[lmebayesCore]{print.two_block_sweep_history}}).}
+\code{\link[glmbayesCore]{print.two_block_sweep_history}}).}
 
-\item{...}{Passed to methods; see \code{\link[lmebayesCore]{plot_mean_convergence.default}}.}
+\item{...}{Passed to methods; see \code{\link[glmbayesCore]{plot_mean_convergence.default}}.}
 }
 \value{
 \code{hist} invisibly.
@@ -20,7 +20,7 @@ by a fitted object's \code{sweep_history} (see
 Tracks convergence of the Block~2 fixed-effects (hyperparameter) posterior
 \emph{mean} across inner Gibbs sweeps as a single combined chart (all
 traces overlaid on one axis), the mean-side counterpart of
-\code{\link[lmebayesCore]{plot_var_convergence}}'s variance-side Claim~3 chart. Per the
+\code{\link[glmbayesCore]{plot_var_convergence}}'s variance-side Claim~3 chart. Per the
 two-block Gibbs ergodicity result's Claim~1, the cross-chain mean bias
 \eqn{E[\gamma^{(l)}] - \gamma^*} decays like \eqn{A^l} (linear in \code{l},
 vs. Claim~3's \eqn{A^{2l}} for variance). Each coefficient's per-sweep
@@ -52,7 +52,7 @@ Monte Carlo noise from genuine bias.
 \code{measurement_prior_list} are supplied (only possible when
 \eqn{\sigma^2} and the RE variance components are all fixed), and
 otherwise the empirical last-sweep mean.  As with
-\code{\link[lmebayesCore]{plot_var_convergence}}, the empirical fallback cannot detect a
+\code{\link[glmbayesCore]{plot_var_convergence}}, the empirical fallback cannot detect a
 run that never converged, because the reference is drawn from the same
 unconverged distribution.
 }
@@ -60,7 +60,7 @@ unconverged distribution.
 \subsection{Reading it alongside the variance chart}{
 
 This chart is the location-side counterpart of
-\code{\link[lmebayesCore]{plot_var_convergence}}, which tracks spread.  The variance
+\code{\link[glmbayesCore]{plot_var_convergence}}, which tracks spread.  The variance
 converges at twice the rate of the mean, so this is the slower --- and
 therefore the more informative --- of the two when deciding whether
 \code{m_convergence} is large enough.  A fit whose variance ratios have
@@ -72,13 +72,13 @@ begins at zero on Gaussian fits with fixed variance components: expect a
 flat chart from sweep 1 there.  Read a non-flat one as evidence that
 something upstream --- an estimated variance component, or a start at the
 mode rather than the mean --- has moved the starting point off the target
-mean.  \code{vignette("Chapter-B02", package = "lmebayesCore")} derives
+mean.  The lmebayesCore vignette Chapter-B02 derives
 the two rates.
 }
 
 \subsection{When there is nothing to plot}{
 
-As for \code{\link[lmebayesCore]{plot_var_convergence}}: the exact route runs no sweeps
+As for \code{\link[glmbayesCore]{plot_var_convergence}}: the exact route runs no sweeps
 to record, some Gaussian paths do not export per-sweep cross-chain
 statistics, and \code{whitened = TRUE} needs slots that only the
 sweep-recording engines populate.  See that topic, which also explains
@@ -86,6 +86,6 @@ how to obtain \code{n_chains} from a fitted object.
 }
 }
 \seealso{
-\code{\link[lmebayesCore]{plot_var_convergence}},
-\code{\link[lmebayesCore]{lmerb_posterior_mean}}
+\code{\link[glmbayesCore]{plot_var_convergence}},
+\code{\link[glmbayesCore]{lmerb_posterior_mean}}
 }

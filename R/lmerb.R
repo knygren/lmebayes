@@ -186,7 +186,7 @@
 #' @param contrasts Optional contrasts; passed to \code{model_setup}.
 #' @param devFunOnly If \code{TRUE}, return deviance function only; passed to \code{model_setup}.
 #' @param simulate Logical (default \code{TRUE}). Passed through to
-#'   \code{\link[lmebayesCore]{rlmerb}}. When \code{TRUE} the two-block Gibbs
+#'   \code{\link[glmbayesCore]{rlmerb}}. When \code{TRUE} the two-block Gibbs
 #'   sampler is run for \code{n} iterations and posterior draws are stored.
 #'   When \code{FALSE}, \code{rlmerb} returns fixed-VC plug-in point estimates
 #'   only (exact joint Gaussian posterior mean). Simulation-only fields
@@ -489,7 +489,7 @@ lmerb <- function(
 
   lmer_fit <- design$lmer
 
-  sampler <- lmebayesCore::rlmerb(
+  sampler <- glmbayesCore::rlmerb(
     n              = n,
     design         = design,
     pfamily_list   = pfamily_list,

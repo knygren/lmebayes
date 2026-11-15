@@ -159,7 +159,7 @@ behave identically there. See
 \code{\link[lmebayesCore]{rLMMNormal_reg_known_vcov}}.}
 
 \item{simulate}{Logical (default \code{TRUE}). Passed through to
-\code{\link[lmebayesCore]{rlmerb}}. When \code{TRUE} the two-block Gibbs
+\code{\link[glmbayesCore]{rlmerb}}. When \code{TRUE} the two-block Gibbs
 sampler is run for \code{n} iterations and posterior draws are stored.
 When \code{FALSE}, \code{rlmerb} returns fixed-VC plug-in point estimates
 only (exact joint Gaussian posterior mean). Simulation-only fields

@@ -16,6 +16,7 @@ glmerb(
   gap_tol = 0.0196,
   mode_gap_max = 1,
   tv_tol = 0.01,
+  rwt = 0.01,
   simulate = TRUE,
   REML = TRUE,
   control = NULL,
@@ -147,8 +148,13 @@ then the \emph{minimum} number of iterations required to converge to
 that hypothetical multivariate normal approximation -- a lower bound
 for the true (non-normal) posterior, not a guarantee.}
 
+\item{rwt}{Ridge weight in \code{(0, 1]}, default \code{0.01}. Passed to
+\code{\link[lmebayesCore]{rglmerb}} and stored on the returned object.
+For a non-Gaussian family it sets the main-stage sweep count. The
+likelihood draw is unchanged.}
+
 \item{simulate}{Logical (default \code{TRUE}). Passed through to
-\code{\link[lmebayesCore]{rlmerb}}. When \code{TRUE} the two-block Gibbs
+\code{\link[glmbayesCore]{rlmerb}}. When \code{TRUE} the two-block Gibbs
 sampler is run for \code{n} iterations and posterior draws are stored.
 When \code{FALSE}, \code{rlmerb} returns fixed-VC plug-in point estimates
 only (exact joint Gaussian posterior mean). Simulation-only fields
@@ -225,7 +231,10 @@ per-group dispersion, in which case the diagnostic-only
 \code{\link[glmmTMB]{glmmTMB}} fit), \code{fixef.init} (main-chain start from
 pilot colMeans when a pilot runs; \code{NULL} when no pilot runs),
 \code{pilot_chisq} (Hotelling chi-squared test of
-pilot mean vs ICM mode), \code{gap_tol}, and \code{mode_gap_max}.
+pilot mean vs ICM mode), \code{gap_tol}, \code{mode_gap_max}, and
+\code{rwt} (the ridge weight passed to \code{\link[lmebayesCore]{rglmerb}};
+for a non-Gaussian family it sets the main-stage sweep count and is
+not applied to the likelihood).
 }
 \description{
 Bayesian generalized linear mixed-effects model fit

@@ -4,16 +4,16 @@
 #' @export
 dGamma_list <- glmbayesCore::dGamma_list
 
-#' @inherit lmebayesCore::plot_mean_convergence title description details params return seealso
+#' @inherit glmbayesCore::plot_mean_convergence title description details params return seealso
 #' @param hist Object of class \code{"two_block_sweep_history"}, as carried
 #'   by a fitted object's \code{sweep_history} (see
-#'   \code{\link[lmebayesCore]{print.two_block_sweep_history}}).
+#'   \code{\link[glmbayesCore]{print.two_block_sweep_history}}).
 #' @export
-plot_mean_convergence <- lmebayesCore::plot_mean_convergence
+plot_mean_convergence <- glmbayesCore::plot_mean_convergence
 
-#' @inherit lmebayesCore::plot_var_convergence title description details params return seealso
+#' @inherit glmbayesCore::plot_var_convergence title description details params return seealso
 #' @export
-plot_var_convergence <- lmebayesCore::plot_var_convergence
+plot_var_convergence <- glmbayesCore::plot_var_convergence
 
 ## Replicate-chain and block Gibbs engines below rlmerb()/rglmerb() (e.g.
 ## rGLMM, rLMMNormal_reg, rNormalGLM_reg_group) are lmebayesCore-only; lmebayes
@@ -22,9 +22,9 @@ plot_var_convergence <- lmebayesCore::plot_var_convergence
 ## glmbayesCore namespace inside lmebayesCore's compiled code; they are not
 ## re-exported from lmebayes.
 
-#' @inherit lmebayesCore::rlmerb title description details params return seealso
+#' @inherit glmbayesCore::rlmerb title description details params return seealso
 #' @export
-rlmerb <- lmebayesCore::rlmerb
+rlmerb <- glmbayesCore::rlmerb
 
 #' @inherit lmebayesCore::rglmerb title description details params return seealso
 #' @export

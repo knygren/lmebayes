@@ -109,5 +109,5 @@ if (requireNamespace("bayesrules", quietly = TRUE)) {
 }
 \seealso{
 \code{\link[glmbayesCore]{dGamma}}, \code{\link[glmbayesCore]{Prior_Setup_GLMM}},
-\code{\link[glmbayesCore]{pfamily_list}}, \code{\link[lmebayesCore:rLMM_reg]{rLMM_reg}}
+\code{\link[glmbayesCore]{pfamily_list}}, \samp{rLMM_reg()}
 }

@@ -8,10 +8,10 @@ plot_var_convergence(hist, ...)
 }
 \arguments{
 \item{hist}{Object of class \code{"two_block_sweep_history"} (see
-\code{\link[lmebayesCore]{print.two_block_sweep_history}}). For \code{whitened = TRUE},
+\code{\link[glmbayesCore]{print.two_block_sweep_history}}). For \code{whitened = TRUE},
 \code{hist} must also carry \code{cov_by_sweep}/\code{coef_index}, which
 are only populated by sweeps-outer/chains-inner engines -- i.e. every
-engine driven by \code{\link[lmebayesCore]{rGLMM_sweep}}: the \verb{_run_with_pilot()}
+engine driven by \code{\link[glmbayesCore]{rGLMM_sweep}}: the \verb{_run_with_pilot()}
 family (\code{rLMMNormal_reg_estimated_vcov()},
 \code{rLMMindepNormalGamma_reg_known_vcov()},
 \code{rLMMindepNormalGamma_reg_estimated_vcov()}) and, as of the
@@ -20,7 +20,7 @@ family (\code{rLMMNormal_reg_estimated_vcov()},
 
 \item{...}{Passed to methods (e.g. \code{coef_focus}, \code{design},
 \code{whitened}, \code{n_chains}, ...; see below). Ignored by
-\code{\link[lmebayesCore]{plot_var_convergence.default}} beyond the documented
+\code{\link[glmbayesCore]{plot_var_convergence.default}} beyond the documented
 formals.}
 }
 \value{
@@ -71,7 +71,7 @@ the exact reference whenever the model allows it.
 \subsection{Reading it alongside the mean chart}{
 
 Location and spread converge at different speeds, and the two plotting
-functions separate them: \code{\link[lmebayesCore]{plot_mean_convergence}} tracks the
+functions separate them: \code{\link[glmbayesCore]{plot_mean_convergence}} tracks the
 mean, \code{plot_var_convergence} the variance.  The variance converges
 at twice the rate, so the mean chart settles later and is usually the one
 that decides whether the sweep budget is adequate.  A run whose variance
@@ -80,8 +80,8 @@ converged in spread but not in location.
 
 Because every chain starts at the posterior mean, the mean chart is flat
 from sweep 1 on well-behaved Gaussian fits, leaving the variance chart to
-carry the information.  \code{vignette("Chapter-B02", package =
-"lmebayesCore")} derives the two rates.
+carry the information.  The lmebayesCore vignette Chapter-B02 derives
+the two rates.
 }
 
 \subsection{When there is nothing to plot}{
@@ -117,6 +117,6 @@ passed to the \verb{_run_with_pilot()} call); for the pilot-stage history
 }
 }
 \seealso{
-\code{\link[lmebayesCore]{plot_mean_convergence}},
-\code{\link[lmebayesCore]{lmerb_posterior_covariance}}
+\code{\link[glmbayesCore]{plot_mean_convergence}},
+\code{\link[glmbayesCore]{lmerb_posterior_covariance}}
 }
