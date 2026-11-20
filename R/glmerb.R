@@ -180,7 +180,17 @@
 #'   pilot mean vs ICM mode), \code{gap_tol}, \code{mode_gap_max}, and
 #'   \code{rwt} (the ridge weight passed to \code{\link[lmebayesCore]{rglmerb}};
 #'   for a non-Gaussian family it sets the main-stage sweep count and is
-#'   not applied to the likelihood).
+#'   not applied to the likelihood). For a non-Gaussian family with draws,
+#'   also \code{Dbar}, \code{Dthetabar}, \code{pD} and \code{DIC}: the DIC of
+#'   the joint posterior, with deviance \eqn{-2 \log p(y \mid b)} (the
+#'   likelihood depends on the population effects and variances only through
+#'   the group effects \eqn{b}). \code{Dbar} is its mean over the draws,
+#'   \code{Dthetabar} its value at the posterior means of \eqn{b},
+#'   \code{pD = Dbar - Dthetabar} and \code{DIC = pD + Dbar}, as for
+#'   \code{\link[glmbayes]{glmb}}. The draws come from the ridged posterior
+#'   at \code{rwt}, so DIC inherits the distance reported by the
+#'   \code{[ridge]} message. Compare DIC only across fits to the same
+#'   response.
 #' @references
 #' Nygren, K. (2020). \emph{On the total variation distance between multivariate
 #' normal densities with applications to two-block Gibbs samplers.}
@@ -415,7 +425,82 @@ glmerb <- function(
     out$tau2.mode <- sampler$tau2.mode
     out$group.dispersion.mode <- sampler$group.dispersion.mode
   }
+  dic <- .glmerb_dic(out)
+  if (!is.null(dic)) {
+    out[names(dic)] <- dic
+  }
   structure(out, class = c("glmerb", "list"))
+}
+
+#' DIC from the joint posterior draws of a glmerb fit
+#'
+#' The likelihood depends on the population effects and variances only
+#' through the group effects, so the deviance is \code{2 * f1} summed over
+#' groups, with \code{f1} the family negative log-likelihood from
+#' \code{glmbfamfunc}. \code{Dbar} averages it over each group's draws and
+#' \code{Dthetabar} evaluates it at each group's posterior mean, as in
+#' \code{DIC_Info}. \code{f1} is called with \code{b = 1} on the stacked
+#' linear predictor, since a matrix \code{b} is not aligned with \code{y}.
+#' @param fit A \code{glmerb} output list (class not required).
+#' @return \code{list(pD, Dbar, Dthetabar, DIC)}, or \code{NULL} without
+#'   draws or for \code{family = gaussian()}.
+#' @keywords internal
+#' @noRd
+.glmerb_dic <- function(fit) {
+  draws <- fit$groupef
+  if (is.null(draws) || identical(fit$family$family, "gaussian")) {
+    return(NULL)
+  }
+  design <- fit$model_setup
+  re_names <- design$groupef.names
+  grp_col <- design$group_name
+  D <- as.matrix(design$D)[, re_names, drop = FALSE]
+  y <- as.numeric(design$y)
+  n_obs <- length(y)
+  alpha <- if (is.null(design$offset)) numeric(n_obs) else as.numeric(design$offset)
+  wt <- if (is.null(design$weights)) rep(1, n_obs) else as.numeric(design$weights)
+  if (identical(fit$family$family, "Gamma")) {
+    disp <- fit$prior$group.dispersion
+    if (is.null(disp)) disp <- 1
+    if (length(disp) != 1L) {
+      stop("DIC for Gamma needs a single fixed groups dispersion.", call. = FALSE)
+    }
+    wt <- wt / as.numeric(disp)
+  }
+  f1 <- glmbayesCore::glmbfamfunc(fit$family)$f1
+  g_obs <- as.character(design$group)
+  g_draw <- as.character(draws[[grp_col]])
+  Dbar <- 0
+  Dthetabar <- 0
+  for (lev in unique(g_obs)) {
+    r <- which(g_obs == lev)
+    B <- t(as.matrix(draws[g_draw == lev, re_names, drop = FALSE]))
+    m <- ncol(B)
+    if (m == 0L) {
+      stop("No draws for group '", lev, "'.", call. = FALSE)
+    }
+    Dr <- D[r, , drop = FALSE]
+    eta <- Dr %*% B
+    Dbar <- Dbar + 2 * f1(b = 1, y = rep(y[r], m), x = matrix(as.vector(eta)),
+                          alpha = rep(alpha[r], m), wt = rep(wt[r], m)) / m
+    eta_bar <- Dr %*% rowMeans(B)
+    Dthetabar <- Dthetabar + 2 * f1(b = 1, y = y[r], x = eta_bar,
+                                    alpha = alpha[r], wt = wt[r])
+  }
+  pD <- Dbar - Dthetabar
+  list(pD = pD, Dbar = Dbar, Dthetabar = Dthetabar, DIC = pD + Dbar)
+}
+
+#' @rdname glmerb
+#' @method extractAIC glmerb
+#' @param fit A \code{glmerb} object.
+#' @return For \code{extractAIC.glmerb()} (and \code{extractDIC()}): named
+#'   numeric vector \code{c(pD, DIC)}, or \code{NULL} when the fit has no
+#'   DIC (\code{simulate = FALSE} or \code{family = gaussian()}).
+#' @importFrom stats extractAIC
+#' @export
+extractAIC.glmerb <- function(fit, ...) {
+  c(pD = fit$pD, DIC = fit$DIC)
 }
 
 #' Print posterior estimates by RE component for a glmerb / lmerb fit

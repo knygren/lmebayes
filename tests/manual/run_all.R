@@ -10,7 +10,8 @@ root <- Sys.getenv("LMEBAYES_ROOT", unset = normalizePath(getwd(), winslash = "/
 scripts <- c(
   file.path(root, "tests/manual/test_lmerb_mer_re_validation.R"),
   file.path(root, "tests/manual/test_lmerb_dgamma_mer_re_validation.R"),
-  file.path(root, "tests/manual/test_glmerb_mer_re_validation.R")
+  file.path(root, "tests/manual/test_glmerb_mer_re_validation.R"),
+  file.path(root, "tests/manual/test_glmerb_airbnb_small_dic.R")
 )
 
 for (scr in scripts) {

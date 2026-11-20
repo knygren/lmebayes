@@ -8,7 +8,10 @@
 #'
 #' @param object An object of class \code{"lmerb"} or \code{"glmerb"}.
 #' @param groups Optional character vector of grouping levels for which to
-#'   include a per-group Block~1 (random effects) detail table.  When
+#'   include a per-group Block~1 (random effects) detail table: for each
+#'   random-effect coefficient the posterior mode and, when simulated, the
+#'   MCMC mean, SD, 2.5\%/97.5\% quantiles, skewness and excess kurtosis.
+#'   When
 #'   \code{NULL} (default), only an aggregate \code{ranef_overview} is
 #'   returned.
 #' @param digits Number of significant digits for printing.
@@ -41,6 +44,8 @@
 #'   for observation-level \eqn{\sigma^2} when \code{dispersion_ranef} is
 #'   supplied (same columns as the \eqn{\tau^2_k} rows; not used for
 #'   per-group \code{gamma_list} priors --- see \code{\link{summary_sigma2}}),
+#'   \code{dic} (named numeric \code{c(Dbar, pD, DIC)} from a \code{glmerb}
+#'   fit with draws, see \code{\link{glmerb}}; \code{NULL} otherwise),
 #'   and optionally \code{ranef_groups}.
 #' @seealso \code{\link{lmerb}}, \code{\link{glmerb}}, \code{\link{print.lmerb}},
 #'   \code{\link{summary_sigma2}}, \code{\link[glmbayes]{summary.glmb}},
@@ -96,7 +101,12 @@ summary.lmerb <- function(object, groups = NULL, digits = max(3L, getOption("dig
       object, simulated = simulated
     ),
     ranef.iters.mean = if (simulated) object$groupef.iters.mean else NULL,
-    sim_method_used  = object$sim_method_used
+    sim_method_used  = object$sim_method_used,
+    dic              = if (!is.null(object$DIC)) {
+      c(Dbar = object$Dbar, pD = object$pD, DIC = object$DIC)
+    } else {
+      NULL
+    }
   )
 
   if (!is.null(groups) && length(groups) > 0L) {
@@ -214,6 +224,13 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
   cat("\n")
 
+  if (!is.null(x$dic)) {
+    cat(sprintf("Expected deviance (Dbar):             %.2f\n", x$dic[["Dbar"]]))
+    cat(sprintf("Effective number of parameters (pD):  %.2f\n", x$dic[["pD"]]))
+    cat(sprintf("DIC:                                  %.2f\n", x$dic[["DIC"]]))
+    cat("  (deviance -2 log p(y | b) over the joint posterior draws (rwt-ridged))\n\n")
+  }
+
   # --- Block 1 overview ---
   cat("=== Block 1: Random effects (group-level) ===\n\n")
   cat("Summary of posterior mode (ranef.mode) across groups:\n\n")
@@ -231,9 +248,8 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
 
   if (!is.null(x$ranef_groups)) {
-    cat("Per-group detail (requested levels):\n\n")
-    print(round(x$ranef_groups, digits))
-    cat("\n")
+    cat("Per-group detail (requested levels):\n")
+    .lmerb_print_ranef_groups(x$ranef_groups, digits = digits, n = x$n)
   } else {
     cat(
       "Per-group random effects: inspect fit$groupef.mode or fit$groupef,\n",
@@ -259,6 +275,35 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
   out[num_cols] <- lapply(out[num_cols], round, digits = digits)
   print(out, right = TRUE)
   invisible(out)
+}
+
+## One table per random-effect coefficient, so the width stays the same
+## however many coefficients the model has. Coefficients are read from the
+## "<coef>.mode" columns of .lmerb_ranef_groups_detail(). n is the number of
+## draws, for the Monte Carlo SEs of skew and ex_kurt under normality.
+#' @keywords internal
+.lmerb_print_ranef_groups <- function(tab, digits, n = NULL) {
+  mode_cols <- grep("\\.mode$", names(tab), value = TRUE)
+  for (mc in mode_cols) {
+    k <- sub("\\.mode$", "", mc)
+    stats_cols <- intersect(
+      paste0(k, c(".mode", ".mean", ".sd", ".2.5%", ".97.5%",
+                  ".skew", ".ex_kurt")),
+      names(tab)
+    )
+    sub_tab <- tab[, c("group", stats_cols), drop = FALSE]
+    names(sub_tab) <- c("group", substring(stats_cols, nchar(k) + 2L))
+    cat("\n", k, ":\n", sep = "")
+    .lmerb_print_summary_table(sub_tab, digits = digits)
+  }
+  if (!is.null(n) && n > 0L && any(grepl("\\.skew$", names(tab)))) {
+    cat(sprintf(paste0(
+      "\n  ex_kurt is excess kurtosis (0 for a normal). Monte Carlo SEs at ",
+      "%d draws, if normal: skew %.2f, ex_kurt %.2f.\n"),
+      as.integer(n), sqrt(6 / n), sqrt(24 / n)))
+  }
+  cat("\n")
+  invisible(tab)
 }
 
 #' Map Block~2 hyper parameter to \code{lmer}/\code{glmer} fixed-effect name
@@ -1294,13 +1339,20 @@ print.summary.lmerb <- function(x, digits = max(3L, getOption("digits") - 3L), .
       t(mode_vals),
       check.names = FALSE
     )
-    names(out) <- c("group", re_names)
+    names(out) <- c("group", paste0(re_names, ".mode"))
 
     if (simulated) {
       idx <- object$groupef[[grp_col]] == lev
       for (k in re_names) {
         out[[paste0(k, ".mean")]] <- mean(object$groupef[idx, k])
         out[[paste0(k, ".sd")]]   <- stats::sd(object$groupef[idx, k])
+        q <- stats::quantile(object$groupef[idx, k], c(0.025, 0.975))
+        out[[paste0(k, ".2.5%")]]  <- q[[1L]]
+        out[[paste0(k, ".97.5%")]] <- q[[2L]]
+        z  <- object$groupef[idx, k] - mean(object$groupef[idx, k])
+        m2 <- mean(z^2)
+        out[[paste0(k, ".skew")]]    <- mean(z^3) / m2^1.5
+        out[[paste0(k, ".ex_kurt")]] <- mean(z^4) / m2^2 - 3
       }
     }
     out

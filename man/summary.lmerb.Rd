@@ -16,7 +16,10 @@
 \item{object}{An object of class \code{"lmerb"} or \code{"glmerb"}.}
 
 \item{groups}{Optional character vector of grouping levels for which to
-include a per-group Block~1 (random effects) detail table.  When
+include a per-group Block~1 (random effects) detail table: for each
+random-effect coefficient the posterior mode and, when simulated, the
+MCMC mean, SD, 2.5\\%/97.5\\% quantiles, skewness and excess kurtosis.
+When
 \code{NULL} (default), only an aggregate \code{ranef_overview} is
 returned.}
 
@@ -55,6 +58,8 @@ sqrt(tau^2) draws vs \code{lmer}/\code{glmer SD}), a \code{Residual} row
 for observation-level \eqn{\sigma^2} when \code{dispersion_ranef} is
 supplied (same columns as the \eqn{\tau^2_k} rows; not used for
 per-group \code{gamma_list} priors --- see \code{\link{summary_sigma2}}),
+\code{dic} (named numeric \code{c(Dbar, pD, DIC)} from a \code{glmerb}
+fit with draws, see \code{\link{glmerb}}; \code{NULL} otherwise),
 and optionally \code{ranef_groups}.
 }
 \description{

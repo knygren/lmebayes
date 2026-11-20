@@ -78,8 +78,15 @@ posterior samples. When \code{FALSE}, return point estimates only via
 
 \item{rwt}{Ridge weight in \code{(0, 1]}, default \code{0.01}. Stored on
 the returned object. For a non-Gaussian family it sets the main-stage
-sweep count through Corollary 5.1. The likelihood draw is unchanged.
-The Gaussian branch checks it and does not forward it.}
+sweep count through Corollary 5.1. When every population prior is
+\code{dNormal} (compiled sweep), the group likelihood in both stages is
+raised to the power \code{1 - rwt}. For Poisson and Gamma the ridge term
+(\code{rwt} times the quadratic expansion of each group log-likelihood
+at the posterior mode) is added to the group prior, which completes the
+modified target; binomial does not get the ridge term yet. \code{rwt}
+must be below 1 there. Other non-Gaussian models leave the likelihood
+unchanged. The Gaussian
+branch checks it and does not forward it.}
 }
 \value{
 An object of class \code{c("rglmerb", "list")}, with the same
@@ -110,8 +117,8 @@ whose population priors are all \code{dNormal} reports
 non-Gaussian family, \code{convergence_info$ridge} holds the Corollary 5.1
 count at curvature weights scaled by \code{rwt}, and that count
 is the main-stage length.}
-\item{\code{rwt}}{Ridge weight supplied to the call. Not yet applied
-to the likelihood or the sweep count.}
+\item{\code{rwt}}{Ridge weight supplied to the call (see the
+\code{rwt} argument for where it is applied).}
 \item{\code{pilot}}{Present when a pilot stage ran, holding its size
 \code{n}, the \code{chisq} calibration constant, and its
 \code{draws}. Diagnostic only --- these are not posterior draws.}

@@ -3,6 +3,7 @@
 \name{glmerb}
 \alias{glmerb}
 \alias{print.glmerb}
+\alias{extractAIC.glmerb}
 \title{Fit a Bayesian generalized linear mixed-effects model (GLMM) to data, via two-Block Gibbs sampling}
 \usage{
 glmerb(
@@ -33,6 +34,8 @@ glmerb(
   sim_method = "DEFAULT",
   ...
 )
+
+\method{extractAIC}{glmerb}(fit, ...)
 
 \method{print}{glmerb}(
   x,
@@ -206,6 +209,8 @@ identically there.}
 
 \item{...}{Reserved for future use.}
 
+\item{fit}{A \code{glmerb} object.}
+
 \item{x}{Object of class \code{"glmerb"}.}
 
 \item{digits}{Number of significant digits to use when printing.}
@@ -234,7 +239,21 @@ pilot colMeans when a pilot runs; \code{NULL} when no pilot runs),
 pilot mean vs ICM mode), \code{gap_tol}, \code{mode_gap_max}, and
 \code{rwt} (the ridge weight passed to \code{\link[lmebayesCore]{rglmerb}};
 for a non-Gaussian family it sets the main-stage sweep count and is
-not applied to the likelihood).
+not applied to the likelihood). For a non-Gaussian family with draws,
+also \code{Dbar}, \code{Dthetabar}, \code{pD} and \code{DIC}: the DIC of
+the joint posterior, with deviance \eqn{-2 \log p(y \mid b)} (the
+likelihood depends on the population effects and variances only through
+the group effects \eqn{b}). \code{Dbar} is its mean over the draws,
+\code{Dthetabar} its value at the posterior means of \eqn{b},
+\code{pD = Dbar - Dthetabar} and \code{DIC = pD + Dbar}, as for
+\code{\link[glmbayes]{glmb}}. The draws come from the ridged posterior
+at \code{rwt}, so DIC inherits the distance reported by the
+\code{[ridge]} message. Compare DIC only across fits to the same
+response.
+
+For \code{extractAIC.glmerb()} (and \code{extractDIC()}): named
+numeric vector \code{c(pD, DIC)}, or \code{NULL} when the fit has no
+DIC (\code{simulate = FALSE} or \code{family = gaussian()}).
 }
 \description{
 Bayesian generalized linear mixed-effects model fit

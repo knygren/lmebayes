@@ -17,6 +17,7 @@ Occasional regression scripts for **major algorithm / sampler changes**. These a
 | glmerb §1 Poisson (full airbnb) | 3000 | `rGLMM_reg_known_vcov` |
 | glmerb §1 Poisson (`small` → airbnb_small) | 1000 | `rGLMM_reg_known_vcov` |
 | glmerb §2 ING (same airbnb) | 3000 / 1000 (`small`) | `rGLMM_reg_estimated_vcov` |
+| glmerb Poisson airbnb_small, ridge distance + DIC | 4000 (trailing arg sets `n`) | `rGLMM_reg_known_vcov` |
 
 Run from the **lmebayes package root** (reload after code changes):
 
@@ -39,6 +40,7 @@ Rscript tests/manual/test_lmerb_mer_re_validation.R
 Rscript tests/manual/test_lmerb_dgamma_mer_re_validation.R
 Rscript tests/manual/test_glmerb_mer_re_validation.R small   # both sections n=1000
 Rscript tests/manual/test_glmerb_mer_re_validation.R           # Poisson n=3000 + ING n=3000
+Rscript tests/manual/test_glmerb_airbnb_small_dic.R            # ridge distance + DIC, n=4000
 Rscript tests/manual/run_all.R small
 ```
 
@@ -49,6 +51,7 @@ Rscript tests/manual/run_all.R small
 | `test_lmerb_mer_re_validation.R` | known + ING LMM | Same Big Word Club model; §2 ING Block~2 only |
 | `test_lmerb_dgamma_mer_re_validation.R` | dGamma LMM + dGamma+ING | Same BWC model; dGamma σ² route only |
 | `test_glmerb_mer_re_validation.R` | known + ING GLMM | Block~2 vs ICM + RE cor (Poisson airbnb) |
+| `test_glmerb_airbnb_small_dic.R` | known GLMM | `reviews ~ walk_c + rating_c + (1 + rating_c \|\| neighborhood)`, `rwt = 0.01` set in the script: `[ridge]` message (Pareto k < 0.7), DIC vs `dpois()` recomputation, `extractDIC()`, summary DIC block |
 | `_bwc_lmerb_fixture.R` | (helper) | Shared BWC dat/form; drops rank-deficient `school_id` levels before prior setup |
 | `_lmerb_dgamma_fixture.R` | (helper) | dGamma `dispersion_ranef` builder |
 | `_block2_fixef_validate.R` | (helper) | Bind `lmebayes:::.validate_manual_block2_fixef` after `load_all()` |

@@ -153,6 +153,48 @@ for (kk in seq_along(re)) {
 check("sweep: iters", sw_r$iters, sw_c$iters)
 check("sweep: sweep_mean", sw_r$sweep_mean, sw_c$sweep_mean)
 check("sweep: sweep_cov", sw_r$sweep_cov, sw_c$sweep_cov)
+
+## Ridge weight, part 1: the C++ loop draws the groups block with weights
+## wt1 * (1 - rwt). The R loop gets the same weights through spec$wt1.
+## "+ 0" forces a copy; a plain assignment would share memory with spec$wt1
+## and would not detect an in-place change.
+wt1_before <- spec$wt1 + 0
+b_by_rwt <- list()
+for (rwt_test in c(0.25, 0.75)) {
+  cat("\nFull sweep at rwt =", rwt_test,
+      "(C++ scales the weights; R is given spec$wt1 * (1 - rwt))\n")
+  lbl <- paste0("rwt ", rwt_test, " sweep: ")
+  spec_rwt <- spec
+  spec_rwt$wt1 <- spec$wt1 * (1 - rwt_test)
+  sw_r_rwt <- get_ns(".two_block_sweep_r")(spec_rwt, state, n_sweeps,
+                                           use_mode = TRUE)
+  sw_c_rwt <- get_ns(".two_block_sweep_cpp")(
+    spec, state$b, state$fixef, state$iters, state$iters_ranef,
+    n_sweeps, TRUE, FALSE, "", rwt_test
+  )
+  check(paste0(lbl, "b"), sw_r_rwt$b, sw_c_rwt$b)
+  for (kk in seq_along(re)) {
+    check(paste0(lbl, "fixef ", re[kk]),
+          sw_r_rwt$fixef[[kk]], sw_c_rwt$fixef[[kk]])
+  }
+  check(paste0(lbl, "sweep_mean"), sw_r_rwt$sweep_mean, sw_c_rwt$sweep_mean)
+  check(paste0(lbl, "sweep_cov"), sw_r_rwt$sweep_cov, sw_c_rwt$sweep_cov)
+  b_by_rwt[[as.character(rwt_test)]] <- sw_c_rwt$b
+}
+check("spec$wt1 untouched by the C++ calls", wt1_before, spec$wt1)
+gap_rwt <- max(abs(b_by_rwt[["0.75"]] - b_by_rwt[["0.25"]]))
+cat(sprintf("  %-34s max |b(0.75) - b(0.25)| = %.3g (must be > 0)\n",
+            "rwt changes the group modes", gap_rwt))
+results[["rwt changes the group modes"]] <- gap_rwt > 1e-6
+bad_rwt <- tryCatch({
+  get_ns(".two_block_sweep_cpp")(
+    spec, state$b, state$fixef, state$iters, state$iters_ranef,
+    1L, TRUE, FALSE, "", 1
+  )
+  FALSE
+}, error = function(e) TRUE)
+cat(sprintf("  %-34s %s\n", "rwt = 1 rejected", bad_rwt))
+results[["rwt = 1 rejected"]] <- bad_rwt
 ## The dev observer (no tape, no record) must leave both loops unchanged.
 ob_r <- get_ns(".dev_two_block_sweep_replay")(spec, state, n_sweeps,
                                               use_mode = TRUE, engine = "r")
